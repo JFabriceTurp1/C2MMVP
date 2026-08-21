@@ -473,7 +473,8 @@ function editEvaluation(evaluationId){
     mode:"individual",
     targetStudents:[e.studentId],
     batchId:e.batchId||null,
-    attachment:e.attachment||null
+    attachment:e.attachment||null,
+    criterionAttachments:{...(e.criterionAttachments||{})}
   };
   page="eval";
   render();
@@ -482,7 +483,7 @@ function startEvaluation(){
 draft={
 title:"",date:new Date().toLocaleDateString("fr-FR"),place:"Centre",type:"TP",
 comps:["C1.1","C1.2","C1.3"],levels:{},obs:{},
-mode:"individual",targetStudents:[selectedStudent],attachment:null
+mode:"individual",targetStudents:[selectedStudent],attachment:null,criterionAttachments:{}
 };
 page="eval";render();
 }
@@ -510,6 +511,24 @@ function prepareGenericAttachment(file){return new Promise((resolve,reject)=>{co
 async function handleEvaluationAttachment(input){const file=input.files&&input.files[0];if(!file)return;try{if(file.size>15*1024*1024&&!file.type.startsWith("image/")){alert("Le fichier est trop volumineux. Limite : 15 Mo.");return}draft.attachment=file.type.startsWith("image/")?await prepareImageAttachment(file):await prepareGenericAttachment(file);render()}catch(err){alert("Impossible d’ajouter le fichier : "+err.message)}finally{input.value=""}}
 function removeEvaluationAttachment(){draft.attachment=null;render()}
 function attachmentHtml(a){if(!a)return "";const label=esc(a.name||"Pièce jointe"),href=a.dataUrl||"#";return attachmentIsImage(a)?`<div><img src="${href}" alt="${label}" style="max-width:220px;max-height:160px;border-radius:10px;display:block;margin-bottom:8px"><a href="${href}" target="_blank" rel="noopener">${label}</a> · ${formatFileSize(a.size)}</div>`:`<div><a href="${href}" target="_blank" rel="noopener">📎 ${label}</a> · ${formatFileSize(a.size)}</div>`}
+
+function criterionAttachmentKey(cid,i){return String(cid)+"-"+String(i);}
+function getCriterionAttachment(cid,i){return draft&&draft.criterionAttachments?draft.criterionAttachments[criterionAttachmentKey(cid,i)]||null:null;}
+async function handleCriterionAttachment(input,cid,i){
+  const file=input.files&&input.files[0]; if(!file)return;
+  try{
+    if(file.size>15*1024*1024&&!file.type.startsWith("image/")){alert("Le fichier est trop volumineux. Limite : 15 Mo.");return;}
+    if(!draft.criterionAttachments) draft.criterionAttachments={};
+    draft.criterionAttachments[criterionAttachmentKey(cid,i)]=file.type.startsWith("image/")?await prepareImageAttachment(file):await prepareGenericAttachment(file);
+    render();
+  }catch(err){alert("Impossible d’ajouter le fichier : "+err.message)}
+  finally{input.value=""}
+}
+function removeCriterionAttachment(cid,i){if(draft&&draft.criterionAttachments)delete draft.criterionAttachments[criterionAttachmentKey(cid,i)];render();}
+function criterionAttachmentHtml(cid,i){
+ const a=getCriterionAttachment(cid,i); if(!a)return `<div class="muted" style="margin-top:6px;font-size:12px">Aucune pièce jointe pour ce critère.</div>`;
+ return `<div style="margin-top:8px;padding:8px;border:1px solid #d8dee8;border-radius:8px;background:#fafbfc">${attachmentHtml(a)}<button class="secondary" type="button" onclick="removeCriterionAttachment('${esc(cid)}',${i})" style="margin-top:6px">🗑️ Retirer</button></div>`;
+}
 function evaluationPage(){
 setActive("eval");
 if(!draft){startEvaluation();return;}
@@ -586,26 +605,27 @@ if(!c)return "";
 const grouped=c.criteria.some(x=>typeof x==="object"&&x.group);
 const groups={};
 if(grouped)c.criteria.forEach((cr,i)=>(groups[cr.group]??=[]).push({...cr,i}));
+const renderCriterion=(cr,i)=>{
+  const key=id+"-"+i,val=draft.levels[key]||"";
+  return `<div class="criterion" style="border-top:1px solid #edf0f4;padding:14px 0">
+    <div class="criterion-text"><b>${i+1}.</b> ${esc(cr.text||cr)}</div>
+    <div class="levels">${["Non observé","À renforcer","Maîtrisé","Autonome"].map(v=>`<button class="level ${val===v?"sel":""}" onclick="setLevel('${key}','${v}')">${v}</button>`).join("")}</div>
+    <label>💬 Observation du critère</label>
+    <textarea placeholder="Observation éventuelle..." onchange="draft.obs['${key}']=this.value">${esc(draft.obs[key]||"")}</textarea>
+    <div style="margin-top:9px">
+      <label style="font-size:12px;font-weight:600">📎 Photo / fichier de ce critère</label>
+      <input type="file" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt" onchange="handleCriterionAttachment(this,'${esc(id)}',${i})" style="display:block;margin-top:5px;font-size:13px">
+      ${criterionAttachmentHtml(id,i)}
+    </div>
+  </div>`;
+};
 const content=grouped
  ? Object.entries(groups).map(([g,items])=>`
    <div class="c11-group">
      <div class="c11-group-title">${g} — ${esc(items[0].label)}</div>
-     ${items.map(cr=>{
-       const key=id+"-"+cr.i,val=draft.levels[key]||"";
-       return `<div class="c11-criterion">
-         <div class="c11-criterion-text"><b>${cr.i+1}.</b> ${esc(cr.text)}</div>
-         <div class="levels">${["Non observé","À renforcer","Maîtrisé","Autonome"].map(v=>`<button class="level ${val===v?"sel":""}" onclick="setLevel('${key}','${v}')">${v}</button>`).join("")}</div>
-         <label>Observation</label><textarea placeholder="Observation éventuelle..." onchange="draft.obs['${key}']=this.value">${esc(draft.obs[key]||"")}</textarea>
-       </div>`;
-     }).join("")}
+     ${items.map(cr=>renderCriterion(cr,cr.i)).join("")}
    </div>`).join("")
- : c.criteria.map((cr,i)=>{
-    const key=id+"-"+i,val=draft.levels[key]||"";
-    return `<div class="crit"><b>${i+1}. ${esc(cr.text||cr)}</b>
-      <div class="levels">${["Non observé","À renforcer","Maîtrisé","Autonome"].map(v=>`<button class="level ${val===v?"sel":""}" onclick="setLevel('${key}','${v}')">${v}</button>`).join("")}</div>
-      <label>Observation</label><textarea placeholder="Observation éventuelle..." onchange="draft.obs['${key}']=this.value">${esc(draft.obs[key]||"")}</textarea>
-    </div>`;
-  }).join("");
+ : c.criteria.map((cr,i)=>renderCriterion(cr,i)).join("");
 return `<div class="panel competence">
   <div class="row"><div><h2>${c.id} — ${esc(c.name)}</h2>${c.activity?`<div class="muted">${esc(c.activity)}</div>`:""}${c.level?`<div class="pill" style="margin-top:6px">${esc(c.level)}</div>`:""}</div><span class="pill">${c.criteria.length} critères</span></div>
   ${content}
@@ -647,6 +667,7 @@ if(draft.editId){
     levels:{...draft.levels},
     obs:{...draft.obs},
     attachment:draft.attachment||null,
+    criterionAttachments:{...(draft.criterionAttachments||{})},
     studentId:existing.studentId
   };
 
@@ -683,6 +704,7 @@ const evaluations = targets.map((studentId,idx)=>({
   levels:{...draft.levels},
   obs:{...draft.obs},
   attachment:draft.attachment||null,
+  criterionAttachments:{...(draft.criterionAttachments||{})},
   studentId,
   createdAt:Date.now()+idx,
   batchId
