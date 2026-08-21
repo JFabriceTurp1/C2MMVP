@@ -472,7 +472,8 @@ function editEvaluation(evaluationId){
     obs:{...(e.obs||{})},
     mode:"individual",
     targetStudents:[e.studentId],
-    batchId:e.batchId||null
+    batchId:e.batchId||null,
+    attachment:e.attachment||null
   };
   page="eval";
   render();
@@ -481,7 +482,7 @@ function startEvaluation(){
 draft={
 title:"",date:new Date().toLocaleDateString("fr-FR"),place:"Centre",type:"TP",
 comps:["C1.1","C1.2","C1.3"],levels:{},obs:{},
-mode:"individual",targetStudents:[selectedStudent]
+mode:"individual",targetStudents:[selectedStudent],attachment:null
 };
 page="eval";render();
 }
@@ -501,6 +502,14 @@ function displayDateValue(v){
   return v;
 }
 
+
+function formatFileSize(bytes){if(!bytes)return "";if(bytes<1024)return bytes+" o";if(bytes<1048576)return (bytes/1024).toFixed(0)+" Ko";return (bytes/1048576).toFixed(1)+" Mo";}
+function attachmentIsImage(a){return !!a&&String(a.type||"").startsWith("image/");}
+function prepareImageAttachment(file){return new Promise((resolve,reject)=>{const r=new FileReader();r.onerror=()=>reject(r.error||new Error("Lecture impossible"));r.onload=()=>{const img=new Image();img.onload=()=>{const max=1600,ratio=Math.min(1,max/Math.max(img.width,img.height)),c=document.createElement("canvas");c.width=Math.max(1,Math.round(img.width*ratio));c.height=Math.max(1,Math.round(img.height*ratio));c.getContext("2d").drawImage(img,0,0,c.width,c.height);c.toBlob(b=>{if(!b)return reject(new Error("Compression impossible"));const fr=new FileReader();fr.onload=()=>resolve({name:file.name||"photo.jpg",type:"image/jpeg",size:b.size,dataUrl:fr.result});fr.onerror=()=>reject(fr.error||new Error("Lecture impossible"));fr.readAsDataURL(b)},"image/jpeg",.78)};img.onerror=()=>reject(new Error("Image invalide"));img.src=r.result};r.readAsDataURL(file)})}
+function prepareGenericAttachment(file){return new Promise((resolve,reject)=>{const r=new FileReader();r.onerror=()=>reject(r.error||new Error("Lecture impossible"));r.onload=()=>resolve({name:file.name,type:file.type||"application/octet-stream",size:file.size,dataUrl:r.result});r.readAsDataURL(file)})}
+async function handleEvaluationAttachment(input){const file=input.files&&input.files[0];if(!file)return;try{if(file.size>15*1024*1024&&!file.type.startsWith("image/")){alert("Le fichier est trop volumineux. Limite : 15 Mo.");return}draft.attachment=file.type.startsWith("image/")?await prepareImageAttachment(file):await prepareGenericAttachment(file);render()}catch(err){alert("Impossible d’ajouter le fichier : "+err.message)}finally{input.value=""}}
+function removeEvaluationAttachment(){draft.attachment=null;render()}
+function attachmentHtml(a){if(!a)return "";const label=esc(a.name||"Pièce jointe"),href=a.dataUrl||"#";return attachmentIsImage(a)?`<div><img src="${href}" alt="${label}" style="max-width:220px;max-height:160px;border-radius:10px;display:block;margin-bottom:8px"><a href="${href}" target="_blank" rel="noopener">${label}</a> · ${formatFileSize(a.size)}</div>`:`<div><a href="${href}" target="_blank" rel="noopener">📎 ${label}</a> · ${formatFileSize(a.size)}</div>`}
 function evaluationPage(){
 setActive("eval");
 if(!draft){startEvaluation();return;}
@@ -546,7 +555,7 @@ ${competencies.map(c=>`<label style="font-weight:normal"><input type="checkbox" 
 ${draft.comps.map(id=>renderCompetence(id)).join("")}
 ${summary()}
 <div class="panel" style="margin-top:14px"><div class="row"><b>Note provisoire de l'évaluation</b><span class="score-badge ${scoreClass(evaluationScore20({comps:draft.comps,levels:draft.levels}))}">${evaluationScoreLabel({comps:draft.comps,levels:draft.levels})}</span></div><p class="muted" style="margin-bottom:0">Calculée sur les critères positionnés : Non observé n'est pas pris en compte.</p></div>
-<div class="actions">
+<div class="panel"><h3>📎 Pièce jointe</h3><div class="muted">Ajoute une photo prise avec l’iPad/iPhone ou un fichier (PDF, document, etc.) à cette évaluation.</div><input id="evaluation-attachment" type="file" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt" onchange="handleEvaluationAttachment(this)" style="margin-top:10px">${draft.attachment?`<div style="margin-top:12px">${attachmentHtml(draft.attachment)}<button class="secondary" type="button" onclick="removeEvaluationAttachment()" style="margin-top:8px">🗑️ Retirer la pièce jointe</button></div>`:`<div class="muted" style="margin-top:8px">Aucune pièce jointe.</div>`}</div><div class="actions">
 <button class="secondary" onclick="cancelEvaluation()">Annuler</button>
 <button class="primary" onclick="saveEvaluation()">${draft.editId?"✓ Enregistrer les modifications":"✓ Enregistrer l’évaluation"}</button>
 </div>`;
@@ -637,6 +646,7 @@ if(draft.editId){
     comps:[...draft.comps],
     levels:{...draft.levels},
     obs:{...draft.obs},
+    attachment:draft.attachment||null,
     studentId:existing.studentId
   };
 
@@ -672,6 +682,7 @@ const evaluations = targets.map((studentId,idx)=>({
   comps:[...draft.comps],
   levels:{...draft.levels},
   obs:{...draft.obs},
+  attachment:draft.attachment||null,
   studentId,
   createdAt:Date.now()+idx,
   batchId
