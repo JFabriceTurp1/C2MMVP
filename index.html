@@ -1601,10 +1601,10 @@ body{background:#f7f9fc;color:var(--text)}
 </style>
 
 </head>
-<body><div id="build-version" style="position:fixed;right:10px;bottom:8px;font-size:10px;opacity:.45;z-index:9999">V82.2.3 FIREBASE — ÉVALUATIONS</div>
+<body><div id="build-version" style="position:fixed;right:10px;bottom:8px;font-size:10px;opacity:.45;z-index:9999">V82.2.6 FIREBASE — ÉVALUATIONS</div>
 <div id="firebase-auth-overlay">
   <div class="firebase-login-card">
-    <h2>☁️ Connexion Firebase — V82.2.3</h2>
+    <h2>☁️ Connexion Firebase — V82.2.6</h2>
     <p>Cette version synchronise les classes, les élèves et désormais les évaluations avec Firebase. Le stockage local reste utilisé comme cache de sécurité pendant cette phase de validation.</p>
     <form id="firebase-login-form">
       <label for="firebase-email">Adresse e-mail</label>
@@ -1697,8 +1697,8 @@ body{background:#f7f9fc;color:var(--text)}
 
 
   <div class="settings-card settings-section">
-    <h3>☁️ Synchronisation Firebase V82.2.3 — temps réel</h3>
-    <p>La configuration de l’application est synchronisée avec ton compte Firebase : informations établissement, année scolaire, classe active, code administrateur, référentiel de compétences, critères et situations professionnelles. La V82.2.3 utilise une synchronisation différentielle : lorsqu’un document change sur un autre appareil, seul ce document est traité localement, sans relire toute la base.</p>
+    <h3>☁️ Synchronisation Firebase V82.2.6 — temps réel</h3>
+    <p>La configuration de l’application est synchronisée avec ton compte Firebase : informations établissement, année scolaire, classe active, code administrateur, référentiel de compétences, critères et situations professionnelles. La V82.2.6 utilise une synchronisation différentielle : lorsqu’un document change sur un autre appareil, seul ce document est traité localement, sans relire toute la base.</p>
     <button type="button" class="primary" onclick="syncAllApplicationSettingsNow()">☁️ Synchroniser tous les paramètres maintenant</button>
     <div class="muted" style="margin-top:8px">Les modifications sont envoyées automatiquement. Les changements distants sont reçus document par document, ce qui réduit fortement les lectures Firestore par rapport à la V82.1.</div>
   </div>
@@ -1972,7 +1972,7 @@ function saveClasses(list){
 }
 function getActiveClassId(){
   const classes=getClasses();
-  const stored=localStorage.getItem(ACTIVE_CLASS_STORAGE_KEY);
+  const stored=localStorage.getItem("evaluation_active_class_v77");
   const active=classes.find(c=>String(c.id)===String(stored)&&!c.archived)
     || classes.find(c=>!c.archived)
     || classes[0];
@@ -2141,7 +2141,7 @@ const V77_SECOND_CLASS_FICTITIOUS_STUDENTS=[
 ];
 
 async function ensureSecondClassFictitiousStudents(){
-  await openDB();
+  await window.C2MV_APP_BRIDGE.openDB();
   const classes=getClasses();
   const target=classes.find(c=>!c.archived && String(c.name||"").trim().replace(/\s+/g," ").toLowerCase()==="2 mac 1");
   if(!target)return;
@@ -2162,7 +2162,7 @@ async function ensureSecondClassFictitiousStudents(){
 }
 
 async function loadData(){
-  await openDB();
+  await window.C2MV_APP_BRIDGE.openDB();
   await ensureSecondClassFictitiousStudents();
   const activeId=getActiveClassId();
   let stored=await getAll("students");
@@ -2205,7 +2205,7 @@ async function loadData(){
   render();
 }
 async function persistEvaluation(e,isEdit=false){
-  await openDB();
+  await window.C2MV_APP_BRIDGE.openDB();
   if(isEdit){
     await deleteFromStore("evaluations",e.id);
     await put("evaluations",e);
@@ -2250,7 +2250,7 @@ async function archiveCollective(batchId){
 }
 async function performArchiveCollective(members){
   try{
-    await openDB();
+    await window.C2MV_APP_BRIDGE.openDB();
     for(const m of members) await setEvaluationArchived(m.ev,true);
     viewedEvaluation=null;
     await loadData();
@@ -2268,7 +2268,7 @@ async function restoreCollective(batchId){
   });
   if(!members.length){showWarningMessage("Aucune évaluation collective archivée trouvée.");return;}
   try{
-    await openDB();
+    await window.C2MV_APP_BRIDGE.openDB();
     for(const m of members) await setEvaluationArchived(m.ev,false);
     await loadData();
     showSuccessMessage(`${members.length} évaluation(s) restaurée(s).`,()=>go("archives"));
@@ -2288,7 +2288,7 @@ async function deleteEvaluation(evaluationId,studentIdHint){
 }
 async function performDeleteEvaluation(id,owner,ev){
   try{
-    await openDB();
+    await window.C2MV_APP_BRIDGE.openDB();
     const updated=await setEvaluationArchived(ev,true);
     owner.evaluations=(owner.evaluations||[]).map(x=>String(x.id)===id?updated:x);
     selectedStudent=owner.id;
@@ -2302,7 +2302,7 @@ async function restoreEvaluation(evaluationId,studentIdHint){
   const owner=found.owner, ev=found.ev;
   if(!ev){showWarningMessage("Évaluation archivée introuvable.");return;}
   try{
-    await openDB();
+    await window.C2MV_APP_BRIDGE.openDB();
     const updated=await setEvaluationArchived(ev,false);
     owner.evaluations=(owner.evaluations||[]).map(x=>String(x.id)===id?updated:x);
     viewedEvaluation=null;
@@ -2807,7 +2807,7 @@ function getManagedProfessionalSituations(){
 let PROFESSIONAL_SITUATIONS_V80=getManagedProfessionalSituations();
 function saveManagedProfessionalSituations(){
   localStorage.setItem(PROFESSIONAL_SITUATIONS_STORAGE_KEY,JSON.stringify(PROFESSIONAL_SITUATIONS_V80));
-  if(window.firebaseCloudSet) window.firebaseCloudSet("situationsProfessionnelles","library",{items:PROFESSIONAL_SITUATIONS_V80,version:"82.2.3"}).catch(()=>{});
+  if(window.firebaseCloudSet) window.firebaseCloudSet("situationsProfessionnelles","library",{items:PROFESSIONAL_SITUATIONS_V80,version:"82.2.6"}).catch(()=>{});
   syncApplicationConfigSoon();
 }
 function refreshManagedSituations(){PROFESSIONAL_SITUATIONS_V80=getManagedProfessionalSituations();}
@@ -3780,7 +3780,7 @@ async function importStudentsFromExcelFile(input){
     const existing=new Set(students.map(s=>String(s.name||"").trim().toLowerCase()));
     const fresh=incoming.filter(x=>!existing.has(x.name.toLowerCase()));
     if(!fresh.length){showWarningMessage("Tous les élèves du fichier sont déjà présents.");return;}
-    await openDB();
+    await window.C2MV_APP_BRIDGE.openDB();
     for(const x of fresh){
       const student={id:"stu_"+Date.now()+"_"+Math.random().toString(36).slice(2,9),name:x.name,classId:getActiveClassId(),evaluations:[]};
       await put("students",student);students.push(student);allStudents.push(student);
@@ -3812,7 +3812,7 @@ async function addStudentFromSettings(){
     showWarningMessage("Cet élève existe déjà.");return;
   }
   const student={id:"stu_"+Date.now()+"_"+Math.random().toString(36).slice(2,7),name,classId:getActiveClassId(),evaluations:[]};
-  await openDB();await put("students",student);
+  await window.C2MV_APP_BRIDGE.openDB();await put("students",student);
   students.push(student);input.value="";renderSettingsStudents();
   showSuccessMessage("Élève ajouté.");
 }
@@ -3820,14 +3820,14 @@ async function renameStudentFromSettings(id){
   const s=students.find(x=>String(x.id)===String(id));if(!s)return;
   const name=prompt("Nouveau nom de l'élève :",s.name||"");if(name===null)return;
   const clean=name.trim();if(!clean){showWarningMessage("Le nom ne peut pas être vide.");return;}
-  s.name=clean;await openDB();await put("students",{id:s.id,name:s.name,classId:s.classId||getActiveClassId()});
+  s.name=clean;await window.C2MV_APP_BRIDGE.openDB();await put("students",{id:s.id,name:s.name,classId:s.classId||getActiveClassId()});
   renderSettingsStudents();showSuccessMessage("Nom de l'élève modifié.");
 }
 async function deleteStudentFromSettings(id){
   const s=students.find(x=>String(x.id)===String(id));if(!s)return;
   showDeleteConfirmation(`Supprimer l'élève « ${s.name} » et toutes ses évaluations ?`,async()=>{
     try{
-      await openDB();
+      await window.C2MV_APP_BRIDGE.openDB();
       const evals=await getAll("evaluations");
       for(const ev of evals)if(String(ev.studentId)===String(s.id))await deleteFromStore("evaluations",ev.id);
       await deleteFromStore("students",s.id);
@@ -4110,7 +4110,7 @@ window.addEventListener("error",function(ev){
   console.error("Application error:",ev.error||ev.message);
   const main=document.getElementById("main");
   if(main && !main.innerHTML.trim()){
-    main.innerHTML='<div class="panel" style="margin:24px"><h2>Chargement de l’application interrompu</h2><p>Une erreur JavaScript a été détectée. Recharge la page une fois. Si le problème persiste, utilise le correctif V82.2.3.</p><pre style="white-space:pre-wrap">'+String(ev.message||"Erreur inconnue").replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]))+'</pre></div>';
+    main.innerHTML='<div class="panel" style="margin:24px"><h2>Chargement de l’application interrompu</h2><p>Une erreur JavaScript a été détectée. Recharge la page une fois. Si le problème persiste, utilise le correctif V82.2.6.</p><pre style="white-space:pre-wrap">'+String(ev.message||"Erreur inconnue").replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]))+'</pre></div>';
   }
 });
 </script>
@@ -4163,7 +4163,7 @@ async function requestDeleteAllStudents(){
         // Les archives sont générées avant toute suppression afin de conserver l'historique complet.
         exportStudentDeletionExcel(snapshot,deletionDate);
         exportStudentDeletionPDF(snapshot,deletionDate);
-        await openDB();
+        await window.C2MV_APP_BRIDGE.openDB();
         const activeStudentIds=new Set(students.map(s=>String(s.id)));
         const evals=await getAll("evaluations");
         for(const ev of evals) if(activeStudentIds.has(String(ev.studentId))) await deleteFromStore("evaluations",ev.id);
@@ -4528,7 +4528,7 @@ function buildLocalApplicationConfig(){
   let comps=[];
   try{comps=JSON.parse(JSON.stringify(competencies||[]));}catch(e){}
   return {
-    schemaVersion:82.23,
+    schemaVersion:82.26,
     adminCode:localStorage.getItem("evaluation_admin_code_v74")||"1234",
     schoolSettings:school,
     activeClassId:localStorage.getItem("evaluation_active_class_v77")||"",
@@ -5612,6 +5612,22 @@ function openAssistanceMail(){
   setTimeout(()=>document.getElementById("assistance-mail-text")?.focus(),50);
 }
 
+
+// Pont explicite entre le cœur de l'application et le module Firebase.
+window.C2MV_APP_BRIDGE={
+  getClasses:()=>getClasses(),
+  saveClasses:(list)=>{
+    localStorage.setItem("evaluation_classes_v77",JSON.stringify(list||[]));
+  },
+  getActiveClassId:()=>getActiveClassId(),
+  openDB:()=>openDB(),
+  getAll:(store)=>getAll(store),
+  clearStore:(store)=>clearStore(store),
+  put:(store,obj)=>put(store,obj),
+  deleteFromStore:(store,key)=>deleteFromStore(store,key),
+  loadData:()=>loadData(),
+  applySchoolSettings:()=>applySchoolSettings()
+};
 </script>
 <button type="button" class="permanent-owner-name" onclick="openAssistanceMail()" title="Contacter l'assistance">Turpin Jean-Fabrice</button>
 <script id="v81-firebase-test-runtime">
@@ -5684,9 +5700,9 @@ function openAssistanceMail(){
     firebaseRealtimeRefreshTimer=setTimeout(async()=>{
       try{
         firebaseRealtimeApplying=true;
-        if(typeof loadData!=="function")return;
-        await loadData();
-        if(typeof applySchoolSettings==="function")applySchoolSettings();
+        if(!window.C2MV_APP_BRIDGE || !window.C2MV_APP_BRIDGE.loadData)return;
+        await window.C2MV_APP_BRIDGE.loadData();
+        if(window.C2MV_APP_BRIDGE.applySchoolSettings)window.C2MV_APP_BRIDGE.applySchoolSettings();
         setRealtimeSyncIndicator("ok","Synchronisé en temps réel");
       }catch(e){
         setRealtimeSyncIndicator("error","Erreur de mise à jour");
@@ -5698,34 +5714,35 @@ function openAssistanceMail(){
 
   async function applyRealtimeClassChange(change){
     const id=change.doc.id, data={id,...change.doc.data()};
-    const classes=getClasses();
+    let classes=[];
+    try{classes=JSON.parse(localStorage.getItem("evaluation_classes_v77")||"[]")||[];}catch(e){classes=[];}
     const idx=classes.findIndex(x=>String(x.id)===String(id));
     if(change.type==="removed"){
       if(idx>=0)classes.splice(idx,1);
     }else if(idx>=0)classes[idx]=data;
     else classes.push(data);
-    localStorage.setItem(CLASSES_STORAGE_KEY,JSON.stringify(classes));
+    localStorage.setItem("evaluation_classes_v77",JSON.stringify(classes));
   }
 
   async function applyRealtimeStudentChange(change){
     const id=change.doc.id;
     if(change.type==="removed"){
-      try{await deleteFromStore("students",id);}catch(e){}
+      try{await window.C2MV_APP_BRIDGE.deleteFromStore("students",id);}catch(e){}
       return;
     }
     const data={id,...change.doc.data()};
-    await put("students",data);
+    await window.C2MV_APP_BRIDGE.put("students",data);
   }
 
   async function applyRealtimeEvaluationChange(change){
     const rawId=change.doc.id;
     const id=/^\d+$/.test(rawId)?Number(rawId):rawId;
     if(change.type==="removed"){
-      try{await deleteFromStore("evaluations",id);}catch(e){}
+      try{await window.C2MV_APP_BRIDGE.deleteFromStore("evaluations",id);}catch(e){}
       return;
     }
     const data={id,...change.doc.data()};
-    await put("evaluations",data);
+    await window.C2MV_APP_BRIDGE.put("evaluations",data);
   }
 
   async function applyRealtimeSituationLibrary(change){
@@ -5792,25 +5809,25 @@ function openAssistanceMail(){
     await userRoot().collection(name).doc(String(id)).delete();
   }
   async function replaceLocalStudents(list){
-    await openDB();
-    await clearStore('students');
+    await window.C2MV_APP_BRIDGE.openDB();
+    await window.C2MV_APP_BRIDGE.clearStore('students');
     for(const s of list){
       const clean={...s}; delete clean.evaluations;
-      await originalPut('students',clean);
+      await window.C2MV_APP_BRIDGE.put('students',clean);
     }
   }
   async function replaceLocalEvaluations(list){
-    await openDB();
-    await clearStore('evaluations');
+    await window.C2MV_APP_BRIDGE.openDB();
+    await window.C2MV_APP_BRIDGE.clearStore('evaluations');
     for(const ev of list){
       const clean=JSON.parse(JSON.stringify(ev));
       if(clean.id!==undefined && clean.id!==null && /^\d+$/.test(String(clean.id))) clean.id=Number(clean.id);
-      await originalPut('evaluations',clean);
+      await window.C2MV_APP_BRIDGE.put('evaluations',clean);
     }
   }
   async function uploadLocalEvaluations(){
-    await openDB();
-    const localEvaluations=await getAll('evaluations');
+    await window.C2MV_APP_BRIDGE.openDB();
+    const localEvaluations=await window.C2MV_APP_BRIDGE.getAll('evaluations');
     if(!localEvaluations.length) return 0;
     const batch=firestore.batch();
     const root=userRoot();
@@ -5822,10 +5839,10 @@ function openAssistanceMail(){
     return localEvaluations.length;
   }
   async function migrateLocalToCloud(){
-    const localClasses=getClasses();
-    await openDB();
-    const localStudents=await getAll('students');
-    const localEvaluations=await getAll('evaluations');
+    const localClasses=window.C2MV_APP_BRIDGE.getClasses();
+    await window.C2MV_APP_BRIDGE.openDB();
+    const localStudents=await window.C2MV_APP_BRIDGE.getAll('students');
+    const localEvaluations=await window.C2MV_APP_BRIDGE.getAll('evaluations');
     const batch=firestore.batch();
     const root=userRoot();
     for(const c of localClasses){
@@ -5850,13 +5867,24 @@ function openAssistanceMail(){
     await batch.commit();
   }
   async function synchronizeCloud({forceUpload=false,fromRealtime=false}={}){
+    if(!window.C2MV_APP_BRIDGE ||
+       !window.C2MV_APP_BRIDGE.openDB ||
+       !window.C2MV_APP_BRIDGE.getAll ||
+       !window.C2MV_APP_BRIDGE.clearStore ||
+       !window.C2MV_APP_BRIDGE.put ||
+       !window.C2MV_APP_BRIDGE.loadData){
+      throw new Error("Pont application / IndexedDB non initialisé");
+    }
     if(syncing || !auth.currentUser) return;
     syncing=true;
     cloudReady=false;
     if(!fromRealtime)setStatus('Synchronisation Firebase complète en cours…','warn');
     try{
+      if(!fromRealtime)setStatus('Synchronisation 1/5 — classes…','warn');
       let cloudClasses=await cloudDocs('classes');
+      if(!fromRealtime)setStatus('Synchronisation 2/5 — élèves…','warn');
       let cloudStudents=await cloudDocs('students');
+      if(!fromRealtime)setStatus('Synchronisation 3/5 — évaluations…','warn');
       let cloudEvaluations=await cloudDocs('evaluations');
       const rootRef=userRoot();
       const rootSnap=await rootRef.get();
@@ -5869,18 +5897,22 @@ function openAssistanceMail(){
         cloudEvaluations=await cloudDocs('evaluations');
       }else{
         firebaseRealtimeApplying=true;
-        saveClasses(cloudClasses);
+        if(window.C2MV_APP_BRIDGE && window.C2MV_APP_BRIDGE.saveClasses){
+          window.C2MV_APP_BRIDGE.saveClasses(cloudClasses);
+        }else{
+          localStorage.setItem("evaluation_classes_v77",JSON.stringify(cloudClasses||[]));
+        }
         firebaseRealtimeApplying=false;
-        const currentActive=localStorage.getItem(ACTIVE_CLASS_STORAGE_KEY);
+        const currentActive=localStorage.getItem("evaluation_active_class_v77");
         if(!cloudClasses.some(c=>String(c.id)===String(currentActive)&&!c.archived)){
           const first=cloudClasses.find(c=>!c.archived)||cloudClasses[0];
-          if(first) localStorage.setItem(ACTIVE_CLASS_STORAGE_KEY,String(first.id));
+          if(first) localStorage.setItem("evaluation_active_class_v77",String(first.id));
         }
         firebaseRealtimeApplying=true;
         await replaceLocalStudents(cloudStudents);
         firebaseRealtimeApplying=false;
 
-        // Transition V81.3 -> V82.2.3 : une seule fois, si aucune source évaluations
+        // Transition V81.3 -> V82.2.6 : une seule fois, si aucune source évaluations
         // n'a encore été déclarée dans Firebase, on importe l'historique local existant.
         if(!rootData.evaluationsInitialized){
           const uploaded=await uploadLocalEvaluations();
@@ -5895,7 +5927,8 @@ function openAssistanceMail(){
         await replaceLocalEvaluations(cloudEvaluations);
         firebaseRealtimeApplying=false;
       }
-      // V82.2.3 : synchronisation complète des paramètres applicatifs.
+      if(!fromRealtime)setStatus('Synchronisation 4/5 — paramètres…','warn');
+      // V82.2.6 : synchronisation complète des paramètres applicatifs.
       let cloudConfig=await cloudGetOne(FIREBASE_APP_CONFIG_COLLECTION,FIREBASE_APP_CONFIG_DOC);
       if(!cloudConfig){
         await saveApplicationConfig(buildLocalApplicationConfig());
@@ -5909,16 +5942,23 @@ function openAssistanceMail(){
       }
 
       // La classe active synchronisée doit exister et ne pas être archivée.
-      const classesAfterConfig=getClasses();
-      const wanted=localStorage.getItem(ACTIVE_CLASS_STORAGE_KEY);
+      const classesAfterConfig=(window.C2MV_APP_BRIDGE&&window.C2MV_APP_BRIDGE.getClasses)
+        ? window.C2MV_APP_BRIDGE.getClasses()
+        : (()=>{try{return JSON.parse(localStorage.getItem("evaluation_classes_v77")||"[]")}catch(e){return[]}})();
+      const wanted=localStorage.getItem("evaluation_active_class_v77");
       if(!classesAfterConfig.some(c=>String(c.id)===String(wanted)&&!c.archived)){
         const first=classesAfterConfig.find(c=>!c.archived)||classesAfterConfig[0];
-        if(first)localStorage.setItem(ACTIVE_CLASS_STORAGE_KEY,String(first.id));
+        if(first)localStorage.setItem("evaluation_active_class_v77",String(first.id));
       }
 
+      if(!fromRealtime)setStatus('Synchronisation 5/5 — affichage…','warn');
       cloudReady=true;
-      await loadData();
-      applySchoolSettings();
+      if(window.C2MV_APP_BRIDGE&&window.C2MV_APP_BRIDGE.loadData){
+        await window.C2MV_APP_BRIDGE.loadData();
+      }
+      if(window.C2MV_APP_BRIDGE&&window.C2MV_APP_BRIDGE.applySchoolSettings){
+        window.C2MV_APP_BRIDGE.applySchoolSettings();
+      }
       if(!fromRealtime)setStatus('✓ Synchronisation Firebase complète : données + paramètres + référentiel + situations + code admin','ok');
       if(!fromRealtime)startRealtimeListeners();
       setRealtimeSyncIndicator("ok","Synchronisé en temps réel");
@@ -5932,7 +5972,7 @@ function openAssistanceMail(){
     }
   }
 
-  // Ponts de synchronisation robustes V82.2.3.
+  // Ponts de synchronisation robustes V82.2.6.
   // Les fonctions locales appellent ces ponts uniquement lorsque Firebase est prêt.
   window.firebaseSyncClasses=function(list){
     if(!cloudReady || !auth || !auth.currentUser || firebaseRealtimeApplying) return Promise.resolve();
@@ -6054,7 +6094,7 @@ window.addEventListener("error",function(ev){
   console.error("Application error:",ev.error||ev.message);
   const main=document.getElementById("main");
   if(main && !main.innerHTML.trim()){
-    main.innerHTML='<div class="panel" style="margin:24px"><h2>Chargement de l’application interrompu</h2><p>Une erreur JavaScript a été détectée. Recharge la page une fois. Si le problème persiste, utilise le correctif V82.2.3.</p><pre style="white-space:pre-wrap">'+String(ev.message||"Erreur inconnue").replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]))+'</pre></div>';
+    main.innerHTML='<div class="panel" style="margin:24px"><h2>Chargement de l’application interrompu</h2><p>Une erreur JavaScript a été détectée. Recharge la page une fois. Si le problème persiste, utilise le correctif V82.2.6.</p><pre style="white-space:pre-wrap">'+String(ev.message||"Erreur inconnue").replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]))+'</pre></div>';
   }
 });
 </script>
