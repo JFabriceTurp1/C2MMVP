@@ -1425,8 +1425,158 @@ body{background:#f7f9fc;color:var(--text)}
 .eval-modern-workspace .competence-toggle-btn:focus-visible{outline:3px solid rgba(36,99,235,.28)!important;outline-offset:3px!important}
 .eval-modern-workspace .competence-head-actions{align-items:center!important}
 </style>
+
+<style id="free-competence-selector-v80-27">
+/* V80.27 — sélection esthétique des compétences avec couleur propre et interrupteur ON/OFF */
+.eval-competence-list{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:14px!important;margin-top:12px!important}
+.eval-competence-choice{--sel-bg:#eef6ff;--sel-border:#7db5f5;--sel-title:#145da0;--sel-accent:#2f80ed;display:flex!important;align-items:center!important;justify-content:space-between!important;gap:18px!important;min-height:92px!important;margin:0!important;padding:16px 18px!important;border:2px solid var(--sel-border)!important;border-radius:16px!important;background:linear-gradient(180deg,var(--sel-bg),#fff)!important;box-shadow:0 4px 12px rgba(16,42,67,.06)!important;cursor:pointer!important;transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease!important}
+.eval-competence-choice:hover{transform:translateY(-1px);box-shadow:0 7px 18px rgba(16,42,67,.10)!important}
+.eval-competence-choice.is-selected{box-shadow:0 0 0 3px color-mix(in srgb,var(--sel-accent) 14%,transparent),0 7px 18px rgba(16,42,67,.10)!important}
+.eval-competence-copy{display:flex;align-items:flex-start;gap:12px;min-width:0;line-height:1.35}
+.eval-competence-code{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;min-width:54px;height:34px;padding:0 10px;border-radius:999px;background:#fff;border:1.5px solid var(--sel-border);color:var(--sel-title);font-weight:900;font-size:14px}
+.eval-competence-name{color:#223047;font-size:14px;font-weight:650}
+.eval-competence-name strong{color:var(--sel-title)}
+.eval-competence-switch{position:relative;flex:0 0 52px;width:52px;height:28px;border:0;border-radius:999px;background:#c7ced8;box-shadow:inset 0 0 0 1px rgba(16,24,40,.12);cursor:pointer;transition:background .18s ease,box-shadow .18s ease}
+.eval-competence-switch::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(16,24,40,.28);transition:transform .18s ease}
+.eval-competence-switch[aria-checked="true"]{background:var(--sel-accent)}
+.eval-competence-switch[aria-checked="true"]::after{transform:translateX(24px)}
+.eval-competence-switch:focus-visible{outline:3px solid color-mix(in srgb,var(--sel-accent) 28%,transparent);outline-offset:3px}
+.eval-competence-choice.tone-0{--sel-bg:#eef6ff;--sel-border:#7db5f5;--sel-title:#145da0;--sel-accent:#2f80ed}
+.eval-competence-choice.tone-1{--sel-bg:#effaf3;--sel-border:#82c99a;--sel-title:#19713a;--sel-accent:#34a853}
+.eval-competence-choice.tone-2{--sel-bg:#fff8e8;--sel-border:#efc56b;--sel-title:#9a6500;--sel-accent:#e8a317}
+.eval-competence-choice.tone-3{--sel-bg:#f7f0ff;--sel-border:#b996e8;--sel-title:#6b3aa8;--sel-accent:#8b5cf6}
+.eval-competence-choice.tone-4{--sel-bg:#edfafa;--sel-border:#76c7c7;--sel-title:#11696c;--sel-accent:#1aa6a8}
+.eval-competence-choice.tone-5{--sel-bg:#fff1f4;--sel-border:#eaa1b0;--sel-title:#9b3650;--sel-accent:#df5b78}
+.eval-competence-choice.tone-6{--sel-bg:#f0f2ff;--sel-border:#919de3;--sel-title:#3f4c9a;--sel-accent:#6574cd}
+.eval-competence-choice.tone-7{--sel-bg:#eefbf7;--sel-border:#78cdb1;--sel-title:#176b57;--sel-accent:#24a47d}
+.eval-competence-choice.tone-8{--sel-bg:#fff3e9;--sel-border:#eeb07b;--sel-title:#9a4d16;--sel-accent:#e98232}
+@media(max-width:850px){.eval-competence-list{grid-template-columns:1fr!important}.eval-competence-choice{min-height:82px!important;padding:14px!important}}
+@media(max-width:520px){.eval-competence-choice{gap:10px!important}.eval-competence-copy{gap:8px}.eval-competence-code{min-width:48px;height:30px;font-size:13px}.eval-competence-name{font-size:13px}}
+</style>
+
+
+<style id="global-off-switch-v80-30">
+/* V80.30 — interrupteurs ON/OFF uniformisés : état OFF noir, curseur blanc à gauche. */
+.eval-competence-switch[role="switch"][aria-checked="false"],
+.eval-modern-workspace .competence-toggle-btn[role="switch"][aria-checked="false"]{
+  background:#000 !important;
+  border-color:#000 !important;
+  box-shadow:inset 0 0 0 1px #000 !important;
+}
+.eval-competence-switch[role="switch"][aria-checked="false"]::after,
+.eval-modern-workspace .competence-toggle-btn[role="switch"][aria-checked="false"]::after{
+  background:#fff !important;
+  transform:translateX(0) !important;
+  box-shadow:0 1px 4px rgba(0,0,0,.28) !important;
+}
+.eval-competence-switch[role="switch"][aria-checked="true"]::after,
+.eval-modern-workspace .competence-toggle-btn[role="switch"][aria-checked="true"]::after{background:#fff !important;}
+</style>
+
+<style id="toggle-switch-unification-v80-31">
+/* V80.31 — tous les contrôles Activer/Désactiver adoptent le même interrupteur compact. */
+.eval-competence-switch[role="switch"],
+.eval-modern-workspace .competence-toggle-btn[role="switch"],
+.criterion-toggle-switch[role="switch"]{
+  position:relative!important; display:inline-block!important; flex:0 0 52px!important;
+  width:52px!important; min-width:52px!important; max-width:52px!important; height:28px!important;
+  padding:0!important; border:0!important; border-radius:999px!important;
+  background:#9aa8ba!important; box-shadow:inset 0 0 0 1px rgba(16,24,40,.10)!important;
+  cursor:pointer!important; vertical-align:middle!important; transition:background .18s ease!important;
+  font-size:0!important; color:transparent!important; overflow:hidden!important;
+}
+.eval-competence-switch[role="switch"]::after,
+.eval-modern-workspace .competence-toggle-btn[role="switch"]::after,
+.criterion-toggle-switch[role="switch"]::after{
+  content:""!important; position:absolute!important; top:3px!important; left:3px!important;
+  width:22px!important; height:22px!important; border-radius:50%!important; background:#fff!important;
+  box-shadow:0 1px 4px rgba(16,24,40,.28)!important; transform:translateX(0)!important;
+  transition:transform .18s ease!important;
+}
+.eval-competence-switch[role="switch"][aria-checked="true"],
+.eval-modern-workspace .competence-toggle-btn[role="switch"][aria-checked="true"],
+.criterion-toggle-switch[role="switch"][aria-checked="true"]{
+  background:var(--sel-accent,var(--comp-accent,#1677ff))!important;
+}
+.eval-competence-switch[role="switch"][aria-checked="true"]::after,
+.eval-modern-workspace .competence-toggle-btn[role="switch"][aria-checked="true"]::after,
+.criterion-toggle-switch[role="switch"][aria-checked="true"]::after{transform:translateX(24px)!important;}
+.eval-competence-switch[role="switch"][aria-checked="false"],
+.eval-modern-workspace .competence-toggle-btn[role="switch"][aria-checked="false"],
+.criterion-toggle-switch[role="switch"][aria-checked="false"]{background:#9aa8ba!important; border-color:transparent!important; box-shadow:inset 0 0 0 1px rgba(16,24,40,.10)!important;}
+.criterion-toggle-switch:focus-visible, .eval-competence-switch:focus-visible, .competence-toggle-btn:focus-visible{outline:3px solid rgba(36,99,235,.28)!important;outline-offset:3px!important;}
+</style>
+
+<style id="toggle-switch-flat-v80-32">
+/* V80.32 — interrupteurs plus aplatis, conformes au modèle validé. */
+.eval-competence-switch[role="switch"],
+.eval-modern-workspace .competence-toggle-btn[role="switch"],
+.criterion-toggle-switch[role="switch"]{
+  flex:0 0 52px!important;
+  width:52px!important; min-width:52px!important; max-width:52px!important;
+  height:24px!important;
+  border-radius:999px!important;
+  padding:0!important;
+}
+.eval-competence-switch[role="switch"]::after,
+.eval-modern-workspace .competence-toggle-btn[role="switch"]::after,
+.criterion-toggle-switch[role="switch"]::after{
+  top:2px!important; left:2px!important;
+  width:20px!important; height:20px!important;
+}
+.eval-competence-switch[role="switch"][aria-checked="true"]::after,
+.eval-modern-workspace .competence-toggle-btn[role="switch"][aria-checked="true"]::after,
+.criterion-toggle-switch[role="switch"][aria-checked="true"]::after{
+  transform:translateX(28px)!important;
+}
+</style>
+
+<style id="toggle-switch-exact-v80-33">
+/* V80.33 — correction réelle du gabarit : neutralise le min-height global des boutons. */
+.eval-competence-switch[role="switch"],
+.eval-modern-workspace .competence-toggle-btn[role="switch"],
+.criterion-toggle-switch[role="switch"]{
+  position:relative!important;
+  display:inline-block!important;
+  flex:0 0 50px!important;
+  width:50px!important; min-width:50px!important; max-width:50px!important;
+  height:24px!important; min-height:24px!important; max-height:24px!important;
+  padding:0!important; margin:0!important;
+  border:0!important; border-radius:12px!important;
+  background:#9aa8ba!important;
+  box-shadow:inset 0 0 0 1px rgba(16,24,40,.10)!important;
+  font-size:0!important; line-height:0!important; color:transparent!important;
+  overflow:hidden!important; cursor:pointer!important; vertical-align:middle!important;
+  appearance:none!important; -webkit-appearance:none!important;
+  transition:background .16s ease!important;
+}
+.eval-competence-switch[role="switch"]::after,
+.eval-modern-workspace .competence-toggle-btn[role="switch"]::after,
+.criterion-toggle-switch[role="switch"]::after{
+  content:""!important;
+  position:absolute!important; top:2px!important; left:2px!important;
+  width:20px!important; height:20px!important; min-width:20px!important; min-height:20px!important;
+  border-radius:50%!important; background:#fff!important;
+  box-shadow:0 1px 3px rgba(16,24,40,.25)!important;
+  transform:translateX(0)!important;
+  transition:transform .16s ease!important;
+}
+.eval-competence-switch[role="switch"][aria-checked="true"],
+.eval-modern-workspace .competence-toggle-btn[role="switch"][aria-checked="true"],
+.criterion-toggle-switch[role="switch"][aria-checked="true"]{
+  background:var(--sel-accent,var(--comp-accent,#2f80ed))!important;
+}
+.eval-competence-switch[role="switch"][aria-checked="true"]::after,
+.eval-modern-workspace .competence-toggle-btn[role="switch"][aria-checked="true"]::after,
+.criterion-toggle-switch[role="switch"][aria-checked="true"]::after{
+  transform:translateX(26px)!important;
+}
+.eval-competence-switch[role="switch"][aria-checked="false"],
+.eval-modern-workspace .competence-toggle-btn[role="switch"][aria-checked="false"],
+.criterion-toggle-switch[role="switch"][aria-checked="false"]{background:#9aa8ba!important;}
+</style>
 </head>
-<body><div id="build-version" style="position:fixed;right:10px;bottom:8px;font-size:10px;opacity:.45;z-index:9999">V80.25 ÉVOLUTION</div>
+<body><div id="build-version" style="position:fixed;right:10px;bottom:8px;font-size:10px;opacity:.45;z-index:9999">V80.33 ÉVOLUTION</div>
 <div class="app">
 <button id="sidebar-toggle" class="sidebar-toggle" type="button" onclick="toggleSidebar()" aria-label="Masquer la barre latérale" aria-expanded="true" title="Masquer la barre latérale">◀</button>
 <aside class="side">
@@ -2137,7 +2287,7 @@ function home(){
             <svg viewBox="0 0 64 64"><rect x="17" y="13" width="30" height="40" rx="4"/><rect x="25" y="8" width="14" height="10" rx="3"/><path d="M24 28h16M24 36h16M24 44h11"/></svg>
           </div>
           <div class="home-modern-copy"><h3>Évaluations</h3><p>Saisir et consulter les évaluations</p></div>
-          <button type="button" class="home-modern-action">Accéder aux évaluations</button>
+          <button type="button" class="home-modern-action">Nouvelle évaluation</button>
         </div>
 
         <div class="home-shortcut home-shortcut-amber" onclick="go('history')">
@@ -2406,7 +2556,19 @@ function editEvaluation(evaluationId,studentIdHint){
   };
   page="eval";
   render();
-  requestAnimationFrame(()=>{updateCriteriaRestoreButton();updateBulkCriteriaButtons();});
+  // Lors de la modification d’une évaluation existante, positionner
+  // automatiquement l’affichage sur la première compétence de l’évaluation.
+  requestAnimationFrame(()=>{
+    updateCriteriaRestoreButton();
+    updateBulkCriteriaButtons();
+    requestAnimationFrame(()=>{
+      const firstCompetence=document.querySelector('.competence[data-competence-id]');
+      if(firstCompetence){
+        const top=firstCompetence.getBoundingClientRect().top+window.scrollY-84;
+        window.scrollTo({top:Math.max(0,top),behavior:"smooth"});
+      }
+    });
+  });
 }
 
 function startEvaluation(){
@@ -2685,7 +2847,7 @@ const competencyArea = draft.evalPath==="free" ? `
         <div class="eval-modern-title"><span class="eval-step">4</span> Compétence(s) évaluée(s)</div>
         <div id="competencies-selector" style="display:${draft.title.trim()?'block':'none'}">
           <div class="eval-competence-list">
-            ${competencies.map(c=>`<label class="eval-competence-choice"><input type="checkbox" style="width:auto" ${draft.comps.includes(c.id)?"checked":""} onchange="toggleComp('${c.id}',this.checked)"> <span><b>${c.id}</b> — ${esc(c.name)}</span></label>`).join("")}
+            ${competencies.map((c,i)=>{const on=draft.comps.includes(c.id);return `<div class="eval-competence-choice tone-${i%9} ${on?"is-selected":""}"><div class="eval-competence-copy"><span class="eval-competence-code">${c.id}</span><span class="eval-competence-name"><strong>${esc(c.name)}</strong></span></div><button type="button" class="eval-competence-switch" role="switch" aria-checked="${on?"true":"false"}" aria-label="${on?"Désactiver":"Activer"} ${esc(c.id)} — ${esc(c.name)}" onclick="toggleComp('${c.id}',${on?"false":"true"})"><span class="sr-only">${on?"Désactiver":"Activer"} ${esc(c.id)}</span></button></div>`}).join("")}
           </div>
         </div>
         <div id="competencies-trigger" style="display:${draft.title.trim()?'none':'block'}">
@@ -2789,12 +2951,14 @@ const renderCriterion=(cr,i)=>{
   return `<div class="criterion" data-criterion-key="${esc(key)}" ${val?`data-selected-level="${esc(val)}"`:""} style="padding:14px 0;display:${draft.disabledCriteria[key]?"none":""}">
     <div class="row" style="align-items:center;gap:12px">
       <div class="criterion-text" style="flex:1"><b>${i+1}.</b> ${esc(cr.text||cr)}</div>
-      <button type="button" class="small-btn ${draft.disabledCriteria[key]?"danger":"secondary"}"
+      <button type="button" class="criterion-toggle-switch"
+        role="switch"
+        aria-checked="${draft.disabledCriteria[key]?"false":"true"}"
         data-criterion-key="${esc(key)}"
         onclick="toggleCriterion('${key}', this)"
         title="${draft.disabledCriteria[key]?"Réactiver ce critère":"Désactiver ce critère"}"
         aria-label="${draft.disabledCriteria[key]?"Réactiver ce critère":"Désactiver ce critère"}">
-        ${draft.disabledCriteria[key]?"↩ Activer":"⏸ Désactiver"}
+        <span class="sr-only">${draft.disabledCriteria[key]?"Réactiver ce critère":"Désactiver ce critère"}</span>
       </button>
     </div>
     <div class="levels">${["Non observé","À renforcer","Maîtrisé","Autonome"].map(v=>`<button type="button" class="level ${val===v?"sel":""}" data-level="${v}" data-criterion-key="${key}" ${draft.disabledCriteria[key]?"disabled":""} onclick="event.preventDefault(); event.stopPropagation(); setLevel('${key}','${v}')">${v}</button>`).join("")}</div>
@@ -2997,14 +3161,13 @@ function enableAllCriteria(){
         btn.disabled=false;
         btn.style.opacity="";
       });
-      const action=criterion.querySelector(".small-btn[data-criterion-key]");
+      const action=criterion.querySelector(".criterion-toggle-switch[data-criterion-key]");
       if(action){
         action.disabled=false;
-        action.classList.remove("danger");
-        action.classList.add("secondary");
-        action.textContent="⏸ Désactiver";
+        action.setAttribute("aria-checked","true");
         action.title="Désactiver ce critère";
         action.setAttribute("aria-label","Désactiver ce critère");
+        const sr=action.querySelector(".sr-only"); if(sr) sr.textContent="Désactiver ce critère";
       }
     }
   });
@@ -3024,7 +3187,7 @@ function showDisabledCriteria(){
   const disabledKeys=Object.keys(draft.disabledCriteria||{});
   disabledKeys.forEach(key=>{
     const btn=[...document.querySelectorAll("[data-criterion-key]")].find(
-      b=>b.dataset.criterionKey===key && b.classList.contains("small-btn")
+      b=>b.dataset.criterionKey===key && b.classList.contains("criterion-toggle-switch")
     );
     const criterion=btn?.closest(".criterion");
     if(criterion){
@@ -3036,11 +3199,10 @@ function showDisabledCriteria(){
     }
     if(btn){
       btn.disabled=false;
-      btn.classList.remove("danger");
-      btn.classList.add("secondary");
-      btn.textContent="⏸ Désactiver";
+      btn.setAttribute("aria-checked","true");
       btn.title="Désactiver ce critère";
       btn.setAttribute("aria-label","Désactiver ce critère");
+      const sr=btn.querySelector(".sr-only"); if(sr) sr.textContent="Désactiver ce critère";
     }
   });
   draft.disabledCriteria={};
@@ -3071,11 +3233,10 @@ function toggleCriterion(key,btn){
     else criterion.style.display="";
 
     btn.disabled=false;
-    btn.classList.toggle("danger",disabledNext);
-    btn.classList.toggle("secondary",!disabledNext);
-    btn.textContent=disabledNext?"↩ Activer":"⏸ Désactiver";
+    btn.setAttribute("aria-checked",disabledNext?"false":"true");
     btn.title=disabledNext?"Réactiver ce critère":"Désactiver ce critère";
     btn.setAttribute("aria-label",btn.title);
+    const sr=btn.querySelector(".sr-only"); if(sr) sr.textContent=btn.title;
 
     criterion.querySelectorAll(".levels .level").forEach(b=>{
       b.disabled=disabledNext;
@@ -3454,7 +3615,134 @@ function exportStudentDeletionPDF(studentsSnapshot, deletionDate){
   const w=window.open("","_blank");
   if(!w){showWarningMessage("Le navigateur a bloqué la fenêtre PDF. Autorise les fenêtres contextuelles puis recommence.");return;}
   w.document.write(`<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Archive des élèves</title>
-  <style>@page{size:A4;margin:14mm}body{font-family:Arial,sans-serif;color:#172033;font-size:10pt}h1{font-size:20pt}h2{font-size:14pt;margin-top:18pt;border-bottom:1px solid #ccd5df;padding-bottom:4pt}p{color:#475467}table{width:100%;border-collapse:collapse;margin:8pt 0 14pt;page-break-inside:auto}thead{display:table-header-group}tr{page-break-inside:avoid}th,td{border:1px solid #d0d5dd;padding:5pt;text-align:left;vertical-align:top}th{background:#eef3f8}.meta{margin-bottom:16pt;padding:10pt;background:#f8fafc;border:1px solid #d9e2ec}</style></head><body>
+  <style>@page{size:A4;margin:14mm}body{font-family:Arial,sans-serif;color:#172033;font-size:10pt}h1{font-size:20pt}h2{font-size:14pt;margin-top:18pt;border-bottom:1px solid #ccd5df;padding-bottom:4pt}p{color:#475467}table{width:100%;border-collapse:collapse;margin:8pt 0 14pt;page-break-inside:auto}thead{display:table-header-group}tr{page-break-inside:avoid}th,td{border:1px solid #d0d5dd;padding:5pt;text-align:left;vertical-align:top}th{background:#eef3f8}.meta{margin-bottom:16pt;padding:10pt;background:#f8fafc;border:1px solid #d9e2ec}</style>
+<style id="free-competence-selector-v80-27">
+/* V80.27 — sélection esthétique des compétences avec couleur propre et interrupteur ON/OFF */
+.eval-competence-list{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:14px!important;margin-top:12px!important}
+.eval-competence-choice{--sel-bg:#eef6ff;--sel-border:#7db5f5;--sel-title:#145da0;--sel-accent:#2f80ed;display:flex!important;align-items:center!important;justify-content:space-between!important;gap:18px!important;min-height:92px!important;margin:0!important;padding:16px 18px!important;border:2px solid var(--sel-border)!important;border-radius:16px!important;background:linear-gradient(180deg,var(--sel-bg),#fff)!important;box-shadow:0 4px 12px rgba(16,42,67,.06)!important;cursor:pointer!important;transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease!important}
+.eval-competence-choice:hover{transform:translateY(-1px);box-shadow:0 7px 18px rgba(16,42,67,.10)!important}
+.eval-competence-choice.is-selected{box-shadow:0 0 0 3px color-mix(in srgb,var(--sel-accent) 14%,transparent),0 7px 18px rgba(16,42,67,.10)!important}
+.eval-competence-copy{display:flex;align-items:flex-start;gap:12px;min-width:0;line-height:1.35}
+.eval-competence-code{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;min-width:54px;height:34px;padding:0 10px;border-radius:999px;background:#fff;border:1.5px solid var(--sel-border);color:var(--sel-title);font-weight:900;font-size:14px}
+.eval-competence-name{color:#223047;font-size:14px;font-weight:650}
+.eval-competence-name strong{color:var(--sel-title)}
+.eval-competence-switch{position:relative;flex:0 0 52px;width:52px;height:28px;border:0;border-radius:999px;background:#c7ced8;box-shadow:inset 0 0 0 1px rgba(16,24,40,.12);cursor:pointer;transition:background .18s ease,box-shadow .18s ease}
+.eval-competence-switch::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(16,24,40,.28);transition:transform .18s ease}
+.eval-competence-switch[aria-checked="true"]{background:var(--sel-accent)}
+.eval-competence-switch[aria-checked="true"]::after{transform:translateX(24px)}
+.eval-competence-switch:focus-visible{outline:3px solid color-mix(in srgb,var(--sel-accent) 28%,transparent);outline-offset:3px}
+.eval-competence-choice.tone-0{--sel-bg:#eef6ff;--sel-border:#7db5f5;--sel-title:#145da0;--sel-accent:#2f80ed}
+.eval-competence-choice.tone-1{--sel-bg:#effaf3;--sel-border:#82c99a;--sel-title:#19713a;--sel-accent:#34a853}
+.eval-competence-choice.tone-2{--sel-bg:#fff8e8;--sel-border:#efc56b;--sel-title:#9a6500;--sel-accent:#e8a317}
+.eval-competence-choice.tone-3{--sel-bg:#f7f0ff;--sel-border:#b996e8;--sel-title:#6b3aa8;--sel-accent:#8b5cf6}
+.eval-competence-choice.tone-4{--sel-bg:#edfafa;--sel-border:#76c7c7;--sel-title:#11696c;--sel-accent:#1aa6a8}
+.eval-competence-choice.tone-5{--sel-bg:#fff1f4;--sel-border:#eaa1b0;--sel-title:#9b3650;--sel-accent:#df5b78}
+.eval-competence-choice.tone-6{--sel-bg:#f0f2ff;--sel-border:#919de3;--sel-title:#3f4c9a;--sel-accent:#6574cd}
+.eval-competence-choice.tone-7{--sel-bg:#eefbf7;--sel-border:#78cdb1;--sel-title:#176b57;--sel-accent:#24a47d}
+.eval-competence-choice.tone-8{--sel-bg:#fff3e9;--sel-border:#eeb07b;--sel-title:#9a4d16;--sel-accent:#e98232}
+@media(max-width:850px){.eval-competence-list{grid-template-columns:1fr!important}.eval-competence-choice{min-height:82px!important;padding:14px!important}}
+@media(max-width:520px){.eval-competence-choice{gap:10px!important}.eval-competence-copy{gap:8px}.eval-competence-code{min-width:48px;height:30px;font-size:13px}.eval-competence-name{font-size:13px}}
+</style>
+
+
+<style id="free-competence-switch-unified-v80-29">
+/* V80.29 — le sélecteur libre utilise exactement le même interrupteur compact que les compétences d’une situation professionnelle. */
+.eval-competence-choice .eval-competence-switch{
+  position:relative!important;flex:0 0 52px!important;width:52px!important;min-width:52px!important;height:28px!important;min-height:28px!important;
+  padding:0!important;border:0!important;border-radius:999px!important;background:#98a2b3!important;color:transparent!important;
+  font-size:0!important;line-height:0!important;box-shadow:inset 0 0 0 1px rgba(16,24,40,.10)!important;cursor:pointer!important;
+  transition:background .18s ease,box-shadow .18s ease!important;overflow:hidden!important
+}
+.eval-competence-choice .eval-competence-switch::after{
+  content:""!important;position:absolute!important;top:3px!important;left:3px!important;width:22px!important;height:22px!important;
+  border-radius:50%!important;background:#fff!important;box-shadow:0 1px 4px rgba(16,24,40,.28)!important;
+  transition:transform .18s ease!important;transform:translateX(0)!important
+}
+.eval-competence-choice .eval-competence-switch[aria-checked="true"]{background:var(--sel-accent,#1677ff)!important}
+.eval-competence-choice .eval-competence-switch[aria-checked="true"]::after{transform:translateX(24px)!important}
+.eval-competence-choice .eval-competence-switch:hover{filter:brightness(.97)!important}
+.eval-competence-choice .eval-competence-switch:focus-visible{outline:3px solid rgba(36,99,235,.28)!important;outline-offset:3px!important}
+</style>
+
+<style id="toggle-switch-unification-v80-31">
+/* V80.31 — tous les contrôles Activer/Désactiver adoptent le même interrupteur compact. */
+.eval-competence-switch[role="switch"],
+.eval-modern-workspace .competence-toggle-btn[role="switch"],
+.criterion-toggle-switch[role="switch"]{
+  position:relative!important; display:inline-block!important; flex:0 0 52px!important;
+  width:52px!important; min-width:52px!important; max-width:52px!important; height:28px!important;
+  padding:0!important; border:0!important; border-radius:999px!important;
+  background:#9aa8ba!important; box-shadow:inset 0 0 0 1px rgba(16,24,40,.10)!important;
+  cursor:pointer!important; vertical-align:middle!important; transition:background .18s ease!important;
+  font-size:0!important; color:transparent!important; overflow:hidden!important;
+}
+.eval-competence-switch[role="switch"]::after,
+.eval-modern-workspace .competence-toggle-btn[role="switch"]::after,
+.criterion-toggle-switch[role="switch"]::after{
+  content:""!important; position:absolute!important; top:3px!important; left:3px!important;
+  width:22px!important; height:22px!important; border-radius:50%!important; background:#fff!important;
+  box-shadow:0 1px 4px rgba(16,24,40,.28)!important; transform:translateX(0)!important;
+  transition:transform .18s ease!important;
+}
+.eval-competence-switch[role="switch"][aria-checked="true"],
+.eval-modern-workspace .competence-toggle-btn[role="switch"][aria-checked="true"],
+.criterion-toggle-switch[role="switch"][aria-checked="true"]{
+  background:var(--sel-accent,var(--comp-accent,#1677ff))!important;
+}
+.eval-competence-switch[role="switch"][aria-checked="true"]::after,
+.eval-modern-workspace .competence-toggle-btn[role="switch"][aria-checked="true"]::after,
+.criterion-toggle-switch[role="switch"][aria-checked="true"]::after{transform:translateX(24px)!important;}
+.eval-competence-switch[role="switch"][aria-checked="false"],
+.eval-modern-workspace .competence-toggle-btn[role="switch"][aria-checked="false"],
+.criterion-toggle-switch[role="switch"][aria-checked="false"]{background:#9aa8ba!important; border-color:transparent!important; box-shadow:inset 0 0 0 1px rgba(16,24,40,.10)!important;}
+.criterion-toggle-switch:focus-visible, .eval-competence-switch:focus-visible, .competence-toggle-btn:focus-visible{outline:3px solid rgba(36,99,235,.28)!important;outline-offset:3px!important;}
+</style>
+
+<style id="toggle-switch-exact-v80-33">
+/* V80.33 — correction réelle du gabarit : neutralise le min-height global des boutons. */
+.eval-competence-switch[role="switch"],
+.eval-modern-workspace .competence-toggle-btn[role="switch"],
+.criterion-toggle-switch[role="switch"]{
+  position:relative!important;
+  display:inline-block!important;
+  flex:0 0 50px!important;
+  width:50px!important; min-width:50px!important; max-width:50px!important;
+  height:24px!important; min-height:24px!important; max-height:24px!important;
+  padding:0!important; margin:0!important;
+  border:0!important; border-radius:12px!important;
+  background:#9aa8ba!important;
+  box-shadow:inset 0 0 0 1px rgba(16,24,40,.10)!important;
+  font-size:0!important; line-height:0!important; color:transparent!important;
+  overflow:hidden!important; cursor:pointer!important; vertical-align:middle!important;
+  appearance:none!important; -webkit-appearance:none!important;
+  transition:background .16s ease!important;
+}
+.eval-competence-switch[role="switch"]::after,
+.eval-modern-workspace .competence-toggle-btn[role="switch"]::after,
+.criterion-toggle-switch[role="switch"]::after{
+  content:""!important;
+  position:absolute!important; top:2px!important; left:2px!important;
+  width:20px!important; height:20px!important; min-width:20px!important; min-height:20px!important;
+  border-radius:50%!important; background:#fff!important;
+  box-shadow:0 1px 3px rgba(16,24,40,.25)!important;
+  transform:translateX(0)!important;
+  transition:transform .16s ease!important;
+}
+.eval-competence-switch[role="switch"][aria-checked="true"],
+.eval-modern-workspace .competence-toggle-btn[role="switch"][aria-checked="true"],
+.criterion-toggle-switch[role="switch"][aria-checked="true"]{
+  background:var(--sel-accent,var(--comp-accent,#2f80ed))!important;
+}
+.eval-competence-switch[role="switch"][aria-checked="true"]::after,
+.eval-modern-workspace .competence-toggle-btn[role="switch"][aria-checked="true"]::after,
+.criterion-toggle-switch[role="switch"][aria-checked="true"]::after{
+  transform:translateX(26px)!important;
+}
+.eval-competence-switch[role="switch"][aria-checked="false"],
+.eval-modern-workspace .competence-toggle-btn[role="switch"][aria-checked="false"],
+.criterion-toggle-switch[role="switch"][aria-checked="false"]{background:#9aa8ba!important;}
+</style>
+</head><body>
   <h1>Archive de la liste des élèves</h1><div class="meta"><b>Date de suppression :</b> ${esc(deletionDate)}<br><b>Nombre d'élèves :</b> ${studentsSnapshot.length}</div>${rows}
   <script>window.onload=()=>setTimeout(()=>window.print(),300);<\/script>
 
