@@ -1370,8 +1370,63 @@ body{background:#f7f9fc;color:var(--text)}
 @media(max-width:900px) and (min-width:601px){.side{width:var(--sidebar-tablet-width);flex-basis:var(--sidebar-tablet-width)}.sidebar-toggle{left:calc(var(--sidebar-tablet-width) + 8px)}.side .logo{white-space:normal}.side .logo b{display:block;line-height:1.12}.nav button{white-space:normal;line-height:1.2}.app.sidebar-collapsed .sidebar-toggle{left:10px}.app.sidebar-collapsed .main{padding-left:18px;padding-right:18px}}
 @media(max-width:600px){.sidebar-toggle{display:none!important}.app.sidebar-collapsed .side{width:280px!important;flex-basis:auto!important;padding:22px 14px!important}}
 </style>
+
+<style id="competence-toggle-v80-24">
+.eval-modern-workspace .competence-head-row{align-items:flex-start!important;gap:14px;flex-wrap:wrap}
+.eval-modern-workspace .competence-head-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-left:auto}
+.eval-modern-workspace .competence-head-actions>.pill,
+.eval-modern-workspace .competence-toggle-btn{
+  min-height:32px!important;height:32px!important;padding:0 12px!important;border-radius:999px!important;
+  display:inline-flex!important;align-items:center!important;justify-content:center!important;
+  white-space:nowrap!important;font-size:12px!important;font-weight:800!important;line-height:1!important;
+  box-shadow:none!important;transition:background .16s ease,border-color .16s ease,color .16s ease,transform .16s ease!important
+}
+.eval-modern-workspace .competence-toggle-btn{background:#fff!important;color:#475467!important;border:1.5px solid #cfd6df!important}
+.eval-modern-workspace .competence-toggle-btn:hover{background:#f8fafc!important;border-color:#98a2b3!important;transform:translateY(-1px)}
+.eval-modern-workspace .competence-toggle-btn.danger{background:#fff4f2!important;color:#b42318!important;border-color:#f3a6a0!important}
+.eval-modern-workspace .competence-toggle-btn.danger:hover{background:#fee4e2!important;border-color:#e77b72!important}
+.eval-modern-workspace .competence-content{display:block}
+.eval-modern-workspace .competence.competence-disabled{
+  opacity:1!important;background:#f7f8fa!important;border-color:#aeb6c2!important;padding-bottom:0!important
+}
+.eval-modern-workspace .competence.competence-disabled> .row:first-child{
+  margin-bottom:0!important;background:#eef1f4!important;border-color:#aeb6c2!important;border-bottom:0!important
+}
+.eval-modern-workspace .competence.competence-disabled> .row:first-child h2{color:#667085!important}
+.eval-modern-workspace .competence.competence-disabled> .row:first-child>div:first-child .muted,
+.eval-modern-workspace .competence.competence-disabled> .row:first-child>div:first-child>.pill{display:none!important}
+.eval-modern-workspace .competence.competence-disabled .competence-content{display:none!important}
+@media(max-width:700px){
+  .eval-modern-workspace .competence-head-actions{width:100%;justify-content:flex-start;margin-left:0}
+  .eval-modern-workspace .competence-toggle-btn{flex:0 1 auto!important;min-width:0!important}
+}
+</style>
+
+<style id="competence-switch-v80-25">
+.sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
+/* V80.25 — interrupteur compact de compétence */
+.eval-modern-workspace .competence-toggle-btn{
+  position:relative!important;width:52px!important;min-width:52px!important;height:28px!important;min-height:28px!important;
+  padding:0!important;border:0!important;border-radius:999px!important;background:#cfd6df!important;color:transparent!important;
+  font-size:0!important;line-height:0!important;box-shadow:inset 0 0 0 1px rgba(16,24,40,.10)!important;cursor:pointer!important;
+  transition:background .18s ease,box-shadow .18s ease!important;overflow:hidden!important
+}
+.eval-modern-workspace .competence-toggle-btn::after{
+  content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;
+  box-shadow:0 1px 4px rgba(16,24,40,.28);transition:transform .18s ease!important
+}
+/* Compétence active : interrupteur coloré et curseur à droite */
+.eval-modern-workspace .competence-toggle-btn:not(.danger){background:var(--comp-accent,#1677ff)!important}
+.eval-modern-workspace .competence-toggle-btn:not(.danger)::after{transform:translateX(24px)}
+/* Compétence désactivée : gris, curseur à gauche */
+.eval-modern-workspace .competence-toggle-btn.danger{background:#98a2b3!important}
+.eval-modern-workspace .competence-toggle-btn.danger::after{transform:translateX(0)}
+.eval-modern-workspace .competence-toggle-btn:hover{transform:none!important;filter:brightness(.97)}
+.eval-modern-workspace .competence-toggle-btn:focus-visible{outline:3px solid rgba(36,99,235,.28)!important;outline-offset:3px!important}
+.eval-modern-workspace .competence-head-actions{align-items:center!important}
+</style>
 </head>
-<body><div id="build-version" style="position:fixed;right:10px;bottom:8px;font-size:10px;opacity:.45;z-index:9999">V80.22 ÉVOLUTION</div>
+<body><div id="build-version" style="position:fixed;right:10px;bottom:8px;font-size:10px;opacity:.45;z-index:9999">V80.25 ÉVOLUTION</div>
 <div class="app">
 <button id="sidebar-toggle" class="sidebar-toggle" type="button" onclick="toggleSidebar()" aria-label="Masquer la barre latérale" aria-expanded="true" title="Masquer la barre latérale">◀</button>
 <aside class="side">
@@ -2342,6 +2397,7 @@ function editEvaluation(evaluationId,studentIdHint){
     obs:{...(ev.obs||{})},
     evaluationObservation:ev.evaluationObservation||"",
     disabledCriteria:{...(ev.disabledCriteria||{})},
+    disabledCompetencies:{...(ev.disabledCompetencies||{})},
     mode:"individual",
     targetStudents:[owner.id],
     batchId:ev.batchId||null,
@@ -2400,7 +2456,7 @@ function beginEvaluation(path){
   }
   draft={
     title:"",date:new Date().toLocaleDateString("fr-FR"),place:"Lycée",type:"Lycée",
-    comps:[],levels:{},obs:{},evaluationObservation:"",disabledCriteria:{},
+    comps:[],levels:{},obs:{},evaluationObservation:"",disabledCriteria:{},disabledCompetencies:{},
     mode:"individual",targetStudents:[selectedStudent],attachment:null,
     evalPath:path==="professional"?"professional":"free",profSituation:"",profOptions:{},profFreeText:"",evaluationStarted:false
   };
@@ -2544,6 +2600,7 @@ function applyProfessionalSituation(){
   Object.keys(draft.levels||{}).forEach(k=>{if(!allowed.has(k))delete draft.levels[k];});
   Object.keys(draft.obs||{}).forEach(k=>{if(!allowed.has(k))delete draft.obs[k];});
   Object.keys(draft.disabledCriteria||{}).forEach(k=>{if(!allowed.has(k))delete draft.disabledCriteria[k];});
+  Object.keys(draft.disabledCompetencies||{}).forEach(cid=>{if(!draft.comps.includes(cid))delete draft.disabledCompetencies[cid];});
 }
 function selectProfessionalSituation(code){
   draft.profSituation=code;draft.profOptions={};draft.profFreeText="";
@@ -2694,7 +2751,10 @@ function toggleAllTargets(){
 }
 function toggleComp(id,on){
   if(on&&!draft.comps.includes(id))draft.comps.push(id);
-  if(!on)draft.comps=draft.comps.filter(x=>x!==id);
+  if(!on){
+    draft.comps=draft.comps.filter(x=>x!==id);
+    if(draft.disabledCompetencies) delete draft.disabledCompetencies[id];
+  }
   render();
 
   const ws=document.getElementById("evaluation-workspace");
@@ -2747,10 +2807,45 @@ const content=grouped
      ${items.map(cr=>renderCriterion(cr,cr.i)).join("")}
    </div>`).join("")
  : c.criteria.map((cr,i)=>renderCriterion(cr,i)).join("");
-return `<div class="panel competence ${competenceToneClass(id)}">
-  <div class="row"><div><h2>${c.id} — ${esc(c.name)}</h2>${c.activity?`<div class="muted">${esc(c.activity)}</div>`:""}${c.level?`<div class="pill" style="margin-top:6px">${esc(c.level)}</div>`:""}</div><span class="pill">${c.criteria.length} critères</span></div>
-  ${content}
+const wholeDisabled=!!(draft.disabledCompetencies&&draft.disabledCompetencies[id]);
+return `<div class="panel competence ${competenceToneClass(id)} ${wholeDisabled?"competence-disabled":""}" data-competence-id="${esc(id)}">
+  <div class="row competence-head-row"><div><h2>${c.id} — ${esc(c.name)}</h2>${c.activity?`<div class="muted">${esc(c.activity)}</div>`:""}${c.level?`<div class="pill" style="margin-top:6px">${esc(c.level)}</div>`:""}</div><div class="competence-head-actions"><span class="pill">${c.criteria.length} critères</span><button type="button" class="small-btn competence-toggle-btn ${wholeDisabled?"danger":"secondary"}" role="switch" aria-checked="${wholeDisabled?"false":"true"}" onclick="toggleCompetence('${id}',this)" title="${wholeDisabled?"Réactiver cette compétence":"Désactiver cette compétence"}" aria-label="${wholeDisabled?"Réactiver cette compétence":"Désactiver cette compétence"}"><span class="sr-only">${wholeDisabled?"Réactiver compétence":"Désactiver compétence"}</span></button></div></div>
+  <div class="competence-content">${content}</div>
 </div>`;
+}
+function toggleCompetence(compId,btn){
+  if(!draft)return;
+  if(!draft.disabledCriteria) draft.disabledCriteria={};
+  if(!draft.disabledCompetencies) draft.disabledCompetencies={};
+  const comp=competencies.find(c=>c.id===compId);
+  if(!comp)return;
+  const isDisabled=!!draft.disabledCompetencies[compId];
+  if(!isDisabled){
+    draft.disabledCompetencies[compId]=true;
+    (comp.criteria||[]).forEach((_,i)=>{draft.disabledCriteria[compId+"-"+i]=true;});
+  }else{
+    delete draft.disabledCompetencies[compId];
+    (comp.criteria||[]).forEach((_,i)=>{delete draft.disabledCriteria[compId+"-"+i];});
+  }
+  const box=document.querySelector('.competence[data-competence-id="'+CSS.escape(compId)+'"]');
+  if(box){
+    box.classList.toggle('competence-disabled',!isDisabled);
+    box.querySelectorAll('.criterion[data-criterion-key]').forEach(cr=>{
+      const key=cr.dataset.criterionKey||'';
+      if(key.startsWith(compId+'-')) cr.style.display=!isDisabled?'none':'';
+    });
+    const action=box.querySelector('.competence-toggle-btn');
+    if(action){
+      action.classList.toggle('danger',!isDisabled);
+      action.classList.toggle('secondary',isDisabled);
+      action.setAttribute('aria-checked',!isDisabled?'false':'true');
+      action.title=!isDisabled?'Réactiver cette compétence':'Désactiver cette compétence';
+      action.setAttribute('aria-label',action.title);
+    }
+  }
+  updateCriteriaRestoreButton();
+  updateBulkCriteriaButtons();
+  updateLiveEvaluationScore();
 }
 function setLevel(key,val){
   if(draft.disabledCriteria && draft.disabledCriteria[key])return;
@@ -2855,6 +2950,23 @@ function updateBulkCriteriaButtons(){
       : "Aucun critère désactivé";
   }
 }
+
+function syncCompetenceToggleUI(){
+  if(!draft)return;
+  document.querySelectorAll('.competence[data-competence-id]').forEach(box=>{
+    const compId=box.dataset.competenceId;
+    const disabled=!!(draft.disabledCompetencies&&draft.disabledCompetencies[compId]);
+    box.classList.toggle('competence-disabled',disabled);
+    const btn=box.querySelector('.competence-toggle-btn');
+    if(btn){
+      btn.classList.toggle('danger',disabled);
+      btn.classList.toggle('secondary',!disabled);
+      btn.setAttribute('aria-checked',disabled?'false':'true');
+      btn.title=disabled?'Réactiver cette compétence':'Désactiver cette compétence';
+      btn.setAttribute('aria-label',btn.title);
+    }
+  });
+}
 function disableAllCriteria(){
   if(!draft)return;
   if(!draft.disabledCriteria)draft.disabledCriteria={};
@@ -2872,6 +2984,7 @@ function disableAllCriteria(){
 function enableAllCriteria(){
   if(!draft)return;
   const selected=new Set(selectedCriterionKeys());
+  draft.disabledCompetencies={};
   Object.keys(draft.disabledCriteria||{}).forEach(key=>{
     if(selected.has(key))delete draft.disabledCriteria[key];
   });
@@ -2896,6 +3009,7 @@ function enableAllCriteria(){
     }
   });
 
+  syncCompetenceToggleUI();
   updateCriteriaRestoreButton();
   updateBulkCriteriaButtons();
   updateLiveEvaluationScore();
@@ -2930,6 +3044,8 @@ function showDisabledCriteria(){
     }
   });
   draft.disabledCriteria={};
+  draft.disabledCompetencies={};
+  syncCompetenceToggleUI();
   updateCriteriaRestoreButton();
   updateBulkCriteriaButtons();
   updateLiveEvaluationScore();
@@ -2940,7 +3056,11 @@ function toggleCriterion(key,btn){
   const disabledNext=!disabledNow;
 
   if(disabledNext) draft.disabledCriteria[key]=true;
-  else delete draft.disabledCriteria[key];
+  else {
+    delete draft.disabledCriteria[key];
+    const compId=key.replace(/-\d+$/,"");
+    if(draft.disabledCompetencies) delete draft.disabledCompetencies[compId];
+  }
 
   const criterion=btn ? btn.closest(".criterion") : null;
   if(criterion){
@@ -3837,6 +3957,7 @@ if(draft.editId){
     obs:{...draft.obs},
     evaluationObservation:(draft.evaluationObservation||"").trim(),
     disabledCriteria:{...draft.disabledCriteria},
+    disabledCompetencies:{...(draft.disabledCompetencies||{})},
     attachment:draft.attachment||null,
     evalPath:draft.evalPath||"free",profSituation:draft.profSituation||"",profOptions:{...(draft.profOptions||{})},profFreeText:draft.profFreeText||"",
     studentId:existing.studentId
@@ -3883,6 +4004,7 @@ const evaluations = validTargets.map((studentId,idx)=>({
   obs:{...draft.obs},
   evaluationObservation:(draft.evaluationObservation||"").trim(),
     disabledCriteria:{...draft.disabledCriteria},
+    disabledCompetencies:{...(draft.disabledCompetencies||{})},
     attachment:draft.attachment||null,
   evalPath:draft.evalPath||"free",profSituation:draft.profSituation||"",profOptions:{...(draft.profOptions||{})},profFreeText:draft.profFreeText||"",
   studentId,
