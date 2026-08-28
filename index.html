@@ -852,7 +852,6 @@ body{background:#f7f9fc;color:var(--text)}
 .home-shortcut-amber{background:linear-gradient(180deg,#fffdf7,#fff8e8)!important;border-color:#f4dfaa!important}
 .home-shortcut-green{background:linear-gradient(180deg,#f8fffb,#ecfaf2)!important;border-color:#ccebd9!important}
 .home-shortcut-settings{
-  grid-column:1!important;
   background:linear-gradient(180deg,#fbfbfd,#f3f5f8)!important;
   border-color:#d9e0e8!important
 }
@@ -886,6 +885,12 @@ body{background:#f7f9fc;color:var(--text)}
 .home-shortcut-amber .home-modern-action{background:#f59e0b}
 .home-shortcut-green .home-modern-action{background:#16a34a}
 .home-shortcut-settings .home-modern-action{background:#52657c}
+.home-shortcut-archive{
+  background:linear-gradient(180deg,#fafbfc,#f3f5f7)!important;
+  border-color:#cbd5e1!important;
+}
+.home-shortcut-archive .home-modern-icon{background:linear-gradient(145deg,#718096,#475569)!important}
+.home-shortcut-archive .home-modern-action{background:#475569}
 
 .home-school-summary{
   margin-top:22px;background:#fff;border:1px solid #dfe5ec;border-radius:16px;
@@ -899,7 +904,6 @@ body{background:#f7f9fc;color:var(--text)}
 
 @media(max-width:1180px){
   .home-shortcuts-modern{grid-template-columns:repeat(2,minmax(0,1fr))!important}
-  .home-shortcut-settings{grid-column:1!important}
 }
 @media(max-width:700px){
   .home-shortcuts-modern{grid-template-columns:1fr!important}
@@ -1597,10 +1601,10 @@ body{background:#f7f9fc;color:var(--text)}
 </style>
 
 </head>
-<body><div id="build-version" style="position:fixed;right:10px;bottom:8px;font-size:10px;opacity:.45;z-index:9999">V81.4 FIREBASE — ÉVALUATIONS</div>
+<body><div id="build-version" style="position:fixed;right:10px;bottom:8px;font-size:10px;opacity:.45;z-index:9999">V81.9 FIREBASE — ÉVALUATIONS</div>
 <div id="firebase-auth-overlay">
   <div class="firebase-login-card">
-    <h2>☁️ Connexion Firebase — V81.4</h2>
+    <h2>☁️ Connexion Firebase — V81.9</h2>
     <p>Cette version synchronise les classes, les élèves et désormais les évaluations avec Firebase. Le stockage local reste utilisé comme cache de sécurité pendant cette phase de validation.</p>
     <form id="firebase-login-form">
       <label for="firebase-email">Adresse e-mail</label>
@@ -1689,6 +1693,13 @@ body{background:#f7f9fc;color:var(--text)}
       </div>
       <div id="settings-students-list" class="settings-list"></div>
     </div>
+  </div>
+
+  <div class="settings-card settings-section">
+    <h3>🧰 Gestion des situations professionnelles</h3>
+    <p>Crée, modifie, duplique, archive ou réactive les situations proposées lors d’une nouvelle évaluation. Les anciennes évaluations restent inchangées.</p>
+    <button type="button" class="primary" onclick="addManagedSituation()">+ Nouvelle situation professionnelle</button>
+    <div id="settings-situations-list" style="margin-top:14px"></div>
   </div>
   <div class="settings-card settings-section">
     <h3>📥 Importer un référentiel depuis un PDF</h3>
@@ -2195,30 +2206,64 @@ async function persistEvaluation(e,isEdit=false){
   e.id=generatedId;
   return generatedId;
 }
-async function deleteCollective(batchId){
+
+function isEvaluationArchived(e){return !!(e&&e.archived);}
+function visibleEvaluations(list){return (list||[]).filter(e=>!isEvaluationArchived(e));}
+function archivedEvaluations(list){return (list||[]).filter(e=>isEvaluationArchived(e));}
+
+async function setEvaluationArchived(ev, archived){
+  if(!ev || ev.id===undefined || ev.id===null) throw new Error("Évaluation invalide.");
+  const updated={...ev,archived:!!archived};
+  if(archived){
+    updated.archivedAt=Date.now();
+  }else{
+    delete updated.archivedAt;
+  }
+  await put("evaluations",updated);
+  return updated;
+}
+
+async function archiveCollective(batchId){
   const key=String(batchId);
   const members=[];
-  students.forEach(st=>{
+  allStudents.forEach(st=>{
     (st.evaluations||[]).forEach(ev=>{
-      if(ev && ev.batchId && String(ev.batchId)===key) members.push({student:st,ev});
+      if(ev && !ev.archived && ev.batchId && String(ev.batchId)===key) members.push({student:st,ev});
     });
   });
-  if(!members.length){showWarningMessage("Aucune évaluation collective trouvée.");return;}
-  const n=members.length;
+  if(!members.length){showWarningMessage("Aucune évaluation collective active trouvée.");return;}
   showDeleteConfirmation(
-    `Supprimer définitivement cette évaluation collective pour les ${n} élèves ? Cette action supprimera toutes les évaluations de cette session collective.`,
-    ()=>performDeleteCollective(n,members)
+    `Archiver cette évaluation collective pour les ${members.length} élèves ? Elle quittera les historiques courants mais restera consultable dans les évaluations archivées.`,
+    ()=>performArchiveCollective(members)
   );
 }
-async function performDeleteCollective(n,members){
+async function performArchiveCollective(members){
   try{
     await openDB();
-    for(const m of members) if(m.ev?.id!==undefined && m.ev?.id!==null) await deleteFromStore("evaluations",m.ev.id);
+    for(const m of members) await setEvaluationArchived(m.ev,true);
     viewedEvaluation=null;
     await loadData();
-    showSuccessMessage(`Les ${n} évaluations ont été supprimées.`);
-  }catch(err){showWarningMessage("Erreur lors de la suppression collective : "+(err?.message||String(err)));}
+    showSuccessMessage(`${members.length} évaluation(s) archivée(s).`,()=>go("history"));
+  }catch(err){showWarningMessage("Erreur lors de l’archivage collectif : "+(err?.message||String(err)));}
 }
+
+async function restoreCollective(batchId){
+  const key=String(batchId);
+  const members=[];
+  allStudents.forEach(st=>{
+    (st.evaluations||[]).forEach(ev=>{
+      if(ev && ev.archived && ev.batchId && String(ev.batchId)===key) members.push({student:st,ev});
+    });
+  });
+  if(!members.length){showWarningMessage("Aucune évaluation collective archivée trouvée.");return;}
+  try{
+    await openDB();
+    for(const m of members) await setEvaluationArchived(m.ev,false);
+    await loadData();
+    showSuccessMessage(`${members.length} évaluation(s) restaurée(s).`,()=>go("archives"));
+  }catch(err){showWarningMessage("Erreur lors de la restauration : "+(err?.message||String(err)));}
+}
+async function deleteCollective(batchId){ return archiveCollective(batchId); }
 
 async function deleteEvaluation(evaluationId,studentIdHint){
   const id=String(evaluationId);
@@ -2226,19 +2271,32 @@ async function deleteEvaluation(evaluationId,studentIdHint){
   const owner=found.owner, ev=found.ev;
   if(!ev){showWarningMessage("Évaluation introuvable.");return;}
   showDeleteConfirmation(
-    `Supprimer définitivement l’évaluation « ${ev.title||"Sans intitulé"} » du ${ev.date||""} ?`,
+    `Archiver l’évaluation « ${ev.title||"Sans intitulé"} » du ${ev.date||""} ? Elle ne sera plus visible dans l’historique courant de l’élève, mais restera conservée.`,
     ()=>performDeleteEvaluation(id,owner,ev)
   );
 }
 async function performDeleteEvaluation(id,owner,ev){
   try{
     await openDB();
-    await deleteFromStore("evaluations",ev.id);
-    owner.evaluations=owner.evaluations.filter(x=>String(x.id)!==id);
+    const updated=await setEvaluationArchived(ev,true);
+    owner.evaluations=(owner.evaluations||[]).map(x=>String(x.id)===id?updated:x);
     selectedStudent=owner.id;
     viewedEvaluation=null;
-    showSuccessMessage("Évaluation supprimée de l’historique.",()=>go("history"));
-  }catch(err){showWarningMessage("Erreur lors de la suppression : "+(err?.message||String(err)));}
+    showSuccessMessage("Évaluation archivée.",()=>go("history"));
+  }catch(err){showWarningMessage("Erreur lors de l’archivage : "+(err?.message||String(err)));}
+}
+async function restoreEvaluation(evaluationId,studentIdHint){
+  const id=String(evaluationId);
+  const found=findEvaluationOwner(id,studentIdHint);
+  const owner=found.owner, ev=found.ev;
+  if(!ev){showWarningMessage("Évaluation archivée introuvable.");return;}
+  try{
+    await openDB();
+    const updated=await setEvaluationArchived(ev,false);
+    owner.evaluations=(owner.evaluations||[]).map(x=>String(x.id)===id?updated:x);
+    viewedEvaluation=null;
+    showSuccessMessage("Évaluation restaurée dans l’historique actif.",()=>go("archives"));
+  }catch(err){showWarningMessage("Erreur lors de la restauration : "+(err?.message||String(err)));}
 }
 function resetAllData(){
   showDeleteConfirmation(
@@ -2295,7 +2353,7 @@ function render(){
  else if(page==="eval")evaluationPage();
  else if(page==="viewEval")viewEvaluationPage();
  else if(page==="comps")compsPage();
-  else if(page==="history")historyPage();else if(page==="studentHistory")studentHistoryPage();
+  else if(page==="history")historyPage();else if(page==="archives")archivesPage();else if(page==="studentHistory")studentHistoryPage();
   else if(page==="settings")renderSettingsPage();
   else if(page==="referentiel-import-text")referentielImportTextPage();
   else if(page==="referentiel-import-review")renderReferentielImportReview();
@@ -2305,7 +2363,7 @@ function render(){
 }
 function home(){
   setActive("home");
-  const total=students.reduce((n,s)=>n+(s.evaluations||[]).length,0);
+  const total=students.reduce((n,s)=>n+visibleEvaluations(s.evaluations||[]).length,0);
   const cls=getSchoolSettings().className||"C2MMVP";
   document.getElementById("main").innerHTML=`
     <header class="app-top-header">
@@ -2348,6 +2406,14 @@ function home(){
           </div>
           <div class="home-modern-copy"><h3>Synthèse élève</h3><p>Voir la synthèse des résultats d’un élève</p></div>
           <button type="button" class="home-modern-action">Voir une synthèse</button>
+        </div>
+
+        <div class="home-shortcut home-shortcut-archive" onclick="go('archives')">
+          <div class="home-modern-icon" aria-hidden="true" style="background:#f1f5f9;color:#475569">
+            <svg viewBox="0 0 64 64"><rect x="11" y="18" width="42" height="34" rx="4"/><path d="M8 12h48v10H8z"/><path d="M24 31h16"/></svg>
+          </div>
+          <div class="home-modern-copy"><h3>Évaluations archivées</h3><p>Consulter ou restaurer les évaluations retirées des historiques courants</p></div>
+          <button type="button" class="home-modern-action">Voir les archives</button>
         </div>
 
         <div class="home-shortcut home-shortcut-settings" onclick="openSettings()">
@@ -2405,7 +2471,7 @@ function recent(){
   // d'éléments affichés. Ainsi, une évaluation collective n'est jamais
   // tronquée : tous ses élèves restent dans le groupe.
   let all=[];
-  students.forEach(st=>st.evaluations.forEach(ev=>all.push({
+  students.forEach(st=>visibleEvaluations(st.evaluations||[]).forEach(ev=>all.push({
     student:st.name,studentId:st.id,...ev
   })));
   if(!all.length)return '<p class="muted">Aucune évaluation enregistrée.</p>';
@@ -2458,20 +2524,20 @@ let groups=[...groupMap.values()]
   groups.forEach(g=>{
     if(!g.collective){
       const e=g.items[0];
-      body+=`<tr onclick="viewEvaluation('${String(e.id)}')" style="cursor:pointer" title="Cliquer pour visualiser" class="home-individual-row"><td>${esc(e.date)}</td><td><b>${esc(e.student)}</b></td><td>${esc(e.title)}</td><td>${e.comps.map(competenceLabel).join("<br>")}</td><td><span class="score-badge ${scoreClass(evaluationScore20(e))}">${evaluationScoreLabel(e)}</span></td><td><button class="action-icon action-edit" onclick="event.stopPropagation();editEvaluation('${String(e.id)}','${String(e.studentId)}')" title="Modifier" aria-label="Modifier">✏️</button><button class="action-icon action-delete" onclick="event.stopPropagation();deleteEvaluation('${String(e.id)}','${String(e.studentId)}')" title="Supprimer" aria-label="Supprimer">🗑️</button></td></tr>`;
+      body+=`<tr onclick="viewEvaluation('${String(e.id)}')" style="cursor:pointer" title="Cliquer pour visualiser" class="home-individual-row"><td>${esc(e.date)}</td><td><b>${esc(e.student)}</b></td><td>${esc(e.title)}</td><td>${e.comps.map(competenceLabel).join("<br>")}</td><td><span class="score-badge ${scoreClass(evaluationScore20(e))}">${evaluationScoreLabel(e)}</span></td><td><button class="action-icon action-edit" onclick="event.stopPropagation();editEvaluation('${String(e.id)}','${String(e.studentId)}')" title="Modifier" aria-label="Modifier">✏️</button><button class="action-icon action-delete" onclick="event.stopPropagation();deleteEvaluation('${String(e.id)}','${String(e.studentId)}')" title="Archiver" aria-label="Archiver">📦</button></td></tr>`;
     }else{
       const id="collective-"+g.key.replace(/[^a-zA-Z0-9_-]/g,"_");
       body+=`<tr class="click home-collective-row" onclick="toggleCollectiveRow('${esc(id)}')" style="cursor:pointer;background:#f8fafc">
         <td>${esc(g.date)}</td><td><b>👥 Évaluation collective</b></td><td>${esc(g.title)}</td><td>${g.comps.map(competenceLabel).join("<br>")}</td><td><span class="pill">${g.items.length} élèves</span></td>
         <td><div class="action-buttons" style="display:flex;flex-wrap:nowrap;align-items:center;gap:6px;white-space:nowrap">
           <button class="reduce-icon" type="button" data-toggle="${esc(id)}" onclick="event.stopPropagation();toggleCollectiveRow('${esc(id)}')" title="Réduire" aria-label="Réduire" style="display:none">▲</button>
-          <button class="action-icon action-delete" type="button" onclick="event.stopPropagation();deleteCollective('${String(g.key)}')" title="Supprimer toute l’évaluation collective" aria-label="Supprimer toute l’évaluation collective">🗑️</button>
+          <button class="action-icon action-delete" type="button" onclick="event.stopPropagation();deleteCollective('${String(g.key)}')" title="Archiver toute l’évaluation collective" aria-label="Archiver toute l’évaluation collective">📦</button>
         </div></td>
       </tr>`;
       g.items.forEach(e=>{
         body+=`<tr onclick="viewEvaluation(\'${String(e.id)}\')" style="display:none;cursor:pointer" title="Cliquer pour visualiser" class="history-collective-child home-collective-child" data-collective="${esc(id)}">
           <td>${esc(e.date)}</td><td style="padding-left:28px">↳ ${esc(e.student)}</td><td>${esc(e.title)}</td><td>${e.comps.map(competenceLabel).join("<br>")}</td><td><span class="score-badge ${scoreClass(evaluationScore20(e))}">${evaluationScoreLabel(e)}</span></td>
-          <td><button class="action-icon action-edit" onclick="event.stopPropagation();editEvaluation('${String(e.id)}','${String(e.studentId)}')" title="Modifier" aria-label="Modifier">✏️</button><button class="action-icon action-delete" onclick="event.stopPropagation();deleteEvaluation('${String(e.id)}','${String(e.studentId)}')" title="Supprimer" aria-label="Supprimer">🗑️</button></td>
+          <td><button class="action-icon action-edit" onclick="event.stopPropagation();editEvaluation('${String(e.id)}','${String(e.studentId)}')" title="Modifier" aria-label="Modifier">✏️</button><button class="action-icon action-delete" onclick="event.stopPropagation();deleteEvaluation('${String(e.id)}','${String(e.studentId)}')" title="Archiver" aria-label="Archiver">📦</button></td>
         </tr>`;
       });
     }
@@ -2500,7 +2566,7 @@ function openStudentPicker(target){
           ${list.map(s=>`<button type="button" class="student-picker-card" onclick="chooseStudentFromPicker('${String(s.id)}','${target}')">
             <span class="student-picker-avatar">${esc((s.name||"?").trim().charAt(0).toUpperCase())}</span>
             <span class="student-picker-name">${esc(s.name||"Élève")}</span>
-            <span class="student-picker-meta">${s.evaluations?.length||0} évaluation(s)</span>
+            <span class="student-picker-meta">${visibleEvaluations(s.evaluations||[]).length} évaluation(s)</span>
           </button>`).join("")}
         </div>`:
         `<div class="student-picker-empty">Aucun élève n'est enregistré.</div>`}
@@ -2556,8 +2622,11 @@ function viewEvaluationPage(){
   }).join("");
   document.getElementById("main").innerHTML=`<h1>Visualisation de l’évaluation</h1>
   <div class="sub">Consultation seule — aucune modification possible</div>
-  <div class="panel"><div class="row"><div><h2>${esc(e.title||"Évaluation")}</h2><p class="muted">${esc(ownerName(e.studentId))} · ${esc(e.date||"")} · ${esc((e.place==="Centre"||!e.place)?"Lycée":e.place)}</p></div><span class="pill">${esc(e.type||"")}</span></div>${e.evaluationObservation?`<div style="margin-top:12px;padding:12px 14px;border-radius:10px;background:#f4f8ff"><b>💬 Observation de l’évaluation</b><div style="margin-top:6px;white-space:pre-wrap">${esc(e.evaluationObservation)}</div></div>`:""}${e.attachment?`<div style="margin-top:12px">${attachmentHtml(e.attachment)}</div>`:""}</div>
-  ${cBlocks}<div class="actions" style="margin-top:18px"><button class="secondary" onclick="go(\'history\')">↩️ Historique</button><button class="action-icon action-edit" onclick="editEvaluation('${String(e.id)}')" title="Modifier" aria-label="Modifier">✏️</button><button class="action-icon action-delete" onclick="deleteEvaluation('${String(e.id)}')" title="Supprimer" aria-label="Supprimer">🗑️</button></div>`;
+  <div class="panel"><div class="row"><div><h2>${esc(e.title||"Évaluation")}</h2><p class="muted">${esc(ownerName(e.studentId))} · ${esc(e.date||"")} · ${esc((e.place==="Centre"||!e.place)?"Lycée":e.place)}</p></div><div style="display:flex;gap:8px;align-items:center">${e.archived?'<span class="pill">📦 Archivée</span>':''}<span class="pill">${esc(e.type||"")}</span></div></div>${e.archived?'<div style="margin-top:12px;padding:10px 12px;border-radius:10px;background:#f8fafc;border:1px solid #cbd5e1"><b>Évaluation archivée :</b> consultation seule. Elle peut être restaurée avec le bouton en bas de page.</div>':''}${e.evaluationObservation?`<div style="margin-top:12px;padding:12px 14px;border-radius:10px;background:#f4f8ff"><b>💬 Observation de l’évaluation</b><div style="margin-top:6px;white-space:pre-wrap">${esc(e.evaluationObservation)}</div></div>`:""}${e.attachment?`<div style="margin-top:12px">${attachmentHtml(e.attachment)}</div>`:""}</div>
+  ${cBlocks}<div class="actions" style="margin-top:18px">${e.archived
+    ? `<button class="secondary" onclick="go('archives')">↩️ Retour aux archives</button><button class="primary" onclick="restoreEvaluation('${String(e.id)}','${String(e.studentId)}')">↩ Restaurer cette évaluation</button>`
+    : `<button class="secondary" onclick="go('history')">↩️ Historique</button><button class="action-icon action-edit" onclick="editEvaluation('${String(e.id)}')" title="Modifier" aria-label="Modifier">✏️</button><button class="action-icon action-delete" onclick="deleteEvaluation('${String(e.id)}')" title="Archiver" aria-label="Archiver">📦</button>`
+  }</div>`;
 }
 
 function findEvaluationOwner(evaluationId,studentIdHint){
@@ -2695,7 +2764,7 @@ function removeEvaluationAttachment(){draft.attachment=null;render()}
 function attachmentHtml(a){if(!a)return "";const label=esc(a.name||"Pièce jointe"),href=a.dataUrl||"#";return attachmentIsImage(a)?`<div><img src="${href}" alt="${label}" style="max-width:220px;max-height:160px;border-radius:10px;display:block;margin-bottom:8px"><a href="${href}" target="_blank" rel="noopener">${label}</a> · ${formatFileSize(a.size)}</div>`:`<div><a href="${href}" target="_blank" rel="noopener">📎 ${label}</a> · ${formatFileSize(a.size)}</div>`}
 
 
-const PROFESSIONAL_SITUATIONS_V80=[
+const PROFESSIONAL_SITUATIONS_DEFAULT=[
   {code:"SP1-A",label:"Révision – entretien périodique 3 filtres",title:"Révision – entretien périodique 3 filtres",comps:["C1.1","C1.2","C1.3"],options:[{id:"clientAdvice",label:"Conseil / restitution client",add:["C1.4"]}],note:"Huile + filtre à huile + filtre à air + filtre habitacle."},
   {code:"SP1-B",label:"Révision – entretien périodique 4 filtres",title:"Révision – entretien périodique 4 filtres",comps:["C1.1","C1.2","C1.3"],options:[{id:"clientAdvice",label:"Conseil / restitution client",add:["C1.4"]}],note:"Huile + filtre à huile + filtre à air + filtre habitacle + filtre à carburant."},
   {code:"SP2",label:"Pneumatiques + équilibrage",title:"Remplacement de pneumatiques + équilibrage",comps:["C2.1","C2.2","C2.3","C2.4"],options:[],note:"L’équilibrage est considéré comme une opération de réglage mécanique."},
@@ -2714,6 +2783,122 @@ const PROFESSIONAL_SITUATIONS_V80=[
   {code:"SP9-A",label:"Diagnostic – témoin allumé",title:"Diagnostic de premier niveau – témoin allumé au tableau de bord",comps:["C2.5"],freeField:"symptome",options:[{id:"repairAfterDiag",label:"Réaliser aussi la remise en conformité après diagnostic",add:["C2.1","C2.2","C2.4"]}],note:"Voyant moteur, ABS, airbag, charge, température, etc."},
   {code:"SP9-B",label:"Diagnostic – organe électrique inopérant",title:"Diagnostic de premier niveau – organe électrique qui ne fonctionne pas",comps:["C2.5"],freeField:"symptome",options:[{id:"repairAfterDiag",label:"Réaliser aussi la remise en conformité après diagnostic",add:["C2.1","C2.2","C2.4"]}],note:"Éclairage, essuie-glace, avertisseur, lève-vitre, ventilateur, etc."}
 ];
+const PROFESSIONAL_SITUATIONS_STORAGE_KEY="evaluation_professional_situations_v81_5";
+function getManagedProfessionalSituations(){
+  try{
+    const v=JSON.parse(localStorage.getItem(PROFESSIONAL_SITUATIONS_STORAGE_KEY)||"null");
+    if(Array.isArray(v)&&v.length)return v;
+  }catch(e){}
+  const seed=JSON.parse(JSON.stringify(PROFESSIONAL_SITUATIONS_DEFAULT)).map(x=>({...x,active:x.active!==false}));
+  localStorage.setItem(PROFESSIONAL_SITUATIONS_STORAGE_KEY,JSON.stringify(seed));
+  return seed;
+}
+let PROFESSIONAL_SITUATIONS_V80=getManagedProfessionalSituations();
+function saveManagedProfessionalSituations(){
+  localStorage.setItem(PROFESSIONAL_SITUATIONS_STORAGE_KEY,JSON.stringify(PROFESSIONAL_SITUATIONS_V80));
+  if(window.firebaseCloudSet) window.firebaseCloudSet("situationsProfessionnelles","library",{items:PROFESSIONAL_SITUATIONS_V80,version:"81.9"}).catch(()=>{});
+}
+function refreshManagedSituations(){PROFESSIONAL_SITUATIONS_V80=getManagedProfessionalSituations();}
+function renderSettingsSituations(){
+  const box=document.getElementById("settings-situations-list"); if(!box)return;
+  box.innerHTML=PROFESSIONAL_SITUATIONS_V80.map((sp,i)=>`<div class="settings-item" style="padding:12px;margin:8px 0;border:1px solid #dbe3ee;border-radius:12px">
+    <div style="display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap">
+      <div><b>${esc(sp.code)}</b> — ${esc(sp.label||sp.title||"")} ${sp.active===false?'<span class="muted">• archivée</span>':''}<br><small>${esc((sp.comps||[]).join(" · "))}</small></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="secondary" onclick="editManagedSituation(${i})">Modifier</button>
+        <button class="secondary" onclick="duplicateManagedSituation(${i})">Dupliquer</button>
+        <button class="secondary" onclick="toggleManagedSituation(${i})">${sp.active===false?"Réactiver":"Archiver"}</button>
+      </div>
+    </div></div>`).join("");
+}
+let situationGraphicState={index:null,selected:new Set(),options:[]};
+
+function competencyDisplayName(c){return `${c.id} — ${c.name||""}`;}
+function openSituationGraphicEditor(existing,index){
+  const modal=document.getElementById("situation-graphic-modal");
+  situationGraphicState={
+    index:index,
+    selected:new Set(existing?.comps||[]),
+    options:JSON.parse(JSON.stringify(existing?.options||[]))
+  };
+  document.getElementById("sg-title").textContent=existing?"Modifier la situation professionnelle":"Nouvelle situation professionnelle";
+  document.getElementById("sg-code").value=existing?.code||"";
+  document.getElementById("sg-label").value=existing?.label||existing?.title||"";
+  document.getElementById("sg-note").value=existing?.note||"";
+  document.getElementById("sg-error").style.display="none";
+  renderSituationGraphicCompetencies();
+  renderSituationGraphicOptions();
+  modal.style.display="block";
+}
+function closeSituationGraphicEditor(){document.getElementById("situation-graphic-modal").style.display="none";}
+function renderSituationGraphicCompetencies(){
+  const box=document.getElementById("sg-competencies");
+  box.innerHTML=(competencies||[]).map((c,i)=>{
+    const on=situationGraphicState.selected.has(c.id);
+    const color=(typeof COMP_COLORS!=="undefined"&&COMP_COLORS[c.id])||"#2563eb";
+    return `<button type="button" onclick="toggleSituationGraphicCompetency('${esc(c.id)}')" style="text-align:left;border:2px solid ${on?color:"#dbe3ee"};background:${on?color+"12":"#fff"};border-radius:14px;padding:13px;min-height:76px">
+      <div style="display:flex;align-items:flex-start;gap:10px">
+        <span style="width:22px;height:22px;border-radius:50%;border:2px solid ${color};background:${on?color:"#fff"};color:#fff;display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto">${on?"✓":""}</span>
+        <span><b style="color:${color}">${esc(c.id)}</b><br><span style="color:#334155">${esc(c.name||"")}</span></span>
+      </div>
+    </button>`;
+  }).join("");
+}
+function toggleSituationGraphicCompetency(id){
+  if(situationGraphicState.selected.has(id))situationGraphicState.selected.delete(id);else situationGraphicState.selected.add(id);
+  renderSituationGraphicCompetencies();
+}
+function addSituationGraphicOption(){
+  situationGraphicState.options.push({id:"opt_"+Date.now()+"_"+Math.random().toString(36).slice(2,7),label:"",add:[]});
+  renderSituationGraphicOptions();
+}
+function removeSituationGraphicOption(i){situationGraphicState.options.splice(i,1);renderSituationGraphicOptions();}
+function updateSituationGraphicOptionLabel(i,v){situationGraphicState.options[i].label=v;}
+function toggleSituationGraphicOptionComp(i,id){
+  const a=situationGraphicState.options[i].add||(situationGraphicState.options[i].add=[]);
+  const p=a.indexOf(id);if(p>=0)a.splice(p,1);else a.push(id);
+  renderSituationGraphicOptions();
+}
+function renderSituationGraphicOptions(){
+  const box=document.getElementById("sg-options");
+  if(!situationGraphicState.options.length){box.innerHTML='<div class="muted" style="padding:14px;border:1px dashed #cbd5e1;border-radius:12px">Aucune option facultative.</div>';return;}
+  box.innerHTML=situationGraphicState.options.map((o,i)=>`<div style="border:1px solid #dbe3ee;border-radius:14px;padding:14px;margin-bottom:10px">
+    <div style="display:flex;gap:8px;align-items:center">
+      <input type="text" value="${esc(o.label||"")}" oninput="updateSituationGraphicOptionLabel(${i},this.value)" placeholder="Ex. Diagnostic préalable réalisé" style="flex:1">
+      <button type="button" class="secondary" onclick="removeSituationGraphicOption(${i})">Supprimer</button>
+    </div>
+    <div class="muted" style="margin:10px 0 6px">Compétences ajoutées par cette option :</div>
+    <div style="display:flex;gap:7px;flex-wrap:wrap">${(competencies||[]).map(c=>{
+      const on=(o.add||[]).includes(c.id);
+      return `<button type="button" onclick="toggleSituationGraphicOptionComp(${i},'${esc(c.id)}')" style="border:1px solid ${on?"#2563eb":"#cbd5e1"};background:${on?"#dbeafe":"#fff"};border-radius:999px;padding:7px 10px;min-height:auto"><b>${esc(c.id)}</b></button>`;
+    }).join("")}</div>
+  </div>`).join("");
+}
+function saveSituationGraphicEditor(){
+  const code=document.getElementById("sg-code").value.trim();
+  const label=document.getElementById("sg-label").value.trim();
+  const note=document.getElementById("sg-note").value.trim();
+  const err=document.getElementById("sg-error");
+  if(!code||!label){err.textContent="Le code et l’intitulé sont obligatoires.";err.style.display="block";return;}
+  if(!situationGraphicState.selected.size){err.textContent="Sélectionne au moins une compétence automatique.";err.style.display="block";return;}
+  const existing=situationGraphicState.index===null?null:PROFESSIONAL_SITUATIONS_V80[situationGraphicState.index];
+  const options=situationGraphicState.options.filter(o=>(o.label||"").trim()).map(o=>({...o,label:o.label.trim(),add:o.add||[]}));
+  const obj={...(existing||{}),code,label,title:label,note,comps:Array.from(situationGraphicState.selected),options,active:existing?.active!==false};
+  if(situationGraphicState.index===null)PROFESSIONAL_SITUATIONS_V80.push(obj);else PROFESSIONAL_SITUATIONS_V80[situationGraphicState.index]=obj;
+  saveManagedProfessionalSituations();renderSettingsSituations();closeSituationGraphicEditor();
+}
+function situationEditor(existing,index){openSituationGraphicEditor(existing,index);}
+function addManagedSituation(){openSituationGraphicEditor(null,null)}
+function editManagedSituation(i){openSituationGraphicEditor(PROFESSIONAL_SITUATIONS_V80[i],i)}
+function duplicateManagedSituation(i){
+  const x=JSON.parse(JSON.stringify(PROFESSIONAL_SITUATIONS_V80[i]));
+  x.code=x.code+"-COPIE";x.label=x.label+" (copie)";x.title=x.label;x.active=true;
+  PROFESSIONAL_SITUATIONS_V80.push(x);saveManagedProfessionalSituations();renderSettingsSituations();
+}
+function toggleManagedSituation(i){
+  PROFESSIONAL_SITUATIONS_V80[i].active=PROFESSIONAL_SITUATIONS_V80[i].active===false;
+  saveManagedProfessionalSituations();renderSettingsSituations();
+}
 function ensureEvaluationPath(){
   if(!draft.evalPath) draft.evalPath="free";
   if(!draft.profOptions) draft.profOptions={};
@@ -2775,7 +2960,7 @@ function professionalSituationGroupMeta(group){
 }
 function professionalSituationCardsHtml(){
   const groups=[];
-  PROFESSIONAL_SITUATIONS_V80.forEach(p=>{
+  PROFESSIONAL_SITUATIONS_V80.filter(p=>p.active!==false).forEach(p=>{
     const group=professionalSituationGroupCode(p.code);
     let row=groups.find(g=>g.code===group);
     if(!row){row={code:group,items:[]};groups.push(row);}
@@ -3426,7 +3611,8 @@ function showWarningMessage(message){
 function showDeleteConfirmation(message,onConfirm){
   const existing=document.getElementById("delete-overlay"); if(existing)existing.remove();
   const overlay=document.createElement("div"); overlay.id="delete-overlay"; overlay.className="delete-overlay";
-  overlay.innerHTML=`<div class="delete-box" role="alertdialog" aria-modal="true"><div class="delete-icon">⚠️</div><div class="delete-message">${esc(message)}</div><div class="delete-actions"><button type="button" class="secondary" id="delete-cancel-btn">Annuler</button><button type="button" class="danger" id="delete-confirm-btn">Supprimer</button></div></div>`;
+  const confirmLabel=/archiv/i.test(String(message))?"Archiver":"Supprimer";
+  overlay.innerHTML=`<div class="delete-box" role="alertdialog" aria-modal="true"><div class="delete-icon">⚠️</div><div class="delete-message">${esc(message)}</div><div class="delete-actions"><button type="button" class="secondary" id="delete-cancel-btn">Annuler</button><button type="button" class="danger" id="delete-confirm-btn">${confirmLabel}</button></div></div>`;
   document.body.appendChild(overlay);
   overlay.querySelector("#delete-cancel-btn")?.focus();
   overlay.querySelector("#delete-cancel-btn")?.addEventListener("click",()=>overlay.remove());
@@ -3458,6 +3644,7 @@ function renderSettingsPage(){
   renderSettingsClasses();
   renderSettingsStudents();
   renderSettingsCompetencies();
+  renderSettingsSituations();
 }
 function changeAdminCode(){
   const current=document.getElementById("settings-current-code")?.value||"";
@@ -3846,6 +4033,43 @@ function exportStudentDeletionPDF(studentsSnapshot, deletionDate){
 </head><body>
   <h1>Archive de la liste des élèves</h1><div class="meta"><b>Date de suppression :</b> ${esc(deletionDate)}<br><b>Nombre d'élèves :</b> ${studentsSnapshot.length}</div>${rows}
   <script>window.onload=()=>setTimeout(()=>window.print(),300);<\/script>
+
+
+<div id="situation-graphic-modal" style="display:none;position:fixed;inset:0;z-index:10050;background:rgba(15,23,42,.55);padding:18px;overflow:auto">
+  <div style="max-width:1050px;margin:20px auto;background:#fff;border-radius:18px;box-shadow:0 20px 60px rgba(0,0,0,.25);overflow:hidden">
+    <div style="padding:18px 22px;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;justify-content:space-between;gap:12px">
+      <div><h2 id="sg-title" style="margin:0">Nouvelle situation professionnelle</h2><div class="muted">Éditeur graphique</div></div>
+      <button type="button" class="secondary" onclick="closeSituationGraphicEditor()">✕ Fermer</button>
+    </div>
+    <div style="padding:22px">
+      <div style="display:grid;grid-template-columns:minmax(120px,.35fr) minmax(240px,1fr);gap:12px">
+        <label><b>Code</b><input id="sg-code" type="text" placeholder="Ex. SP10" style="width:100%;margin-top:6px"></label>
+        <label><b>Intitulé</b><input id="sg-label" type="text" placeholder="Ex. Remplacement d'un kit de distribution" style="width:100%;margin-top:6px"></label>
+      </div>
+      <label style="display:block;margin-top:14px"><b>Description / note</b><textarea id="sg-note" rows="3" placeholder="Contexte, véhicule, particularités..." style="width:100%;margin-top:6px"></textarea></label>
+
+      <div style="margin-top:22px">
+        <h3 style="margin-bottom:5px">Compétences automatiques</h3>
+        <div class="muted">Clique sur les cartes à intégrer à la situation.</div>
+        <div id="sg-competencies" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px;margin-top:12px"></div>
+      </div>
+
+      <div style="margin-top:24px">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+          <div><h3 style="margin:0">Options facultatives</h3><div class="muted">Une option peut ajouter une ou plusieurs compétences lors de l'évaluation.</div></div>
+          <button type="button" class="secondary" onclick="addSituationGraphicOption()">+ Ajouter une option</button>
+        </div>
+        <div id="sg-options" style="margin-top:12px"></div>
+      </div>
+
+      <div id="sg-error" style="display:none;margin-top:14px;padding:10px 12px;border-radius:10px;background:#fee2e2;color:#991b1b"></div>
+      <div style="display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;margin-top:24px;padding-top:16px;border-top:1px solid #e5e7eb">
+        <button type="button" class="secondary" onclick="closeSituationGraphicEditor()">Annuler</button>
+        <button type="button" class="primary" onclick="saveSituationGraphicEditor()">✓ Enregistrer la situation</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 </body></html>`);
   w.document.close();
@@ -4453,7 +4677,7 @@ function levelScore(v){
   return {"Non observé":0,"À renforcer":1,"En cours":2,"Maîtrisé":3,"Autonome":4}[v] ?? 0;
 }
 function latestCompetenceScore(s,c){
-  const es=s.evaluations.filter(e=>e.comps.includes(c.id));
+  const es=visibleEvaluations(s.evaluations||[]).filter(e=>(e.comps||[]).includes(c.id));
   const last=es.at(-1);
   if(!last) return null;
   const vals=c.criteria.map((_,i)=>levelScore(last.levels[c.id+"-"+i])).filter(x=>x>0);
@@ -4510,7 +4734,7 @@ function historyPage(){
 
   const all=[];
   students.forEach(st=>{
-    (st.evaluations||[]).forEach(ev=>{
+    visibleEvaluations(st.evaluations||[]).forEach(ev=>{
       all.push({...ev,studentName:st.name,studentId:st.id});
     });
   });
@@ -4565,7 +4789,7 @@ function historyPage(){
         <td><span class="score-badge ${scoreClass(evaluationScore20(e))}">${evaluationScoreLabel(e)}</span></td>
         <td><span class="actions-inline">
           <button class="action-icon action-edit" onclick="event.stopPropagation();editEvaluation('${String(e.id)}','${String(e.studentId)}')" title="Modifier" aria-label="Modifier">✏️</button>
-          <button class="action-icon action-delete" onclick="event.stopPropagation();deleteEvaluation('${String(e.id)}','${String(e.studentId)}')" title="Supprimer" aria-label="Supprimer">🗑️</button>
+          <button class="action-icon action-delete" onclick="event.stopPropagation();deleteEvaluation('${String(e.id)}','${String(e.studentId)}')" title="Archiver" aria-label="Archiver">📦</button>
         </span></td>
       </tr>`;
     }else{
@@ -4580,7 +4804,7 @@ function historyPage(){
         <td><span class="pill">${studentsCount} élèves</span></td>
         <td><div class="action-buttons" style="display:flex;flex-wrap:nowrap;align-items:center;gap:6px;white-space:nowrap">
           <button class="reduce-icon" type="button" data-toggle="${esc(id)}" onclick="event.stopPropagation();toggleCollectiveRow('${esc(id)}')" title="Réduire" aria-label="Réduire" style="display:none">▲</button>
-          <button class="action-icon action-delete" type="button" onclick="event.stopPropagation();deleteCollective('${String(g.items[0].batchId)}')" title="Supprimer toute l’évaluation collective" aria-label="Supprimer toute l’évaluation collective">🗑️</button>
+          <button class="action-icon action-delete" type="button" onclick="event.stopPropagation();deleteCollective('${String(g.items[0].batchId)}')" title="Archiver toute l’évaluation collective" aria-label="Archiver toute l’évaluation collective">📦</button>
         </div></td>
       </tr>`;
 
@@ -4594,7 +4818,7 @@ function historyPage(){
           <td><span class="score-badge ${scoreClass(evaluationScore20(e))}">${evaluationScoreLabel(e)}</span></td>
           <td><span class="actions-inline">
             <button class="action-icon action-edit" onclick="event.stopPropagation();editEvaluation('${String(e.id)}','${String(e.studentId)}')" title="Modifier" aria-label="Modifier">✏️</button>
-            <button class="action-icon action-delete" onclick="event.stopPropagation();deleteEvaluation('${String(e.id)}','${String(e.studentId)}')" title="Supprimer" aria-label="Supprimer">🗑️</button>
+            <button class="action-icon action-delete" onclick="event.stopPropagation();deleteEvaluation('${String(e.id)}','${String(e.studentId)}')" title="Archiver" aria-label="Archiver">📦</button>
           </span></td>
         </tr>`;
       });
@@ -4605,13 +4829,13 @@ function historyPage(){
     <div class="page-header">
       <div>
         <h1>Historique</h1>
-        <p class="sub">Toutes les évaluations enregistrées dans le logiciel.</p>
+        <p class="sub">Toutes les évaluations actives enregistrées dans le logiciel.</p>
       </div>
       <button class="secondary" onclick="go('home')">← Accueil</button>
     </div>
     <div class="panel">
       <div class="row">
-        <h2>Toutes les évaluations</h2>
+        <h2>Évaluations actives</h2>
         <span class="pill">${ordered.length} évaluation(s)</span>
       </div>
       ${ordered.length?`
@@ -4627,12 +4851,92 @@ function historyPage(){
 }
 
 
+function archivesPage(){
+  setActive("history");
+  const all=[];
+  allStudents.forEach(st=>{
+    archivedEvaluations(st.evaluations||[]).forEach(ev=>{
+      all.push({...ev,studentName:st.name,studentId:st.id});
+    });
+  });
+
+  function dateValue(value){
+    if(!value)return 0;
+    const x=String(value).trim();
+    let m=x.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+    if(m)return new Date(+m[1],+m[2]-1,+m[3]).getTime();
+    m=x.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})/);
+    if(m)return new Date(+m[3],+m[2]-1,+m[1]).getTime();
+    const t=Date.parse(x);return Number.isNaN(t)?0:t;
+  }
+
+  const groups=new Map();
+  all.forEach(e=>{
+    const key=e.batchId?`batch-${String(e.batchId)}`:`single-${String(e.id)}`;
+    if(!groups.has(key)) groups.set(key,{key,collective:!!e.batchId,date:e.date,title:e.title,comps:e.comps||[],createdAt:e.createdAt||0,items:[]});
+    groups.get(key).items.push(e);
+  });
+  groups.forEach(g=>{if(g.items.length<=1)g.collective=false;});
+  const ordered=[...groups.values()].sort((a,b)=>dateValue(b.date)-dateValue(a.date)||(b.createdAt||0)-(a.createdAt||0));
+
+  let body="";
+  ordered.forEach(g=>{
+    if(!g.collective){
+      const e=g.items[0];
+      body+=`<tr class="history-individual-row" onclick="viewEvaluation('${String(e.id)}')" style="cursor:pointer" title="Cliquer pour visualiser l'évaluation archivée">
+        <td>${esc(e.date||"")}</td><td><b>${esc(e.studentName||"")}</b></td>
+        <td><span class="pill">Individuelle</span></td><td>${esc(e.title||"")}</td>
+        <td>${(e.comps||[]).map(competenceLabel).join("<br>")||"—"}</td>
+        <td><span class="score-badge ${scoreClass(evaluationScore20(e))}">${evaluationScoreLabel(e)}</span></td>
+        <td><span class="actions-inline">
+          <button class="secondary" type="button" onclick="event.stopPropagation();viewEvaluation('${String(e.id)}')">👁 Visualiser</button>
+          <button class="secondary" type="button" onclick="event.stopPropagation();restoreEvaluation('${String(e.id)}','${String(e.studentId)}')">↩ Restaurer</button>
+        </span></td>
+      </tr>`;
+    }else{
+      const id="archive-collective-"+String(g.key).replace(/[^a-zA-Z0-9_-]/g,"_");
+      body+=`<tr class="history-collective-row" onclick="toggleCollectiveRow('${esc(id)}')" style="cursor:pointer">
+        <td>${esc(g.date||"")}</td><td><b>👥 Évaluation collective</b></td>
+        <td><span class="pill">Collective</span></td><td>${esc(g.title||"")}</td>
+        <td>${(g.comps||[]).map(competenceLabel).join("<br>")||"—"}</td>
+        <td><span class="pill">${g.items.length} élèves</span></td>
+        <td><button class="secondary" type="button" onclick="event.stopPropagation();restoreCollective('${String(g.items[0].batchId)}')">↩ Restaurer le groupe</button></td>
+      </tr>`;
+      g.items.sort((a,b)=>String(a.studentName||"").localeCompare(String(b.studentName||""),"fr")).forEach(e=>{
+        body+=`<tr data-collective="${esc(id)}" style="display:none;cursor:pointer" onclick="viewEvaluation('${String(e.id)}')" title="Cliquer pour visualiser l'évaluation archivée">
+          <td>${esc(e.date||"")}</td><td style="padding-left:28px">↳ ${esc(e.studentName||"")}</td>
+          <td><span class="pill">Élève</span></td><td>${esc(e.title||"")}</td>
+          <td>${(e.comps||[]).map(competenceLabel).join("<br>")||"—"}</td>
+          <td><span class="score-badge ${scoreClass(evaluationScore20(e))}">${evaluationScoreLabel(e)}</span></td>
+          <td><span class="actions-inline">
+            <button class="secondary" type="button" onclick="event.stopPropagation();viewEvaluation('${String(e.id)}')">👁 Visualiser</button>
+            <button class="secondary" type="button" onclick="event.stopPropagation();restoreEvaluation('${String(e.id)}','${String(e.studentId)}')">↩ Restaurer</button>
+          </span></td>
+        </tr>`;
+      });
+    }
+  });
+
+  document.getElementById("main").innerHTML=`
+    <div class="page-header">
+      <div><h1>Évaluations archivées</h1><p class="sub">Ces évaluations restent entièrement consultables. Clique sur une ligne ou sur « Visualiser » pour ouvrir son contenu, puis restaure-la si nécessaire.</p></div>
+      <button class="secondary" onclick="go('home')">← Accueil</button>
+    </div>
+    <div class="panel">
+      <div class="row"><h2>Archives</h2><span class="pill">${ordered.length} dossier(s) archivé(s)</span></div>
+      ${ordered.length?`<div style="overflow-x:auto"><table class="evaluation-history-table">
+        <tr class="evaluation-history-header"><th>Date</th><th>Élève / groupe</th><th>Type</th><th>Situation</th><th>Compétences</th><th>Note / groupe</th><th>Action</th></tr>
+        ${body}</table></div>`:'<p class="muted">Aucune évaluation archivée.</p>'}
+    </div>`;
+}
+
+
 function studentHistoryPage(){
   setActive("students");
   const s=students.find(x=>String(x.id)===String(selectedStudent));
   if(!s){go("students");return;}
 
-  const evals=[...(s.evaluations||[])].sort((a,b)=>{
+  const evals=visibleEvaluations(s.evaluations||[]).sort((a,b)=>{
     const da=Date.parse(String(a.date||"").split("/").reverse().join("-"))||a.createdAt||0;
     const db=Date.parse(String(b.date||"").split("/").reverse().join("-"))||b.createdAt||0;
     return db-da;
@@ -4648,7 +4952,7 @@ function studentHistoryPage(){
       <td><span class="score-badge ${scoreClass(evaluationScore20(e))}">${evaluationScoreLabel(e)}</span></td>
       <td><span class="actions-inline">
         <button class="action-icon action-edit" onclick="event.stopPropagation();editEvaluation('${String(e.id)}','${String(s.id)}')" title="Modifier" aria-label="Modifier">✏️</button>
-        <button class="action-icon action-delete" onclick="event.stopPropagation();deleteEvaluation('${String(e.id)}','${String(s.id)}')" title="Supprimer" aria-label="Supprimer">🗑️</button>
+        <button class="action-icon action-delete" onclick="event.stopPropagation();deleteEvaluation('${String(e.id)}','${String(s.id)}')" title="Archiver" aria-label="Archiver">📦</button>
       </span></td>
     </tr>`;
   }).join("");
@@ -4761,7 +5065,7 @@ function gradientPositionPage(){
   <h1>Positionnement graphique — ${esc(s.name)}</h1>
   <div class="sub">Lecture visuelle du positionnement sur les 9 compétences</div>
   <div class="panel" style="margin-bottom:18px">
-    <div class="row"><h2>Profil graphique des compétences</h2><span class="pill">${s.evaluations.length} évaluation(s)</span></div>
+    <div class="row"><h2>Profil graphique des compétences</h2><span class="pill">${visibleEvaluations(s.evaluations||[]).length} évaluation(s)</span></div>
     <p class="muted">Le curseur indique le positionnement moyen des critères renseignés. Le pourcentage sous le curseur permet de lire immédiatement le niveau atteint sur l’échelle 0–100 %.</p>
   </div>
   <div class="gradient-chart">
@@ -4789,7 +5093,7 @@ function gradientPositionPage(){
       <tr><th>Compétence</th><th>Niveau</th><th>Score</th><th>Dernière observation</th></tr>
       ${competencies.map(c=>{
         const score=latestCompetenceScore(s,c);
-        const es=s.evaluations.filter(e=>e.comps.includes(c.id));
+        const es=visibleEvaluations(s.evaluations||[]).filter(e=>(e.comps||[]).includes(c.id));
         const last=es.at(-1);
         return `<tr><td><b>${c.id}</b> — ${esc(c.name)}</td><td>${gradientLabel(score)}</td><td>${score===null?"—":Math.round(score/4*100)+" %"}</td><td>${last?esc(last.date):"—"}</td></tr>`;
       }).join("")}
@@ -4806,7 +5110,7 @@ function positionPage(isExample=false){
   <h1>Positionnement graphique — ${esc(s.name)}</h1>
   <div class="sub">Vue synthétique du positionnement actuel sur les 9 compétences</div>
   <div class="panel" style="margin-bottom:18px">
-    <div class="row"><h2>Positionnement</h2><span class="pill">${s.evaluations.length} évaluation(s)</span></div>
+    <div class="row"><h2>Positionnement</h2><span class="pill">${visibleEvaluations(s.evaluations||[]).length} évaluation(s)</span></div>
     <div class="legend">
       <span><i class="dot" style="background:#d92d20"></i>À renforcer</span>
       <span><i class="dot" style="background:#f79009"></i>En cours</span>
@@ -4826,7 +5130,7 @@ function positionPage(isExample=false){
     <table>
       <tr><th>Compétence</th><th>Dernier positionnement</th><th>Dernière observation</th></tr>
       ${competencies.map(c=>{
-        const es=s.evaluations.filter(e=>e.comps.includes(c.id));
+        const es=visibleEvaluations(s.evaluations||[]).filter(e=>(e.comps||[]).includes(c.id));
         const last=es.at(-1);
         const vals=last?c.criteria.map((_,i)=>last.levels[c.id+"-"+i]).filter(Boolean):[];
         const score=vals.length?vals.reduce((a,v)=>a+levelScore(v),0)/vals.length:null;
@@ -4864,7 +5168,7 @@ function drawPositionRadar(){
     const a=-Math.PI/2+i*2*Math.PI/n;
     pts.push([cx+Math.cos(a)*r*v/4,cy+Math.sin(a)*r*v/4]);
   });
-  if(s.evaluations.length){
+  if(visibleEvaluations(s.evaluations||[]).length){
     ctx.beginPath();pts.forEach((p,i)=>i?ctx.lineTo(...p):ctx.moveTo(...p));ctx.closePath();
     ctx.fillStyle="rgba(36,99,235,.14)";ctx.fill();ctx.strokeStyle="#2463eb";ctx.lineWidth=2;ctx.stroke();
     pts.forEach(p=>{ctx.beginPath();ctx.arc(p[0],p[1],4,0,Math.PI*2);ctx.fillStyle="#2463eb";ctx.fill();});
@@ -4950,12 +5254,55 @@ function isoComparableDate(value){
   }
   return "";
 }
+
+function reportPeriodStorageKey(studentId){return "evaluation_report_period_"+String(studentId||"");}
+function getReportPeriod(studentId,evaluations){
+  const dates=(evaluations||[]).map(e=>isoComparableDate(e.date)).filter(Boolean).sort();
+  const fallback={start:dates[0]||"",end:dates[dates.length-1]||""};
+  try{
+    const saved=JSON.parse(localStorage.getItem(reportPeriodStorageKey(studentId))||"null");
+    if(saved && typeof saved==="object"){
+      return {start:isoComparableDate(saved.start)||fallback.start,end:isoComparableDate(saved.end)||fallback.end};
+    }
+  }catch(e){}
+  return fallback;
+}
+function filterEvaluationsByPeriod(evaluations,start,end){
+  const a=isoComparableDate(start),b=isoComparableDate(end);
+  return (evaluations||[]).filter(e=>{
+    const d=isoComparableDate(e.date);
+    if(!d)return false;
+    return (!a||d>=a)&&(!b||d<=b);
+  }).slice().sort((x,y)=>isoComparableDate(x.date).localeCompare(isoComparableDate(y.date)));
+}
+function latestCompetenceScoreFromEvaluations(evaluations,c){
+  const es=(evaluations||[]).filter(e=>(e.comps||[]).includes(c.id))
+    .slice().sort((a,b)=>isoComparableDate(a.date).localeCompare(isoComparableDate(b.date)));
+  const last=es.at(-1);
+  if(!last)return null;
+  const vals=c.criteria.map((_,i)=>levelScore((last.levels||{})[c.id+"-"+i])).filter(x=>x>0);
+  return vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:0;
+}
+function applyStudentReportPeriod(studentId){
+  const start=document.getElementById("report-period-start")?.value||"";
+  const end=document.getElementById("report-period-end")?.value||"";
+  if(start&&end&&start>end){
+    showWarningMessage("La date de départ doit être antérieure ou égale à la date de fin.");
+    return;
+  }
+  localStorage.setItem(reportPeriodStorageKey(studentId),JSON.stringify({start,end}));
+  reportPageForStudent();
+}
+function resetStudentReportPeriod(studentId){
+  localStorage.removeItem(reportPeriodStorageKey(studentId));
+  reportPageForStudent();
+}
 function printStudentReport(studentId){
   const s=students.find(x=>String(x.id)===String(studentId));
   if(!s){showWarningMessage("Élève introuvable.");return;}
   const input=document.querySelector(".report-date-control input[type='date']");
   const chosen=isoComparableDate(input?.value||getReportDate(studentId));
-  const evalDates=(s.evaluations||[]).map(e=>isoComparableDate(e.date)).filter(Boolean).sort();
+  const evalDates=visibleEvaluations(s.evaluations||[]).map(e=>isoComparableDate(e.date)).filter(Boolean).sort();
   const latest=evalDates.length?evalDates[evalDates.length-1]:"";
   if(latest && chosen && chosen<latest){
     showDatePrintWarning(chosen,latest);
@@ -4985,18 +5332,34 @@ function showDatePrintWarning(chosen,latest){
 function reportPageForStudent(){
   setActive("report");
   const s=student();
-  const allScores=competencies.map(c=>latestCompetenceScore(s,c)).filter(v=>v!==null);
+  const activeStudentEvaluations=visibleEvaluations(s.evaluations||[]);
+  const period=getReportPeriod(s.id,activeStudentEvaluations);
+  const filteredEvaluations=filterEvaluationsByPeriod(activeStudentEvaluations,period.start,period.end);
+  const scoreFor=c=>latestCompetenceScoreFromEvaluations(filteredEvaluations,c);
+  const allScores=competencies.map(scoreFor).filter(v=>v!==null);
   const overall=allScores.length?Math.round(allScores.reduce((a,b)=>a+b,0)/allScores.length/4*100):0;
-  const notes=s.evaluations.map(e=>evaluationScore20(e)).filter(v=>v!==null);
+  const notes=filteredEvaluations.map(e=>evaluationScore20(e)).filter(v=>v!==null);
   const avgNote=notes.length?(notes.reduce((a,b)=>a+b,0)/notes.length).toFixed(1).replace(".",","):"—";
-  const last=s.evaluations.at(-1);
   const reportDate=getReportDate(s.id);
   const reportDateLabel=formatReportDate(reportDate);
+  const periodLabel=(period.start||period.end)
+    ?`${period.start?formatReportDate(period.start):"début"} au ${period.end?formatReportDate(period.end):"aujourd’hui"}`
+    :"toute la période";
 
   document.getElementById("main").innerHTML=`
   <div class="report-page">
     <div class="report-actions">
       <button class="secondary" onclick="go('history')">← Retour</button>
+      <div class="report-period-control" style="display:flex;gap:8px;align-items:end;flex-wrap:wrap">
+        <label>Date de départ
+          <input id="report-period-start" type="date" value="${period.start||""}">
+        </label>
+        <label>Date de fin
+          <input id="report-period-end" type="date" value="${period.end||""}">
+        </label>
+        <button type="button" class="secondary" onclick="applyStudentReportPeriod('${String(s.id)}')">✓ Appliquer la période</button>
+        <button type="button" class="secondary" onclick="resetStudentReportPeriod('${String(s.id)}')">Toute la période</button>
+      </div>
       <label class="report-date-control">Date de la synthèse
         <input type="date" value="${reportDate}" onchange="updateReportDate('${String(s.id)}',this.value)">
       </label>
@@ -5006,24 +5369,25 @@ function reportPageForStudent(){
       <h1>Bilan de progression des compétences</h1>
       <p><b>${esc(s.name)}</b> — Classe ${esc(getSchoolSettings().className||"")}</p>
       <p>Maintenance des véhicules — document de synthèse pour l'élève</p>
+      <p><b>Période analysée :</b> ${periodLabel}</p>
       <p>Dernière mise à jour : <span id="report-last-update">${reportDateLabel}</span></p>
     </div>
 
     <div class="report-summary">
       <div class="report-kpi"><div class="muted">Positionnement global</div><div class="value">${allScores.length?overall+" %":"—"}</div><div class="muted">sur les compétences observées</div></div>
-      <div class="report-kpi"><div class="muted">Moyenne des évaluations</div><div class="value">${avgNote}${avgNote!=="—"?" / 20":""}</div><div class="muted">${s.evaluations.length} évaluation(s)</div></div>
+      <div class="report-kpi"><div class="muted">Moyenne des évaluations</div><div class="value">${avgNote}${avgNote!=="—"?" / 20":""}</div><div class="muted">${filteredEvaluations.length} évaluation(s) sur la période</div></div>
       <div class="report-kpi"><div class="muted">Compétences observées</div><div class="value">${allScores.length} / 9</div><div class="muted">C1.1 à C2.5</div></div>
     </div>
 
     <div class="report-section">
       <h2>Mon positionnement</h2>
-      <p class="muted">La barre montre où tu te situes actuellement. Plus le curseur va vers le vert, plus les critères observés sont maîtrisés.</p>
+      <p class="muted">La barre montre le dernier positionnement enregistré pour chaque compétence pendant la période sélectionnée.</p>
       ${competencies.map(c=>{
-        const r=reportLevel(latestCompetenceScore(s,c));
+        const r=reportLevel(scoreFor(c));
         return `<div class="report-competence">
           <div class="report-title">${c.id} — ${esc(c.name)}</div>
           ${r.pct===0 && r.label==="Non observée"
-            ? `<div class="report-unassessed">Non évaluée</div>`
+            ? `<div class="report-unassessed">Non évaluée sur cette période</div>`
             : `<div class="report-bar"><div class="report-result" style="width:${r.pct}%;background:${resultColor(r.pct)}"></div><div class="report-marker" style="left:${r.pct}%"></div></div>`}
           <div class="report-meta"><span>🔴 À renforcer</span><span>🟠 En cours</span><span>🟡 À consolider</span><span>🟢 Maîtrisé / autonome</span></div>
           <div class="report-meta"><span>${r.label}</span><b>${r.pct}%</b></div>
@@ -5032,13 +5396,13 @@ function reportPageForStudent(){
     </div>
 
     <div class="report-section">
-      <h2>Mes évaluations</h2>
-      ${s.evaluations.length?s.evaluations.slice().reverse().map(e=>`
+      <h2>Mes évaluations — ${periodLabel}</h2>
+      ${filteredEvaluations.length?filteredEvaluations.slice().reverse().map(e=>`
         <div class="report-eval">
           <b>${esc(e.date)}</b>
           <div><b>${esc(e.title)}</b><br><span class="muted">${e.comps.map(competenceLabel).join("<br>")}</span></div>
           <div class="report-note">${evaluationScoreLabel(e)}</div>
-        </div>`).join(""):'<p class="muted">Aucune évaluation enregistrée.</p>'}
+        </div>`).join(""):'<p class="muted">Aucune évaluation enregistrée sur la période sélectionnée.</p>'}
     </div>
 
     <div class="report-section">
@@ -5046,13 +5410,13 @@ function reportPageForStudent(){
       <div class="report-advice">
         <b>Ce que je maîtrise :</b>
         ${(() => {
-          const good=competencies.filter(c=>{const v=latestCompetenceScore(s,c);return v!==null&&v>=3.5}).map(c=>competenceLabel(c.id));
-          return good.length?good.join(", "):"pas encore suffisamment de données";
+          const good=competencies.filter(c=>{const v=scoreFor(c);return v!==null&&v>=3.5}).map(c=>competenceLabel(c.id));
+          return good.length?good.join(", "):"pas encore suffisamment de données sur la période sélectionnée";
         })()}<br><br>
         <b>Ce que je dois encore travailler :</b>
         ${(() => {
-          const work=competencies.filter(c=>{const v=latestCompetenceScore(s,c);return v!==null&&v<2.5}).map(c=>competenceLabel(c.id));
-          return work.length?work.join(", "):"aucune compétence prioritaire identifiée";
+          const work=competencies.filter(c=>{const v=scoreFor(c);return v!==null&&v<2.5}).map(c=>competenceLabel(c.id));
+          return work.length?work.join(", "):"aucune compétence prioritaire identifiée sur la période sélectionnée";
         })()}
       </div>
       <p class="muted" style="margin-bottom:0">Ce document est une synthèse pédagogique du suivi des compétences. Il ne remplace pas les documents officiels de certification.</p>
@@ -5064,10 +5428,9 @@ function reportPageForStudent(){
         <div><b>Enseignant</b><br><br>Signature : __________________________</div>
       </div>
     </div>
-    <div class="print-date">Date d'impression : <span id="report-print-date">${reportDateLabel}</span></div>
+    <div class="print-date">Période : ${periodLabel} · Date d'impression : <span id="report-print-date">${reportDateLabel}</span></div>
   </div>`;
 }
-
 
 
 function competenceActivities(c){
@@ -5200,6 +5563,7 @@ function openAssistanceMail(){
     delete clean.evaluations;
     await userRoot().collection(name).doc(String(id)).set(clean,{merge:true});
   }
+  window.firebaseCloudSet=cloudSet;
   async function cloudDelete(name,id){
     if(!cloudReady || !auth.currentUser) return;
     await userRoot().collection(name).doc(String(id)).delete();
@@ -5286,7 +5650,7 @@ function openAssistanceMail(){
         }
         await replaceLocalStudents(cloudStudents);
 
-        // Transition V81.3 -> V81.4 : une seule fois, si aucune source évaluations
+        // Transition V81.3 -> V81.9 : une seule fois, si aucune source évaluations
         // n'a encore été déclarée dans Firebase, on importe l'historique local existant.
         if(!rootData.evaluationsInitialized){
           const uploaded=await uploadLocalEvaluations();
@@ -5390,5 +5754,42 @@ function openAssistanceMail(){
   }
 })();
 </script>
+
+<div id="situation-graphic-modal" style="display:none;position:fixed;inset:0;z-index:10050;background:rgba(15,23,42,.55);padding:18px;overflow:auto">
+  <div style="max-width:1050px;margin:20px auto;background:#fff;border-radius:18px;box-shadow:0 20px 60px rgba(0,0,0,.25);overflow:hidden">
+    <div style="padding:18px 22px;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;justify-content:space-between;gap:12px">
+      <div><h2 id="sg-title" style="margin:0">Nouvelle situation professionnelle</h2><div class="muted">Éditeur graphique</div></div>
+      <button type="button" class="secondary" onclick="closeSituationGraphicEditor()">✕ Fermer</button>
+    </div>
+    <div style="padding:22px">
+      <div style="display:grid;grid-template-columns:minmax(120px,.35fr) minmax(240px,1fr);gap:12px">
+        <label><b>Code</b><input id="sg-code" type="text" placeholder="Ex. SP10" style="width:100%;margin-top:6px"></label>
+        <label><b>Intitulé</b><input id="sg-label" type="text" placeholder="Ex. Remplacement d'un kit de distribution" style="width:100%;margin-top:6px"></label>
+      </div>
+      <label style="display:block;margin-top:14px"><b>Description / note</b><textarea id="sg-note" rows="3" placeholder="Contexte, véhicule, particularités..." style="width:100%;margin-top:6px"></textarea></label>
+
+      <div style="margin-top:22px">
+        <h3 style="margin-bottom:5px">Compétences automatiques</h3>
+        <div class="muted">Clique sur les cartes à intégrer à la situation.</div>
+        <div id="sg-competencies" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px;margin-top:12px"></div>
+      </div>
+
+      <div style="margin-top:24px">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+          <div><h3 style="margin:0">Options facultatives</h3><div class="muted">Une option peut ajouter une ou plusieurs compétences lors de l'évaluation.</div></div>
+          <button type="button" class="secondary" onclick="addSituationGraphicOption()">+ Ajouter une option</button>
+        </div>
+        <div id="sg-options" style="margin-top:12px"></div>
+      </div>
+
+      <div id="sg-error" style="display:none;margin-top:14px;padding:10px 12px;border-radius:10px;background:#fee2e2;color:#991b1b"></div>
+      <div style="display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;margin-top:24px;padding-top:16px;border-top:1px solid #e5e7eb">
+        <button type="button" class="secondary" onclick="closeSituationGraphicEditor()">Annuler</button>
+        <button type="button" class="primary" onclick="saveSituationGraphicEditor()">✓ Enregistrer la situation</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
