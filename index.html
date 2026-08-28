@@ -155,6 +155,14 @@ th,td{min-width:120px;padding:9px 8px} th:first-child,td:first-child{min-width:1
 @media(max-width:900px){.prof-situation-row{grid-template-columns:1fr}.prof-situation-row-head{min-height:56px;grid-template-columns:64px 1fr}.prof-situation-cards.count-1,.prof-situation-cards.count-2,.prof-situation-cards.count-3{grid-template-columns:1fr}.prof-situation-card{min-height:82px}}
 
 .linked-criteria-count{color:#0b5f78;background:#eef9fc;border-color:#b9e2ec;margin-bottom:5px}
+
+/* V80.18 — démarrage volontaire de la saisie des critères */
+.eval-recap-column{display:flex;flex-direction:column;gap:12px;align-self:start;min-width:0}
+.start-evaluation-btn{position:fixed;right:20px;top:50%;transform:translateY(-50%);z-index:1200;width:auto;min-width:230px;min-height:54px;padding:0 22px;border:0;border-radius:14px;background:#0f5bd7;color:#fff;font-size:16px;font-weight:800;cursor:pointer;box-shadow:0 10px 26px rgba(15,91,215,.28);transition:box-shadow .15s ease,background .15s ease,filter .15s ease}
+.start-evaluation-btn:hover{background:#0b4fbd;box-shadow:0 12px 30px rgba(15,91,215,.34);filter:brightness(1.02)}
+.start-evaluation-btn:focus-visible{outline:3px solid rgba(15,91,215,.28);outline-offset:3px}
+@media(max-width:760px){.start-evaluation-btn{right:12px;left:12px;top:auto;bottom:16px;transform:none;width:calc(100% - 24px);min-width:0}}
+@media(max-width:900px){.eval-recap-column{width:100%}}
 </style>
 
 <style>
@@ -1348,9 +1356,24 @@ body{background:#f7f9fc;color:var(--text)}
 .eval-modern-workspace .level.sel[data-level="Maîtrisé"]{background:#eefaf1!important;color:#187a34!important;border-color:#22a447!important;outline:3px solid rgba(34,164,71,.12)!important}
 .eval-modern-workspace .level.sel[data-level="Autonome"]{background:#eef5ff!important;color:#1769c2!important;border-color:#2f80ed!important;outline:3px solid rgba(47,128,237,.12)!important}
 </style>
+
+<style id="collapsible-sidebar-v80-20">
+:root{--sidebar-expanded-width:280px;--sidebar-tablet-width:260px}
+.side{flex:0 0 var(--sidebar-expanded-width);width:var(--sidebar-expanded-width);overflow:hidden;transition:width .22s ease,flex-basis .22s ease,padding .22s ease,transform .22s ease}
+.sidebar-toggle{position:fixed;z-index:1400;left:calc(var(--sidebar-expanded-width) + 10px);top:14px;width:42px;height:42px;min-height:42px;border-radius:12px;border:1px solid #cfd6e1;background:#fff;color:#123f73;font-size:22px;font-weight:800;cursor:pointer;box-shadow:0 3px 12px rgba(0,0,0,.13);display:flex;align-items:center;justify-content:center;transition:left .22s ease,background .15s ease,color .15s ease,box-shadow .15s ease}
+.sidebar-toggle:hover{background:#f2f7ff;box-shadow:0 4px 16px rgba(0,0,0,.17)}
+.sidebar-toggle:focus-visible{outline:3px solid rgba(36,99,235,.25);outline-offset:2px}
+.app.sidebar-collapsed .side{width:0!important;flex-basis:0!important;padding-left:0!important;padding-right:0!important;border:0!important}
+.app.sidebar-collapsed .side .logo,.app.sidebar-collapsed .side .nav{opacity:0;pointer-events:none;white-space:nowrap}
+.app.sidebar-collapsed .sidebar-toggle{left:12px}
+.app.sidebar-collapsed .main{max-width:1450px}
+@media(max-width:900px) and (min-width:601px){.side{width:var(--sidebar-tablet-width);flex-basis:var(--sidebar-tablet-width)}.sidebar-toggle{left:calc(var(--sidebar-tablet-width) + 8px)}.side .logo{white-space:normal}.side .logo b{display:block;line-height:1.12}.nav button{white-space:normal;line-height:1.2}.app.sidebar-collapsed .sidebar-toggle{left:10px}.app.sidebar-collapsed .main{padding-left:18px;padding-right:18px}}
+@media(max-width:600px){.sidebar-toggle{display:none!important}.app.sidebar-collapsed .side{width:280px!important;flex-basis:auto!important;padding:22px 14px!important}}
+</style>
 </head>
-<body><div id="build-version" style="position:fixed;right:10px;bottom:8px;font-size:10px;opacity:.45;z-index:9999">V80.17 ÉVOLUTION</div>
+<body><div id="build-version" style="position:fixed;right:10px;bottom:8px;font-size:10px;opacity:.45;z-index:9999">V80.21 ÉVOLUTION</div>
 <div class="app">
+<button id="sidebar-toggle" class="sidebar-toggle" type="button" onclick="toggleSidebar()" aria-label="Masquer la barre latérale" aria-expanded="true" title="Masquer la barre latérale">◀</button>
 <aside class="side">
 <div class="logo">COMPÉTENCES MV<br><small style="font-size:11px;font-weight:400">V2 — Évaluation</small></div>
 <div class="nav">
@@ -1990,6 +2013,19 @@ function toggleMobileMenu(){
   const side=document.querySelector(".side");
   if(side)side.classList.toggle("mobile-open");
 }
+
+const SIDEBAR_COLLAPSED_KEY="evaluation_sidebar_collapsed_v80";
+function setSidebarCollapsed(collapsed,persist=true){
+  const app=document.querySelector(".app");
+  const btn=document.getElementById("sidebar-toggle");
+  if(!app)return;
+  if(window.innerWidth<=600){app.classList.remove("sidebar-collapsed");return;}
+  app.classList.toggle("sidebar-collapsed",!!collapsed);
+  if(btn){btn.textContent=collapsed?"☰":"◀";btn.setAttribute("aria-label",collapsed?"Afficher la barre latérale":"Masquer la barre latérale");btn.setAttribute("title",collapsed?"Afficher la barre latérale":"Masquer la barre latérale");btn.setAttribute("aria-expanded",collapsed?"false":"true");}
+  if(persist){try{localStorage.setItem(SIDEBAR_COLLAPSED_KEY,collapsed?"1":"0")}catch(e){}}
+}
+function toggleSidebar(){const app=document.querySelector(".app");if(!app||window.innerWidth<=600)return;setSidebarCollapsed(!app.classList.contains("sidebar-collapsed"));}
+function initSidebarState(){if(window.innerWidth<=600)return;let collapsed=false;try{collapsed=localStorage.getItem(SIDEBAR_COLLAPSED_KEY)==="1"}catch(e){}setSidebarCollapsed(collapsed,false);}
 document.addEventListener("click",function(e){
   const side=document.querySelector(".side");
   if(side && window.innerWidth<=600 && side.classList.contains("mobile-open") && !side.contains(e.target) && !e.target.closest(".mobile-menu")) side.classList.remove("mobile-open");
@@ -1997,7 +2033,10 @@ document.addEventListener("click",function(e){
 window.addEventListener("resize",function(){
   const side=document.querySelector(".side");
   if(side && window.innerWidth>600)side.classList.remove("mobile-open");
+  if(window.innerWidth<=600){const app=document.querySelector(".app");if(app)app.classList.remove("sidebar-collapsed");}
+  else{let collapsed=false;try{collapsed=localStorage.getItem(SIDEBAR_COLLAPSED_KEY)==="1"}catch(e){}setSidebarCollapsed(collapsed,false);}
 });
+setTimeout(initSidebarState,0);
 
 function render(){
  if(!ready){document.getElementById("main").innerHTML='<div class="panel"><h2>Chargement de la base de données…</h2><p class="muted">Initialisation du stockage local.</p></div>';return;}
@@ -2307,7 +2346,7 @@ function editEvaluation(evaluationId,studentIdHint){
     targetStudents:[owner.id],
     batchId:ev.batchId||null,
     attachment:ev.attachment||null,
-    evalPath:ev.evalPath||"free",profSituation:ev.profSituation||"",profOptions:{...(ev.profOptions||{})},profFreeText:ev.profFreeText||""
+    evalPath:ev.evalPath||"free",profSituation:ev.profSituation||"",profOptions:{...(ev.profOptions||{})},profFreeText:ev.profFreeText||"",evaluationStarted:true
   };
   page="eval";
   render();
@@ -2363,7 +2402,7 @@ function beginEvaluation(path){
     title:"",date:new Date().toLocaleDateString("fr-FR"),place:"Lycée",type:"Lycée",
     comps:[],levels:{},obs:{},evaluationObservation:"",disabledCriteria:{},
     mode:"individual",targetStudents:[selectedStudent],attachment:null,
-    evalPath:path==="professional"?"professional":"free",profSituation:"",profOptions:{},profFreeText:""
+    evalPath:path==="professional"?"professional":"free",profSituation:"",profOptions:{},profFreeText:"",evaluationStarted:false
   };
   page="eval";
   render();
@@ -2548,8 +2587,32 @@ function showCompetencies(){
   const trigger=document.getElementById("competencies-trigger");
   if(selector)selector.style.display="block";
   if(trigger)trigger.style.display="none";
-  const workspace=document.getElementById("evaluation-workspace");
-  if(workspace)workspace.style.display=draft.comps.length?"grid":"grid";
+  // Les critères restent masqués tant que l'utilisateur n'a pas cliqué
+  // sur « Commencer l’évaluation » dans le récapitulatif.
+}
+function startCriteriaEvaluation(){
+  if(!draft) return;
+  if(draft.evalPath==="professional" && !draft.profSituation){
+    alert("Sélectionne d’abord une situation professionnelle.");
+    return;
+  }
+  if(draft.evalPath==="free" && !String(draft.title||"").trim()){
+    alert("Renseigne d’abord le nom de la situation professionnelle.");
+    return;
+  }
+  if(!draft.comps || !draft.comps.length){
+    alert("Aucune compétence n’est sélectionnée pour cette évaluation.");
+    return;
+  }
+  draft.evaluationStarted=true;
+  evaluationPage();
+  requestAnimationFrame(()=>{
+    const ws=document.getElementById("evaluation-workspace");
+    if(ws){
+      const top=ws.getBoundingClientRect().top+window.scrollY-90;
+      window.scrollTo({top:Math.max(0,top),behavior:"smooth"});
+    }
+  });
 }
 function evaluationPage(){
 setActive("eval");
@@ -2559,6 +2622,7 @@ if(draft.evalPath==="professional" && draft.profSituation) applyProfessionalSitu
 const selectedName=(students.find(x=>String(x.id)===String(selectedStudent))||{}).name||"Non sélectionné";
 const typeLabel=draft.type||"Non sélectionné";
 const prof=getProfessionalSituation();
+const canShowStartButton = !draft.evaluationStarted && (draft.evalPath==="professional" ? !!draft.profSituation : (!!String(draft.title||"").trim() && !!(draft.comps&&draft.comps.length)));
 const competencyArea = draft.evalPath==="free" ? `
       <section class="eval-modern-card eval-modern-green">
         <div class="eval-modern-title"><span class="eval-step">4</span> Compétence(s) évaluée(s)</div>
@@ -2597,7 +2661,7 @@ document.getElementById("main").innerHTML=`
 
       ${competencyArea}
 
-      <div id="evaluation-workspace" class="evaluation-workspace eval-modern-workspace" style="display:${draft.comps.length?"grid":"none"}"><div class="evaluation-main">${draft.comps.map(id=>renderCompetence(id)).join("")}</div><aside class="evaluation-score-side"><div class="panel provisional-score-panel"><div class="muted" style="font-size:12px">NOTE PROVISOIRE</div><div id="live-score" class="provisional-score-value ${scoreClass(evaluationScore20({comps:draft.comps,levels:draft.levels,disabledCriteria:draft.disabledCriteria}))}">${evaluationScoreLabel({comps:draft.comps,levels:draft.levels,disabledCriteria:draft.disabledCriteria})}</div><div class="muted" style="font-size:12px">Mise à jour à chaque positionnement.</div></div><div class="criteria-bulk-controls"><button type="button" id="disable-all-criteria-btn" class="criteria-bulk-btn criteria-bulk-disable" onclick="disableAllCriteria()">⏸ Tout désactiver</button><button type="button" id="enable-all-criteria-btn" class="criteria-bulk-btn criteria-bulk-enable" onclick="enableAllCriteria()">↩ Tout réactiver</button><div id="linked-criteria-count" class="disabled-criteria-count linked-criteria-count">0 critère lié</div><div id="disabled-criteria-count" class="disabled-criteria-count">0 critère désactivé</div></div></aside></div>
+      <div id="evaluation-workspace" class="evaluation-workspace eval-modern-workspace" style="display:${draft.evaluationStarted && draft.comps.length?"grid":"none"}"><div class="evaluation-main">${draft.comps.map(id=>renderCompetence(id)).join("")}</div><aside class="evaluation-score-side"><div class="panel provisional-score-panel"><div class="muted" style="font-size:12px">NOTE PROVISOIRE</div><div id="live-score" class="provisional-score-value ${scoreClass(evaluationScore20({comps:draft.comps,levels:draft.levels,disabledCriteria:draft.disabledCriteria}))}">${evaluationScoreLabel({comps:draft.comps,levels:draft.levels,disabledCriteria:draft.disabledCriteria})}</div><div class="muted" style="font-size:12px">Mise à jour à chaque positionnement.</div></div><div class="criteria-bulk-controls"><button type="button" id="disable-all-criteria-btn" class="criteria-bulk-btn criteria-bulk-disable" onclick="disableAllCriteria()">⏸ Tout désactiver</button><button type="button" id="enable-all-criteria-btn" class="criteria-bulk-btn criteria-bulk-enable" onclick="enableAllCriteria()">↩ Tout réactiver</button><div id="linked-criteria-count" class="disabled-criteria-count linked-criteria-count">0 critère lié</div><div id="disabled-criteria-count" class="disabled-criteria-count">0 critère désactivé</div></div></aside></div>
 
       <section class="eval-modern-card eval-modern-cyan" style="margin-top:16px">
         <div class="eval-modern-title">💬 Observation de l’évaluation</div>
@@ -2608,7 +2672,7 @@ document.getElementById("main").innerHTML=`
       ${summary()}
       <div class="actions eval-modern-actions"><button class="secondary" onclick="cancelEvaluation()">Annuler</button><button class="primary" onclick="saveEvaluation()">${draft.editId?"✓ Enregistrer les modifications":"✓ Enregistrer l’évaluation"}</button></div>
     </div>
-    <aside class="eval-modern-recap"><div class="eval-modern-recap-title">Récapitulatif</div><div class="eval-recap-item"><span class="recap-dot recap-blue">1</span><div><b>Élève</b><small>${esc(draft.mode==="collective"?draft.targetStudents.length+" élève(s)":selectedName)}</small></div></div><div class="eval-recap-item"><span class="recap-dot recap-purple">2</span><div><b>Date</b><small>${esc(draft.date||"—")}</small></div></div><div class="eval-recap-item"><span class="recap-dot recap-orange">3</span><div><b>Type</b><small>${esc(typeLabel)}</small></div></div><div class="eval-recap-item"><span class="recap-dot recap-green">4</span><div><b>${draft.evalPath==="professional"?"Situation / compétences":"Compétence(s)"}</b><small>${draft.evalPath==="professional"?(prof?esc(prof.code+" — "+prof.label):"Aucune situation sélectionnée"):(draft.comps.length?draft.comps.join(", "):"Aucune sélection")}</small></div></div><div class="eval-recap-item"><span class="recap-dot recap-yellow">5</span><div><b>Niveau</b><small id="recap-positioned-count">${formatPositionedCriteriaCount()}</small></div></div><div class="eval-modern-recap-actions"><button class="primary" onclick="saveEvaluation()">${draft.editId?"✓ Enregistrer":"✓ Enregistrer l’évaluation"}</button><button class="secondary" onclick="cancelEvaluation()">Annuler</button></div></aside>
+    <div class="eval-recap-column"><aside class="eval-modern-recap"><div class="eval-modern-recap-title">Récapitulatif</div><div class="eval-recap-item"><span class="recap-dot recap-blue">1</span><div><b>Élève</b><small>${esc(draft.mode==="collective"?draft.targetStudents.length+" élève(s)":selectedName)}</small></div></div><div class="eval-recap-item"><span class="recap-dot recap-purple">2</span><div><b>Date</b><small>${esc(draft.date||"—")}</small></div></div><div class="eval-recap-item"><span class="recap-dot recap-orange">3</span><div><b>Type</b><small>${esc(typeLabel)}</small></div></div><div class="eval-recap-item"><span class="recap-dot recap-green">4</span><div><b>${draft.evalPath==="professional"?"Situation / compétences":"Compétence(s)"}</b><small>${draft.evalPath==="professional"?(prof?esc(prof.code+" — "+prof.label):"Aucune situation sélectionnée"):(draft.comps.length?draft.comps.join(", "):"Aucune sélection")}</small></div></div><div class="eval-recap-item"><span class="recap-dot recap-yellow">5</span><div><b>Niveau</b><small id="recap-positioned-count">${formatPositionedCriteriaCount()}</small></div></div><div class="eval-modern-recap-actions"><button class="primary" onclick="saveEvaluation()">${draft.editId?"✓ Enregistrer":"✓ Enregistrer l’évaluation"}</button><button class="secondary" onclick="cancelEvaluation()">Annuler</button></div></aside>${canShowStartButton?`<button type="button" class="start-evaluation-btn" onclick="startCriteriaEvaluation()">▶ Commencer l’évaluation</button>`:""}</div>
   </div>
 </div>`;
 updateCriteriaRestoreButton();updateBulkCriteriaButtons();
@@ -2634,11 +2698,11 @@ function toggleComp(id,on){
   render();
 
   const ws=document.getElementById("evaluation-workspace");
-  if(ws) ws.style.display=draft.comps.length?"grid":"none";
+  if(ws) ws.style.display=(draft.evaluationStarted && draft.comps.length)?"grid":"none";
 
-  // Dès qu'une compétence vient d'être sélectionnée, amener l'utilisateur
-  // directement au premier critère actif afin de commencer l'évaluation.
-  if(on && draft.comps.length){
+  // Avant « Commencer l’évaluation », la sélection des compétences prépare
+  // seulement l’évaluation : aucun critère n’est encore affiché.
+  if(draft.evaluationStarted && on && draft.comps.length){
     requestAnimationFrame(()=>{
       const firstCriterion=[...document.querySelectorAll('.criterion')]
         .find(el=>el.style.display!=="none" && getComputedStyle(el).display!=="none");
