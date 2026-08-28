@@ -1597,11 +1597,11 @@ body{background:#f7f9fc;color:var(--text)}
 </style>
 
 </head>
-<body><div id="build-version" style="position:fixed;right:10px;bottom:8px;font-size:10px;opacity:.45;z-index:9999">V81.3 FIREBASE — CLASSES & ÉLÈVES</div>
+<body><div id="build-version" style="position:fixed;right:10px;bottom:8px;font-size:10px;opacity:.45;z-index:9999">V81.4 FIREBASE — ÉVALUATIONS</div>
 <div id="firebase-auth-overlay">
   <div class="firebase-login-card">
-    <h2>☁️ Connexion Firebase — V81.3</h2>
-    <p>Cette version synchronise désormais les classes et les élèves avec Firebase. Les évaluations restent encore enregistrées localement pendant cette phase de validation.</p>
+    <h2>☁️ Connexion Firebase — V81.4</h2>
+    <p>Cette version synchronise les classes, les élèves et désormais les évaluations avec Firebase. Le stockage local reste utilisé comme cache de sécurité pendant cette phase de validation.</p>
     <form id="firebase-login-form">
       <label for="firebase-email">Adresse e-mail</label>
       <input id="firebase-email" type="email" autocomplete="username" required>
@@ -5212,10 +5212,33 @@ function openAssistanceMail(){
       await originalPut('students',clean);
     }
   }
+  async function replaceLocalEvaluations(list){
+    await openDB();
+    await clearStore('evaluations');
+    for(const ev of list){
+      const clean=JSON.parse(JSON.stringify(ev));
+      if(clean.id!==undefined && clean.id!==null && /^\d+$/.test(String(clean.id))) clean.id=Number(clean.id);
+      await originalPut('evaluations',clean);
+    }
+  }
+  async function uploadLocalEvaluations(){
+    await openDB();
+    const localEvaluations=await getAll('evaluations');
+    if(!localEvaluations.length) return 0;
+    const batch=firestore.batch();
+    const root=userRoot();
+    for(const ev of localEvaluations){
+      const clean=JSON.parse(JSON.stringify(ev));
+      batch.set(root.collection('evaluations').doc(String(clean.id)),clean,{merge:true});
+    }
+    await batch.commit();
+    return localEvaluations.length;
+  }
   async function migrateLocalToCloud(){
     const localClasses=getClasses();
     await openDB();
     const localStudents=await getAll('students');
+    const localEvaluations=await getAll('evaluations');
     const batch=firestore.batch();
     const root=userRoot();
     for(const c of localClasses){
@@ -5225,21 +5248,35 @@ function openAssistanceMail(){
       const clean={...s}; delete clean.evaluations;
       batch.set(root.collection('students').doc(String(s.id)),JSON.parse(JSON.stringify(clean)),{merge:true});
     }
-    batch.set(root,{email:auth.currentUser.email||'',updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
+    for(const ev of localEvaluations){
+      const clean=JSON.parse(JSON.stringify(ev));
+      batch.set(root.collection('evaluations').doc(String(clean.id)),clean,{merge:true});
+    }
+    batch.set(root,{
+      email:auth.currentUser.email||'',
+      evaluationsInitialized:true,
+      updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+    },{merge:true});
     await batch.commit();
   }
   async function synchronizeCloud({forceUpload=false}={}){
     if(syncing || !auth.currentUser) return;
     syncing=true;
     cloudReady=false;
-    setStatus('Synchronisation des classes et élèves…','warn');
+    setStatus('Synchronisation classes, élèves et évaluations…','warn');
     try{
       let cloudClasses=await cloudDocs('classes');
       let cloudStudents=await cloudDocs('students');
+      let cloudEvaluations=await cloudDocs('evaluations');
+      const rootRef=userRoot();
+      const rootSnap=await rootRef.get();
+      const rootData=rootSnap.exists?(rootSnap.data()||{}):{};
+
       if(forceUpload || !cloudClasses.length){
         await migrateLocalToCloud();
         cloudClasses=await cloudDocs('classes');
         cloudStudents=await cloudDocs('students');
+        cloudEvaluations=await cloudDocs('evaluations');
       }else{
         saveClassesOriginal(cloudClasses);
         const currentActive=localStorage.getItem(ACTIVE_CLASS_STORAGE_KEY);
@@ -5248,10 +5285,23 @@ function openAssistanceMail(){
           if(first) localStorage.setItem(ACTIVE_CLASS_STORAGE_KEY,String(first.id));
         }
         await replaceLocalStudents(cloudStudents);
+
+        // Transition V81.3 -> V81.4 : une seule fois, si aucune source évaluations
+        // n'a encore été déclarée dans Firebase, on importe l'historique local existant.
+        if(!rootData.evaluationsInitialized){
+          const uploaded=await uploadLocalEvaluations();
+          await rootRef.set({
+            evaluationsInitialized:true,
+            evaluationsMigratedFromLocal:uploaded,
+            updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+          },{merge:true});
+          cloudEvaluations=await cloudDocs('evaluations');
+        }
+        await replaceLocalEvaluations(cloudEvaluations);
       }
       cloudReady=true;
       await loadData();
-      setStatus('✓ Classes et élèves synchronisés','ok');
+      setStatus('✓ Classes, élèves et évaluations synchronisés','ok');
     }catch(err){
       console.error('Synchronisation Firebase',err);
       setStatus('Synchronisation : '+friendlyError(err),'bad');
@@ -5262,7 +5312,7 @@ function openAssistanceMail(){
   }
 
   // Interception des futures modifications : le stockage local reste un cache,
-  // Firebase devient la copie persistante pour les classes et les élèves.
+  // Firebase devient la copie persistante pour les classes, les élèves et les évaluations.
   const saveClassesOriginal=window.saveClasses;
   window.saveClasses=function(list){
     saveClassesOriginal(list);
@@ -5276,12 +5326,20 @@ function openAssistanceMail(){
     if(store==='students'){
       p.then(id=>cloudSet('students',obj.id||id,obj)).catch(e=>setStatus('Élève non synchronisé : '+friendlyError(e),'bad'));
     }
+    if(store==='evaluations'){
+      p.then(id=>{
+        const finalId=(obj.id!==undefined && obj.id!==null)?obj.id:id;
+        const payload={...obj,id:finalId};
+        return cloudSet('evaluations',finalId,payload);
+      }).catch(e=>setStatus('Évaluation non synchronisée : '+friendlyError(e),'bad'));
+    }
     return p;
   };
   const originalDelete=window.deleteFromStore;
   window.deleteFromStore=function(store,key){
     const p=originalDelete(store,key);
-    if(store==='students') p.then(()=>cloudDelete('students',key)).catch(e=>setStatus('Suppression non synchronisée : '+friendlyError(e),'bad'));
+    if(store==='students') p.then(()=>cloudDelete('students',key)).catch(e=>setStatus('Suppression élève non synchronisée : '+friendlyError(e),'bad'));
+    if(store==='evaluations') p.then(()=>cloudDelete('evaluations',key)).catch(e=>setStatus('Suppression évaluation non synchronisée : '+friendlyError(e),'bad'));
     return p;
   };
 
