@@ -1601,10 +1601,10 @@ body{background:#f7f9fc;color:var(--text)}
 </style>
 
 </head>
-<body><div id="build-version" style="position:fixed;right:10px;bottom:8px;font-size:10px;opacity:.45;z-index:9999">V82.2.2 FIREBASE — ÉVALUATIONS</div>
+<body><div id="build-version" style="position:fixed;right:10px;bottom:8px;font-size:10px;opacity:.45;z-index:9999">V82.2.3 FIREBASE — ÉVALUATIONS</div>
 <div id="firebase-auth-overlay">
   <div class="firebase-login-card">
-    <h2>☁️ Connexion Firebase — V82.2.2</h2>
+    <h2>☁️ Connexion Firebase — V82.2.3</h2>
     <p>Cette version synchronise les classes, les élèves et désormais les évaluations avec Firebase. Le stockage local reste utilisé comme cache de sécurité pendant cette phase de validation.</p>
     <form id="firebase-login-form">
       <label for="firebase-email">Adresse e-mail</label>
@@ -1697,8 +1697,8 @@ body{background:#f7f9fc;color:var(--text)}
 
 
   <div class="settings-card settings-section">
-    <h3>☁️ Synchronisation Firebase V82.2.2 — temps réel</h3>
-    <p>La configuration de l’application est synchronisée avec ton compte Firebase : informations établissement, année scolaire, classe active, code administrateur, référentiel de compétences, critères et situations professionnelles. La V82.2.2 utilise une synchronisation différentielle : lorsqu’un document change sur un autre appareil, seul ce document est traité localement, sans relire toute la base.</p>
+    <h3>☁️ Synchronisation Firebase V82.2.3 — temps réel</h3>
+    <p>La configuration de l’application est synchronisée avec ton compte Firebase : informations établissement, année scolaire, classe active, code administrateur, référentiel de compétences, critères et situations professionnelles. La V82.2.3 utilise une synchronisation différentielle : lorsqu’un document change sur un autre appareil, seul ce document est traité localement, sans relire toute la base.</p>
     <button type="button" class="primary" onclick="syncAllApplicationSettingsNow()">☁️ Synchroniser tous les paramètres maintenant</button>
     <div class="muted" style="margin-top:8px">Les modifications sont envoyées automatiquement. Les changements distants sont reçus document par document, ce qui réduit fortement les lectures Firestore par rapport à la V82.1.</div>
   </div>
@@ -1966,6 +1966,9 @@ function getClasses(){
 }
 function saveClasses(list){
   localStorage.setItem(CLASSES_STORAGE_KEY,JSON.stringify(list));
+  if(window.firebaseSyncClasses){
+    window.firebaseSyncClasses(list).catch(e=>console.warn("Synchronisation classes",e));
+  }
 }
 function getActiveClassId(){
   const classes=getClasses();
@@ -2804,7 +2807,7 @@ function getManagedProfessionalSituations(){
 let PROFESSIONAL_SITUATIONS_V80=getManagedProfessionalSituations();
 function saveManagedProfessionalSituations(){
   localStorage.setItem(PROFESSIONAL_SITUATIONS_STORAGE_KEY,JSON.stringify(PROFESSIONAL_SITUATIONS_V80));
-  if(window.firebaseCloudSet) window.firebaseCloudSet("situationsProfessionnelles","library",{items:PROFESSIONAL_SITUATIONS_V80,version:"82.2.2"}).catch(()=>{});
+  if(window.firebaseCloudSet) window.firebaseCloudSet("situationsProfessionnelles","library",{items:PROFESSIONAL_SITUATIONS_V80,version:"82.2.3"}).catch(()=>{});
   syncApplicationConfigSoon();
 }
 function refreshManagedSituations(){PROFESSIONAL_SITUATIONS_V80=getManagedProfessionalSituations();}
@@ -4107,7 +4110,7 @@ window.addEventListener("error",function(ev){
   console.error("Application error:",ev.error||ev.message);
   const main=document.getElementById("main");
   if(main && !main.innerHTML.trim()){
-    main.innerHTML='<div class="panel" style="margin:24px"><h2>Chargement de l’application interrompu</h2><p>Une erreur JavaScript a été détectée. Recharge la page une fois. Si le problème persiste, utilise le correctif V82.2.2.</p><pre style="white-space:pre-wrap">'+String(ev.message||"Erreur inconnue").replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]))+'</pre></div>';
+    main.innerHTML='<div class="panel" style="margin:24px"><h2>Chargement de l’application interrompu</h2><p>Une erreur JavaScript a été détectée. Recharge la page une fois. Si le problème persiste, utilise le correctif V82.2.3.</p><pre style="white-space:pre-wrap">'+String(ev.message||"Erreur inconnue").replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]))+'</pre></div>';
   }
 });
 </script>
@@ -4525,7 +4528,7 @@ function buildLocalApplicationConfig(){
   let comps=[];
   try{comps=JSON.parse(JSON.stringify(competencies||[]));}catch(e){}
   return {
-    schemaVersion:82.22,
+    schemaVersion:82.23,
     adminCode:localStorage.getItem("evaluation_admin_code_v74")||"1234",
     schoolSettings:school,
     activeClassId:localStorage.getItem("evaluation_active_class_v77")||"",
@@ -5865,15 +5868,19 @@ function openAssistanceMail(){
         cloudStudents=await cloudDocs('students');
         cloudEvaluations=await cloudDocs('evaluations');
       }else{
-        saveClassesOriginal(cloudClasses);
+        firebaseRealtimeApplying=true;
+        saveClasses(cloudClasses);
+        firebaseRealtimeApplying=false;
         const currentActive=localStorage.getItem(ACTIVE_CLASS_STORAGE_KEY);
         if(!cloudClasses.some(c=>String(c.id)===String(currentActive)&&!c.archived)){
           const first=cloudClasses.find(c=>!c.archived)||cloudClasses[0];
           if(first) localStorage.setItem(ACTIVE_CLASS_STORAGE_KEY,String(first.id));
         }
+        firebaseRealtimeApplying=true;
         await replaceLocalStudents(cloudStudents);
+        firebaseRealtimeApplying=false;
 
-        // Transition V81.3 -> V82.2.2 : une seule fois, si aucune source évaluations
+        // Transition V81.3 -> V82.2.3 : une seule fois, si aucune source évaluations
         // n'a encore été déclarée dans Firebase, on importe l'historique local existant.
         if(!rootData.evaluationsInitialized){
           const uploaded=await uploadLocalEvaluations();
@@ -5884,9 +5891,11 @@ function openAssistanceMail(){
           },{merge:true});
           cloudEvaluations=await cloudDocs('evaluations');
         }
+        firebaseRealtimeApplying=true;
         await replaceLocalEvaluations(cloudEvaluations);
+        firebaseRealtimeApplying=false;
       }
-      // V82.2.2 : synchronisation complète des paramètres applicatifs.
+      // V82.2.3 : synchronisation complète des paramètres applicatifs.
       let cloudConfig=await cloudGetOne(FIREBASE_APP_CONFIG_COLLECTION,FIREBASE_APP_CONFIG_DOC);
       if(!cloudConfig){
         await saveApplicationConfig(buildLocalApplicationConfig());
@@ -5914,6 +5923,7 @@ function openAssistanceMail(){
       if(!fromRealtime)startRealtimeListeners();
       setRealtimeSyncIndicator("ok","Synchronisé en temps réel");
     }catch(err){
+      firebaseRealtimeApplying=false;
       console.error('Synchronisation Firebase',err);
       setStatus('Synchronisation : '+friendlyError(err),'bad');
     }finally{
@@ -5922,36 +5932,26 @@ function openAssistanceMail(){
     }
   }
 
-  // Interception des futures modifications : le stockage local reste un cache,
-  // Firebase devient la copie persistante pour les classes, les élèves et les évaluations.
-  const saveClassesOriginal=window.saveClasses;
-  window.saveClasses=function(list){
-    saveClassesOriginal(list);
-    if(cloudReady && auth && auth.currentUser && !firebaseRealtimeApplying){
-      Promise.all((list||[]).map(c=>cloudSet('classes',c.id,c))).catch(e=>setStatus('Classe non synchronisée : '+friendlyError(e),'bad'));
-    }
+  // Ponts de synchronisation robustes V82.2.3.
+  // Les fonctions locales appellent ces ponts uniquement lorsque Firebase est prêt.
+  window.firebaseSyncClasses=function(list){
+    if(!cloudReady || !auth || !auth.currentUser || firebaseRealtimeApplying) return Promise.resolve();
+    return Promise.all((list||[]).map(c=>cloudSet('classes',c.id,c)));
   };
-  const originalPut=window.put;
-  window.put=function(store,obj){
-    const p=originalPut(store,obj);
-    if(store==='students' && !firebaseRealtimeApplying){
-      p.then(id=>cloudSet('students',obj.id||id,obj)).catch(e=>setStatus('Élève non synchronisé : '+friendlyError(e),'bad'));
+  window.firebaseSyncPut=function(store,obj,id){
+    if(!cloudReady || !auth || !auth.currentUser || firebaseRealtimeApplying) return Promise.resolve();
+    if(store==='students') return cloudSet('students',obj.id||id,obj);
+    if(store==='evaluations'){
+      const finalId=(obj.id!==undefined && obj.id!==null)?obj.id:id;
+      return cloudSet('evaluations',finalId,{...obj,id:finalId});
     }
-    if(store==='evaluations' && !firebaseRealtimeApplying){
-      p.then(id=>{
-        const finalId=(obj.id!==undefined && obj.id!==null)?obj.id:id;
-        const payload={...obj,id:finalId};
-        return cloudSet('evaluations',finalId,payload);
-      }).catch(e=>setStatus('Évaluation non synchronisée : '+friendlyError(e),'bad'));
-    }
-    return p;
+    return Promise.resolve();
   };
-  const originalDelete=window.deleteFromStore;
-  window.deleteFromStore=function(store,key){
-    const p=originalDelete(store,key);
-    if(store==='students' && !firebaseRealtimeApplying) p.then(()=>cloudDelete('students',key)).catch(e=>setStatus('Suppression élève non synchronisée : '+friendlyError(e),'bad'));
-    if(store==='evaluations' && !firebaseRealtimeApplying) p.then(()=>cloudDelete('evaluations',key)).catch(e=>setStatus('Suppression évaluation non synchronisée : '+friendlyError(e),'bad'));
-    return p;
+  window.firebaseSyncDelete=function(store,key){
+    if(!cloudReady || !auth || !auth.currentUser || firebaseRealtimeApplying) return Promise.resolve();
+    if(store==='students') return cloudDelete('students',key);
+    if(store==='evaluations') return cloudDelete('evaluations',key);
+    return Promise.resolve();
   };
 
   try{
@@ -5968,7 +5968,9 @@ function openAssistanceMail(){
         setStatus('Connexion Firebase établie…','warn');
         await synchronizeCloud();
       }else{
+        if(window.firebaseStopRealtimeListeners) window.firebaseStopRealtimeListeners();
         cloudReady=false;
+        setRealtimeSyncIndicator("offline","Firebase déconnecté");
         overlay.classList.remove('hidden');
         panel.hidden=true;
         errorBox.textContent='';
@@ -6052,7 +6054,7 @@ window.addEventListener("error",function(ev){
   console.error("Application error:",ev.error||ev.message);
   const main=document.getElementById("main");
   if(main && !main.innerHTML.trim()){
-    main.innerHTML='<div class="panel" style="margin:24px"><h2>Chargement de l’application interrompu</h2><p>Une erreur JavaScript a été détectée. Recharge la page une fois. Si le problème persiste, utilise le correctif V82.2.2.</p><pre style="white-space:pre-wrap">'+String(ev.message||"Erreur inconnue").replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]))+'</pre></div>';
+    main.innerHTML='<div class="panel" style="margin:24px"><h2>Chargement de l’application interrompu</h2><p>Une erreur JavaScript a été détectée. Recharge la page une fois. Si le problème persiste, utilise le correctif V82.2.3.</p><pre style="white-space:pre-wrap">'+String(ev.message||"Erreur inconnue").replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]))+'</pre></div>';
   }
 });
 </script>
