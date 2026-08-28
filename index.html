@@ -1597,11 +1597,11 @@ body{background:#f7f9fc;color:var(--text)}
 </style>
 
 </head>
-<body><div id="build-version" style="position:fixed;right:10px;bottom:8px;font-size:10px;opacity:.45;z-index:9999">V81.2 FIREBASE TEST</div>
+<body><div id="build-version" style="position:fixed;right:10px;bottom:8px;font-size:10px;opacity:.45;z-index:9999">V81.3 FIREBASE — CLASSES & ÉLÈVES</div>
 <div id="firebase-auth-overlay">
   <div class="firebase-login-card">
-    <h2>☁️ Connexion Firebase — V81.2 test</h2>
-    <p>Cette version teste uniquement l’authentification et la communication avec Firestore. Les données du logiciel restent encore enregistrées localement.</p>
+    <h2>☁️ Connexion Firebase — V81.3</h2>
+    <p>Cette version synchronise désormais les classes et les élèves avec Firebase. Les évaluations restent encore enregistrées localement pendant cette phase de validation.</p>
     <form id="firebase-login-form">
       <label for="firebase-email">Adresse e-mail</label>
       <input id="firebase-email" type="email" autocomplete="username" required>
@@ -1614,10 +1614,10 @@ body{background:#f7f9fc;color:var(--text)}
   </div>
 </div>
 <div id="firebase-cloud-panel" hidden>
-  <div class="firebase-cloud-title">☁️ Firebase — test</div>
+  <div class="firebase-cloud-title">☁️ Firebase — synchronisation</div>
   <div id="firebase-cloud-status" class="firebase-cloud-status">Initialisation…</div>
   <div class="firebase-cloud-actions">
-    <button type="button" class="secondary" id="firebase-test-btn">Tester Firestore</button>
+    <button type="button" class="secondary" id="firebase-test-btn">Synchroniser maintenant</button>
     <button type="button" class="secondary" id="firebase-logout-btn">Déconnexion</button>
   </div>
 </div>
@@ -5171,6 +5171,7 @@ function openAssistanceMail(){
   const errorBox=document.getElementById('firebase-login-error');
   const form=document.getElementById('firebase-login-form');
   const submitBtn=form ? form.querySelector('button[type="submit"]') : null;
+  let auth=null, firestore=null, cloudReady=false, syncing=false;
 
   function setStatus(text,kind){
     status.textContent=text;
@@ -5181,22 +5182,124 @@ function openAssistanceMail(){
     if(code.includes('invalid-credential')||code.includes('wrong-password')||code.includes('user-not-found')) return 'Adresse e-mail ou mot de passe incorrect.';
     if(code.includes('too-many-requests')) return 'Trop de tentatives. Réessaie dans quelques instants.';
     if(code.includes('network-request-failed')) return 'Connexion réseau indisponible.';
-    return (err&&err.message)?err.message:'Erreur de connexion Firebase.';
+    if(code.includes('permission-denied')) return 'Accès refusé par les règles Firestore.';
+    return (err&&err.message)?err.message:'Erreur Firebase.';
   }
+  function userRoot(){
+    const u=auth&&auth.currentUser;
+    if(!u) throw new Error('Utilisateur Firebase non connecté.');
+    return firestore.collection('users').doc(u.uid);
+  }
+  async function cloudDocs(name){
+    const snap=await userRoot().collection(name).get();
+    return snap.docs.map(d=>({id:d.id,...d.data()}));
+  }
+  async function cloudSet(name,id,data){
+    if(!cloudReady || !auth.currentUser) return;
+    const clean=JSON.parse(JSON.stringify(data));
+    delete clean.evaluations;
+    await userRoot().collection(name).doc(String(id)).set(clean,{merge:true});
+  }
+  async function cloudDelete(name,id){
+    if(!cloudReady || !auth.currentUser) return;
+    await userRoot().collection(name).doc(String(id)).delete();
+  }
+  async function replaceLocalStudents(list){
+    await openDB();
+    await clearStore('students');
+    for(const s of list){
+      const clean={...s}; delete clean.evaluations;
+      await originalPut('students',clean);
+    }
+  }
+  async function migrateLocalToCloud(){
+    const localClasses=getClasses();
+    await openDB();
+    const localStudents=await getAll('students');
+    const batch=firestore.batch();
+    const root=userRoot();
+    for(const c of localClasses){
+      batch.set(root.collection('classes').doc(String(c.id)),JSON.parse(JSON.stringify(c)),{merge:true});
+    }
+    for(const s of localStudents){
+      const clean={...s}; delete clean.evaluations;
+      batch.set(root.collection('students').doc(String(s.id)),JSON.parse(JSON.stringify(clean)),{merge:true});
+    }
+    batch.set(root,{email:auth.currentUser.email||'',updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
+    await batch.commit();
+  }
+  async function synchronizeCloud({forceUpload=false}={}){
+    if(syncing || !auth.currentUser) return;
+    syncing=true;
+    cloudReady=false;
+    setStatus('Synchronisation des classes et élèves…','warn');
+    try{
+      let cloudClasses=await cloudDocs('classes');
+      let cloudStudents=await cloudDocs('students');
+      if(forceUpload || !cloudClasses.length){
+        await migrateLocalToCloud();
+        cloudClasses=await cloudDocs('classes');
+        cloudStudents=await cloudDocs('students');
+      }else{
+        saveClassesOriginal(cloudClasses);
+        const currentActive=localStorage.getItem(ACTIVE_CLASS_STORAGE_KEY);
+        if(!cloudClasses.some(c=>String(c.id)===String(currentActive)&&!c.archived)){
+          const first=cloudClasses.find(c=>!c.archived)||cloudClasses[0];
+          if(first) localStorage.setItem(ACTIVE_CLASS_STORAGE_KEY,String(first.id));
+        }
+        await replaceLocalStudents(cloudStudents);
+      }
+      cloudReady=true;
+      await loadData();
+      setStatus('✓ Classes et élèves synchronisés','ok');
+    }catch(err){
+      console.error('Synchronisation Firebase',err);
+      setStatus('Synchronisation : '+friendlyError(err),'bad');
+    }finally{
+      cloudReady=true;
+      syncing=false;
+    }
+  }
+
+  // Interception des futures modifications : le stockage local reste un cache,
+  // Firebase devient la copie persistante pour les classes et les élèves.
+  const saveClassesOriginal=window.saveClasses;
+  window.saveClasses=function(list){
+    saveClassesOriginal(list);
+    if(cloudReady && auth && auth.currentUser){
+      Promise.all((list||[]).map(c=>cloudSet('classes',c.id,c))).catch(e=>setStatus('Classe non synchronisée : '+friendlyError(e),'bad'));
+    }
+  };
+  const originalPut=window.put;
+  window.put=function(store,obj){
+    const p=originalPut(store,obj);
+    if(store==='students'){
+      p.then(id=>cloudSet('students',obj.id||id,obj)).catch(e=>setStatus('Élève non synchronisé : '+friendlyError(e),'bad'));
+    }
+    return p;
+  };
+  const originalDelete=window.deleteFromStore;
+  window.deleteFromStore=function(store,key){
+    const p=originalDelete(store,key);
+    if(store==='students') p.then(()=>cloudDelete('students',key)).catch(e=>setStatus('Suppression non synchronisée : '+friendlyError(e),'bad'));
+    return p;
+  };
 
   try{
     if(!window.firebase) throw new Error('Le SDK Firebase n’a pas pu être chargé. Vérifie la connexion Internet.');
     if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-    const auth=firebase.auth();
-    const firestore=firebase.firestore();
+    auth=firebase.auth();
+    firestore=firebase.firestore();
     errorBox.textContent='Firebase prêt. Saisis tes identifiants puis clique sur Se connecter.';
 
-    auth.onAuthStateChanged(user=>{
+    auth.onAuthStateChanged(async user=>{
       if(user){
         overlay.classList.add('hidden');
         panel.hidden=false;
-        setStatus('Connecté : '+(user.email||'utilisateur Firebase'),'ok');
+        setStatus('Connexion Firebase établie…','warn');
+        await synchronizeCloud();
       }else{
+        cloudReady=false;
         overlay.classList.remove('hidden');
         panel.hidden=true;
         errorBox.textContent='';
@@ -5222,19 +5325,7 @@ function openAssistanceMail(){
     });
 
     document.getElementById('firebase-logout-btn').addEventListener('click',()=>auth.signOut());
-    document.getElementById('firebase-test-btn').addEventListener('click',async()=>{
-      const user=auth.currentUser;
-      if(!user){setStatus('Non connecté','bad');return;}
-      setStatus('Test Firestore en cours…','warn');
-      try{
-        const ref=firestore.collection('firebase_connection_tests').doc(user.uid);
-        const payload={uid:user.uid,email:user.email||'',testedAt:firebase.firestore.FieldValue.serverTimestamp(),source:'V81.1_FIREBASE_TEST'};
-        await ref.set(payload,{merge:true});
-        const snap=await ref.get();
-        if(!snap.exists) throw new Error('Le document test n’a pas été relu.');
-        setStatus('✓ Firestore : lecture/écriture OK','ok');
-      }catch(err){setStatus('Firestore : '+friendlyError(err),'bad');}
-    });
+    document.getElementById('firebase-test-btn').addEventListener('click',()=>synchronizeCloud({forceUpload:false}));
   }catch(err){
     overlay.classList.remove('hidden');
     errorBox.textContent=friendlyError(err);
