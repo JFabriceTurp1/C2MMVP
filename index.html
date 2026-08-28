@@ -1597,10 +1597,10 @@ body{background:#f7f9fc;color:var(--text)}
 </style>
 
 </head>
-<body><div id="build-version" style="position:fixed;right:10px;bottom:8px;font-size:10px;opacity:.45;z-index:9999">V81 FIREBASE TEST</div>
+<body><div id="build-version" style="position:fixed;right:10px;bottom:8px;font-size:10px;opacity:.45;z-index:9999">V81.1 FIREBASE TEST</div>
 <div id="firebase-auth-overlay">
   <div class="firebase-login-card">
-    <h2>☁️ Connexion Firebase — V81 test</h2>
+    <h2>☁️ Connexion Firebase — V81.1 test</h2>
     <p>Cette version teste uniquement l’authentification et la communication avec Firestore. Les données du logiciel restent encore enregistrées localement.</p>
     <form id="firebase-login-form">
       <label for="firebase-email">Adresse e-mail</label>
@@ -1608,7 +1608,7 @@ body{background:#f7f9fc;color:var(--text)}
       <label for="firebase-password">Mot de passe</label>
       <input id="firebase-password" type="password" autocomplete="current-password" required>
       <div class="firebase-login-actions"><button type="submit" class="primary">Se connecter</button></div>
-      <div id="firebase-login-error" class="firebase-login-error"></div>
+      <div id="firebase-login-error" class="firebase-login-error">Initialisation Firebase…</div>
     </form>
     <div class="firebase-login-note">Aucun mot de passe n’est enregistré dans le fichier HTML. L’identification est gérée directement par Firebase Authentication.</div>
   </div>
@@ -5153,5 +5153,93 @@ function openAssistanceMail(){
 }
 
 </script>
-<button type="button" class="permanent-owner-name" onclick="openAssistanceMail()" title="Contacter l'assistance">Turpin Jean-Fabrice</button>\n<script id="v81-firebase-test-runtime">\n(function(){\n  const firebaseConfig = {\n    apiKey: "AIzaSyCmC6d0qH_BgzipQvozItDuSs45NmOLGtE",\n    authDomain: "evaluation-competences-mv.firebaseapp.com",\n    projectId: "evaluation-competences-mv",\n    storageBucket: "evaluation-competences-mv.firebasestorage.app",\n    messagingSenderId: "699958015297",\n    appId: "1:699958015297:web:5861bd6f932e59fff4ddc0"\n  };\n\n  const overlay=document.getElementById('firebase-auth-overlay');\n  const panel=document.getElementById('firebase-cloud-panel');\n  const status=document.getElementById('firebase-cloud-status');\n  const errorBox=document.getElementById('firebase-login-error');\n  const form=document.getElementById('firebase-login-form');\n\n  function setStatus(text,kind){\n    status.textContent=text;\n    status.className='firebase-cloud-status '+(kind==='ok'?'firebase-cloud-ok':kind==='bad'?'firebase-cloud-bad':'firebase-cloud-warn');\n  }\n  function friendlyError(err){\n    const code=err&&err.code?String(err.code):'';\n    if(code.includes('invalid-credential')||code.includes('wrong-password')||code.includes('user-not-found')) return 'Adresse e-mail ou mot de passe incorrect.';\n    if(code.includes('too-many-requests')) return 'Trop de tentatives. Réessaie dans quelques instants.';\n    if(code.includes('network-request-failed')) return 'Connexion réseau indisponible.';\n    return (err&&err.message)?err.message:'Erreur de connexion Firebase.';\n  }\n\n  try{\n    if(!window.firebase) throw new Error('Le SDK Firebase n’a pas pu être chargé. Vérifie la connexion Internet.');\n    if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);\n    const auth=firebase.auth();\n    const firestore=firebase.firestore();\n\n    auth.onAuthStateChanged(user=>{\n      if(user){\n        overlay.classList.add('hidden');\n        panel.hidden=false;\n        setStatus('Connecté : '+(user.email||'utilisateur Firebase'),'ok');\n      }else{\n        overlay.classList.remove('hidden');\n        panel.hidden=true;\n        errorBox.textContent='';\n      }\n    });\n\n    form.addEventListener('submit',async e=>{\n      e.preventDefault();\n      errorBox.textContent='Connexion…';\n      const email=document.getElementById('firebase-email').value.trim();\n      const password=document.getElementById('firebase-password').value;\n      try{\n        await auth.signInWithEmailAndPassword(email,password);\n        document.getElementById('firebase-password').value='';\n      }catch(err){errorBox.textContent=friendlyError(err);}\n    });\n\n    document.getElementById('firebase-logout-btn').addEventListener('click',()=>auth.signOut());\n    document.getElementById('firebase-test-btn').addEventListener('click',async()=>{\n      const user=auth.currentUser;\n      if(!user){setStatus('Non connecté','bad');return;}\n      setStatus('Test Firestore en cours…','warn');\n      try{\n        const ref=firestore.collection('firebase_connection_tests').doc(user.uid);\n        const payload={uid:user.uid,email:user.email||'',testedAt:firebase.firestore.FieldValue.serverTimestamp(),source:'V81_FIREBASE_TEST'};\n        await ref.set(payload,{merge:true});\n        const snap=await ref.get();\n        if(!snap.exists) throw new Error('Le document test n’a pas été relu.');\n        setStatus('✓ Firestore : lecture/écriture OK','ok');\n      }catch(err){setStatus('Firestore : '+friendlyError(err),'bad');}\n    });\n  }catch(err){\n    overlay.classList.remove('hidden');\n    errorBox.textContent=friendlyError(err);\n  }\n})();\n</script>\n</body>
+<button type="button" class="permanent-owner-name" onclick="openAssistanceMail()" title="Contacter l'assistance">Turpin Jean-Fabrice</button>
+<script id="v81-firebase-test-runtime">
+(function(){
+  const firebaseConfig = {
+    apiKey: "AIzaSyCmC6d0qH_BgzipQvozItDuSs45NmOLGtE",
+    authDomain: "evaluation-competences-mv.firebaseapp.com",
+    projectId: "evaluation-competences-mv",
+    storageBucket: "evaluation-competences-mv.firebasestorage.app",
+    messagingSenderId: "699958015297",
+    appId: "1:699958015297:web:5861bd6f932e59fff4ddc0"
+  };
+
+  const overlay=document.getElementById('firebase-auth-overlay');
+  const panel=document.getElementById('firebase-cloud-panel');
+  const status=document.getElementById('firebase-cloud-status');
+  const errorBox=document.getElementById('firebase-login-error');
+  const form=document.getElementById('firebase-login-form');
+  const submitBtn=form ? form.querySelector('button[type="submit"]') : null;
+
+  function setStatus(text,kind){
+    status.textContent=text;
+    status.className='firebase-cloud-status '+(kind==='ok'?'firebase-cloud-ok':kind==='bad'?'firebase-cloud-bad':'firebase-cloud-warn');
+  }
+  function friendlyError(err){
+    const code=err&&err.code?String(err.code):'';
+    if(code.includes('invalid-credential')||code.includes('wrong-password')||code.includes('user-not-found')) return 'Adresse e-mail ou mot de passe incorrect.';
+    if(code.includes('too-many-requests')) return 'Trop de tentatives. Réessaie dans quelques instants.';
+    if(code.includes('network-request-failed')) return 'Connexion réseau indisponible.';
+    return (err&&err.message)?err.message:'Erreur de connexion Firebase.';
+  }
+
+  try{
+    if(!window.firebase) throw new Error('Le SDK Firebase n’a pas pu être chargé. Vérifie la connexion Internet.');
+    if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+    const auth=firebase.auth();
+    const firestore=firebase.firestore();
+    errorBox.textContent='Firebase prêt. Saisis tes identifiants puis clique sur Se connecter.';
+
+    auth.onAuthStateChanged(user=>{
+      if(user){
+        overlay.classList.add('hidden');
+        panel.hidden=false;
+        setStatus('Connecté : '+(user.email||'utilisateur Firebase'),'ok');
+      }else{
+        overlay.classList.remove('hidden');
+        panel.hidden=true;
+        errorBox.textContent='';
+      }
+    });
+
+    form.addEventListener('submit',async e=>{
+      e.preventDefault();
+      errorBox.textContent='Connexion en cours…';
+      if(submitBtn){submitBtn.disabled=true; submitBtn.textContent='Connexion…';}
+      const email=document.getElementById('firebase-email').value.trim();
+      const password=document.getElementById('firebase-password').value;
+      try{
+        await auth.signInWithEmailAndPassword(email,password);
+        errorBox.textContent='✓ Connexion réussie.';
+        document.getElementById('firebase-password').value='';
+      }catch(err){
+        console.error('Firebase Auth error',err);
+        errorBox.textContent=friendlyError(err)+' ['+(err&&err.code?err.code:'sans-code')+']';
+      }finally{
+        if(submitBtn){submitBtn.disabled=false; submitBtn.textContent='Se connecter';}
+      }
+    });
+
+    document.getElementById('firebase-logout-btn').addEventListener('click',()=>auth.signOut());
+    document.getElementById('firebase-test-btn').addEventListener('click',async()=>{
+      const user=auth.currentUser;
+      if(!user){setStatus('Non connecté','bad');return;}
+      setStatus('Test Firestore en cours…','warn');
+      try{
+        const ref=firestore.collection('firebase_connection_tests').doc(user.uid);
+        const payload={uid:user.uid,email:user.email||'',testedAt:firebase.firestore.FieldValue.serverTimestamp(),source:'V81.1_FIREBASE_TEST'};
+        await ref.set(payload,{merge:true});
+        const snap=await ref.get();
+        if(!snap.exists) throw new Error('Le document test n’a pas été relu.');
+        setStatus('✓ Firestore : lecture/écriture OK','ok');
+      }catch(err){setStatus('Firestore : '+friendlyError(err),'bad');}
+    });
+  }catch(err){
+    overlay.classList.remove('hidden');
+    errorBox.textContent=friendlyError(err);
+  }
+})();
+</script>
+</body>
 </html>
