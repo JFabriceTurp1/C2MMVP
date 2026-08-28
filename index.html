@@ -1583,7 +1583,7 @@ body{background:#f7f9fc;color:var(--text)}
 .criterion-toggle-switch[role="switch"][aria-checked="false"]{background:#9aa8ba!important;}
 </style>
 </head>
-<body><div id="build-version" style="position:fixed;right:10px;bottom:8px;font-size:10px;opacity:.45;z-index:9999">V80.38 ÉVOLUTION</div>
+<body><div id="build-version" style="position:fixed;right:10px;bottom:8px;font-size:10px;opacity:.45;z-index:9999">V80.39 ÉVOLUTION</div>
 <div class="app">
 <button id="sidebar-toggle" class="sidebar-toggle" type="button" onclick="toggleSidebar()" aria-label="Masquer la barre latérale" aria-expanded="true" title="Masquer la barre latérale">◀</button>
 <aside class="side">
@@ -3799,6 +3799,12 @@ function exportStudentDeletionPDF(studentsSnapshot, deletionDate){
 .eval-competence-switch[role="switch"][aria-checked="false"],
 .eval-modern-workspace .competence-toggle-btn[role="switch"][aria-checked="false"],
 .criterion-toggle-switch[role="switch"][aria-checked="false"]{background:#9aa8ba!important;}
+</style>
+
+<style id="header-broken-image-fix-v80-39">
+/* V80.39 — le bandeau est déjà rendu par le background intégré.
+   On masque toute balise IMG redondante afin qu’aucune icône d’image cassée (?) ne puisse apparaître. */
+.app-top-header > img{display:none!important;visibility:hidden!important;width:0!important;height:0!important;}
 </style>
 </head><body>
   <h1>Archive de la liste des élèves</h1><div class="meta"><b>Date de suppression :</b> ${esc(deletionDate)}<br><b>Nombre d'élèves :</b> ${studentsSnapshot.length}</div>${rows}
