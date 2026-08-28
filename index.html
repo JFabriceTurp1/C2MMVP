@@ -1601,10 +1601,10 @@ body{background:#f7f9fc;color:var(--text)}
 </style>
 
 </head>
-<body><div id="build-version" style="position:fixed;right:10px;bottom:8px;font-size:10px;opacity:.45;z-index:9999">V81.9 FIREBASE — ÉVALUATIONS</div>
+<body><div id="build-version" style="position:fixed;right:10px;bottom:8px;font-size:10px;opacity:.45;z-index:9999">V82.2.2 FIREBASE — ÉVALUATIONS</div>
 <div id="firebase-auth-overlay">
   <div class="firebase-login-card">
-    <h2>☁️ Connexion Firebase — V81.9</h2>
+    <h2>☁️ Connexion Firebase — V82.2.2</h2>
     <p>Cette version synchronise les classes, les élèves et désormais les évaluations avec Firebase. Le stockage local reste utilisé comme cache de sécurité pendant cette phase de validation.</p>
     <form id="firebase-login-form">
       <label for="firebase-email">Adresse e-mail</label>
@@ -1695,6 +1695,13 @@ body{background:#f7f9fc;color:var(--text)}
     </div>
   </div>
 
+
+  <div class="settings-card settings-section">
+    <h3>☁️ Synchronisation Firebase V82.2.2 — temps réel</h3>
+    <p>La configuration de l’application est synchronisée avec ton compte Firebase : informations établissement, année scolaire, classe active, code administrateur, référentiel de compétences, critères et situations professionnelles. La V82.2.2 utilise une synchronisation différentielle : lorsqu’un document change sur un autre appareil, seul ce document est traité localement, sans relire toute la base.</p>
+    <button type="button" class="primary" onclick="syncAllApplicationSettingsNow()">☁️ Synchroniser tous les paramètres maintenant</button>
+    <div class="muted" style="margin-top:8px">Les modifications sont envoyées automatiquement. Les changements distants sont reçus document par document, ce qui réduit fortement les lectures Firestore par rapport à la V82.1.</div>
+  </div>
   <div class="settings-card settings-section">
     <h3>🧰 Gestion des situations professionnelles</h3>
     <p>Crée, modifie, duplique, archive ou réactive les situations proposées lors d’une nouvelle évaluation. Les anciennes évaluations restent inchangées.</p>
@@ -1913,6 +1920,7 @@ function loadCustomCompetencies(){
 }
 function persistCompetencies(){
   localStorage.setItem(REFERENTIEL_STORAGE_KEY_V74,JSON.stringify(competencies));
+  syncApplicationConfigSoon();
 }
 
 const DEFAULT_STUDENTS=[{"id":"f001","name":"ALBERT Lucas"},{"id":"f002","name":"BERTRAND Emma"},{"id":"f003","name":"CHARPENTIER Hugo"},{"id":"f004","name":"DUPONT Léa"},{"id":"f005","name":"FONTAINE Noah"},{"id":"f006","name":"GARNIER Inès"},{"id":"f007","name":"LAMBERT Tom"},{"id":"f008","name":"MARTIN Chloé"},{"id":"f009","name":"MOREAU Nathan"},{"id":"f010","name":"ROBERT Camille"}];
@@ -2796,7 +2804,8 @@ function getManagedProfessionalSituations(){
 let PROFESSIONAL_SITUATIONS_V80=getManagedProfessionalSituations();
 function saveManagedProfessionalSituations(){
   localStorage.setItem(PROFESSIONAL_SITUATIONS_STORAGE_KEY,JSON.stringify(PROFESSIONAL_SITUATIONS_V80));
-  if(window.firebaseCloudSet) window.firebaseCloudSet("situationsProfessionnelles","library",{items:PROFESSIONAL_SITUATIONS_V80,version:"81.9"}).catch(()=>{});
+  if(window.firebaseCloudSet) window.firebaseCloudSet("situationsProfessionnelles","library",{items:PROFESSIONAL_SITUATIONS_V80,version:"82.2.2"}).catch(()=>{});
+  syncApplicationConfigSoon();
 }
 function refreshManagedSituations(){PROFESSIONAL_SITUATIONS_V80=getManagedProfessionalSituations();}
 function renderSettingsSituations(){
@@ -3635,6 +3644,18 @@ async function openSettings(){
   page="settings";
   render();
 }
+async function syncAllApplicationSettingsNow(){
+  if(!window.firebaseSaveApplicationConfig){
+    showWarningMessage("Firebase n’est pas encore prêt. Vérifie la connexion.");
+    return;
+  }
+  try{
+    await window.firebaseSaveApplicationConfig(buildLocalApplicationConfig());
+    showSuccessMessage("Tous les paramètres de l’application ont été synchronisés avec Firebase.");
+  }catch(err){
+    showWarningMessage("Synchronisation des paramètres impossible : "+(err?.message||String(err)));
+  }
+}
 function renderSettingsPage(){
   const main=document.getElementById("main");
   const tpl=document.getElementById("settings-page-template");
@@ -3656,6 +3677,7 @@ function changeAdminCode(){
   if(next!==confirmCode){showWarningMessage("La confirmation du nouveau code ne correspond pas.");return;}
   if(next===previous){showWarningMessage("Le nouveau code doit être différent de l'ancien.");return;}
   localStorage.setItem(SETTINGS_ADMIN_KEY,next);
+  syncApplicationConfigSoon();
   // Remove any obsolete administrator-code storage keys so an old code cannot
   // remain valid through a legacy fallback.
   ["adminCode","admin_code","settings_admin_code","evaluation_admin_code"].forEach(k=>{
@@ -4071,6 +4093,24 @@ function exportStudentDeletionPDF(studentsSnapshot, deletionDate){
   </div>
 </div>
 
+
+<script>
+window.addEventListener("online",()=>{
+  setRealtimeSyncIndicator("syncing","Connexion retrouvée…");
+  if(window.firebaseStartRealtimeListeners) setTimeout(()=>window.firebaseStartRealtimeListeners(),500);
+});
+window.addEventListener("offline",()=>setRealtimeSyncIndicator("offline","Hors ligne — en attente"));
+</script>
+
+<script>
+window.addEventListener("error",function(ev){
+  console.error("Application error:",ev.error||ev.message);
+  const main=document.getElementById("main");
+  if(main && !main.innerHTML.trim()){
+    main.innerHTML='<div class="panel" style="margin:24px"><h2>Chargement de l’application interrompu</h2><p>Une erreur JavaScript a été détectée. Recharge la page une fois. Si le problème persiste, utilise le correctif V82.2.2.</p><pre style="white-space:pre-wrap">'+String(ev.message||"Erreur inconnue").replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]))+'</pre></div>';
+  }
+});
+</script>
 </body></html>`);
   w.document.close();
 }
@@ -4471,6 +4511,59 @@ async function deleteCriterionFromSettings(id,index){
 
 
 const SCHOOL_SETTINGS_KEY="evaluation_school_settings_v71";
+const FIREBASE_APP_CONFIG_COLLECTION="configuration";
+const FIREBASE_APP_CONFIG_DOC="application";
+
+function buildLocalApplicationConfig(){
+  let school={};
+  try{ school=JSON.parse(localStorage.getItem("evaluation_school_settings_v71")||"{}")||{}; }catch(e){}
+  let situations=[];
+  try{ situations=JSON.parse(localStorage.getItem("evaluation_professional_situations_v81_5")||"[]")||[]; }catch(e){}
+  if(!Array.isArray(situations)||!situations.length){
+    try{situations=JSON.parse(JSON.stringify(PROFESSIONAL_SITUATIONS_V80||[]));}catch(e){situations=[];}
+  }
+  let comps=[];
+  try{comps=JSON.parse(JSON.stringify(competencies||[]));}catch(e){}
+  return {
+    schemaVersion:82.22,
+    adminCode:localStorage.getItem("evaluation_admin_code_v74")||"1234",
+    schoolSettings:school,
+    activeClassId:localStorage.getItem("evaluation_active_class_v77")||"",
+    competencies:comps,
+    professionalSituations:situations,
+    updatedAtClient:Date.now()
+  };
+}
+function applyCloudApplicationConfig(cfg){
+  if(!cfg||typeof cfg!=="object")return;
+  if(typeof cfg.adminCode==="string" && cfg.adminCode.length>=4){
+    localStorage.setItem("evaluation_admin_code_v74",cfg.adminCode);
+  }
+  if(cfg.schoolSettings && typeof cfg.schoolSettings==="object"){
+    localStorage.setItem("evaluation_school_settings_v71",JSON.stringify(cfg.schoolSettings));
+  }
+  if(typeof cfg.activeClassId==="string" || typeof cfg.activeClassId==="number"){
+    localStorage.setItem("evaluation_active_class_v77",String(cfg.activeClassId));
+  }
+  if(Array.isArray(cfg.competencies) && cfg.competencies.length){
+    try{
+      competencies=JSON.parse(JSON.stringify(cfg.competencies));
+      localStorage.setItem("evaluation_competencies_v74",JSON.stringify(competencies));
+    }catch(e){}
+  }
+  if(Array.isArray(cfg.professionalSituations) && cfg.professionalSituations.length){
+    try{
+      PROFESSIONAL_SITUATIONS_V80=JSON.parse(JSON.stringify(cfg.professionalSituations));
+      localStorage.setItem("evaluation_professional_situations_v81_5",JSON.stringify(PROFESSIONAL_SITUATIONS_V80));
+    }catch(e){}
+  }
+}
+function syncApplicationConfigSoon(){
+  if(window.firebaseSaveApplicationConfig){
+    window.firebaseSaveApplicationConfig(buildLocalApplicationConfig()).catch(()=>{});
+  }
+}
+
 function getSchoolSettings(){
   try{
     const saved=localStorage.getItem(SCHOOL_SETTINGS_KEY);
@@ -4516,6 +4609,7 @@ function saveSchoolSettings(){
     if(active){active.name=className;saveClasses(classes);}
   }
   localStorage.setItem(SCHOOL_SETTINGS_KEY,JSON.stringify(settings));
+  syncApplicationConfigSoon();
   showSuccessMessage("Les informations de la classe ont été enregistrées.");
   applySchoolSettings();
   renderSettingsClasses();
@@ -5564,6 +5658,132 @@ function openAssistanceMail(){
     await userRoot().collection(name).doc(String(id)).set(clean,{merge:true});
   }
   window.firebaseCloudSet=cloudSet;
+  async function cloudGetOne(name,id){
+    const snap=await userRoot().collection(name).doc(String(id)).get();
+    return snap.exists?({id:snap.id,...snap.data()}):null;
+  }
+  async function saveApplicationConfig(data){
+    if(!auth.currentUser) return;
+    const clean=JSON.parse(JSON.stringify(data||{}));
+    clean.updatedAt=firebase.firestore.FieldValue.serverTimestamp();
+    await userRoot().collection(FIREBASE_APP_CONFIG_COLLECTION).doc(FIREBASE_APP_CONFIG_DOC).set(clean,{merge:false});
+  }
+  window.firebaseSaveApplicationConfig=saveApplicationConfig;
+
+  function stopRealtimeListeners(){
+    firebaseRealtimeUnsubscribers.forEach(fn=>{try{fn();}catch(e){}});
+    firebaseRealtimeUnsubscribers=[];
+  }
+
+  let realtimeInitialSnapshots={};
+  function realtimeRenderSoon(){
+    clearTimeout(firebaseRealtimeRefreshTimer);
+    firebaseRealtimeRefreshTimer=setTimeout(async()=>{
+      try{
+        firebaseRealtimeApplying=true;
+        if(typeof loadData!=="function")return;
+        await loadData();
+        if(typeof applySchoolSettings==="function")applySchoolSettings();
+        setRealtimeSyncIndicator("ok","Synchronisé en temps réel");
+      }catch(e){
+        setRealtimeSyncIndicator("error","Erreur de mise à jour");
+      }finally{
+        firebaseRealtimeApplying=false;
+      }
+    },180);
+  }
+
+  async function applyRealtimeClassChange(change){
+    const id=change.doc.id, data={id,...change.doc.data()};
+    const classes=getClasses();
+    const idx=classes.findIndex(x=>String(x.id)===String(id));
+    if(change.type==="removed"){
+      if(idx>=0)classes.splice(idx,1);
+    }else if(idx>=0)classes[idx]=data;
+    else classes.push(data);
+    localStorage.setItem(CLASSES_STORAGE_KEY,JSON.stringify(classes));
+  }
+
+  async function applyRealtimeStudentChange(change){
+    const id=change.doc.id;
+    if(change.type==="removed"){
+      try{await deleteFromStore("students",id);}catch(e){}
+      return;
+    }
+    const data={id,...change.doc.data()};
+    await put("students",data);
+  }
+
+  async function applyRealtimeEvaluationChange(change){
+    const rawId=change.doc.id;
+    const id=/^\d+$/.test(rawId)?Number(rawId):rawId;
+    if(change.type==="removed"){
+      try{await deleteFromStore("evaluations",id);}catch(e){}
+      return;
+    }
+    const data={id,...change.doc.data()};
+    await put("evaluations",data);
+  }
+
+  async function applyRealtimeSituationLibrary(change){
+    if(change.doc.id!=="library")return;
+    if(change.type==="removed")return;
+    const data=change.doc.data()||{};
+    if(Array.isArray(data.items)){
+      PROFESSIONAL_SITUATIONS_V80=JSON.parse(JSON.stringify(data.items));
+      localStorage.setItem(PROFESSIONAL_SITUATIONS_STORAGE_KEY,JSON.stringify(PROFESSIONAL_SITUATIONS_V80));
+    }
+  }
+
+  async function applyRealtimeApplicationConfig(change){
+    if(change.doc.id!==FIREBASE_APP_CONFIG_DOC || change.type==="removed")return;
+    applyCloudApplicationConfig(change.doc.data()||{});
+  }
+
+  async function processDifferentialSnapshot(name,snap,handler){
+    if(!realtimeInitialSnapshots[name]){
+      realtimeInitialSnapshots[name]=true;
+      return; // état initial déjà chargé par synchronizeCloud()
+    }
+    const changes=snap.docChanges();
+    if(!changes.length)return;
+    setRealtimeSyncIndicator("syncing","Synchronisation…");
+    firebaseRealtimeApplying=true;
+    try{
+      for(const change of changes) await handler(change);
+    }finally{
+      firebaseRealtimeApplying=false;
+    }
+    realtimeRenderSoon();
+  }
+
+  function startRealtimeListeners(){
+    stopRealtimeListeners();
+    realtimeInitialSnapshots={};
+    if(!auth.currentUser)return;
+    const root=userRoot();
+
+    const specs=[
+      ["classes",applyRealtimeClassChange],
+      ["students",applyRealtimeStudentChange],
+      ["evaluations",applyRealtimeEvaluationChange],
+      ["situationsProfessionnelles",applyRealtimeSituationLibrary],
+      [FIREBASE_APP_CONFIG_COLLECTION,applyRealtimeApplicationConfig]
+    ];
+    specs.forEach(([name,handler])=>{
+      const unsub=root.collection(name).onSnapshot(
+        snap=>processDifferentialSnapshot(name,snap,handler).catch(()=>{
+          setRealtimeSyncIndicator("error","Erreur de synchronisation");
+        }),
+        ()=>setRealtimeSyncIndicator("error","Écoute Firebase interrompue")
+      );
+      firebaseRealtimeUnsubscribers.push(unsub);
+    });
+    setRealtimeSyncIndicator("ok","Synchronisé en temps réel");
+  }
+  window.firebaseStartRealtimeListeners=startRealtimeListeners;
+  window.firebaseStopRealtimeListeners=stopRealtimeListeners;
+
   async function cloudDelete(name,id){
     if(!cloudReady || !auth.currentUser) return;
     await userRoot().collection(name).doc(String(id)).delete();
@@ -5619,15 +5839,18 @@ function openAssistanceMail(){
     batch.set(root,{
       email:auth.currentUser.email||'',
       evaluationsInitialized:true,
+      applicationConfigInitialized:true,
       updatedAt:firebase.firestore.FieldValue.serverTimestamp()
     },{merge:true});
+    batch.set(root.collection(FIREBASE_APP_CONFIG_COLLECTION).doc(FIREBASE_APP_CONFIG_DOC),
+      JSON.parse(JSON.stringify(buildLocalApplicationConfig())),{merge:false});
     await batch.commit();
   }
-  async function synchronizeCloud({forceUpload=false}={}){
+  async function synchronizeCloud({forceUpload=false,fromRealtime=false}={}){
     if(syncing || !auth.currentUser) return;
     syncing=true;
     cloudReady=false;
-    setStatus('Synchronisation classes, élèves et évaluations…','warn');
+    if(!fromRealtime)setStatus('Synchronisation Firebase complète en cours…','warn');
     try{
       let cloudClasses=await cloudDocs('classes');
       let cloudStudents=await cloudDocs('students');
@@ -5650,7 +5873,7 @@ function openAssistanceMail(){
         }
         await replaceLocalStudents(cloudStudents);
 
-        // Transition V81.3 -> V81.9 : une seule fois, si aucune source évaluations
+        // Transition V81.3 -> V82.2.2 : une seule fois, si aucune source évaluations
         // n'a encore été déclarée dans Firebase, on importe l'historique local existant.
         if(!rootData.evaluationsInitialized){
           const uploaded=await uploadLocalEvaluations();
@@ -5663,9 +5886,33 @@ function openAssistanceMail(){
         }
         await replaceLocalEvaluations(cloudEvaluations);
       }
+      // V82.2.2 : synchronisation complète des paramètres applicatifs.
+      let cloudConfig=await cloudGetOne(FIREBASE_APP_CONFIG_COLLECTION,FIREBASE_APP_CONFIG_DOC);
+      if(!cloudConfig){
+        await saveApplicationConfig(buildLocalApplicationConfig());
+        cloudConfig=await cloudGetOne(FIREBASE_APP_CONFIG_COLLECTION,FIREBASE_APP_CONFIG_DOC);
+        await rootRef.set({
+          applicationConfigInitialized:true,
+          updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+        },{merge:true});
+      }else{
+        applyCloudApplicationConfig(cloudConfig);
+      }
+
+      // La classe active synchronisée doit exister et ne pas être archivée.
+      const classesAfterConfig=getClasses();
+      const wanted=localStorage.getItem(ACTIVE_CLASS_STORAGE_KEY);
+      if(!classesAfterConfig.some(c=>String(c.id)===String(wanted)&&!c.archived)){
+        const first=classesAfterConfig.find(c=>!c.archived)||classesAfterConfig[0];
+        if(first)localStorage.setItem(ACTIVE_CLASS_STORAGE_KEY,String(first.id));
+      }
+
       cloudReady=true;
       await loadData();
-      setStatus('✓ Classes, élèves et évaluations synchronisés','ok');
+      applySchoolSettings();
+      if(!fromRealtime)setStatus('✓ Synchronisation Firebase complète : données + paramètres + référentiel + situations + code admin','ok');
+      if(!fromRealtime)startRealtimeListeners();
+      setRealtimeSyncIndicator("ok","Synchronisé en temps réel");
     }catch(err){
       console.error('Synchronisation Firebase',err);
       setStatus('Synchronisation : '+friendlyError(err),'bad');
@@ -5680,17 +5927,17 @@ function openAssistanceMail(){
   const saveClassesOriginal=window.saveClasses;
   window.saveClasses=function(list){
     saveClassesOriginal(list);
-    if(cloudReady && auth && auth.currentUser){
+    if(cloudReady && auth && auth.currentUser && !firebaseRealtimeApplying){
       Promise.all((list||[]).map(c=>cloudSet('classes',c.id,c))).catch(e=>setStatus('Classe non synchronisée : '+friendlyError(e),'bad'));
     }
   };
   const originalPut=window.put;
   window.put=function(store,obj){
     const p=originalPut(store,obj);
-    if(store==='students'){
+    if(store==='students' && !firebaseRealtimeApplying){
       p.then(id=>cloudSet('students',obj.id||id,obj)).catch(e=>setStatus('Élève non synchronisé : '+friendlyError(e),'bad'));
     }
-    if(store==='evaluations'){
+    if(store==='evaluations' && !firebaseRealtimeApplying){
       p.then(id=>{
         const finalId=(obj.id!==undefined && obj.id!==null)?obj.id:id;
         const payload={...obj,id:finalId};
@@ -5702,8 +5949,8 @@ function openAssistanceMail(){
   const originalDelete=window.deleteFromStore;
   window.deleteFromStore=function(store,key){
     const p=originalDelete(store,key);
-    if(store==='students') p.then(()=>cloudDelete('students',key)).catch(e=>setStatus('Suppression élève non synchronisée : '+friendlyError(e),'bad'));
-    if(store==='evaluations') p.then(()=>cloudDelete('evaluations',key)).catch(e=>setStatus('Suppression évaluation non synchronisée : '+friendlyError(e),'bad'));
+    if(store==='students' && !firebaseRealtimeApplying) p.then(()=>cloudDelete('students',key)).catch(e=>setStatus('Suppression élève non synchronisée : '+friendlyError(e),'bad'));
+    if(store==='evaluations' && !firebaseRealtimeApplying) p.then(()=>cloudDelete('evaluations',key)).catch(e=>setStatus('Suppression évaluation non synchronisée : '+friendlyError(e),'bad'));
     return p;
   };
 
@@ -5747,7 +5994,7 @@ function openAssistanceMail(){
     });
 
     document.getElementById('firebase-logout-btn').addEventListener('click',()=>auth.signOut());
-    document.getElementById('firebase-test-btn').addEventListener('click',()=>synchronizeCloud({forceUpload:false}));
+    document.getElementById('firebase-test-btn').addEventListener('click',()=>synchronizeCloud({forceUpload:false,fromRealtime:false}));
   }catch(err){
     overlay.classList.remove('hidden');
     errorBox.textContent=friendlyError(err);
@@ -5791,5 +6038,23 @@ function openAssistanceMail(){
   </div>
 </div>
 
+
+<script>
+window.addEventListener("online",()=>{
+  setRealtimeSyncIndicator("syncing","Connexion retrouvée…");
+  if(window.firebaseStartRealtimeListeners) setTimeout(()=>window.firebaseStartRealtimeListeners(),500);
+});
+window.addEventListener("offline",()=>setRealtimeSyncIndicator("offline","Hors ligne — en attente"));
+</script>
+
+<script>
+window.addEventListener("error",function(ev){
+  console.error("Application error:",ev.error||ev.message);
+  const main=document.getElementById("main");
+  if(main && !main.innerHTML.trim()){
+    main.innerHTML='<div class="panel" style="margin:24px"><h2>Chargement de l’application interrompu</h2><p>Une erreur JavaScript a été détectée. Recharge la page une fois. Si le problème persiste, utilise le correctif V82.2.2.</p><pre style="white-space:pre-wrap">'+String(ev.message||"Erreur inconnue").replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]))+'</pre></div>';
+  }
+});
+</script>
 </body>
 </html>
