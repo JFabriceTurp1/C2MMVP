@@ -1582,8 +1582,45 @@ body{background:#f7f9fc;color:var(--text)}
 .eval-modern-workspace .competence-toggle-btn[role="switch"][aria-checked="false"],
 .criterion-toggle-switch[role="switch"][aria-checked="false"]{background:#9aa8ba!important;}
 </style>
+
+<!-- V81 FIREBASE TEST — SDK Firebase (compat, sans bundler) -->
+<script src="https://www.gstatic.com/firebasejs/12.2.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.2.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore-compat.js"></script>
+<style id="v81-firebase-test-style">
+#firebase-auth-overlay{position:fixed;inset:0;background:rgba(241,245,249,.98);z-index:20000;display:flex;align-items:center;justify-content:center;padding:24px;font-family:inherit}
+#firebase-auth-overlay.hidden{display:none}
+.firebase-login-card{width:min(440px,100%);background:#fff;border:1px solid #dbe4f0;border-radius:18px;box-shadow:0 20px 55px rgba(15,23,42,.18);padding:28px}
+.firebase-login-card h2{margin:0 0 6px;color:#123d72}.firebase-login-card p{color:#64748b;line-height:1.45}.firebase-login-card label{display:block;font-weight:700;margin:14px 0 6px;color:#25364a}.firebase-login-card input{width:100%;box-sizing:border-box;border:1px solid #cbd5e1;border-radius:10px;padding:12px 13px;font-size:15px}.firebase-login-actions{display:flex;gap:10px;margin-top:18px}.firebase-login-actions button{flex:1}.firebase-login-error{min-height:20px;margin-top:12px;color:#b42318;font-size:13px;font-weight:600}.firebase-login-note{margin-top:16px;padding:11px 12px;border-radius:10px;background:#eff6ff;color:#1d4f91;font-size:12px}
+#firebase-cloud-panel{position:fixed;right:18px;top:18px;z-index:15000;background:#fff;border:1px solid #dbe4f0;border-radius:12px;box-shadow:0 8px 24px rgba(15,23,42,.12);padding:10px 12px;min-width:230px;font-family:inherit}.firebase-cloud-title{font-weight:800;color:#123d72}.firebase-cloud-status{font-size:12px;color:#64748b;margin-top:3px}.firebase-cloud-actions{display:flex;gap:6px;margin-top:8px}.firebase-cloud-actions button{min-height:32px!important;padding:5px 9px!important;font-size:12px!important}.firebase-cloud-ok{color:#067647}.firebase-cloud-warn{color:#b54708}.firebase-cloud-bad{color:#b42318}
+@media(max-width:700px){#firebase-cloud-panel{top:auto;bottom:12px;right:12px;left:12px;min-width:0}.firebase-cloud-actions{justify-content:flex-end}}
+</style>
+
 </head>
-<body><div id="build-version" style="position:fixed;right:10px;bottom:8px;font-size:10px;opacity:.45;z-index:9999">V80.39 ÉVOLUTION</div>
+<body><div id="build-version" style="position:fixed;right:10px;bottom:8px;font-size:10px;opacity:.45;z-index:9999">V81 FIREBASE TEST</div>
+<div id="firebase-auth-overlay">
+  <div class="firebase-login-card">
+    <h2>☁️ Connexion Firebase — V81 test</h2>
+    <p>Cette version teste uniquement l’authentification et la communication avec Firestore. Les données du logiciel restent encore enregistrées localement.</p>
+    <form id="firebase-login-form">
+      <label for="firebase-email">Adresse e-mail</label>
+      <input id="firebase-email" type="email" autocomplete="username" required>
+      <label for="firebase-password">Mot de passe</label>
+      <input id="firebase-password" type="password" autocomplete="current-password" required>
+      <div class="firebase-login-actions"><button type="submit" class="primary">Se connecter</button></div>
+      <div id="firebase-login-error" class="firebase-login-error"></div>
+    </form>
+    <div class="firebase-login-note">Aucun mot de passe n’est enregistré dans le fichier HTML. L’identification est gérée directement par Firebase Authentication.</div>
+  </div>
+</div>
+<div id="firebase-cloud-panel" hidden>
+  <div class="firebase-cloud-title">☁️ Firebase — test</div>
+  <div id="firebase-cloud-status" class="firebase-cloud-status">Initialisation…</div>
+  <div class="firebase-cloud-actions">
+    <button type="button" class="secondary" id="firebase-test-btn">Tester Firestore</button>
+    <button type="button" class="secondary" id="firebase-logout-btn">Déconnexion</button>
+  </div>
+</div>
 <div class="app">
 <button id="sidebar-toggle" class="sidebar-toggle" type="button" onclick="toggleSidebar()" aria-label="Masquer la barre latérale" aria-expanded="true" title="Masquer la barre latérale">◀</button>
 <aside class="side">
@@ -5116,5 +5153,5 @@ function openAssistanceMail(){
 }
 
 </script>
-<button type="button" class="permanent-owner-name" onclick="openAssistanceMail()" title="Contacter l'assistance">Turpin Jean-Fabrice</button></body>
+<button type="button" class="permanent-owner-name" onclick="openAssistanceMail()" title="Contacter l'assistance">Turpin Jean-Fabrice</button>\n<script id="v81-firebase-test-runtime">\n(function(){\n  const firebaseConfig = {\n    apiKey: "AIzaSyCmC6d0qH_BgzipQvozItDuSs45NmOLGtE",\n    authDomain: "evaluation-competences-mv.firebaseapp.com",\n    projectId: "evaluation-competences-mv",\n    storageBucket: "evaluation-competences-mv.firebasestorage.app",\n    messagingSenderId: "699958015297",\n    appId: "1:699958015297:web:5861bd6f932e59fff4ddc0"\n  };\n\n  const overlay=document.getElementById('firebase-auth-overlay');\n  const panel=document.getElementById('firebase-cloud-panel');\n  const status=document.getElementById('firebase-cloud-status');\n  const errorBox=document.getElementById('firebase-login-error');\n  const form=document.getElementById('firebase-login-form');\n\n  function setStatus(text,kind){\n    status.textContent=text;\n    status.className='firebase-cloud-status '+(kind==='ok'?'firebase-cloud-ok':kind==='bad'?'firebase-cloud-bad':'firebase-cloud-warn');\n  }\n  function friendlyError(err){\n    const code=err&&err.code?String(err.code):'';\n    if(code.includes('invalid-credential')||code.includes('wrong-password')||code.includes('user-not-found')) return 'Adresse e-mail ou mot de passe incorrect.';\n    if(code.includes('too-many-requests')) return 'Trop de tentatives. Réessaie dans quelques instants.';\n    if(code.includes('network-request-failed')) return 'Connexion réseau indisponible.';\n    return (err&&err.message)?err.message:'Erreur de connexion Firebase.';\n  }\n\n  try{\n    if(!window.firebase) throw new Error('Le SDK Firebase n’a pas pu être chargé. Vérifie la connexion Internet.');\n    if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);\n    const auth=firebase.auth();\n    const firestore=firebase.firestore();\n\n    auth.onAuthStateChanged(user=>{\n      if(user){\n        overlay.classList.add('hidden');\n        panel.hidden=false;\n        setStatus('Connecté : '+(user.email||'utilisateur Firebase'),'ok');\n      }else{\n        overlay.classList.remove('hidden');\n        panel.hidden=true;\n        errorBox.textContent='';\n      }\n    });\n\n    form.addEventListener('submit',async e=>{\n      e.preventDefault();\n      errorBox.textContent='Connexion…';\n      const email=document.getElementById('firebase-email').value.trim();\n      const password=document.getElementById('firebase-password').value;\n      try{\n        await auth.signInWithEmailAndPassword(email,password);\n        document.getElementById('firebase-password').value='';\n      }catch(err){errorBox.textContent=friendlyError(err);}\n    });\n\n    document.getElementById('firebase-logout-btn').addEventListener('click',()=>auth.signOut());\n    document.getElementById('firebase-test-btn').addEventListener('click',async()=>{\n      const user=auth.currentUser;\n      if(!user){setStatus('Non connecté','bad');return;}\n      setStatus('Test Firestore en cours…','warn');\n      try{\n        const ref=firestore.collection('firebase_connection_tests').doc(user.uid);\n        const payload={uid:user.uid,email:user.email||'',testedAt:firebase.firestore.FieldValue.serverTimestamp(),source:'V81_FIREBASE_TEST'};\n        await ref.set(payload,{merge:true});\n        const snap=await ref.get();\n        if(!snap.exists) throw new Error('Le document test n’a pas été relu.');\n        setStatus('✓ Firestore : lecture/écriture OK','ok');\n      }catch(err){setStatus('Firestore : '+friendlyError(err),'bad');}\n    });\n  }catch(err){\n    overlay.classList.remove('hidden');\n    errorBox.textContent=friendlyError(err);\n  }\n})();\n</script>\n</body>
 </html>
