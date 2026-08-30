@@ -156,22 +156,91 @@ th,td{min-width:120px;padding:9px 8px} th:first-child,td:first-child{min-width:1
 
 .linked-criteria-count{color:#0b5f78;background:#eef9fc;border-color:#b9e2ec;margin-bottom:5px}
 
-/* V80.18 — démarrage volontaire de la saisie des critères */
-.eval-recap-column{display:flex;flex-direction:column;gap:12px;align-self:start;min-width:0}
-.start-evaluation-btn{position:fixed;right:20px;top:50%;transform:translateY(-50%);z-index:1200;width:auto;min-width:230px;min-height:54px;padding:0 22px;border:0;border-radius:14px;background:#0f5bd7;color:#fff;font-size:16px;font-weight:800;cursor:pointer;box-shadow:0 10px 26px rgba(15,91,215,.28);transition:box-shadow .15s ease,background .15s ease,filter .15s ease}
-.start-evaluation-btn:hover{background:#0b4fbd;box-shadow:0 12px 30px rgba(15,91,215,.34);filter:brightness(1.02)}
-.start-evaluation-btn:focus-visible{outline:3px solid rgba(15,91,215,.28);outline-offset:3px}
-@media(max-width:760px){.start-evaluation-btn{right:12px;left:12px;top:auto;bottom:16px;transform:none;width:calc(100% - 24px);min-width:0}}
-.validate-evaluation-btn{position:fixed;right:20px;top:50%;transform:translateY(-50%);z-index:1200;width:auto;min-width:210px;min-height:54px;padding:0 22px;border:0;border-radius:14px;background:#15803d;color:#fff;font-size:16px;font-weight:800;cursor:pointer;box-shadow:0 10px 26px rgba(21,128,61,.28);transition:box-shadow .15s ease,background .15s ease,filter .15s ease}
-.validate-evaluation-btn:hover{background:#166534;box-shadow:0 12px 30px rgba(21,128,61,.34);filter:brightness(1.02)}
-.validate-evaluation-btn:focus-visible{outline:3px solid rgba(21,128,61,.28);outline-offset:3px}
-.cancel-evaluation-floating-btn{position:fixed;right:20px;top:calc(50% + 68px);transform:translateY(-50%);z-index:1200;width:auto;min-width:210px;min-height:48px;padding:0 22px;border:2px solid #cbd5e1;border-radius:14px;background:#fff;color:#475569;font-size:15px;font-weight:800;cursor:pointer;box-shadow:0 8px 22px rgba(15,23,42,.14);transition:box-shadow .15s ease,background .15s ease,border-color .15s ease,color .15s ease}
-.cancel-evaluation-floating-btn:hover{background:#f8fafc;border-color:#94a3b8;color:#0f172a;box-shadow:0 10px 26px rgba(15,23,42,.18)}
-.cancel-evaluation-floating-btn:focus-visible{outline:3px solid rgba(100,116,139,.25);outline-offset:3px}
-@media(max-width:760px){.validate-evaluation-btn{right:12px;left:12px;top:auto;bottom:74px;transform:none;width:calc(100% - 24px);min-width:0}.cancel-evaluation-floating-btn{right:12px;left:12px;top:auto;bottom:16px;transform:none;width:calc(100% - 24px);min-width:0}}
-@media(max-width:900px){.eval-recap-column{width:100%}}
+/* V87 — Récapitulatif toujours visible à droite pendant la saisie */
+.eval-recap-column{
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  align-self:start;
+  min-width:0;
+}
+.eval-modern-recap{
+  position:fixed !important;
+  right:12px !important;
+  top:50% !important;
+  left:auto !important;
+  bottom:auto !important;
+  transform:translateY(-50%) !important;
+  z-index:10000 !important;
+  width:245px;
+  max-width:calc(100vw - 48px);
+  max-height:82vh;
+  overflow:auto;
+  overscroll-behavior:contain;
+  box-shadow:0 12px 32px rgba(16,42,67,.16);
+}
+.eval-modern-recap-actions{
+  display:grid;
+  gap:9px;
+  margin-top:16px;
+}
+.eval-modern-recap-actions .start-evaluation-btn,
+.eval-modern-recap-actions .validate-evaluation-btn,
+.eval-modern-recap-actions .cancel-evaluation-recap-btn{
+  position:static;
+  transform:none;
+  width:100%;
+  min-width:0;
+  min-height:50px;
+  padding:0 14px;
+  border-radius:11px;
+  font-size:15px;
+  font-weight:800;
+  cursor:pointer;
+}
+.eval-modern-recap-actions .start-evaluation-btn{
+  border:0;
+  background:#0f5bd7;
+  color:#fff;
+  box-shadow:0 6px 16px rgba(15,91,215,.22);
+}
+.eval-modern-recap-actions .start-evaluation-btn:hover{background:#0b4fbd}
+.eval-modern-recap-actions .validate-evaluation-btn{
+  border:0;
+  background:#15803d;
+  color:#fff;
+  box-shadow:0 6px 16px rgba(21,128,61,.22);
+}
+.eval-modern-recap-actions .validate-evaluation-btn:hover{background:#166534}
+.eval-modern-recap-actions .cancel-evaluation-recap-btn{
+  border:2px solid #cbd5e1;
+  background:#fff;
+  color:#475569;
+}
+.eval-modern-recap-actions .cancel-evaluation-recap-btn:hover{
+  background:#f8fafc;
+  border-color:#94a3b8;
+  color:#0f172a;
+}
+.eval-modern-recap-actions button:focus-visible{
+  outline:3px solid rgba(15,91,215,.22);
+  outline-offset:2px;
+}
+@media(max-width:700px){
+  .eval-recap-column{width:100%}
+  .eval-modern-recap{
+    position:static !important;
+    right:auto !important;
+    top:auto !important;
+    transform:none !important;
+    width:auto !important;
+    max-width:none !important;
+    max-height:none !important;
+    overflow:visible !important;
+  }
+}
 
-/* V86.5 — Firebase discret */
+/* V87 — Firebase discret */
 #firebase-test-panel{display:none!important;}
 #firebase-sync-mini{
   position:fixed;
@@ -458,6 +527,21 @@ th,td{min-width:120px;padding:9px 8px} th:first-child,td:first-child{min-width:1
 .settings-save-progress-track{height:8px;background:#e2e8f0;border-radius:999px;overflow:hidden}
 .settings-save-progress-bar{width:0%;height:100%;border-radius:999px;background:#2563eb;transition:width .2s ease}
 .settings-save-progress-text{margin-top:6px;font-size:11px;font-weight:700;color:#475569}
+
+
+/* V87 — ajustement largeur du récapitulatif pour ne pas masquer les commandes de la zone centrale */
+.eval-modern-recap{padding:14px !important;}
+.eval-modern-recap-title{font-size:16px !important;margin-bottom:10px !important;}
+.eval-modern-recap .eval-recap-item{font-size:13px !important;gap:7px !important;}
+.eval-modern-recap-actions .start-evaluation-btn,
+.eval-modern-recap-actions .validate-evaluation-btn,
+.eval-modern-recap-actions .cancel-evaluation-recap-btn{
+  min-height:46px !important;
+  padding:7px 9px !important;
+  font-size:13px !important;
+  white-space:normal !important;
+  line-height:1.2 !important;
+}
 
 </style>
 
@@ -1322,7 +1406,6 @@ body{background:#f7f9fc;color:var(--text)}
 .eval-modern-actions{margin-top:16px}
 @media(max-width:1150px){
   .eval-modern-layout{grid-template-columns:1fr}
-  .eval-modern-recap{position:static}
 }
 @media(max-width:900px){
   .eval-modern-top{grid-template-columns:1fr}
@@ -1877,9 +1960,22 @@ body{background:#f7f9fc;color:var(--text)}
 </style>
 
 <!-- V81 FIREBASE TEST — SDK Firebase (compat, sans bundler) -->
-<script src="https://www.gstatic.com/firebasejs/12.2.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/12.2.1/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore-compat.js"></script>
+<style id="retroactive-positioning-v87">
+.eval-choice-card.retroactive{border-color:#d5c7f1;background:linear-gradient(180deg,#fff,#faf7ff)}
+.eval-choice-card.retroactive .eval-choice-icon{background:#f1eafe;color:#6d3ec4}
+.retro-banner{margin:0 0 16px;padding:16px 18px;border:1px solid #cdbcf0;border-left:5px solid #7c4dcc;border-radius:14px;background:#faf7ff}
+.retro-banner h3{margin:0 0 6px;color:#58339c}.retro-banner p{margin:0;color:#5f5670;line-height:1.45}
+.retro-controls{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:14px 0 16px}
+.retro-card{background:#fff;border:1px solid #d9d1e8;border-radius:12px;padding:14px}
+.retro-card-title{font-weight:800;color:#44325f;margin-bottom:8px}.retro-segmented{display:flex;gap:8px;flex-wrap:wrap}
+.retro-segmented button{flex:1;min-width:150px;border:1px solid #cfc3e6;background:#fff;color:#4b3a67;border-radius:9px;padding:10px 12px;font-weight:700;cursor:pointer}
+.retro-segmented button.active{background:#6f42c1;color:#fff;border-color:#6f42c1}
+.retro-levels{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.retro-level{border:1px solid #cfd6e1;background:#fff;border-radius:9px;padding:10px 8px;font-weight:800;cursor:pointer;min-height:44px}
+.retro-level.active{background:#6f42c1;color:#fff;border-color:#6f42c1;box-shadow:0 0 0 3px rgba(111,66,193,.12)}
+.retro-date-note{margin-top:8px;font-size:12px;color:#6b5a7f}.retro-meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.retro-meta .pill{background:#f2edfb;color:#573a8a}
+@media(max-width:850px){.retro-controls{grid-template-columns:1fr}.retro-levels{grid-template-columns:1fr 1fr}}
+</style>
 <style id="v81-firebase-test-style">
 #firebase-auth-overlay{position:fixed;inset:0;background:rgba(241,245,249,.98);z-index:20000;display:flex;align-items:center;justify-content:center;padding:24px;font-family:inherit}
 #firebase-auth-overlay.hidden{display:none}
@@ -1889,11 +1985,24 @@ body{background:#f7f9fc;color:var(--text)}
 @media(max-width:700px){#firebase-cloud-panel{top:auto;bottom:12px;right:12px;left:12px;min-width:0}.firebase-cloud-actions{justify-content:flex-end}}
 </style>
 
+
+<link rel="manifest" href="./manifest.webmanifest">
+<meta name="theme-color" content="#0f5bd7">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Compétences MV">
+<link rel="apple-touch-icon" href="./icons/icon-192.png">
+
 </head>
-<body><div id="build-version" style="position:fixed;right:10px;bottom:8px;font-size:10px;opacity:.45;z-index:9999">V86.5 FIREBASE — ÉVALUATIONS</div>
+<body>
+<!-- V88 — DONNÉES DE RÉFÉRENCE RÉINTÉGRÉES DEPUIS V86.5
+     Jeux embarqués repris : référentiel compétences, élèves par défaut, seconde classe fictive, situations professionnelles.
+     Les données dynamiques (classes/élèves/évaluations réellement saisies) restent chargées par IndexedDB/localStorage et Firebase. -->
+<div id="build-version" style="position:fixed;right:10px;bottom:8px;font-size:10px;opacity:.45;z-index:9999">V88 FIREBASE — DONNÉES V86.5 + RÉTROACTIVE</div>
 <div id="firebase-auth-overlay">
   <div class="firebase-login-card">
-    <h2>☁️ Connexion Firebase — V86.5</h2>
+    <h2>☁️ Connexion Firebase — V88</h2>
     <p>Cette version synchronise les classes, les élèves et désormais les évaluations avec Firebase. Le stockage local reste utilisé comme cache de sécurité pendant cette phase de validation.</p>
     <form id="firebase-login-form">
       <label for="firebase-email">Adresse e-mail</label>
@@ -1940,6 +2049,7 @@ body{background:#f7f9fc;color:var(--text)}
 <button id="nav-students" onclick="go('students')">👨‍🎓 <span>Élèves</span></button>
 <button id="nav-eval" onclick="startEvaluation()">📝 <span>Nouvelle évaluation</span></button>
 <button id="nav-history" class="nav-history-home-row" onclick="go('history')">📈 <span>Historique</span></button>
+<button id="nav-archives" onclick="go('archives')">📦 <span>Évaluations archivées</span></button>
 <button id="nav-report" onclick="reportPage()">📄 <span>Synthèse élève</span></button>
 <button id="nav-comps" onclick="go('comps')">📚 <span>Référentiel</span></button>
 <button id="nav-settings" onclick="openSettings()">⚙️ <span>Paramètres</span></button>
@@ -2016,7 +2126,7 @@ body{background:#f7f9fc;color:var(--text)}
 
 
   <div class="settings-card settings-section">
-    <h3>☁️ Firebase — synchronisation complète V86.5</h3>
+    <h3>☁️ Firebase — synchronisation V88 compatible V86.5</h3>
     <p>Classes, élèves, évaluations, archives, paramètres établissement, code administrateur, référentiel et situations professionnelles sont synchronisés. Les changements distants sont reçus document par document sans recharger toute la base.</p><p class="muted">Le panneau Firebase détaillé est masqué en utilisation normale. Un petit nuage en haut à droite indique l’état de la synchronisation.</p>
     <button type="button" class="primary" onclick="syncFirebaseApplicationConfigSoon();showSuccessMessage('Paramètres envoyés vers Firebase.')">☁️ Envoyer les paramètres maintenant</button>
   </div>
@@ -2049,6 +2159,9 @@ body{background:#f7f9fc;color:var(--text)}
     <div id="settings-competencies-list"></div>
   </div>
 </template>
+<script src="https://www.gstatic.com/firebasejs/12.2.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.2.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore-compat.js"></script>
 <script>
 async function resetFictitiousDemoData(){
   if(!confirm("Réinitialiser les données de démonstration avec les 10 élèves fictifs ?")) return;
@@ -2957,7 +3070,7 @@ function viewEvaluationPage(){
   }).join("");
   document.getElementById("main").innerHTML=`<h1>Visualisation de l’évaluation</h1>
   <div class="sub">Consultation seule — aucune modification possible</div>
-  <div class="panel"><div class="row"><div><h2>${esc(e.title||"Évaluation")}</h2><p class="muted">${esc(ownerName(e.studentId))} · ${esc(e.date||"")} · ${esc((e.place==="Centre"||!e.place)?"Lycée":e.place)}</p></div><div style="display:flex;gap:8px;align-items:center">${e.archived?'<span class="pill">📦 Archivée</span>':''}<span class="pill">${esc(e.type||"")}</span></div></div>${e.archived?'<div style="margin-top:12px;padding:10px 12px;border-radius:10px;background:#f8fafc;border:1px solid #cbd5e1"><b>Évaluation archivée :</b> consultation seule. Elle peut être restaurée avec le bouton en bas de page.</div>':''}${e.evaluationObservation?`<div style="margin-top:12px;padding:12px 14px;border-radius:10px;background:#f4f8ff"><b>💬 Observation de l’évaluation</b><div style="margin-top:6px;white-space:pre-wrap">${esc(e.evaluationObservation)}</div></div>`:""}${e.attachment?`<div style="margin-top:12px">${attachmentHtml(e.attachment)}</div>`:""}</div>
+  <div class="panel"><div class="row"><div><h2>${esc(e.title||"Évaluation")}</h2><p class="muted">${esc(ownerName(e.studentId))} · ${esc(e.date||"")} · ${esc((e.place==="Centre"||!e.place)?"Lycée":e.place)}</p></div><div style="display:flex;gap:8px;align-items:center">${e.retroactive?'<span class="pill" style="background:#f2edfb;color:#573a8a">🕘 Rétroactive</span>':''}${e.archived?'<span class="pill">📦 Archivée</span>':''}<span class="pill">${esc(e.type||"")}</span></div></div>${e.retroactive?`<div style="margin-top:12px;padding:12px 14px;border-radius:10px;background:#faf7ff;border:1px solid #d5c7f1"><b>Positionnement rétroactif</b><div style="margin-top:5px">Date d’évaluation : <b>${esc(e.evaluationDate||e.date||"—")}</b> · Date de saisie : <b>${esc(e.entryDate||(e.enteredAt?new Date(e.enteredAt).toLocaleDateString("fr-FR"):"—"))}</b>${e.retroPositionLevel?` · Niveau initial appliqué : <b>${esc(e.retroPositionLevel)}</b>`:""}</div></div>`:""}${e.archived?'<div style="margin-top:12px;padding:10px 12px;border-radius:10px;background:#f8fafc;border:1px solid #cbd5e1"><b>Évaluation archivée :</b> consultation seule. Elle peut être restaurée avec le bouton en bas de page.</div>':''}${e.evaluationObservation?`<div style="margin-top:12px;padding:12px 14px;border-radius:10px;background:#f4f8ff"><b>💬 Observation de l’évaluation</b><div style="margin-top:6px;white-space:pre-wrap">${esc(e.evaluationObservation)}</div></div>`:""}${e.attachment?`<div style="margin-top:12px">${attachmentHtml(e.attachment)}</div>`:""}</div>
   ${cBlocks}<div class="actions" style="margin-top:18px">${e.archived
     ? `<button class="secondary" onclick="go('archives')">↩️ Retour aux archives</button><button class="primary" onclick="restoreEvaluation('${String(e.id)}','${String(e.studentId)}')">↩ Restaurer cette évaluation</button>`
     : `<button class="secondary" onclick="go('history')">↩️ Historique</button><button class="action-icon action-edit" onclick="editEvaluation('${String(e.id)}')" title="Modifier" aria-label="Modifier">✏️</button><button class="action-icon action-delete" onclick="deleteEvaluation('${String(e.id)}')" title="Archiver" aria-label="Archiver">📦</button>`
@@ -3000,7 +3113,8 @@ function editEvaluation(evaluationId,studentIdHint){
     targetStudents:[owner.id],
     batchId:ev.batchId||null,
     attachment:ev.attachment||null,
-    evalPath:ev.evalPath||"free",profSituation:ev.profSituation||"",profOptions:{...(ev.profOptions||{})},profFreeText:ev.profFreeText||"",evaluationStarted:true
+    evalPath:ev.evalPath||"free",profSituation:ev.profSituation||"",profOptions:{...(ev.profOptions||{})},profFreeText:ev.profFreeText||"",evaluationStarted:true,
+    retroactive:!!ev.retroactive,retroPositionLevel:ev.retroPositionLevel||"",retroEstimatedNote:(ev.retroEstimatedNote??""),entryStartedAt:ev.entryStartedAt||ev.enteredAt||ev.createdAt||Date.now()
   };
   page="eval";
   render();
@@ -3051,6 +3165,12 @@ function evaluationChoicePage(){
           <p>Choisir une intervention atelier issue de la bibliothèque. Les compétences et leurs critères sont ensuite proposés automatiquement.</p>
           <div class="eval-choice-action">Choisir une situation professionnelle →</div>
         </button>
+        <button type="button" class="eval-choice-card retroactive" onclick="beginRetrospectiveEvaluation()">
+          <div class="eval-choice-icon">🕘</div>
+          <h2>Positionnement rétroactif</h2>
+          <p>Reconstituer le niveau d’un élève à une date antérieure, par compétence(s) ou à partir d’une situation professionnelle.</p>
+          <div class="eval-choice-action">Créer un positionnement rétroactif →</div>
+        </button>
       </div>
       <div class="eval-choice-back"><button type="button" class="secondary" onclick="go('home')">← Retour à l’accueil</button></div>
     </div>`;
@@ -3072,6 +3192,82 @@ function beginEvaluation(path){
   };
   page="eval";
   render();
+}
+
+function beginRetrospectiveEvaluation(){
+  if(!students.some(s=>String(s.id)===String(selectedStudent))){
+    selectedStudent=sortStudentsAlpha(students)[0]?.id || null;
+  }
+  if(!selectedStudent){alert("Sélectionne un élève avant de créer un positionnement rétroactif.");return;}
+  draft={
+    title:"",date:"",place:"Lycée",type:"Lycée",
+    comps:[],levels:{},obs:{},evaluationObservation:"",disabledCriteria:{},disabledCompetencies:{},
+    mode:"individual",targetStudents:[selectedStudent],attachment:null,
+    evalPath:"free",profSituation:"",profOptions:{},profFreeText:"",evaluationStarted:false,
+    retroactive:true,retroPositionLevel:"",retroEstimatedNote:"",entryStartedAt:Date.now()
+  };
+  page="eval";
+  render();
+}
+function setRetroEntryPath(path){
+  if(!draft||!draft.retroactive)return;
+  setEvaluationPath(path==="professional"?"professional":"free");
+}
+function applyRetroEstimatedNote(raw){
+  if(!draft||!draft.retroactive)return;
+  const note=Number(String(raw).replace(",","."));
+  draft.retroEstimatedNote=Number.isFinite(note)?Math.max(0,Math.min(20,note)):"";
+  if(!draft.date){showWarningMessage("Renseigne d’abord la date réelle du positionnement.");evaluationPage();return;}
+  if(!draft.comps.length){showWarningMessage("Sélectionne d’abord une situation professionnelle ou au moins une compétence.");evaluationPage();return;}
+
+  const active=[];
+  (draft.comps||[]).forEach(compId=>{
+    const comp=competencies.find(c=>c.id===compId);
+    if(!comp)return;
+    (comp.criteria||[]).forEach((_,i)=>{
+      const key=compId+"-"+i;
+      if(!(draft.disabledCriteria&&draft.disabledCriteria[key])) active.push(key);
+    });
+  });
+  if(!active.length){showWarningMessage("Aucun critère actif à positionner.");evaluationPage();return;}
+  if(!Number.isFinite(note)){evaluationPage();return;}
+
+  // La note /20 est convertie en points moyens sur l'échelle existante du logiciel (0 à 4).
+  // On répartit automatiquement les niveaux sur les critères afin d'obtenir la note la plus proche possible.
+  const targetPoints=(Math.max(0,Math.min(20,note))/5)*active.length;
+  const choices=[
+    {label:"Non observé",pts:0},
+    {label:"À renforcer",pts:1},
+    {label:"Maîtrisé",pts:3},
+    {label:"Autonome",pts:4}
+  ];
+  // Pour le calcul automatique rétroactif, « Non observé » compte comme 0 point estimatif.
+  // Le moteur de bilan historique conserve sa logique existante lors de la consultation.
+  let remaining=targetPoints;
+  const assigned=[];
+  for(let i=0;i<active.length;i++){
+    const left=active.length-i-1;
+    let best=choices[0],bestErr=Infinity;
+    for(const ch of choices){
+      const minRest=0*left,maxRest=4*left;
+      const rest=remaining-ch.pts;
+      const feasible=Math.min(Math.max(rest,minRest),maxRest);
+      const err=Math.abs(rest-feasible);
+      const tie=Math.abs(ch.pts-(remaining/(left+1)));
+      const score=err*1000+tie;
+      if(score<bestErr){bestErr=score;best=ch;}
+    }
+    assigned.push(best);
+    remaining-=best.pts;
+  }
+  if(!draft.levels)draft.levels={};
+  active.forEach((key,i)=>{draft.levels[key]=assigned[i].label;});
+  const avg=assigned.reduce((a,b)=>a+b.pts,0)/active.length;
+  const calc=Math.round(avg*5*10)/10;
+  draft.retroPositionLevel="Note estimative "+note.toFixed(1).replace(".",",")+" / 20";
+  draft.retroCalculatedNote=calc;
+  draft.evaluationStarted=true;
+  evaluationPage();
 }
 
 function toISODateValue(v){
@@ -3406,19 +3602,19 @@ if(draft.evalPath==="professional" && draft.profSituation) applyProfessionalSitu
 const selectedName=(students.find(x=>String(x.id)===String(selectedStudent))||{}).name||"Non sélectionné";
 const typeLabel=draft.type||"Non sélectionné";
 const prof=getProfessionalSituation();
-const canShowStartButton = !draft.evaluationStarted && (draft.evalPath==="professional" ? !!draft.profSituation : (!!String(draft.title||"").trim() && !!(draft.comps&&draft.comps.length)));
+const canShowStartButton = !draft.retroactive && !draft.evaluationStarted && (draft.evalPath==="professional" ? !!draft.profSituation : (!!String(draft.title||"").trim() && !!(draft.comps&&draft.comps.length)));
 const competencyArea = draft.evalPath==="free" ? `
       <section class="eval-modern-card eval-modern-green">
         <div class="eval-modern-title"><span class="eval-step">4</span> Compétence(s) évaluée(s)</div>
-        <div id="competencies-selector" style="display:${draft.title.trim()?'block':'none'}">
+        <div id="competencies-selector" style="display:${(draft.retroactive||draft.title.trim())?'block':'none'}">
           <div class="eval-competence-list">
             ${competencies.map((c,i)=>{const on=draft.comps.includes(c.id);return `<div class="eval-competence-choice tone-${i%9} ${on?"is-selected":""}"><div class="eval-competence-copy"><span class="eval-competence-code">${c.id}</span><span class="eval-competence-name"><strong>${esc(c.name)}</strong></span></div><button type="button" class="eval-competence-switch" role="switch" aria-checked="${on?"true":"false"}" aria-label="${on?"Désactiver":"Activer"} ${esc(c.id)} — ${esc(c.name)}" onclick="toggleComp('${c.id}',${on?"false":"true"})"><span class="sr-only">${on?"Désactiver":"Activer"} ${esc(c.id)}</span></button></div>`}).join("")}
           </div>
         </div>
-        <div id="competencies-trigger" style="display:${draft.title.trim()?'none':'block'}">
+        <div id="competencies-trigger" style="display:${(draft.retroactive||draft.title.trim())?'none':'block'}">
           <button class="primary" type="button" onclick="showCompetencies()">＋ Sélectionner les compétences observées</button>
         </div>
-        <div id="situation-help" class="muted" style="margin-top:8px;display:${draft.title.trim()?'none':'block'}">Renseigne d’abord le nom de la situation professionnelle.</div>
+        <div id="situation-help" class="muted" style="margin-top:8px;display:${(draft.retroactive||draft.title.trim())?'none':'block'}">Renseigne d’abord le nom de la situation professionnelle.</div>
       </section>` : `
       <section class="eval-modern-card eval-modern-green professional-eval-block">
         <div class="eval-modern-title"><span class="eval-step">4</span> Situation professionnelle</div>
@@ -3429,7 +3625,7 @@ const competencyArea = draft.evalPath==="free" ? `
 
 document.getElementById("main").innerHTML=`
 <div class="eval-modern-page">
-  <div class="eval-modern-header"><div><h1>${draft.editId?"Modifier l’évaluation":"Nouvelle évaluation"}</h1><div class="sub">${draft.evalPath==="professional"?"Évaluation sur situation professionnelle":"Évaluation libre sur critères"}</div></div>${!draft.editId?`<button type="button" class="secondary" onclick="startEvaluation()">← Changer de type d’évaluation</button>`:""}</div>
+  <div class="eval-modern-header"><div><h1>${draft.editId?(draft.retroactive?"Modifier le positionnement rétroactif":"Modifier l’évaluation"):(draft.retroactive?"Positionnement rétroactif":"Nouvelle évaluation")}</h1><div class="sub">${draft.retroactive?(draft.evalPath==="professional"?"Rétroactif — par situation professionnelle":"Rétroactif — par compétence(s)"):(draft.evalPath==="professional"?"Évaluation sur situation professionnelle":"Évaluation libre sur critères")}</div></div>${!draft.editId?`<button type="button" class="secondary" onclick="startEvaluation()">← Changer de type d’évaluation</button>`:""}</div>
 
   <div class="eval-modern-layout">
     <div class="eval-modern-content">
@@ -3437,13 +3633,17 @@ document.getElementById("main").innerHTML=`
         <section class="eval-modern-card eval-modern-blue"><div class="eval-modern-title"><span class="eval-step">1</span> Élève</div>
           ${draft.mode==="individual"?`<label>Sélectionner un élève</label><select onchange="selectedStudent=this.value;draft.targetStudents=[this.value];evaluationPage()">${sortStudentsAlpha(students).map(x=>`<option value="${x.id}" ${x.id===selectedStudent?"selected":""}>${esc(x.name)}</option>`).join("")}</select>`:`<div class="muted" style="margin-bottom:8px">Évaluation collective</div><button class="secondary" type="button" onclick="toggleAllTargets()">${draft.targetStudents.length===students.length?"Tout désélectionner":"Sélectionner toute la classe"}</button><div class="student-checklist modern-checklist">${sortStudentsAlpha(students).map(x=>`<label class="student-check"><input type="checkbox" style="width:auto" ${draft.targetStudents.includes(x.id)?"checked":""} onchange="toggleTargetStudent('${x.id}',this.checked)"> ${esc(x.name)}</label>`).join("")}</div>`}
         </section>
-        <section class="eval-modern-card eval-modern-purple"><div class="eval-modern-title"><span class="eval-step">2</span> Date de l’évaluation</div><label>Date</label><input type="date" value="${esc(toISODateValue(draft.date))}" onchange="draft.date=displayDateValue(this.value);evaluationPage()"></section>
+        <section class="eval-modern-card eval-modern-purple"><div class="eval-modern-title"><span class="eval-step">2</span> ${draft.retroactive?"Date réelle de l’évaluation":"Date de l’évaluation"}</div><label>${draft.retroactive?"Date historique":"Date"}</label><input type="date" value="${esc(toISODateValue(draft.date))}" onchange="draft.date=displayDateValue(this.value);evaluationPage()">${draft.retroactive?`<div class="retro-date-note">Cette date sera utilisée dans l’historique et le calcul du positionnement. La date de saisie reste enregistrée séparément.</div>`:""}</section>
         <section class="eval-modern-card eval-modern-orange"><div class="eval-modern-title"><span class="eval-step">3</span> Type d’évaluation</div><label>Mode d’évaluation</label><div class="eval-segmented"><button type="button" class="${draft.mode==="individual"?"active":""}" onclick="setEvalMode('individual')">Individuelle</button><button type="button" class="${draft.mode==="collective"?"active":""}" onclick="setEvalMode('collective')">Collective</button></div><label style="margin-top:10px">Type</label><select onchange="draft.type=this.value;evaluationPage()">${["Lycée","PFMP"].map(x=>`<option ${draft.type===x?"selected":""}>${x}</option>`).join("")}</select></section>
       </div>
 
-      ${draft.evalPath==="free"?`<section class="eval-modern-card eval-modern-cyan"><div class="eval-modern-title">Situation / intitulé libre</div><input id="title" placeholder="Ex. Entretien périodique — contrôle véhicule" value="${esc(draft.title)}" oninput="draft.title=this.value; updateCompetenciesButton()"></section>`:``}
+      ${draft.retroactive?`<section class="retro-banner"><h3>🕘 Positionnement rétroactif</h3><p>Ordre de saisie : choisis le mode d’entrée, sélectionne la situation professionnelle ou les compétences, indique la date réelle puis saisis une note estimative sur 20. Le logiciel positionne alors automatiquement tous les critères concernés.</p><div class="retro-card" style="margin-top:14px"><div class="retro-card-title">1. Mode d’entrée</div><div class="retro-segmented"><button type="button" class="${draft.evalPath==="free"?"active":""}" onclick="setRetroEntryPath('free')">Par compétence(s)</button><button type="button" class="${draft.evalPath==="professional"?"active":""}" onclick="setRetroEntryPath('professional')">Par situation professionnelle</button></div></div><div class="retro-meta"><span class="pill">Date d’évaluation : ${esc(draft.date||"à renseigner")}</span><span class="pill">Date de saisie : ${new Date().toLocaleDateString("fr-FR")}</span><span class="pill">Date d’impression : générée au moment du bilan</span></div></section>`:``}
+
+      ${draft.evalPath==="free"&&!draft.retroactive?`<section class="eval-modern-card eval-modern-cyan"><div class="eval-modern-title">Situation / intitulé libre</div><input id="title" placeholder="Ex. Entretien périodique — contrôle véhicule" value="${esc(draft.title)}" oninput="draft.title=this.value; updateCompetenciesButton()"></section>`:``}
 
       ${competencyArea}
+
+      ${draft.retroactive?`<section class="eval-modern-card eval-modern-yellow" style="margin-top:16px"><div class="eval-modern-title"><span class="eval-step">5</span> Note estimative à cette date</div><div class="form-grid"><label>Note estimative sur 20<input type="number" min="0" max="20" step="0.5" value="${esc(draft.retroEstimatedNote??"")}" placeholder="Ex. 12,5" onchange="applyRetroEstimatedNote(this.value)"></label><div><div class="muted" style="margin-bottom:6px">Positionnement automatique</div><button type="button" class="primary" onclick="applyRetroEstimatedNote(draft.retroEstimatedNote)">⚙️ Calculer et cocher automatiquement les critères</button></div></div><div class="retro-date-note">Le calcul s’applique à tous les critères actifs de la situation ou des compétences choisies. Tu peux ensuite corriger manuellement chaque critère.</div>${draft.retroCalculatedNote!==undefined?`<div class="pill" style="margin-top:10px">Résultat automatique obtenu : ${String(draft.retroCalculatedNote).replace(".",",")} / 20</div>`:""}</section>`:``}
 
       <div id="evaluation-workspace" class="evaluation-workspace eval-modern-workspace" style="display:${draft.evaluationStarted && draft.comps.length?"grid":"none"}"><div class="evaluation-main">${draft.comps.map(id=>renderCompetence(id)).join("")}</div><aside class="evaluation-score-side"><div class="panel provisional-score-panel"><div class="muted" style="font-size:12px">NOTE PROVISOIRE</div><div id="live-score" class="provisional-score-value ${scoreClass(evaluationScore20({comps:draft.comps,levels:draft.levels,disabledCriteria:draft.disabledCriteria}))}">${evaluationScoreLabel({comps:draft.comps,levels:draft.levels,disabledCriteria:draft.disabledCriteria})}</div><div class="muted" style="font-size:12px">Mise à jour à chaque positionnement.</div></div><div class="criteria-bulk-controls"><button type="button" id="disable-all-criteria-btn" class="criteria-bulk-btn criteria-bulk-disable" onclick="disableAllCriteria()">⏸ Tout désactiver</button><button type="button" id="enable-all-criteria-btn" class="criteria-bulk-btn criteria-bulk-enable" onclick="enableAllCriteria()">↩ Tout réactiver</button><div id="linked-criteria-count" class="disabled-criteria-count linked-criteria-count">0 critère lié</div><div id="disabled-criteria-count" class="disabled-criteria-count">0 critère désactivé</div></div></aside></div>
 
@@ -3456,7 +3656,7 @@ document.getElementById("main").innerHTML=`
       ${summary()}
       <div class="actions eval-modern-actions"><button class="secondary" onclick="cancelEvaluation()">Annuler</button><button class="primary" onclick="saveEvaluation()">${draft.editId?"✓ Enregistrer les modifications":"✓ Enregistrer l’évaluation"}</button></div>
     </div>
-    <div class="eval-recap-column"><aside class="eval-modern-recap"><div class="eval-modern-recap-title">Récapitulatif</div><div class="eval-recap-item"><span class="recap-dot recap-blue">1</span><div><b>Élève</b><small>${esc(draft.mode==="collective"?draft.targetStudents.length+" élève(s)":selectedName)}</small></div></div><div class="eval-recap-item"><span class="recap-dot recap-purple">2</span><div><b>Date</b><small>${esc(draft.date||"—")}</small></div></div><div class="eval-recap-item"><span class="recap-dot recap-orange">3</span><div><b>Type</b><small>${esc(typeLabel)}</small></div></div><div class="eval-recap-item"><span class="recap-dot recap-green">4</span><div><b>${draft.evalPath==="professional"?"Situation / compétences":"Compétence(s)"}</b><small>${draft.evalPath==="professional"?(prof?esc(prof.code+" — "+prof.label):"Aucune situation sélectionnée"):(draft.comps.length?draft.comps.join(", "):"Aucune sélection")}</small></div></div><div class="eval-recap-item"><span class="recap-dot recap-yellow">5</span><div><b>Niveau</b><small id="recap-positioned-count">${formatPositionedCriteriaCount()}</small></div></div><div class="eval-modern-recap-actions"><button class="primary" onclick="saveEvaluation()">${draft.editId?"✓ Enregistrer":"✓ Enregistrer l’évaluation"}</button><button class="secondary" onclick="cancelEvaluation()">Annuler</button></div></aside>${canShowStartButton?`<button type="button" class="start-evaluation-btn" onclick="startCriteriaEvaluation()">▶ Commencer l’évaluation</button>`:""}${draft.evaluationStarted?`<button type="button" class="validate-evaluation-btn" onclick="saveEvaluation()">✓ Valider l’évaluation</button><button type="button" class="cancel-evaluation-floating-btn" onclick="cancelEvaluation()">Annuler</button>`:""}</div>
+    <div class="eval-recap-column"><aside class="eval-modern-recap"><div class="eval-modern-recap-title">Récapitulatif</div><div class="eval-recap-item"><span class="recap-dot recap-blue">1</span><div><b>Élève</b><small>${esc(draft.mode==="collective"?draft.targetStudents.length+" élève(s)":selectedName)}</small></div></div><div class="eval-recap-item"><span class="recap-dot recap-purple">2</span><div><b>Date</b><small>${esc(draft.date||"—")}</small></div></div><div class="eval-recap-item"><span class="recap-dot recap-orange">3</span><div><b>Type</b><small>${esc(typeLabel)}</small></div></div><div class="eval-recap-item"><span class="recap-dot recap-green">4</span><div><b>${draft.evalPath==="professional"?"Situation / compétences":"Compétence(s)"}</b><small>${draft.evalPath==="professional"?(prof?esc(prof.code+" — "+prof.label):"Aucune situation sélectionnée"):(draft.comps.length?draft.comps.join(", "):"Aucune sélection")}</small></div></div><div class="eval-recap-item"><span class="recap-dot recap-yellow">5</span><div><b>Niveau</b><small id="recap-positioned-count">${formatPositionedCriteriaCount()}</small></div></div><div class="eval-modern-recap-actions">${canShowStartButton?`<button type="button" class="start-evaluation-btn" onclick="startCriteriaEvaluation()">▶ Commencer l’évaluation</button>`:""}${draft.evaluationStarted?`<button type="button" class="validate-evaluation-btn" onclick="saveEvaluation()">${draft.editId?"✓ Enregistrer les modifications":"✓ Valider l’évaluation"}</button>`:""}<button type="button" class="cancel-evaluation-recap-btn" onclick="cancelEvaluation()">Annuler</button></div></aside></div>
   </div>
 </div>`;
 updateCriteriaRestoreButton();updateBulkCriteriaButtons();
@@ -4414,6 +4614,19 @@ function exportStudentDeletionPDF(studentsSnapshot, deletionDate){
 </div>
 
 
+
+<script id="pwa-service-worker-registration">
+(function(){
+  if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
+    window.addEventListener("load", function(){
+      navigator.serviceWorker.register("./service-worker.js").catch(function(err){
+        console.warn("Service Worker non enregistré :", err);
+      });
+    });
+  }
+})();
+</script>
+
 </body></html>`);
   w.document.close();
 }
@@ -5186,7 +5399,9 @@ function applySchoolSettings(){
 }
 
 async function saveEvaluation(){
+if(draft.retroactive && !draft.date){showWarningMessage("Renseigne la date réelle de l’évaluation rétroactive.");return;}
 if(draft.evalPath==="professional" && !draft.profSituation){showWarningMessage("Sélectionne une situation professionnelle.");return;}
+if(draft.retroactive && !draft.title.trim()) draft.title = draft.evalPath==="professional" ? (getProfessionalSituation()?.title||getProfessionalSituation()?.label||"Positionnement rétroactif") : "Positionnement rétroactif — compétences";
 if(!draft.title.trim()){showWarningMessage("Saisis un intitulé de situation.");return;}
 if(!draft.comps.length){showWarningMessage("Sélectionne au moins une compétence.");return;}
 
@@ -5230,6 +5445,8 @@ if(draft.editId){
     disabledCompetencies:{...(draft.disabledCompetencies||{})},
     attachment:draft.attachment||null,
     evalPath:draft.evalPath||"free",profSituation:draft.profSituation||"",profOptions:{...(draft.profOptions||{})},profFreeText:draft.profFreeText||"",
+    retroactive:!!draft.retroactive,retroPositionLevel:draft.retroPositionLevel||"",retroEstimatedNote:(draft.retroEstimatedNote??""),retroCalculatedNote:(draft.retroCalculatedNote??null),evaluationDate:draft.date,
+    enteredAt:existing.enteredAt||existing.createdAt||Date.now(),entryDate:existing.entryDate||new Date(existing.enteredAt||existing.createdAt||Date.now()).toLocaleDateString("fr-FR"),modifiedAt:Date.now(),
     studentId:existing.studentId
   };
 
@@ -5279,6 +5496,8 @@ const evaluations = validTargets.map((studentId,idx)=>({
     disabledCompetencies:{...(draft.disabledCompetencies||{})},
     attachment:draft.attachment||null,
   evalPath:draft.evalPath||"free",profSituation:draft.profSituation||"",profOptions:{...(draft.profOptions||{})},profFreeText:draft.profFreeText||"",
+  retroactive:!!draft.retroactive,retroPositionLevel:draft.retroPositionLevel||"",retroEstimatedNote:(draft.retroEstimatedNote??""),retroCalculatedNote:(draft.retroCalculatedNote??null),evaluationDate:draft.date,
+  enteredAt:Date.now()+idx,entryDate:new Date().toLocaleDateString("fr-FR"),modifiedAt:null,
   studentId,
   createdAt:Date.now()+idx,
   batchId
@@ -6500,56 +6719,87 @@ window.firebaseSaveCurrentConfig=async()=>{await saveFullConfig(firebaseBuildApp
     if(syncing || !auth.currentUser) return;
     syncing=true;
     cloudReady=false;
-    setStatus('Synchronisation classes, élèves et évaluations…','warn');
-    setSyncProgress(8,'Connexion au serveur Firebase…');
+    setStatus('Synchronisation V86.5 : classes, élèves et évaluations…','warn');
+    setSyncProgress(8,'Connexion au serveur Firebase V86.5…');
     try{
-      setSyncProgress(18,'Lecture des classes…');
+      setSyncProgress(18,'Lecture des classes V86.5…');
       let cloudClasses=await cloudDocs('classes');
-      setSyncProgress(30,'Lecture des élèves…');
+      setSyncProgress(30,'Lecture des élèves V86.5…');
       let cloudStudents=await cloudDocs('students');
-      setSyncProgress(44,'Lecture des évaluations…');
+      setSyncProgress(44,'Lecture des évaluations V86.5…');
       let cloudEvaluations=await cloudDocs('evaluations');
       const rootRef=userRoot();
       const rootSnap=await rootRef.get();
       const rootData=rootSnap.exists?(rootSnap.data()||{}):{};
 
-      if(forceUpload || !cloudClasses.length){
+      // V88 — compatibilité stricte V86.5 :
+      // une collection "classes" vide ne doit jamais empêcher le rapatriement
+      // des élèves/évaluations déjà présents dans Firebase.
+      const cloudHasLegacyData = cloudClasses.length || cloudStudents.length || cloudEvaluations.length;
+
+      if(forceUpload){
         await migrateLocalToCloud();
         cloudClasses=await cloudDocs('classes');
         cloudStudents=await cloudDocs('students');
         cloudEvaluations=await cloudDocs('evaluations');
-      }else{
+      }else if(!cloudHasLegacyData){
+        // Firebase réellement vierge pour ce compte : migration du cache local historique.
+        await migrateLocalToCloud();
+        cloudClasses=await cloudDocs('classes');
+        cloudStudents=await cloudDocs('students');
+        cloudEvaluations=await cloudDocs('evaluations');
+      }
+
+      // Toujours appliquer ce qui existe dans Firebase, même si une des collections est vide.
+      if(cloudClasses.length){
         saveClassesOriginal(cloudClasses);
         const currentActive=localStorage.getItem(ACTIVE_CLASS_STORAGE_KEY);
         if(!cloudClasses.some(c=>String(c.id)===String(currentActive)&&!c.archived)){
           const first=cloudClasses.find(c=>!c.archived)||cloudClasses[0];
           if(first) localStorage.setItem(ACTIVE_CLASS_STORAGE_KEY,String(first.id));
         }
-        await replaceLocalStudents(cloudStudents);
+      }
 
-        // Transition V81.3 -> V86.5 : une seule fois, si aucune source évaluations
-        // n'a encore été déclarée dans Firebase, on importe l'historique local existant.
+      if(cloudStudents.length){
+        await replaceLocalStudents(cloudStudents);
+      }
+
+      // Transition historique : si Firebase contient déjà des évaluations, elles ont priorité.
+      // Sinon, seulement si le marqueur n'existe pas, on tente de remonter l'ancien cache V86.5.
+      if(cloudEvaluations.length){
+        await replaceLocalEvaluations(cloudEvaluations);
         if(!rootData.evaluationsInitialized){
-          const uploaded=await uploadLocalEvaluations();
           await rootRef.set({
             evaluationsInitialized:true,
-            evaluationsMigratedFromLocal:uploaded,
+            evaluationsMigratedFromLocal:false,
             updatedAt:firebase.firestore.FieldValue.serverTimestamp()
           },{merge:true});
-          cloudEvaluations=await cloudDocs('evaluations');
         }
-        await replaceLocalEvaluations(cloudEvaluations);
+      }else if(!rootData.evaluationsInitialized){
+        const uploaded=await uploadLocalEvaluations();
+        await rootRef.set({
+          evaluationsInitialized:true,
+          evaluationsMigratedFromLocal:uploaded,
+          updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+        },{merge:true});
+        cloudEvaluations=await cloudDocs('evaluations');
+        if(cloudEvaluations.length) await replaceLocalEvaluations(cloudEvaluations);
       }
-      setSyncProgress(62,'Synchronisation des paramètres…');
+
+      setSyncProgress(62,'Synchronisation des paramètres V86.5…');
       let cfg=await cloudGetOne(FIREBASE_CONFIG_COLLECTION,FIREBASE_CONFIG_DOC);
       if(cfg){
         firebaseApplyApplicationConfig(cfg);
       }else{
-        await saveFullConfig(firebaseBuildApplicationConfig());
+        // Ne crée une configuration que si aucune donnée distante n'a été trouvée.
+        // Cela évite qu'une nouvelle copie V88 remplace des paramètres historiques.
+        if(!cloudHasLegacyData) await saveFullConfig(firebaseBuildApplicationConfig());
       }
-      // V86.5 — récupération initiale des comptes/professeurs depuis Firestore
+
+      // Professeurs/comptes : priorité absolue à la collection V86.5 "comptes".
+      // À défaut, la liste éventuellement contenue dans configuration/application reste appliquée.
       try{
-        setSyncProgress(76,'Synchronisation des professeurs et comptes…');
+        setSyncProgress(76,'Synchronisation des professeurs et comptes V86.5…');
         const cloudAccounts=await cloudDocs('comptes');
         if(cloudAccounts.length){
           const accounts=cloudAccounts.map(a=>({
@@ -6562,28 +6812,31 @@ window.firebaseSaveCurrentConfig=async()=>{await saveFullConfig(firebaseBuildApp
             assignedClasses:Array.isArray(a.assignedClasses)?a.assignedClasses:[]
           }));
           localStorage.setItem('evaluation_teachers_v84_1',JSON.stringify(accounts));
-          try{
-            migrateTeachersV84();
-            updateActiveTeacherUI();
-            applyTeacherPermissions();
-          }catch(e){}
-        }else{
+        }
+        try{
+          migrateTeachersV84();
+          updateActiveTeacherUI();
+          applyTeacherPermissions();
+          if(typeof renderSettingsTeachers==='function') renderSettingsTeachers();
+        }catch(e){}
+        // Ne pousse jamais une liste locale vide vers Firebase lors d'une simple reconnexion.
+        if(!cloudAccounts.length && !cfg && !cloudHasLegacyData){
           await firebaseSaveApplicationAccounts();
         }
       }catch(e){
-        console.warn('Synchronisation initiale des comptes :',e);
+        console.warn('Synchronisation initiale des comptes V86.5 :',e);
       }
 
-      setSyncProgress(90,'Mise à jour du logiciel…');
+      setSyncProgress(90,'Chargement des données V86.5 dans la V88…');
       cloudReady=true;
       await loadData();
       applySchoolSettings();
-      setStatus('✓ Données et paramètres synchronisés','ok');
-      setSyncProgress(100,'Synchronisation terminée. Les données sont à jour.');
+      setStatus('✓ Données V86.5 récupérées et synchronisées','ok');
+      setSyncProgress(100,'Synchronisation terminée : professeurs, classes, élèves et évaluations sont à jour.');
       startRealtimeListeners();
-    startAccountsRealtime();
+      startAccountsRealtime();
     }catch(err){
-      console.error('Synchronisation Firebase',err);
+      console.error('Synchronisation Firebase V86.5 → V88',err);
       setStatus('Synchronisation : '+friendlyError(err),'bad');
       setSyncProgress(0,'Échec de la synchronisation : '+friendlyError(err));
     }finally{
