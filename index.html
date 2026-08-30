@@ -2005,7 +2005,8 @@ body{background:#f7f9fc;color:var(--text)}
 <meta name="apple-mobile-web-app-title" content="Compétences MV">
 <link rel="apple-touch-icon" href="./icons/icon-192.png">
 
-<style id="v885-teacher-navigation-style">
+
+<style id="v886-teacher-navigation-style">
 .teacher-floating-nav{
   position:fixed;
   top:10px;
@@ -2038,14 +2039,16 @@ body{background:#f7f9fc;color:var(--text)}
 .teacher-mini-nav-btn:hover{background:#f8fafc!important}
 #teacher-quit-home-btn:hover{background:#fff5f5!important}
 
+/* Smartphone : sous le bouton servant à ouvrir/fermer la barre latérale gauche */
 @media(max-width:600px){
-  .mobile-topbar > .teacher-floating-nav{
-    position:static!important;
-    z-index:auto!important;
-    flex:0 0 auto;
+  .teacher-floating-nav{
+    position:fixed!important;
+    top:58px!important;
+    left:10px!important;
+    z-index:10040!important;
     margin:0!important;
   }
-  .mobile-topbar .teacher-mini-nav-btn{
+  .teacher-mini-nav-btn{
     min-height:36px!important;
     height:36px!important;
     padding:5px 8px!important;
@@ -2057,12 +2060,13 @@ body{background:#f7f9fc;color:var(--text)}
 }
 </style>
 
+
 </head>
 <body>
 <!-- V88 — DONNÉES DE RÉFÉRENCE RÉINTÉGRÉES DEPUIS V86.5
      Jeux embarqués repris : référentiel compétences, élèves par défaut, seconde classe fictive, situations professionnelles.
      Les données dynamiques (classes/élèves/évaluations réellement saisies) restent chargées par IndexedDB/localStorage et Firebase. -->
-<div id="build-version" style="position:fixed;right:10px;bottom:8px;font-size:10px;opacity:.45;z-index:9999">V88.5 FIREBASE — DONNÉES V86.5 + RÉTROACTIVE</div>
+<div id="build-version" style="position:fixed;right:10px;bottom:8px;font-size:10px;opacity:.45;z-index:9999">V88.6 FIREBASE — DONNÉES V86.5 + RÉTROACTIVE</div>
 <div id="firebase-auth-overlay">
   <div class="firebase-login-card">
     <h2>☁️ Connexion Firebase — V88</h2>
@@ -2884,12 +2888,7 @@ function updateTeacherNavigationButtons(){
 
   wrap.appendChild(btn);
 
-  const mobileBar=document.querySelector(".mobile-topbar");
-  if(window.innerWidth<=600 && mobileBar){
-    mobileBar.insertBefore(wrap,mobileBar.firstChild);
-  }else{
-    document.body.appendChild(wrap);
-  }
+  document.body.appendChild(wrap);
 }
 
 function render(){
