@@ -2004,7 +2004,7 @@ body{background:#f7f9fc;color:var(--text)}
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Compétences MV">
 <link rel="apple-touch-icon" href="./icons/icon-192.png">
-</head>
+<style id="v884-exit">.home-teacher-exit-btn{position:fixed;top:10px;left:10px;z-index:10050;padding:6px 9px;border:1px solid #e2bcbc;border-radius:9px;background:#fff;color:#8f1d1d;font-weight:700;font-size:11px;box-shadow:0 2px 7px #0002}@media(max-width:700px){.home-teacher-exit-btn{top:max(8px,env(safe-area-inset-top));left:max(8px,env(safe-area-inset-left));padding:5px 8px}}</style></head>
 <body>
 <!-- V88 — DONNÉES DE RÉFÉRENCE RÉINTÉGRÉES DEPUIS V86.5
      Jeux embarqués repris : référentiel compétences, élèves par défaut, seconde classe fictive, situations professionnelles.
@@ -2063,7 +2063,6 @@ body{background:#f7f9fc;color:var(--text)}
 <button id="nav-report" onclick="reportPage()">📄 <span>Synthèse élève</span></button>
 <button id="nav-comps" onclick="go('comps')">📚 <span>Référentiel</span></button>
 <button id="nav-settings" onclick="openSettings()">⚙️ <span>Paramètres</span></button>
-<button id="nav-logout-teacher" class="nav-logout-teacher" onclick="logoutTeacher()">🚪 <span>Quitter le logiciel</span></button>
 </div>
 </aside>
 <main class="main" id="main"><header class="app-top-header" aria-label="Lycée professionnel François de Mahy — Saint-Pierre, La Réunion"></header><div class="mobile-topbar"><button class="secondary mobile-menu" onclick="toggleMobileMenu()" aria-label="Ouvrir le menu">☰</button><div><b>${esc(getSchoolSettings().className||"")}</b><div class="muted" style="font-size:11px">Suivi des compétences</div></div></div></main>
@@ -2803,7 +2802,14 @@ window.addEventListener("resize",function(){
 });
 setTimeout(initSidebarState,0);
 
+function updateHomeTeacherExitButton(){
+ let b=document.getElementById("home-teacher-exit-btn");
+ const show=(page==="home"&&!!getCurrentTeacher());
+ if(!show){if(b)b.remove();return;}
+ if(!b){b=document.createElement("button");b.id="home-teacher-exit-btn";b.className="home-teacher-exit-btn";b.innerHTML="🚪 Quitter";b.onclick=logoutTeacher;document.body.appendChild(b);}
+}
 function render(){
+ setTimeout(updateHomeTeacherExitButton,0);
  if(!ready){document.getElementById("main").innerHTML='<div class="panel"><h2>Chargement de la base de données…</h2><p class="muted">Initialisation du stockage local.</p></div>';return;}
  if(page==="home")home();
  else if(page==="students")studentsPage();
