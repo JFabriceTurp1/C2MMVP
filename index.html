@@ -1993,13 +1993,12 @@ body{background:#f7f9fc;color:var(--text)}
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Compétences MV">
 <link rel="apple-touch-icon" href="./icons/icon-192.png">
-
 </head>
 <body>
 <!-- V88 — DONNÉES DE RÉFÉRENCE RÉINTÉGRÉES DEPUIS V86.5
      Jeux embarqués repris : référentiel compétences, élèves par défaut, seconde classe fictive, situations professionnelles.
      Les données dynamiques (classes/élèves/évaluations réellement saisies) restent chargées par IndexedDB/localStorage et Firebase. -->
-<div id="build-version" style="position:fixed;right:10px;bottom:8px;font-size:10px;opacity:.45;z-index:9999">V88 FIREBASE — DONNÉES V86.5 + RÉTROACTIVE</div>
+<div id="build-version" style="position:fixed;right:10px;bottom:8px;font-size:10px;opacity:.45;z-index:9999">V88.1 FIREBASE — DONNÉES V86.5 + RÉTROACTIVE</div>
 <div id="firebase-auth-overlay">
   <div class="firebase-login-card">
     <h2>☁️ Connexion Firebase — V88</h2>
@@ -4614,19 +4613,6 @@ function exportStudentDeletionPDF(studentsSnapshot, deletionDate){
 </div>
 
 
-
-<script id="pwa-service-worker-registration">
-(function(){
-  if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
-    window.addEventListener("load", function(){
-      navigator.serviceWorker.register("./service-worker.js").catch(function(err){
-        console.warn("Service Worker non enregistré :", err);
-      });
-    });
-  }
-})();
-</script>
-
 </body></html>`);
   w.document.close();
 }
@@ -6752,7 +6738,7 @@ window.firebaseSaveCurrentConfig=async()=>{await saveFullConfig(firebaseBuildApp
 
       // Toujours appliquer ce qui existe dans Firebase, même si une des collections est vide.
       if(cloudClasses.length){
-        saveClassesOriginal(cloudClasses);
+        saveClasses(cloudClasses);
         const currentActive=localStorage.getItem(ACTIVE_CLASS_STORAGE_KEY);
         if(!cloudClasses.some(c=>String(c.id)===String(currentActive)&&!c.archived)){
           const first=cloudClasses.find(c=>!c.archived)||cloudClasses[0];
@@ -6849,7 +6835,7 @@ window.firebaseSaveCurrentConfig=async()=>{await saveFullConfig(firebaseBuildApp
   // Firebase devient la copie persistante pour les classes, les élèves et les évaluations.
   const saveClassesOriginal=window.saveClasses;
   window.saveClasses=function(list){
-    saveClassesOriginal(list);
+    saveClasses(list);
     if(cloudReady && auth && auth.currentUser && !realtimeApply){
       Promise.all((list||[]).map(c=>cloudSet('classes',c.id,c))).catch(e=>setStatus('Classe non synchronisée : '+friendlyError(e),'bad'));
     }
@@ -6921,7 +6907,7 @@ window.firebaseSaveCurrentConfig=async()=>{await saveFullConfig(firebaseBuildApp
       const data={id,...change.doc.data()};
       if(i>=0)list[i]=data;else list.push(data);
     }
-    saveClassesOriginal(list);
+    saveClasses(list);
   }
   async function applyRemoteConfig(change){
     if(change.doc.id!==FIREBASE_CONFIG_DOC||change.type==='removed')return;
@@ -7112,5 +7098,17 @@ function startRealtimeListeners(){
 
 
 
+
+<script id="pwa-service-worker-registration">
+(function(){
+  if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
+    window.addEventListener("load", function(){
+      navigator.serviceWorker.register("./service-worker.js").catch(function(err){
+        console.warn("Service Worker non enregistré :", err);
+      });
+    });
+  }
+})();
+</script>
 </body>
 </html>
