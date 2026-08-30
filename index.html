@@ -2004,12 +2004,65 @@ body{background:#f7f9fc;color:var(--text)}
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Compétences MV">
 <link rel="apple-touch-icon" href="./icons/icon-192.png">
-<style id="v884-exit">.home-teacher-exit-btn{position:fixed;top:10px;left:10px;z-index:10050;padding:6px 9px;border:1px solid #e2bcbc;border-radius:9px;background:#fff;color:#8f1d1d;font-weight:700;font-size:11px;box-shadow:0 2px 7px #0002}@media(max-width:700px){.home-teacher-exit-btn{top:max(8px,env(safe-area-inset-top));left:max(8px,env(safe-area-inset-left));padding:5px 8px}}</style></head>
+
+<style id="v885-teacher-navigation-style">
+.teacher-floating-nav{
+  position:fixed;
+  top:10px;
+  left:10px;
+  z-index:10050;
+  display:flex;
+  align-items:center;
+}
+.teacher-mini-nav-btn{
+  min-height:32px!important;
+  height:32px;
+  padding:5px 9px!important;
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  border:1px solid #d7dde6!important;
+  border-radius:9px!important;
+  background:rgba(255,255,255,.97)!important;
+  color:#344054!important;
+  font:700 11px/1 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;
+  box-shadow:0 2px 8px rgba(16,24,40,.10)!important;
+  cursor:pointer;
+  white-space:nowrap;
+  width:auto!important;
+}
+#teacher-quit-home-btn{
+  color:#8f1d1d!important;
+  border-color:#e4c3c3!important;
+}
+.teacher-mini-nav-btn:hover{background:#f8fafc!important}
+#teacher-quit-home-btn:hover{background:#fff5f5!important}
+
+@media(max-width:600px){
+  .mobile-topbar > .teacher-floating-nav{
+    position:static!important;
+    z-index:auto!important;
+    flex:0 0 auto;
+    margin:0!important;
+  }
+  .mobile-topbar .teacher-mini-nav-btn{
+    min-height:36px!important;
+    height:36px!important;
+    padding:5px 8px!important;
+    font-size:11px!important;
+  }
+}
+@media print{
+  .teacher-floating-nav{display:none!important}
+}
+</style>
+
+</head>
 <body>
 <!-- V88 — DONNÉES DE RÉFÉRENCE RÉINTÉGRÉES DEPUIS V86.5
      Jeux embarqués repris : référentiel compétences, élèves par défaut, seconde classe fictive, situations professionnelles.
      Les données dynamiques (classes/élèves/évaluations réellement saisies) restent chargées par IndexedDB/localStorage et Firebase. -->
-<div id="build-version" style="position:fixed;right:10px;bottom:8px;font-size:10px;opacity:.45;z-index:9999">V88.3 FIREBASE — DONNÉES V86.5 + RÉTROACTIVE</div>
+<div id="build-version" style="position:fixed;right:10px;bottom:8px;font-size:10px;opacity:.45;z-index:9999">V88.5 FIREBASE — DONNÉES V86.5 + RÉTROACTIVE</div>
 <div id="firebase-auth-overlay">
   <div class="firebase-login-card">
     <h2>☁️ Connexion Firebase — V88</h2>
@@ -2802,14 +2855,44 @@ window.addEventListener("resize",function(){
 });
 setTimeout(initSidebarState,0);
 
-function updateHomeTeacherExitButton(){
- let b=document.getElementById("home-teacher-exit-btn");
- const show=(page==="home"&&!!getCurrentTeacher());
- if(!show){if(b)b.remove();return;}
- if(!b){b=document.createElement("button");b.id="home-teacher-exit-btn";b.className="home-teacher-exit-btn";b.innerHTML="🚪 Quitter";b.onclick=logoutTeacher;document.body.appendChild(b);}
+
+function updateTeacherNavigationButtons(){
+  document.getElementById("teacher-floating-nav")?.remove();
+
+  const teacher = (typeof getActiveTeacher==="function") ? getActiveTeacher() : null;
+  if(!teacher) return;
+
+  const wrap=document.createElement("div");
+  wrap.id="teacher-floating-nav";
+  wrap.className="teacher-floating-nav";
+
+  const btn=document.createElement("button");
+  btn.type="button";
+  btn.className="teacher-mini-nav-btn";
+
+  if(page==="home"){
+    btn.id="teacher-quit-home-btn";
+    btn.innerHTML="🚪 <span>Quitter</span>";
+    btn.setAttribute("aria-label","Quitter et revenir à la sélection du professeur");
+    btn.onclick=function(){ logoutTeacher(); };
+  }else{
+    btn.id="teacher-home-btn";
+    btn.innerHTML="🏠 <span>Accueil</span>";
+    btn.setAttribute("aria-label","Retour à l’accueil");
+    btn.onclick=function(){ go("home"); };
+  }
+
+  wrap.appendChild(btn);
+
+  const mobileBar=document.querySelector(".mobile-topbar");
+  if(window.innerWidth<=600 && mobileBar){
+    mobileBar.insertBefore(wrap,mobileBar.firstChild);
+  }else{
+    document.body.appendChild(wrap);
+  }
 }
+
 function render(){
- setTimeout(updateHomeTeacherExitButton,0);
  if(!ready){document.getElementById("main").innerHTML='<div class="panel"><h2>Chargement de la base de données…</h2><p class="muted">Initialisation du stockage local.</p></div>';return;}
  if(page==="home")home();
  else if(page==="students")studentsPage();
@@ -2824,6 +2907,7 @@ function render(){
 
   applySchoolSettings();
   renderPermanentSchoolYear();
+  updateTeacherNavigationButtons();
 }
 function home(){
   setActive("home");
@@ -7142,6 +7226,14 @@ function startRealtimeListeners(){
     });
   }
 })();
+</script>
+<script>
+window.addEventListener("resize",function(){
+  clearTimeout(window.__teacherNavResizeTimer);
+  window.__teacherNavResizeTimer=setTimeout(function(){
+    if(typeof updateTeacherNavigationButtons==="function") updateTeacherNavigationButtons();
+  },120);
+});
 </script>
 </body>
 </html>
