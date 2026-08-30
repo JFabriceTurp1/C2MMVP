@@ -1998,7 +1998,7 @@ body{background:#f7f9fc;color:var(--text)}
 <!-- V88 — DONNÉES DE RÉFÉRENCE RÉINTÉGRÉES DEPUIS V86.5
      Jeux embarqués repris : référentiel compétences, élèves par défaut, seconde classe fictive, situations professionnelles.
      Les données dynamiques (classes/élèves/évaluations réellement saisies) restent chargées par IndexedDB/localStorage et Firebase. -->
-<div id="build-version" style="position:fixed;right:10px;bottom:8px;font-size:10px;opacity:.45;z-index:9999">V88.1 FIREBASE — DONNÉES V86.5 + RÉTROACTIVE</div>
+<div id="build-version" style="position:fixed;right:10px;bottom:8px;font-size:10px;opacity:.45;z-index:9999">V88.2 FIREBASE — DONNÉES V86.5 + RÉTROACTIVE</div>
 <div id="firebase-auth-overlay">
   <div class="firebase-login-card">
     <h2>☁️ Connexion Firebase — V88</h2>
@@ -2397,6 +2397,7 @@ function getClasses(){
 function saveClasses(list){
   localStorage.setItem(CLASSES_STORAGE_KEY,JSON.stringify(list));
 }
+const saveClassesLocalOriginal = saveClasses;
 function getActiveClassId(){
   const classes=getClasses();
   const stored=localStorage.getItem(ACTIVE_CLASS_STORAGE_KEY);
@@ -6738,7 +6739,7 @@ window.firebaseSaveCurrentConfig=async()=>{await saveFullConfig(firebaseBuildApp
 
       // Toujours appliquer ce qui existe dans Firebase, même si une des collections est vide.
       if(cloudClasses.length){
-        saveClasses(cloudClasses);
+        saveClassesLocalOriginal(cloudClasses);
         const currentActive=localStorage.getItem(ACTIVE_CLASS_STORAGE_KEY);
         if(!cloudClasses.some(c=>String(c.id)===String(currentActive)&&!c.archived)){
           const first=cloudClasses.find(c=>!c.archived)||cloudClasses[0];
@@ -6833,9 +6834,9 @@ window.firebaseSaveCurrentConfig=async()=>{await saveFullConfig(firebaseBuildApp
 
   // Interception des futures modifications : le stockage local reste un cache,
   // Firebase devient la copie persistante pour les classes, les élèves et les évaluations.
-  const saveClassesOriginal=window.saveClasses;
+  const saveClassesOriginal=saveClassesLocalOriginal;
   window.saveClasses=function(list){
-    saveClasses(list);
+    saveClassesLocalOriginal(list);
     if(cloudReady && auth && auth.currentUser && !realtimeApply){
       Promise.all((list||[]).map(c=>cloudSet('classes',c.id,c))).catch(e=>setStatus('Classe non synchronisée : '+friendlyError(e),'bad'));
     }
