@@ -923,7 +923,18 @@ table > tr:first-child{
 .settings-criterion:last-child{border-bottom:0}
 .settings-danger{border-color:#dc2626!important;color:#b42318!important}
 @media(max-width:800px){.settings-grid{grid-template-columns:1fr}}
-</style><style id="teacher-name-v71-8">
+</style>
+<style id="v883-logout-numeric-style">
+.nav-logout-teacher{
+  margin-top:12px!important;
+  border:1px solid #efc7c7!important;
+  background:#fff5f5!important;
+  color:#a61b1b!important;
+  font-weight:800!important;
+}
+.nav-logout-teacher:hover{background:#ffe8e8!important;border-color:#e79a9a!important}
+</style>
+<style id="teacher-name-v71-8">
 .permanent-teacher-name{font-size:14px;font-weight:700;margin-top:2px;color:#172033}
 </style><style id="owner-name-v71-10">
 .permanent-owner-name{position:fixed;left:16px;bottom:10px;z-index:1000;font-size:13px;font-weight:700;color:#172033;background:rgba(255,255,255,.92);padding:4px 8px;border-radius:6px;pointer-events:none}
@@ -1998,7 +2009,7 @@ body{background:#f7f9fc;color:var(--text)}
 <!-- V88 — DONNÉES DE RÉFÉRENCE RÉINTÉGRÉES DEPUIS V86.5
      Jeux embarqués repris : référentiel compétences, élèves par défaut, seconde classe fictive, situations professionnelles.
      Les données dynamiques (classes/élèves/évaluations réellement saisies) restent chargées par IndexedDB/localStorage et Firebase. -->
-<div id="build-version" style="position:fixed;right:10px;bottom:8px;font-size:10px;opacity:.45;z-index:9999">V88.2 FIREBASE — DONNÉES V86.5 + RÉTROACTIVE</div>
+<div id="build-version" style="position:fixed;right:10px;bottom:8px;font-size:10px;opacity:.45;z-index:9999">V88.3 FIREBASE — DONNÉES V86.5 + RÉTROACTIVE</div>
 <div id="firebase-auth-overlay">
   <div class="firebase-login-card">
     <h2>☁️ Connexion Firebase — V88</h2>
@@ -2052,6 +2063,7 @@ body{background:#f7f9fc;color:var(--text)}
 <button id="nav-report" onclick="reportPage()">📄 <span>Synthèse élève</span></button>
 <button id="nav-comps" onclick="go('comps')">📚 <span>Référentiel</span></button>
 <button id="nav-settings" onclick="openSettings()">⚙️ <span>Paramètres</span></button>
+<button id="nav-logout-teacher" class="nav-logout-teacher" onclick="logoutTeacher()">🚪 <span>Quitter le logiciel</span></button>
 </div>
 </aside>
 <main class="main" id="main"><header class="app-top-header" aria-label="Lycée professionnel François de Mahy — Saint-Pierre, La Réunion"></header><div class="mobile-topbar"><button class="secondary mobile-menu" onclick="toggleMobileMenu()" aria-label="Ouvrir le menu">☰</button><div><b>${esc(getSchoolSettings().className||"")}</b><div class="muted" style="font-size:11px">Suivi des compétences</div></div></div></main>
@@ -2097,9 +2109,9 @@ body{background:#f7f9fc;color:var(--text)}
     <div class="settings-card">
       <h3>🔐 Code administrateur</h3><p>Le code protège l'accès à cette page.</p>
       <div class="form-grid">
-        <label>Code actuel<input id="settings-current-code" type="password" autocomplete="current-password"></label>
-        <label>Nouveau code<input id="settings-new-code" type="password" autocomplete="new-password"></label>
-        <label>Confirmer le nouveau code<input id="settings-confirm-code" type="password" autocomplete="new-password"></label>
+        <label>Code actuel<input id="settings-current-code" type="password" inputmode="numeric" pattern="[0-9]*" autocomplete="current-password"></label>
+        <label>Nouveau code<input id="settings-new-code" type="password" inputmode="numeric" pattern="[0-9]*" autocomplete="new-password"></label>
+        <label>Confirmer le nouveau code<input id="settings-confirm-code" type="password" inputmode="numeric" pattern="[0-9]*" autocomplete="new-password"></label>
       </div>
       <button type="button" class="primary" onclick="changeAdminCode()">Modifier le code</button>
     </div>
@@ -3426,6 +3438,7 @@ function duplicateManagedSituation(i){
   const x=JSON.parse(JSON.stringify(PROFESSIONAL_SITUATIONS_V80[i]));
   x.code=x.code+"-COPIE";x.label=x.label+" (copie)";x.title=x.label;x.active=true;
   PROFESSIONAL_SITUATIONS_V80.push(x);saveManagedProfessionalSituations();renderSettingsSituations();
+  ["settings-current-code","settings-new-code","settings-confirm-code"].forEach(id=>enforceNumericCodeInput(document.getElementById(id)));
 }
 function toggleManagedSituation(i){
   PROFESSIONAL_SITUATIONS_V80[i].active=PROFESSIONAL_SITUATIONS_V80[i].active===false;
@@ -4193,7 +4206,7 @@ function changeAdminCode(){
   const confirmCode=document.getElementById("settings-confirm-code")?.value||"";
   const previous=getAdminCode();
   if(current!==previous){showWarningMessage("Le code administrateur actuel est incorrect.");return;}
-  if(next.length<4){showWarningMessage("Le nouveau code doit contenir au moins 4 caractères.");return;}
+  if(!/^\d{4,}$/.test(next)){showWarningMessage("Le nouveau code doit contenir au moins 4 chiffres.");return;}
   if(next!==confirmCode){showWarningMessage("La confirmation du nouveau code ne correspond pas.");return;}
   if(next===previous){showWarningMessage("Le nouveau code doit être différent de l'ancien.");return;}
   localStorage.setItem(SETTINGS_ADMIN_KEY,next);
@@ -4619,6 +4632,17 @@ function exportStudentDeletionPDF(studentsSnapshot, deletionDate){
 }
 
 
+
+function enforceNumericCodeInput(input){
+  if(!input)return;
+  input.setAttribute("inputmode","numeric");
+  input.setAttribute("pattern","[0-9]*");
+  input.addEventListener("input",function(){
+    const numeric=String(this.value||"").replace(/\D+/g,"");
+    if(this.value!==numeric)this.value=numeric;
+  });
+}
+
 function requestAdminCodeMasked(message="Code administrateur requis :"){
   return new Promise(resolve=>{
     const overlay=document.createElement("div");
@@ -4626,7 +4650,7 @@ function requestAdminCodeMasked(message="Code administrateur requis :"){
     overlay.innerHTML=`<div style="background:#fff;border-radius:14px;padding:24px;max-width:420px;width:100%;box-shadow:0 12px 40px rgba(0,0,0,.2)">
       <h3 style="margin-top:0">🔐 Code administrateur</h3>
       <p>${message}</p>
-      <input id="masked-admin-code" type="password" inputmode="numeric" autocomplete="current-password" style="width:100%;box-sizing:border-box;padding:12px;font-size:18px;border:1px solid #cbd5e1;border-radius:8px" aria-label="Code administrateur">
+      <input id="masked-admin-code" type="password" inputmode="numeric" pattern="[0-9]*" autocomplete="current-password" style="width:100%;box-sizing:border-box;padding:12px;font-size:18px;border:1px solid #cbd5e1;border-radius:8px" aria-label="Code administrateur">
       <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px">
         <button type="button" class="secondary" id="cancel-masked-admin">Annuler</button>
         <button type="button" class="primary" id="ok-masked-admin">Valider</button>
@@ -4634,6 +4658,7 @@ function requestAdminCodeMasked(message="Code administrateur requis :"){
     </div>`;
     document.body.appendChild(overlay);
     const input=overlay.querySelector("#masked-admin-code");
+    enforceNumericCodeInput(input);
     const done=v=>{overlay.remove();resolve(v)};
     overlay.querySelector("#cancel-masked-admin").onclick=()=>done(null);
     overlay.querySelector("#ok-masked-admin").onclick=()=>done(input.value);
@@ -5226,7 +5251,7 @@ function requestTeacherInput(title,initialValue="",options={}){
     overlay.innerHTML=`<div class="teacher-input-box" role="dialog" aria-modal="true">
       <h3>${esc(title)}</h3>
       ${options.help?`<p>${esc(options.help)}</p>`:""}
-      <input id="teacher-input-field" type="${secret?"password":"text"}" value="${esc(initialValue)}" placeholder="${esc(placeholder)}" autocomplete="off">
+      <input id="teacher-input-field" type="${secret?"password":"text"}" ${secret?'inputmode="numeric" pattern="[0-9]*"':""} value="${esc(initialValue)}" placeholder="${esc(placeholder)}" autocomplete="off">
       <div class="teacher-input-actions">
         <button type="button" class="secondary" id="teacher-input-cancel">Annuler</button>
         <button type="button" class="primary" id="teacher-input-ok">Valider</button>
@@ -5234,6 +5259,7 @@ function requestTeacherInput(title,initialValue="",options={}){
     </div>`;
     document.body.appendChild(overlay);
     const field=overlay.querySelector("#teacher-input-field");
+    if(secret)enforceNumericCodeInput(field);
     const close=value=>{overlay.remove();resolve(value);};
     overlay.querySelector("#teacher-input-cancel")?.addEventListener("click",()=>close(null));
     overlay.querySelector("#teacher-input-ok")?.addEventListener("click",()=>close(field?.value??""));
@@ -5277,9 +5303,9 @@ async function addTeacher(){
   if(!isAdminTeacher()){showWarningMessage("Accès réservé à l’administrateur.");return;}
   const firstName=await requestTeacherInput("Prénom du professeur","",{placeholder:"Ex. Marie"});if(firstName===null)return;
   const lastName=await requestTeacherInput("Nom du professeur","",{placeholder:"Ex. Dupont"});if(lastName===null)return;
-  const code=await requestTeacherInput("Code personnel","",{secret:true,placeholder:"4 caractères minimum",help:"Ce code permettra au professeur d’ouvrir sa session."});if(code===null)return;
-  if(!firstName.trim()||!lastName.trim()||code.trim().length<4){
-    showWarningMessage("Nom, prénom et code d’au moins 4 caractères sont obligatoires.");return;
+  const code=await requestTeacherInput("Code personnel","",{secret:true,placeholder:"4 chiffres minimum",help:"Ce code permettra au professeur d’ouvrir sa session."});if(code===null)return;
+  if(!firstName.trim()||!lastName.trim()||!/^\d{4,}$/.test(code.trim())){
+    showWarningMessage("Nom, prénom et code numérique d’au moins 4 chiffres sont obligatoires.");return;
   }
   const list=getTeachers();
   list.push(normalizeTeacher({firstName,lastName,code,assignedClasses:[],active:true,isAdmin:false}));
@@ -5293,7 +5319,7 @@ async function editTeacher(id){
   const lastName=t.isAdmin?"Turpin":await requestTeacherInput("Nom du professeur",t.lastName);if(lastName===null)return;
   const code=await requestTeacherInput("Modifier le code personnel","",{secret:true,placeholder:"Laisser vide pour conserver le code actuel",help:"Vous pouvez laisser ce champ vide ou utiliser le bouton « Réinitialiser le code »."});if(code===null)return;
   const cleanCode=String(code).trim();
-  if(cleanCode && cleanCode.length<4){showWarningMessage("Le code doit comporter au moins 4 caractères.");return;}
+  if(cleanCode && !/^\d{4,}$/.test(cleanCode)){showWarningMessage("Le code doit comporter au moins 4 chiffres.");return;}
   list[i]=normalizeTeacher({...t,firstName,lastName,code:(cleanCode||t.code),isAdmin:t.isAdmin});
   saveTeachers(list);renderSettingsTeachers();updateActiveTeacherUI();showSuccessMessage("Fiche professeur modifiée.");
 }
@@ -5307,11 +5333,11 @@ async function resetTeacherCode(id){
   const newCode=await requestTeacherInput(
     "Réinitialiser le code de "+teacherFullName(t),
     "",
-    {secret:true,placeholder:"Nouveau code",help:"Le nouveau code doit comporter au moins 4 caractères."}
+    {secret:true,placeholder:"Nouveau code",help:"Le nouveau code doit comporter au moins 4 chiffres."}
   );
   if(newCode===null)return;
   const clean=String(newCode).trim();
-  if(clean.length<4){showWarningMessage("Le code doit comporter au moins 4 caractères.");return;}
+  if(!/^\d{4,}$/.test(clean)){showWarningMessage("Le code doit comporter au moins 4 chiffres.");return;}
   list[i]=normalizeTeacher({...t,code:clean});
   saveTeachers(list);
   renderSettingsTeachers();
@@ -6468,7 +6494,7 @@ function openAssistanceMail(){
       <select id="teacher-login-select"></select>
     </label>
     <label>Code personnel
-      <input id="teacher-login-code" type="password" autocomplete="off" placeholder="••••">
+      <input id="teacher-login-code" type="password" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="••••" aria-label="Code personnel numérique">
     </label>
     <div id="teacher-login-error" class="teacher-login-error"></div>
     <div class="teacher-login-actions">
@@ -6486,7 +6512,7 @@ function openAssistanceMail(){
     const code=document.getElementById("teacher-login-code");
     const chip=document.getElementById("active-teacher-chip");
     if(btn)btn.addEventListener("click",function(e){e.preventDefault();validateTeacherLogin();});
-    if(code)code.addEventListener("keydown",function(e){if(e.key==="Enter"){e.preventDefault();validateTeacherLogin();}});
+    if(code){enforceNumericCodeInput(code);code.addEventListener("keydown",function(e){if(e.key==="Enter"){e.preventDefault();validateTeacherLogin();}});}
     if(chip)chip.addEventListener("click",function(){logoutTeacher();});
     migrateTeachersV84();
     updateActiveTeacherUI();

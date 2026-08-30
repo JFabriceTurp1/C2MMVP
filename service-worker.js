@@ -1,4 +1,4 @@
-const CACHE_NAME = "competences-mv-v88-2-pwa-syncstable-5";
+const CACHE_NAME = "competences-mv-v88-3-pwa-ui-numeric-6";
 const APP_SHELL = ["./","./index.html","./manifest.webmanifest","./icons/icon-192.png","./icons/icon-512.png"];
 
 self.addEventListener("install", event => {
