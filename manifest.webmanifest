@@ -1,0 +1,12 @@
+{
+  "name": "Évaluation des compétences MV",
+  "short_name": "Compétences MV",
+  "description": "Application d'évaluation des compétences en maintenance des véhicules",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0f3f73",
+  "lang": "fr",
+  "icons": []
+}
