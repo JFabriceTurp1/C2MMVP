@@ -1,4 +1,4 @@
-const CACHE_NAME = 'competences-mv-v87-7';
+const CACHE_NAME = 'competences-mv-v87-8';
 const APP_SHELL = [
   './',
   './index.html',
