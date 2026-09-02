@@ -90,3 +90,14 @@ RESTAURATION :
 - Restauration exacte des IDs et données locales.
 - Si Firebase est connecté : remplacement exact des collections classes / students / evaluations / comptes
   et mise à jour des situations professionnelles + configuration.
+
+
+V89.3.1 — PURGE ÉLÈVES / ÉVALUATIONS FIABLE
+- Audit du défaut BTS1 : après suppression totale, loadData recréait automatiquement DEFAULT_STUDENTS dans la classe active.
+- Le générateur historique d'élèves fictifs 2 MAC 1 pouvait également repeupler une classe vide.
+- Ajout d'un marqueur « liste volontairement vide » qui bloque toute recréation automatique après une purge.
+- Suppression locale par clear() complet des stores students + evaluations.
+- Si Firebase est connecté : suppression exhaustive de TOUS les documents students + evaluations, même absents du cache local.
+- Vérification après suppression et après rechargement : la commande échoue si un seul élève ou une seule évaluation subsiste.
+- La restauration V89.3 enlève automatiquement le marqueur si la sauvegarde contient des élèves.
+- Nouvelle feuille Controle_sauvegarde dans l'Excel intégral.

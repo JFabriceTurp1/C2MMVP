@@ -2316,7 +2316,7 @@ body{background:#f7f9fc;color:var(--text)}
         </label>
       </div>
 
-      <p class="muted advanced-archive-note"><b>V89.3 :</b> le fichier Excel contient désormais une feuille technique <b>_RESTAURATION</b> avec une copie intégrale et contrôlée des données, y compris les champs bruts qui ne sont pas visibles dans les tableaux. Un fichier JSON technique est aussi téléchargé. Le PDF reste une archive lisible. Les pièces jointes stockées dans les évaluations sont conservées dans la sauvegarde technique et peuvent être restaurées.</p>
+      <p class="muted advanced-archive-note"><b>V89.3.1 :</b> le fichier Excel contient désormais une feuille technique <b>_RESTAURATION</b> avec une copie intégrale et contrôlée des données, y compris les champs bruts qui ne sont pas visibles dans les tableaux. Un fichier JSON technique est aussi téléchargé. Le PDF reste une archive lisible. Les pièces jointes stockées dans les évaluations sont conservées dans la sauvegarde technique et peuvent être restaurées.</p>
       <button type="button" class="secondary" onclick="lockAdvancedArchivePanel()">🔒 Reverrouiller</button>
     </div>
   </div>
@@ -2589,6 +2589,7 @@ let pendingReferentielImport=null;
 
 const CLASSES_STORAGE_KEY="evaluation_classes_v77";
 const ACTIVE_CLASS_STORAGE_KEY="evaluation_active_class_v77";
+const STUDENT_PURGE_MARKER_KEY="evaluation_students_intentionally_empty_v89_3_1";
 
 function safeLocalSetItem(key,value){
   try{
@@ -2853,6 +2854,7 @@ const V77_SECOND_CLASS_FICTITIOUS_STUDENTS=[
 
 async function ensureSecondClassFictitiousStudents(){
   await openDB();
+  if(localStorage.getItem(STUDENT_PURGE_MARKER_KEY)==="1")return;
   const classes=getClasses();
   const target=classes.find(c=>!c.archived && String(c.name||"").trim().replace(/\s+/g," ").toLowerCase()==="2 mac 1");
   if(!target)return;
@@ -2889,7 +2891,7 @@ async function loadData(){
   const activeId=getActiveClassId();
   let stored=await getAll("students");
 
-  if(!stored.length){
+  if(!stored.length && localStorage.getItem(STUDENT_PURGE_MARKER_KEY)!=="1"){
     for(const base of DEFAULT_STUDENTS){
       const s={...base,classId:activeId};
       await put("students",s);
@@ -5075,7 +5077,7 @@ async function importXLSXStudents(file){
 
 
 /* ============================================================
-   V89.3 — SAUVEGARDE INTÉGRALE RESTAURABLE
+   V89.3.1 — SAUVEGARDE ET PURGE CONTRÔLÉES
    Code demandé par l'administrateur : comparaison SHA-256.
    ============================================================ */
 let advancedArchiveUnlocked=false;
@@ -5416,6 +5418,20 @@ async function exportFullArchiveExcel(snapshot,options={}){
     ["ID évaluation","Élève","Classe","Date","Intitulé","SP","Note /20","Professeur résolu","ID professeur","Résolution professeur","Archivée","Anomalies détectées"],
     archiveAuditRows(snapshot));
 
+  archiveAppendSheet(wb,"Controle_sauvegarde",["Domaine","Nombre / état"],[
+    ["Classes",snapshot.classes.length],
+    ["Élèves",snapshot.rawStudents?.length??snapshot.students.length],
+    ["Professeurs",snapshot.teachers.length],
+    ["Évaluations",snapshot.evaluations.length],
+    ["Évaluations archivées",snapshot.evaluations.filter(e=>e.archived).length],
+    ["Situations professionnelles",snapshot.situations.length],
+    ["Compétences",snapshot.competencies.length],
+    ["Configuration IndexedDB",snapshot.appConfig.length],
+    ["Clés locales sauvegardées",Object.keys(snapshot.localStorageSnapshot||{}).length],
+    ["Snapshot restauration","Présent"],
+    ["Contrôle SHA-256","Présent"]
+  ]);
+
   await archiveAppendRestorePayload(wb,snapshot);
   XLSX.writeFile(wb,`Archive_complete_logiciel_${archiveTimestamp()}.xlsx`,{compression:true});
   archiveDownloadJsonSnapshot(snapshot,"Archive_complete_logiciel");
@@ -5545,6 +5561,48 @@ async function archiveAllApplicationData(){
   }
 }
 
+
+async function purgeAllStudentsAndEvaluationsExact(){
+  await openDB();
+
+  // Marker FIRST: loadData must never recreate demo/default pupils after the purge.
+  safeLocalSetItem(STUDENT_PURGE_MARKER_KEY,"1");
+
+  // Local database: clear the stores atomically at store level, not pupil by pupil.
+  await clearStore("evaluations");
+  await clearStore("students");
+
+  // In-memory data is also emptied immediately.
+  allStudents=[];
+  students=[];
+  selectedStudent=null;
+  viewedEvaluation=null;
+  draft=null;
+
+  // Firebase: if connected, delete every remote student/evaluation document,
+  // including documents not present in the local cache.
+  if(typeof window.firebasePurgeAllStudentsAndEvaluations==="function"){
+    await window.firebasePurgeAllStudentsAndEvaluations();
+  }
+
+  // Verify both local stores are truly empty before returning.
+  const localStudents=await getAll("students");
+  const localEvaluations=await getAll("evaluations");
+  if(localStudents.length||localEvaluations.length){
+    throw new Error(`Contrôle final local échoué : ${localStudents.length} élève(s), ${localEvaluations.length} évaluation(s) subsistent.`);
+  }
+
+  await loadData();
+
+  // loadData must respect the intentional-empty marker.
+  const afterStudents=await getAll("students");
+  const afterEvaluations=await getAll("evaluations");
+  if(afterStudents.length||afterEvaluations.length){
+    throw new Error(`Contrôle après rechargement échoué : ${afterStudents.length} élève(s), ${afterEvaluations.length} évaluation(s) ont été recréés.`);
+  }
+  return {students:0,evaluations:0};
+}
+
 async function backupAndDeleteAllStudentLists(){
   if(!requireAdvancedArchiveUnlocked())return;
   try{
@@ -5568,18 +5626,9 @@ async function backupAndDeleteAllStudentLists(){
     );
     if(!second)return;
 
-    await openDB();
-    const oldApply=typeof realtimeApply!=="undefined"?realtimeApply:false;
-    // Suppression via les wrappers existants pour conserver la synchro Firebase document par document.
-    for(const ev of snapshot.evaluations)await deleteFromStore("evaluations",ev.id);
-    for(const st of snapshot.students)await deleteFromStore("students",st.id);
-
-    selectedStudent=null;
-    viewedEvaluation=null;
-    draft=null;
-    await loadData();
+    const purgeResult=await purgeAllStudentsAndEvaluationsExact();
     renderAdvancedArchiveLockState();
-    showSuccessMessage("Toutes les listes d’élèves et leurs évaluations ont été supprimées après sauvegarde.");
+    showSuccessMessage("Sauvegarde terminée et purge contrôlée : 0 élève et 0 évaluation restent dans le logiciel.");
   }catch(err){
     showWarningMessage("La sauvegarde / suppression a échoué : "+(err?.message||String(err)));
   }
@@ -5671,6 +5720,8 @@ async function restoreApplicationSnapshot(snapshot){
   const rawStudents=Array.isArray(snapshot.rawStudents)?snapshot.rawStudents:snapshot.students.map(st=>{
     const x={...st};delete x.evaluations;return x;
   });
+  if(rawStudents.length) localStorage.removeItem(STUDENT_PURGE_MARKER_KEY);
+  else safeLocalSetItem(STUDENT_PURGE_MARKER_KEY,"1");
 
   // 1. Restaurer d'abord les paramètres et référentiels.
   if(Array.isArray(snapshot.classes))saveClasses(snapshot.classes.map(x=>({...x})));
@@ -8140,6 +8191,22 @@ function openAssistanceMail(){
       await col.doc(String(item.id)).set(clean,{merge:false});
     }
   }
+
+  window.firebasePurgeAllStudentsAndEvaluations=async function(){
+    if(!auth?.currentUser)return {connected:false};
+    setStatus("Purge Firebase des élèves et évaluations…","warn");
+    const purgeCollection=async(name)=>{
+      const snap=await userRoot().collection(name).get();
+      for(const d of snap.docs) await d.ref.delete();
+      const verify=await userRoot().collection(name).get();
+      if(!verify.empty)throw new Error(`Firebase : ${verify.size} document(s) subsistent dans ${name}.`);
+    };
+    await purgeCollection("evaluations");
+    await purgeCollection("students");
+    setStatus("✓ Firebase : 0 élève, 0 évaluation","ok");
+    return {connected:true,students:0,evaluations:0};
+  };
+
   window.firebaseRestoreArchiveSnapshot=async function(snapshot){
     if(!auth?.currentUser)return {connected:false};
     setStatus("Restauration Firebase…","warn");
@@ -8414,6 +8481,7 @@ window.firebaseSaveCurrentConfig=async()=>{await saveFullConfig(firebaseBuildApp
   };
   const originalPut=window.put;
   window.put=function(store,obj){
+    if(store==='students' && obj) try{localStorage.removeItem(STUDENT_PURGE_MARKER_KEY);}catch(e){}
     const p=originalPut(store,obj);
     if(store==='students' && !realtimeApply){
       p.then(id=>cloudSet('students',obj.id||id,obj)).catch(e=>setStatus('Élève non synchronisé : '+friendlyError(e),'bad'));
