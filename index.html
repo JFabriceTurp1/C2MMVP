@@ -5060,7 +5060,7 @@ async function importXLSXStudents(file){
 
 
 /* ============================================================
-   V89.2.1 — EXPORTS XLSX / PDF DIRECTS
+   V89.2.2 — NOTES ARCHIVÉES COMPLÈTES
    Code demandé par l'administrateur : comparaison SHA-256.
    ============================================================ */
 let advancedArchiveUnlocked=false;
@@ -5166,6 +5166,23 @@ function archiveSheet(name,headers,rows){
   const body=rows.map(r=>`<Row>${r.map(v=>archiveCell(v)).join("")}</Row>`).join("");
   return `<Worksheet ss:Name="${archiveXmlEscape(String(name).slice(0,31))}"><Table>${head}${body}</Table></Worksheet>`;
 }
+
+function archiveEvaluationScore20(ev){
+  // Les imports rétroactifs conservent leur note Excel exacte.
+  if(ev && ev.sourceNote20!==undefined && ev.sourceNote20!==null && ev.sourceNote20!==""){
+    const n=Number(ev.sourceNote20);
+    if(Number.isFinite(n))return Math.max(0,Math.min(20,n));
+  }
+  // Toutes les autres évaluations doivent passer par le moteur de calcul
+  // normal du logiciel ; sinon les anciennes évaluations ressortent vides.
+  try{
+    const n=evaluationScore20(ev);
+    return Number.isFinite(Number(n))?Number(n):"";
+  }catch(e){
+    return "";
+  }
+}
+
 function archiveAttachmentMeta(a){
   if(!a)return {name:"",type:"",size:""};
   return {name:a.name||"",type:a.type||"",size:a.size??""};
@@ -5229,14 +5246,15 @@ function exportFullArchiveExcel(snapshot,options={}){
     ]));
 
   archiveAppendSheet(wb,"Evaluations",
-    ["ID évaluation","Élève","ID élève","Classe","Date évaluation","Intitulé","Type","Lieu","Situation pro","Professeur","ID professeur","Collective / batch","Rétroactive","Note /20","Observation générale","Archivée","Date archivage","Date création","Fichier source rétroactif","Pièce jointe"],
+    ["ID évaluation","Élève","ID élève","Classe","Date évaluation","Intitulé","Type","Lieu","Situation pro","Professeur","ID professeur","Collective / batch","Rétroactive","Note /20","Source note","Observation générale","Archivée","Date archivage","Date création","Fichier source rétroactif","Pièce jointe"],
     snapshot.evaluations.map(ev=>{
       const st=snapshot.students.find(x=>String(x.id)===String(ev.studentId));
       const att=archiveAttachmentMeta(ev.attachment);
       return [ev.id,st?.name||"",ev.studentId||"",archiveClassName(st?.classId,snapshot),
         ev.date||ev.evaluationDate||"",ev.title||"",ev.type||"",ev.place||"",ev.profSituation||"",
         ev.teacherName||archiveTeacherName(ev.teacherId,snapshot),ev.teacherId||"",ev.batchId||"",
-        ev.retroactive?"Oui":"Non",ev.sourceNote20??ev.retroCalculatedNote??ev.retroEstimatedNote??"",
+        ev.retroactive?"Oui":"Non",archiveEvaluationScore20(ev),
+        (ev.sourceNote20!==undefined&&ev.sourceNote20!==null&&ev.sourceNote20!=="")?"Import Excel rétroactif":"Calcul critères",
         ev.evaluationObservation||"",ev.archived?"Oui":"Non",
         ev.archivedAt?new Date(ev.archivedAt).toLocaleString("fr-FR"):"",
         ev.createdAt?new Date(ev.createdAt).toLocaleString("fr-FR"):"",
@@ -5297,10 +5315,10 @@ function exportStudentsOnlyExcel(snapshot){
   archiveAppendSheet(wb,"Eleves",["ID élève","Nom et prénom","ID classe","Classe","Nombre évaluations"],
     snapshot.students.map(st=>[st.id,st.name,st.classId,archiveClassName(st.classId,snapshot),(st.evaluations||[]).length]));
   archiveAppendSheet(wb,"Evaluations",
-    ["ID évaluation","Élève","Classe","Date","Intitulé","Type","Situation pro","Professeur","Rétroactive","Note /20","Observation","Archivée"],
+    ["ID évaluation","Élève","Classe","Date","Intitulé","Type","Situation pro","Professeur","Rétroactive","Note /20","Source note","Observation","Archivée"],
     snapshot.evaluations.map(ev=>{
       const st=snapshot.students.find(x=>String(x.id)===String(ev.studentId));
-      return [ev.id,st?.name||"",archiveClassName(st?.classId,snapshot),ev.date||"",ev.title||"",ev.type||"",ev.profSituation||"",ev.teacherName||"",ev.retroactive?"Oui":"Non",ev.sourceNote20??ev.retroCalculatedNote??ev.retroEstimatedNote??"",ev.evaluationObservation||"",ev.archived?"Oui":"Non"];
+      return [ev.id,st?.name||"",archiveClassName(st?.classId,snapshot),ev.date||"",ev.title||"",ev.type||"",ev.profSituation||"",ev.teacherName||"",ev.retroactive?"Oui":"Non",archiveEvaluationScore20(ev),(ev.sourceNote20!==undefined&&ev.sourceNote20!==null&&ev.sourceNote20!=="")?"Import Excel rétroactif":"Calcul critères",ev.evaluationObservation||"",ev.archived?"Oui":"Non"];
     }));
   const criterionRows=[];
   snapshot.evaluations.forEach(ev=>{
@@ -5353,7 +5371,7 @@ function openArchivePdfReport(snapshot,{studentsOnly=false}={}){
     sts.forEach(st=>{
       if(!(st.evaluations||[]).length)rows.push([st.name,"","","","","",""]);
       else (st.evaluations||[]).forEach(ev=>{
-        const note=ev.sourceNote20??ev.retroCalculatedNote??ev.retroEstimatedNote??"";
+        const note=archiveEvaluationScore20(ev);
         rows.push([st.name,ev.date||"",ev.title||"",ev.profSituation||"",ev.teacherName||archiveTeacherName(ev.teacherId,snapshot),
           note!==""?String(note)+" / 20":"",ev.archived?"Archivée":"Active"]);
       });

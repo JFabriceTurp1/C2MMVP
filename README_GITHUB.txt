@@ -57,3 +57,11 @@ V89.2.1 — EXPORTS CORRIGÉS
 - PDF généré et téléchargé directement en .pdf.
 - Plus de fenêtre d'impression pour l'archive PDF.
 - Les deux fichiers arrivent dans le dossier de téléchargements configuré par le navigateur.
+
+
+V89.2.2 — CORRECTIF NOTES DES SAUVEGARDES
+- Les exports ne se limitent plus aux champs de notes rétroactives.
+- Toutes les évaluations normales utilisent désormais le moteur evaluationScore20 du logiciel.
+- Les notes importées depuis Excel conservent leur valeur exacte.
+- Excel et PDF utilisent la même fonction de note pour éviter les écarts.
+- Une colonne « Source note » permet de distinguer « Import Excel rétroactif » et « Calcul critères ».
