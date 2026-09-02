@@ -50,3 +50,10 @@ V89.2 — SAUVEGARDE ET ARCHIVAGE GÉNÉRAL
   évaluations actives/archivées, critères, situations professionnelles,
   référentiel, paramètres et métadonnées des pièces jointes.
 - Les fichiers joints eux-mêmes ne sont pas intégrés dans l'archive Excel/PDF.
+
+
+V89.2.1 — EXPORTS CORRIGÉS
+- Excel généré en vrai format .xlsx (plus d'avertissement de format/extension dans Microsoft Excel).
+- PDF généré et téléchargé directement en .pdf.
+- Plus de fenêtre d'impression pour l'archive PDF.
+- Les deux fichiers arrivent dans le dossier de téléchargements configuré par le navigateur.

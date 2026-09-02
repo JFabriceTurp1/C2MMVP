@@ -2301,7 +2301,7 @@ body{background:#f7f9fc;color:var(--text)}
         </div>
       </div>
 
-      <p class="muted advanced-archive-note">Le fichier Excel est compatible avec Microsoft Excel. Le PDF est ouvert dans une fenêtre d’impression afin de pouvoir l’enregistrer en PDF. Les pièces jointes sont répertoriées par leurs métadonnées (nom, type et taille) et ne sont pas intégrées au fichier Excel/PDF.</p>
+      <p class="muted advanced-archive-note">Le fichier Excel est généré au format .xlsx natif. Le PDF est téléchargé directement, sans fenêtre d’impression. Les pièces jointes sont répertoriées par leurs métadonnées (nom, type et taille) et ne sont pas intégrées au fichier Excel/PDF.</p>
       <button type="button" class="secondary" onclick="lockAdvancedArchivePanel()">🔒 Reverrouiller</button>
     </div>
   </div>
@@ -2332,6 +2332,9 @@ body{background:#f7f9fc;color:var(--text)}
 <script src="https://www.gstatic.com/firebasejs/12.2.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.2.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js"></script>
 
 <script>
 /* V89.2 — libération immédiate du quota localStorage.
@@ -5057,7 +5060,7 @@ async function importXLSXStudents(file){
 
 
 /* ============================================================
-   V89.2 — SAUVEGARDE / ARCHIVAGE GÉNÉRAL
+   V89.2.1 — EXPORTS XLSX / PDF DIRECTS
    Code demandé par l'administrateur : comparaison SHA-256.
    ============================================================ */
 let advancedArchiveUnlocked=false;
@@ -5168,10 +5171,37 @@ function archiveAttachmentMeta(a){
   return {name:a.name||"",type:a.type||"",size:a.size??""};
 }
 
-function exportFullArchiveExcel(snapshot,options={}){
-  const sheets=[];
 
-  const summary=[
+function archiveRequireXlsx(){
+  if(typeof XLSX==="undefined")throw new Error("Le module Excel n'est pas encore chargé. Vérifie la connexion Internet puis réessaie.");
+}
+function archiveSheetFromRows(headers,rows){
+  return XLSX.utils.aoa_to_sheet([headers,...rows]);
+}
+function archiveAutoWidth(ws,maxWidth=45){
+  const range=XLSX.utils.decode_range(ws["!ref"]||"A1:A1");
+  const widths=[];
+  for(let c=range.s.c;c<=range.e.c;c++){
+    let w=10;
+    for(let r=range.s.r;r<=Math.min(range.e.r,300);r++){
+      const cell=ws[XLSX.utils.encode_cell({r,c})];
+      if(cell?.v!==undefined)w=Math.max(w,Math.min(maxWidth,String(cell.v).length+2));
+    }
+    widths.push({wch:w});
+  }
+  ws["!cols"]=widths;
+  ws["!freeze"]={xSplit:0,ySplit:1};
+}
+function archiveAppendSheet(wb,name,headers,rows){
+  const ws=archiveSheetFromRows(headers,rows);
+  archiveAutoWidth(ws);
+  XLSX.utils.book_append_sheet(wb,ws,String(name).slice(0,31));
+}
+function exportFullArchiveExcel(snapshot,options={}){
+  archiveRequireXlsx();
+  const wb=XLSX.utils.book_new();
+
+  archiveAppendSheet(wb,"Synthese",["Information","Valeur"],[
     ["Date de génération",snapshot.generatedAt],
     ["Nombre de classes",snapshot.classes.length],
     ["Nombre d'élèves",snapshot.students.length],
@@ -5181,48 +5211,37 @@ function exportFullArchiveExcel(snapshot,options={}){
     ["Nombre de situations professionnelles",snapshot.situations.length],
     ["Nombre de compétences",snapshot.competencies.length],
     ["Classe active",archiveClassName(snapshot.activeClassId,snapshot)]
-  ];
-  sheets.push(archiveSheet("Synthese",["Information","Valeur"],summary));
+  ]);
 
-  sheets.push(archiveSheet("Classes",
-    ["ID classe","Nom","Archivée","Date création"],
-    snapshot.classes.map(c=>[c.id,c.name,c.archived?"Oui":"Non",c.createdAt?new Date(c.createdAt).toLocaleString("fr-FR"):""])
-  ));
+  archiveAppendSheet(wb,"Classes",["ID classe","Nom","Archivée","Date création"],
+    snapshot.classes.map(c=>[c.id,c.name,c.archived?"Oui":"Non",c.createdAt?new Date(c.createdAt).toLocaleString("fr-FR"):""]));
 
-  sheets.push(archiveSheet("Eleves",
-    ["ID élève","Nom et prénom","ID classe","Classe","Nombre évaluations"],
-    snapshot.students.map(st=>[st.id,st.name,st.classId,archiveClassName(st.classId,snapshot),(st.evaluations||[]).length])
-  ));
+  archiveAppendSheet(wb,"Eleves",["ID élève","Nom et prénom","ID classe","Classe","Nombre évaluations"],
+    snapshot.students.map(st=>[st.id,st.name,st.classId,archiveClassName(st.classId,snapshot),(st.evaluations||[]).length]));
 
-  sheets.push(archiveSheet("Professeurs",
+  archiveAppendSheet(wb,"Professeurs",
     ["ID professeur","Prénom","Nom","Nom complet","Rôle","Administrateur","Actif","Classes attribuées","Code de connexion"],
     snapshot.teachers.map(t=>[
       t.id,t.firstName||"",t.lastName||"",archiveTeacherName(t.id,snapshot),
       t.role||((t.isAdmin===true)?"administrateur":"professeur"),
       t.isAdmin===true?"Oui":"Non",t.active===false?"Non":"Oui",
-      (t.assignedClasses||[]).map(id=>archiveClassName(id,snapshot)||id).join(" | "),
-      t.code||""
-    ])
-  ));
+      (t.assignedClasses||[]).map(id=>archiveClassName(id,snapshot)||id).join(" | "),t.code||""
+    ]));
 
-  sheets.push(archiveSheet("Evaluations",
+  archiveAppendSheet(wb,"Evaluations",
     ["ID évaluation","Élève","ID élève","Classe","Date évaluation","Intitulé","Type","Lieu","Situation pro","Professeur","ID professeur","Collective / batch","Rétroactive","Note /20","Observation générale","Archivée","Date archivage","Date création","Fichier source rétroactif","Pièce jointe"],
     snapshot.evaluations.map(ev=>{
       const st=snapshot.students.find(x=>String(x.id)===String(ev.studentId));
       const att=archiveAttachmentMeta(ev.attachment);
-      return [
-        ev.id,st?.name||"",ev.studentId||"",archiveClassName(st?.classId,snapshot),
-        ev.date||ev.evaluationDate||"",ev.title||"",ev.type||"",ev.place||"",
-        ev.profSituation||"",ev.teacherName||archiveTeacherName(ev.teacherId,snapshot),ev.teacherId||"",
-        ev.batchId||"",ev.retroactive?"Oui":"Non",
-        ev.sourceNote20??ev.retroCalculatedNote??ev.retroEstimatedNote??"",
+      return [ev.id,st?.name||"",ev.studentId||"",archiveClassName(st?.classId,snapshot),
+        ev.date||ev.evaluationDate||"",ev.title||"",ev.type||"",ev.place||"",ev.profSituation||"",
+        ev.teacherName||archiveTeacherName(ev.teacherId,snapshot),ev.teacherId||"",ev.batchId||"",
+        ev.retroactive?"Oui":"Non",ev.sourceNote20??ev.retroCalculatedNote??ev.retroEstimatedNote??"",
         ev.evaluationObservation||"",ev.archived?"Oui":"Non",
         ev.archivedAt?new Date(ev.archivedAt).toLocaleString("fr-FR"):"",
         ev.createdAt?new Date(ev.createdAt).toLocaleString("fr-FR"):"",
-        ev.retroImportFile||"",att.name
-      ];
-    })
-  ));
+        ev.retroImportFile||"",att.name];
+    }));
 
   const criterionRows=[];
   snapshot.evaluations.forEach(ev=>{
@@ -5231,60 +5250,36 @@ function exportFullArchiveExcel(snapshot,options={}){
       const comp=snapshot.competencies.find(c=>String(c.id)===String(cid));
       (comp?.criteria||[]).forEach((cr,i)=>{
         const key=cid+"-"+i;
-        criterionRows.push([
-          ev.id,st?.name||"",archiveClassName(st?.classId,snapshot),ev.date||"",
-          cid,comp?.name||comp?.title||"",
-          cr?.group||"",cr?.label||"",cr?.text||String(cr||""),
-          ev.disabledCriteria?.[key]?"Oui":"Non",
-          ev.disabledCriteria?.[key]?"Désactivé":(ev.levels?.[key]||""),
-          ev.obs?.[key]||""
-        ]);
+        criterionRows.push([ev.id,st?.name||"",archiveClassName(st?.classId,snapshot),ev.date||"",cid,
+          comp?.name||comp?.title||"",cr?.group||"",cr?.label||"",cr?.text||String(cr||""),
+          ev.disabledCriteria?.[key]?"Oui":"Non",ev.disabledCriteria?.[key]?"Désactivé":(ev.levels?.[key]||""),ev.obs?.[key]||""]);
       });
     });
   });
-  sheets.push(archiveSheet("Criteres_evalues",
-    ["ID évaluation","Élève","Classe","Date","Code compétence","Compétence","Groupe","Résultat attendu","Critère","Désactivé","Niveau","Observation critère"],
-    criterionRows
-  ));
+  archiveAppendSheet(wb,"Criteres_evalues",
+    ["ID évaluation","Élève","Classe","Date","Code compétence","Compétence","Groupe","Résultat attendu","Critère","Désactivé","Niveau","Observation critère"],criterionRows);
 
-  sheets.push(archiveSheet("Situations_pro",
+  archiveAppendSheet(wb,"Situations_pro",
     ["Code","Intitulé","Titre","Active","Compétences automatiques","Options","Champ libre","Note"],
-    snapshot.situations.map(sp=>[
-      sp.code,sp.label||"",sp.title||"",sp.active===false?"Non":"Oui",
-      (sp.comps||[]).join(" | "),
-      (sp.options||[]).map(o=>`${o.label||o.id}: ${(o.add||[]).join(", ")}`).join(" || "),
-      sp.freeField||"",sp.note||""
-    ])
-  ));
+    snapshot.situations.map(sp=>[sp.code,sp.label||"",sp.title||"",sp.active===false?"Non":"Oui",(sp.comps||[]).join(" | "),
+      (sp.options||[]).map(o=>`${o.label||o.id}: ${(o.add||[]).join(", ")}`).join(" || "),sp.freeField||"",sp.note||""]));
 
   const compRows=[];
   snapshot.competencies.forEach(c=>{
-    if(!(c.criteria||[]).length){
-      compRows.push([c.id,c.code||"",c.name||c.title||"",c.block||"",c.unit||"","","",""]);
-    }else{
-      (c.criteria||[]).forEach((cr,i)=>compRows.push([
-        c.id,c.code||"",c.name||c.title||"",c.block||"",c.unit||"",
-        i+1,cr?.group||"",cr?.label||"",cr?.text||String(cr||"")
-      ]));
-    }
+    if(!(c.criteria||[]).length)compRows.push([c.id,c.code||"",c.name||c.title||"",c.block||"",c.unit||"","","",""]);
+    else (c.criteria||[]).forEach((cr,i)=>compRows.push([c.id,c.code||"",c.name||c.title||"",c.block||"",c.unit||"",i+1,cr?.group||"",cr?.label||"",cr?.text||String(cr||"")]));
   });
-  sheets.push(archiveSheet("Referentiel",
-    ["ID","Code","Compétence","Bloc","Unité","N° critère","Groupe","Résultat attendu","Critère"],
-    compRows
-  ));
+  archiveAppendSheet(wb,"Referentiel",["ID","Code","Compétence","Bloc","Unité","N° critère","Groupe","Résultat attendu","Critère"],compRows);
 
-  sheets.push(archiveSheet("Parametres",
-    ["Clé","Valeur"],
-    [
-      ["Nom établissement",snapshot.schoolSettings.schoolName||snapshot.schoolSettings.establishment||""],
-      ["Nom classe hérité",snapshot.schoolSettings.className||""],
-      ["Année scolaire",snapshot.schoolSettings.schoolYear||""],
-      ["Classe active ID",snapshot.activeClassId],
-      ["Classe active",archiveClassName(snapshot.activeClassId,snapshot)],
-      ["Code administrateur",snapshot.adminCode],
-      ["Date archive",snapshot.generatedAt]
-    ]
-  ));
+  archiveAppendSheet(wb,"Parametres",["Clé","Valeur"],[
+    ["Nom établissement",snapshot.schoolSettings.schoolName||snapshot.schoolSettings.establishment||""],
+    ["Nom classe hérité",snapshot.schoolSettings.className||""],
+    ["Année scolaire",snapshot.schoolSettings.schoolYear||""],
+    ["Classe active ID",snapshot.activeClassId],
+    ["Classe active",archiveClassName(snapshot.activeClassId,snapshot)],
+    ["Code administrateur",snapshot.adminCode],
+    ["Date archive",snapshot.generatedAt]
+  ]);
 
   const attRows=[];
   snapshot.evaluations.forEach(ev=>{
@@ -5292,46 +5287,21 @@ function exportFullArchiveExcel(snapshot,options={}){
     const a=archiveAttachmentMeta(ev.attachment);
     attRows.push([ev.id,archiveStudentName(ev.studentId,snapshot),ev.date||"",a.name,a.type,a.size]);
   });
-  sheets.push(archiveSheet("Pieces_jointes",
-    ["ID évaluation","Élève","Date","Nom fichier","Type MIME","Taille octets"],attRows
-  ));
+  archiveAppendSheet(wb,"Pieces_jointes",["ID évaluation","Élève","Date","Nom fichier","Type MIME","Taille octets"],attRows);
 
-  const xml=`<?xml version="1.0" encoding="UTF-8"?>
-<?mso-application progid="Excel.Sheet"?>
-<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
- xmlns:o="urn:schemas-microsoft-com:office:office"
- xmlns:x="urn:schemas-microsoft-com:office:excel"
- xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
-<Styles>
- <Style ss:ID="Header"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#0B3B6E" ss:Pattern="Solid"/></Style>
-</Styles>
-${sheets.join("")}
-</Workbook>`;
-  const blob=new Blob(["\uFEFF",xml],{type:"application/vnd.ms-excel"});
-  const a=document.createElement("a");
-  a.href=URL.createObjectURL(blob);
-  a.download=`${options.studentsOnly?"Sauvegarde_toutes_listes_eleves":"Archive_complete_logiciel"}_${archiveTimestamp()}.xls`;
-  document.body.appendChild(a);a.click();a.remove();
-  setTimeout(()=>URL.revokeObjectURL(a.href),1500);
+  XLSX.writeFile(wb,`Archive_complete_logiciel_${archiveTimestamp()}.xlsx`,{compression:true});
 }
-
 function exportStudentsOnlyExcel(snapshot){
-  const lite={...snapshot,
-    teachers:[],situations:[],competencies:snapshot.competencies,
-    classes:snapshot.classes
-  };
-  const sheets=[];
-  sheets.push(archiveSheet("Eleves",
-    ["ID élève","Nom et prénom","ID classe","Classe","Nombre évaluations"],
-    snapshot.students.map(st=>[st.id,st.name,st.classId,archiveClassName(st.classId,snapshot),(st.evaluations||[]).length])
-  ));
-  sheets.push(archiveSheet("Evaluations",
+  archiveRequireXlsx();
+  const wb=XLSX.utils.book_new();
+  archiveAppendSheet(wb,"Eleves",["ID élève","Nom et prénom","ID classe","Classe","Nombre évaluations"],
+    snapshot.students.map(st=>[st.id,st.name,st.classId,archiveClassName(st.classId,snapshot),(st.evaluations||[]).length]));
+  archiveAppendSheet(wb,"Evaluations",
     ["ID évaluation","Élève","Classe","Date","Intitulé","Type","Situation pro","Professeur","Rétroactive","Note /20","Observation","Archivée"],
     snapshot.evaluations.map(ev=>{
       const st=snapshot.students.find(x=>String(x.id)===String(ev.studentId));
       return [ev.id,st?.name||"",archiveClassName(st?.classId,snapshot),ev.date||"",ev.title||"",ev.type||"",ev.profSituation||"",ev.teacherName||"",ev.retroactive?"Oui":"Non",ev.sourceNote20??ev.retroCalculatedNote??ev.retroEstimatedNote??"",ev.evaluationObservation||"",ev.archived?"Oui":"Non"];
-    })
-  ));
+    }));
   const criterionRows=[];
   snapshot.evaluations.forEach(ev=>{
     const st=snapshot.students.find(x=>String(x.id)===String(ev.studentId));
@@ -5343,104 +5313,88 @@ function exportStudentsOnlyExcel(snapshot){
       });
     });
   });
-  sheets.push(archiveSheet("Criteres",
-    ["Élève","Classe","Date","Compétence","Intitulé compétence","Critère","Niveau"],criterionRows
-  ));
-  const xml=`<?xml version="1.0" encoding="UTF-8"?><?mso-application progid="Excel.Sheet"?>
-<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
-<Styles><Style ss:ID="Header"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#0B3B6E" ss:Pattern="Solid"/></Style></Styles>
-${sheets.join("")}</Workbook>`;
-  const blob=new Blob(["\uFEFF",xml],{type:"application/vnd.ms-excel"});
-  const a=document.createElement("a");a.href=URL.createObjectURL(blob);
-  a.download=`Sauvegarde_toutes_listes_eleves_${archiveTimestamp()}.xls`;
-  document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1500);
+  archiveAppendSheet(wb,"Criteres",["Élève","Classe","Date","Compétence","Intitulé compétence","Critère","Niveau"],criterionRows);
+  XLSX.writeFile(wb,`Sauvegarde_toutes_listes_eleves_${archiveTimestamp()}.xlsx`,{compression:true});
 }
 
 function archiveHtmlEscape(v){
   return String(v??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 }
+
+function archiveRequirePdf(){
+  if(!window.jspdf?.jsPDF)throw new Error("Le module PDF n'est pas encore chargé. Vérifie la connexion Internet puis réessaie.");
+}
+function pdfSafe(v){
+  return String(v??"").replace(/[^\x20-\x7E\u00A0-\u00FF]/g," ");
+}
 function openArchivePdfReport(snapshot,{studentsOnly=false}={}){
-  const w=window.open("","_blank");
-  if(!w){
-    showWarningMessage("Le navigateur a bloqué la fenêtre PDF. Autorise les fenêtres contextuelles puis recommence.");
-    return false;
-  }
-  const esc=archiveHtmlEscape;
-  const stats=`
-    <div class="stats">
-      <div><b>${snapshot.students.length}</b><span>élèves</span></div>
-      <div><b>${snapshot.evaluations.length}</b><span>évaluations</span></div>
-      <div><b>${snapshot.evaluations.filter(e=>e.archived).length}</b><span>archivées</span></div>
-      ${studentsOnly?"":`<div><b>${snapshot.teachers.length}</b><span>professeurs</span></div><div><b>${snapshot.classes.length}</b><span>classes</span></div>`}
-    </div>`;
+  archiveRequirePdf();
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:"landscape",unit:"mm",format:"a4"});
+  const title=studentsOnly?"Sauvegarde de toutes les listes d'élèves":"Archive complète du logiciel";
+  doc.setFont("helvetica","bold");doc.setFontSize(18);doc.text(pdfSafe(title),14,15);
+  doc.setFont("helvetica","normal");doc.setFontSize(9);doc.text(pdfSafe("Générée le "+snapshot.generatedAt),14,22);
 
-  let content=`<h1>${studentsOnly?"Sauvegarde de toutes les listes d’élèves":"Archive complète du logiciel"}</h1>
-  <div class="meta">Générée le <b>${esc(snapshot.generatedAt)}</b></div>${stats}`;
+  let y=28;
+  const stats=[
+    ["Élèves",snapshot.students.length],["Évaluations",snapshot.evaluations.length],
+    ["Évaluations archivées",snapshot.evaluations.filter(e=>e.archived).length]
+  ];
+  if(!studentsOnly){stats.push(["Professeurs",snapshot.teachers.length],["Classes",snapshot.classes.length]);}
+  doc.autoTable({startY:y,head:[stats.map(x=>x[0])],body:[stats.map(x=>String(x[1]))],theme:"grid",
+    styles:{font:"helvetica",fontSize:8},headStyles:{fillColor:[11,59,110]}});
+  y=doc.lastAutoTable.finalY+7;
 
-  content+=`<h2>Élèves et évaluations</h2>`;
   snapshot.classes.forEach(cls=>{
     const sts=snapshot.students.filter(st=>String(st.classId)===String(cls.id));
-    content+=`<h3>${esc(cls.name)} — ${sts.length} élève(s)</h3>`;
-    if(!sts.length){content+=`<p>Aucun élève.</p>`;return;}
+    if(y>185){doc.addPage();y=15;}
+    doc.setFont("helvetica","bold");doc.setFontSize(11);doc.text(pdfSafe(`${cls.name} - ${sts.length} élève(s)`),14,y);y+=4;
+    const rows=[];
     sts.forEach(st=>{
-      content+=`<div class="student"><b>${esc(st.name)}</b> — ${(st.evaluations||[]).length} évaluation(s)</div>`;
-      if(!(st.evaluations||[]).length)return;
-      content+=`<table><thead><tr><th>Date</th><th>Situation</th><th>Type</th><th>SP</th><th>Professeur</th><th>Note</th><th>État</th></tr></thead><tbody>`;
-      (st.evaluations||[]).forEach(ev=>{
+      if(!(st.evaluations||[]).length)rows.push([st.name,"","","","","",""]);
+      else (st.evaluations||[]).forEach(ev=>{
         const note=ev.sourceNote20??ev.retroCalculatedNote??ev.retroEstimatedNote??"";
-        content+=`<tr><td>${esc(ev.date||"")}</td><td>${esc(ev.title||"")}</td><td>${esc(ev.type||"")}</td><td>${esc(ev.profSituation||"")}</td><td>${esc(ev.teacherName||archiveTeacherName(ev.teacherId,snapshot))}</td><td>${esc(note!==""?String(note)+" / 20":"")}</td><td>${ev.archived?"Archivée":"Active"}</td></tr>`;
+        rows.push([st.name,ev.date||"",ev.title||"",ev.profSituation||"",ev.teacherName||archiveTeacherName(ev.teacherId,snapshot),
+          note!==""?String(note)+" / 20":"",ev.archived?"Archivée":"Active"]);
       });
-      content+=`</tbody></table>`;
     });
+    doc.autoTable({startY:y,head:[["Élève","Date","Évaluation","SP","Professeur","Note","État"]],
+      body:rows.map(r=>r.map(pdfSafe)),theme:"grid",styles:{font:"helvetica",fontSize:6.5,cellPadding:1.4,overflow:"linebreak"},
+      headStyles:{fillColor:[238,243,248],textColor:[23,32,51]},margin:{left:14,right:14}});
+    y=doc.lastAutoTable.finalY+6;
   });
 
   if(!studentsOnly){
-    content+=`<h2>Professeurs</h2><table><thead><tr><th>Nom</th><th>Rôle</th><th>Actif</th><th>Classes attribuées</th></tr></thead><tbody>`;
-    snapshot.teachers.forEach(t=>{
-      content+=`<tr><td>${esc(archiveTeacherName(t.id,snapshot))}</td><td>${esc(t.role||((t.isAdmin===true)?"administrateur":"professeur"))}</td><td>${t.active===false?"Non":"Oui"}</td><td>${esc((t.assignedClasses||[]).map(id=>archiveClassName(id,snapshot)||id).join(", "))}</td></tr>`;
-    });
-    content+=`</tbody></table>`;
+    if(y>170){doc.addPage();y=15;}
+    doc.setFont("helvetica","bold");doc.setFontSize(12);doc.text("Professeurs",14,y);y+=4;
+    doc.autoTable({startY:y,head:[["Nom","Rôle","Actif","Classes attribuées"]],
+      body:snapshot.teachers.map(t=>[
+        archiveTeacherName(t.id,snapshot),t.role||((t.isAdmin===true)?"administrateur":"professeur"),
+        t.active===false?"Non":"Oui",(t.assignedClasses||[]).map(id=>archiveClassName(id,snapshot)||id).join(", ")
+      ].map(pdfSafe)),theme:"grid",styles:{font:"helvetica",fontSize:7},headStyles:{fillColor:[11,59,110]}});
+    y=doc.lastAutoTable.finalY+7;
 
-    content+=`<h2>Situations professionnelles</h2><table><thead><tr><th>Code</th><th>Intitulé</th><th>Compétences</th><th>Active</th></tr></thead><tbody>`;
-    snapshot.situations.forEach(sp=>{
-      content+=`<tr><td>${esc(sp.code)}</td><td>${esc(sp.label||sp.title||"")}</td><td>${esc((sp.comps||[]).join(", "))}</td><td>${sp.active===false?"Non":"Oui"}</td></tr>`;
-    });
-    content+=`</tbody></table>`;
+    if(y>165){doc.addPage();y=15;}
+    doc.setFont("helvetica","bold");doc.setFontSize(12);doc.text("Situations professionnelles",14,y);y+=4;
+    doc.autoTable({startY:y,head:[["Code","Intitulé","Compétences","Active"]],
+      body:snapshot.situations.map(sp=>[sp.code,sp.label||sp.title||"",(sp.comps||[]).join(", "),sp.active===false?"Non":"Oui"].map(pdfSafe)),
+      theme:"grid",styles:{font:"helvetica",fontSize:7},headStyles:{fillColor:[11,59,110]}});
+    y=doc.lastAutoTable.finalY+7;
 
-    content+=`<h2>Référentiel des compétences</h2>`;
     snapshot.competencies.forEach(c=>{
-      content+=`<h3>${esc(c.id||c.code||"")} — ${esc(c.name||c.title||"")}</h3><ul>`;
-      (c.criteria||[]).forEach(cr=>content+=`<li>${esc(cr?.text||cr?.label||String(cr||""))}</li>`);
-      content+=`</ul>`;
+      if(y>180){doc.addPage();y=15;}
+      doc.setFont("helvetica","bold");doc.setFontSize(9);doc.text(pdfSafe(`${c.id||c.code||""} - ${c.name||c.title||""}`),14,y);y+=4;
+      const crit=(c.criteria||[]).map((cr,i)=>[String(i+1),cr?.group||"",cr?.label||"",cr?.text||String(cr||"")].map(pdfSafe));
+      if(crit.length){
+        doc.autoTable({startY:y,head:[["N°","Groupe","Résultat attendu","Critère"]],body:crit,theme:"grid",
+          styles:{font:"helvetica",fontSize:6.5,cellPadding:1.2},headStyles:{fillColor:[238,243,248],textColor:[23,32,51]}});
+        y=doc.lastAutoTable.finalY+5;
+      }
     });
-
-    content+=`<h2>Paramètres généraux</h2><table><tbody>
-      <tr><th>Classe active</th><td>${esc(archiveClassName(snapshot.activeClassId,snapshot))}</td></tr>
-      <tr><th>Année scolaire</th><td>${esc(snapshot.schoolSettings.schoolYear||"")}</td></tr>
-      <tr><th>Établissement</th><td>${esc(snapshot.schoolSettings.schoolName||snapshot.schoolSettings.establishment||"")}</td></tr>
-    </tbody></table>`;
   }
 
-  w.document.write(`<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>${studentsOnly?"Sauvegarde élèves":"Archive complète"}</title>
-  <style>
-    @page{size:A4 landscape;margin:10mm}
-    body{font-family:Arial,sans-serif;color:#172033;font-size:8.5pt;line-height:1.35}
-    h1{font-size:20pt;color:#0b3b6e;margin:0 0 8pt}
-    h2{font-size:14pt;color:#0b3b6e;margin:18pt 0 7pt;border-bottom:2px solid #d9e2ec;padding-bottom:4pt}
-    h3{font-size:10.5pt;margin:10pt 0 5pt}
-    .meta{padding:8pt;background:#f8fafc;border:1px solid #d9e2ec;margin-bottom:10pt}
-    .stats{display:flex;gap:8pt;flex-wrap:wrap;margin:8pt 0 14pt}
-    .stats div{border:1px solid #d0d5dd;border-radius:8pt;padding:7pt 12pt;min-width:75pt}
-    .stats b{display:block;font-size:16pt;color:#0b3b6e}.stats span{color:#667085}
-    .student{margin:7pt 0 3pt;padding:4pt 6pt;background:#f8fafc;border-left:3pt solid #0b3b6e}
-    table{width:100%;border-collapse:collapse;margin:4pt 0 10pt;page-break-inside:auto}
-    thead{display:table-header-group}tr{page-break-inside:avoid}
-    th,td{border:1px solid #d0d5dd;padding:4pt;text-align:left;vertical-align:top}
-    th{background:#eef3f8}ul{margin-top:4pt}
-  </style></head><body>${content}
-  <script>window.onload=function(){setTimeout(function(){window.print()},350)}<\/script>
-  </body></html>`);
-  w.document.close();
+  const filename=`${studentsOnly?"Sauvegarde_toutes_listes_eleves":"Archive_complete_logiciel"}_${archiveTimestamp()}.pdf`;
+  doc.save(filename);
   return true;
 }
 
@@ -5450,7 +5404,7 @@ async function archiveAllApplicationData(){
     const snapshot=await collectFullApplicationArchive();
     exportFullArchiveExcel(snapshot);
     openArchivePdfReport(snapshot,{studentsOnly:false});
-    showSuccessMessage("Archive générale préparée : fichier Excel téléchargé et rapport PDF ouvert.");
+    showSuccessMessage("Archive générale téléchargée : fichier Excel (.xlsx) et fichier PDF enregistrés dans les téléchargements.");
   }catch(err){
     showWarningMessage("Impossible de créer l’archive générale : "+(err?.message||String(err)));
   }
@@ -5474,7 +5428,7 @@ async function backupAndDeleteAllStudentLists(){
     openArchivePdfReport(snapshot,{studentsOnly:true});
 
     const second=confirm(
-      "La sauvegarde Excel vient d’être lancée et le rapport PDF a été ouvert.\n\n"+
+      "La sauvegarde Excel et le PDF viennent d’être téléchargés.\n\n"+
       "Confirmer maintenant la SUPPRESSION DÉFINITIVE de toutes les listes d’élèves et de toutes leurs évaluations du logiciel ?"
     );
     if(!second)return;
