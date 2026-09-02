@@ -9,3 +9,6 @@ Toutes les autres fonctions V88.5 sont conservées :
 Firebase, synchronisation stabilisée et codes numériques.
 
 Cache PWA : competences-mv-v88-6-nav-sidebar-9
+
+
+V89 : fusion des évolutions Firebase, panneau nuage compact et gestion des élèves par classe dans Paramètres.

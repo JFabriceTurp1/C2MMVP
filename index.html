@@ -543,6 +543,25 @@ th,td{min-width:120px;padding:9px 8px} th:first-child,td:first-child{min-width:1
   line-height:1.2 !important;
 }
 
+
+/* V89 — Firebase compact + gestion élèves par classe */
+#firebase-sync-popover{
+  min-width:235px!important;
+  max-width:285px!important;
+  padding:9px 10px!important;
+}
+.firebase-mini-compact-head{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:800;color:#334155;margin-bottom:6px}
+.firebase-mini-compact-actions{display:flex;align-items:center;gap:5px;flex-wrap:nowrap}
+.firebase-mini-action{padding:5px 7px!important;min-height:28px!important;font-size:10px!important;border-radius:7px!important;white-space:nowrap}
+.firebase-mini-icon{border:0;background:transparent;color:#64748b;font-size:16px;line-height:1;padding:2px 4px;cursor:pointer}
+#firebase-sync-progress-wrap{margin:5px 0 7px!important}
+#firebase-sync-progress-text{font-size:9px!important;margin-top:3px!important}
+#firebase-sync-progress-wrap .firebase-sync-progress-track{height:4px!important}
+#settings-student-class-select{
+  width:100%;min-height:42px;border:1px solid #cbd5e1;border-radius:9px;background:#fff;
+  padding:8px 10px;font:inherit;font-weight:700;color:#17365d
+}
+
 </style>
 
 <style>
@@ -2066,7 +2085,7 @@ body{background:#f7f9fc;color:var(--text)}
 <!-- V88 — DONNÉES DE RÉFÉRENCE RÉINTÉGRÉES DEPUIS V86.5
      Jeux embarqués repris : référentiel compétences, élèves par défaut, seconde classe fictive, situations professionnelles.
      Les données dynamiques (classes/élèves/évaluations réellement saisies) restent chargées par IndexedDB/localStorage et Firebase. -->
-<div id="build-version" style="position:fixed;right:10px;bottom:8px;font-size:10px;opacity:.45;z-index:9999">V88.6 FIREBASE — DONNÉES V86.5 + RÉTROACTIVE</div>
+<div id="build-version" style="position:fixed;right:10px;bottom:8px;font-size:10px;opacity:.45;z-index:9999">V89 FIREBASE — DONNÉES V86.5 + RÉTROACTIVE</div>
 <div id="firebase-auth-overlay">
   <div class="firebase-login-card">
     <h2>☁️ Connexion Firebase — V88</h2>
@@ -2091,20 +2110,19 @@ body{background:#f7f9fc;color:var(--text)}
   </div>
 </div>
 <div id="firebase-sync-mini" class="off" title="État Firebase" aria-label="État de synchronisation Firebase">☁</div>
-<div id="firebase-sync-popover" role="dialog" aria-label="Synchronisation Firebase">
-  <div class="title">Firebase</div>
-  <div class="msg" id="firebase-sync-mini-text">État de synchronisation</div>
-  <div class="firebase-sync-help">
-    Dans Paramètres, le bouton « Enregistrer » est désormais obligatoire pour envoyer les modifications vers Firebase. Le bouton de synchronisation ci-dessous sert surtout à vérifier et récupérer les données disponibles sur le serveur.
-    Les changements de professeurs, codes et classes attribuées sont également envoyés automatiquement dès leur enregistrement.
+<div id="firebase-sync-popover" role="dialog" aria-label="Firebase">
+  <div class="firebase-mini-compact-head">
+    <span>☁</span><span id="firebase-sync-mini-text">Firebase</span>
   </div>
   <div id="firebase-sync-progress-wrap" class="firebase-sync-progress-wrap" aria-live="polite">
     <div class="firebase-sync-progress-track"><div id="firebase-sync-progress-bar" class="firebase-sync-progress-bar"></div></div>
-    <div id="firebase-sync-progress-text" class="firebase-sync-progress-text">Prêt à synchroniser.</div>
+    <div id="firebase-sync-progress-text" class="firebase-sync-progress-text">Prêt.</div>
   </div>
-  <div class="actions">
-    <button type="button" class="secondary" id="firebase-mini-sync-btn">Synchroniser maintenant</button>
-    <button type="button" class="secondary" id="firebase-mini-close-btn">Fermer</button>
+  <div class="firebase-mini-compact-actions">
+    <button type="button" class="secondary firebase-mini-action" id="firebase-mini-sync-btn">↻ Synchroniser</button>
+    <button type="button" class="secondary firebase-mini-action" id="firebase-mini-logout-btn">↪ Déconnecter</button>
+    <button type="button" class="firebase-mini-icon" id="firebase-mini-info-btn" title="Informations Firebase" aria-label="Informations Firebase">ⓘ</button>
+    <button type="button" class="firebase-mini-icon" id="firebase-mini-close-btn" title="Fermer" aria-label="Fermer">×</button>
   </div>
 </div>
 <div class="app">
@@ -2154,15 +2172,6 @@ body{background:#f7f9fc;color:var(--text)}
       <div id="settings-classes-list" class="settings-list" style="margin-top:14px"></div>
     </div>
     <div class="settings-card">
-      <h3>🏫 Informations de la classe active</h3>
-      <div class="form-grid">
-        <label>Nom de la classe<input id="settings-class-name" type="text" placeholder="Ex. C2MMVP"></label>
-        <label style="display:none">Nom du professeur<input id="settings-teacher-name" type="text" placeholder="Nom et prénom"></label>
-        <label>Année scolaire<input id="settings-school-year" type="text" placeholder="Ex. 2026-2027"></label>
-      </div>
-      <button type="button" class="primary" onclick="saveSchoolSettings()">Enregistrer</button>
-    </div>
-    <div class="settings-card">
       <h3>🔐 Code administrateur</h3><p>Le code protège l'accès à cette page.</p>
       <div class="form-grid">
         <label>Code actuel<input id="settings-current-code" type="password" inputmode="numeric" pattern="[0-9]*" autocomplete="current-password"></label>
@@ -2172,14 +2181,19 @@ body{background:#f7f9fc;color:var(--text)}
       <button type="button" class="primary" onclick="changeAdminCode()">Modifier le code</button>
     </div>
     <div class="settings-card">
-      <h3>👥 Élèves de la classe active</h3>
-      <p class="settings-active-class-note">Classe en cours : <b id="settings-active-class-name"></b>. Les ajouts, imports, modifications et suppressions ci-dessous concernent uniquement cette classe.</p>
-      <div class="form-grid"><label>Nom et prénom<input id="settings-student-name" type="text" placeholder="Nom Prénom"></label></div>
+      <h3>👥 Gestion des élèves par classe</h3>
+      <p class="muted">Choisis la classe dont tu veux gérer la liste d’élèves. Ce choix est indépendant de la classe active utilisée dans le reste du logiciel.</p>
+      <div class="form-grid">
+        <label>Classe à gérer
+          <select id="settings-student-class-select" onchange="changeSettingsStudentClass(this.value)"></select>
+        </label>
+        <label>Nom et prénom<input id="settings-student-name" type="text" placeholder="Nom Prénom"></label>
+      </div>
       <button type="button" class="primary" onclick="addStudentFromSettings()">Ajouter un élève</button>
       <button type="button" class="secondary settings-danger" style="margin-top:10px" onclick="requestDeleteAllStudents()">🗑️ Supprimer la liste des élèves</button>
       <div class="settings-import-box">
         <strong>Importer une liste depuis Excel</strong>
-        <p class="muted">Format : deux colonnes <b>Nom</b> et <b>Prénom</b>, une ligne par élève. Le modèle .xlsx est fourni avec le logiciel. Le fichier importé est ajouté uniquement à la <b>classe active</b>. Tu peux importer directement un fichier <b>Excel (.xlsx)</b>.</p>
+        <p class="muted">Format : deux colonnes <b>Nom</b> et <b>Prénom</b>, une ligne par élève. Le modèle .xlsx est fourni avec le logiciel. Le fichier importé est ajouté uniquement à la <b>classe sélectionnée ci-dessus</b>. Tu peux importer directement un fichier <b>Excel (.xlsx)</b>.</p>
         <div class="settings-import-actions">
           <button type="button" class="secondary" onclick="downloadStudentTemplate()">📥 Télécharger le modèle Excel vierge</button>
           <label class="secondary" style="cursor:pointer">Choisir un fichier Excel
@@ -4282,7 +4296,6 @@ function renderSettingsPage(){
   const tpl=document.getElementById("settings-page-template");
   if(!main||!tpl){showWarningMessage("La page Paramètres est indisponible.");return;}
   main.innerHTML=tpl.innerHTML;
-  renderSchoolSettings();
   renderSettingsTeachers();
   renderSettingsClasses();
   renderSettingsStudents();
@@ -4389,6 +4402,49 @@ async function importXLSXStudents(file){
   return rows.slice(1).map(r=>({name:[r[ni]||"",r[pi]||""].map(x=>String(x).trim()).filter(Boolean).join(" ")})).filter(x=>x.name);
 }
 
+
+let settingsStudentClassId=null;
+
+function getSettingsStudentClassId(){
+  const classes=getClasses().filter(c=>!c.archived);
+  if(!classes.length)return getActiveClassId();
+  if(settingsStudentClassId && classes.some(c=>String(c.id)===String(settingsStudentClassId))){
+    return settingsStudentClassId;
+  }
+  settingsStudentClassId=getActiveClassId();
+  if(!classes.some(c=>String(c.id)===String(settingsStudentClassId))) settingsStudentClassId=classes[0].id;
+  return settingsStudentClassId;
+}
+function settingsStudentClassName(){
+  const id=getSettingsStudentClassId();
+  return getClasses().find(c=>String(c.id)===String(id))?.name||"";
+}
+function settingsStudents(){
+  const id=getSettingsStudentClassId();
+  return allStudents.filter(st=>String(st.classId)===String(id));
+}
+function refreshActiveStudentsFromAll(){
+  const activeId=getActiveClassId();
+  students=allStudents.filter(st=>String(st.classId)===String(activeId));
+  if(!students.some(st=>String(st.id)===String(selectedStudent))){
+    selectedStudent=sortStudentsAlpha(students)[0]?.id||null;
+  }
+}
+function renderSettingsStudentClassSelector(){
+  const select=document.getElementById("settings-student-class-select");
+  if(!select)return;
+  const classes=getClasses().filter(c=>!c.archived).sort((a,b)=>a.name.localeCompare(b.name,"fr"));
+  const current=getSettingsStudentClassId();
+  select.innerHTML=classes.map(c=>`<option value="${esc(String(c.id))}" ${String(c.id)===String(current)?"selected":""}>${esc(c.name)}</option>`).join("");
+}
+function changeSettingsStudentClass(id){
+  const cls=getClasses().find(c=>String(c.id)===String(id)&&!c.archived);
+  if(!cls)return;
+  settingsStudentClassId=cls.id;
+  renderSettingsStudents();
+}
+window.changeSettingsStudentClass=changeSettingsStudentClass;
+
 async function importStudentsFromExcelFile(input){
   const file=input?.files?.[0];if(!file)return;
   try{
@@ -4396,63 +4452,74 @@ async function importStudentsFromExcelFile(input){
       ? await importXLSXStudents(file)
       : parseStudentCSV(await file.text());
     if(!incoming.length){showWarningMessage("Aucun élève trouvé dans le fichier.");return;}
-    const existing=new Set(students.map(s=>String(s.name||"").trim().toLowerCase()));
+    const targetClassId=getSettingsStudentClassId();
+    const existing=new Set(settingsStudents().map(st=>String(st.name||"").trim().toLowerCase()));
     const fresh=incoming.filter(x=>!existing.has(x.name.toLowerCase()));
-    if(!fresh.length){showWarningMessage("Tous les élèves du fichier sont déjà présents.");return;}
+    if(!fresh.length){showWarningMessage("Tous les élèves du fichier sont déjà présents dans cette classe.");return;}
     await openDB();
     for(const x of fresh){
-      const student={id:"stu_"+Date.now()+"_"+Math.random().toString(36).slice(2,9),name:x.name,classId:getActiveClassId(),evaluations:[]};
-      await put("students",student);students.push(student);allStudents.push(student);
+      const student={id:"stu_"+Date.now()+"_"+Math.random().toString(36).slice(2,9),name:x.name,classId:targetClassId,evaluations:[]};
+      await put("students",student);
+      allStudents.push(student);
     }
+    refreshActiveStudentsFromAll();
     renderSettingsStudents();
-    showSuccessMessage(`${fresh.length} élève(s) importé(s). Les doublons ont été ignorés.`);
+    showSuccessMessage(`${fresh.length} élève(s) importé(s) dans ${settingsStudentClassName()}. Les doublons ont été ignorés.`);
   }catch(err){
     showWarningMessage("Impossible de lire le fichier : "+(err?.message||String(err)));
   }finally{input.value="";}
 }
 
 function renderSettingsStudents(){
-  const activeName=document.getElementById("settings-active-class-name");
-  if(activeName)activeName.textContent=activeClassName()||"—";
+  renderSettingsStudentClassSelector();
   const box=document.getElementById("settings-students-list");if(!box)return;
-  const list=[...students].sort((a,b)=>String(a.name||"").localeCompare(String(b.name||""),"fr"));
-  box.innerHTML=list.map(s=>`<div class="settings-item">
-    <div class="settings-item-main"><div class="settings-item-title">${esc(s.name||"")}</div><div class="settings-item-sub">${(s.evaluations||[]).length} évaluation(s)</div></div>
+  const list=[...settingsStudents()].sort((a,b)=>String(a.name||"").localeCompare(String(b.name||""),"fr"));
+  box.innerHTML=list.map(st=>`<div class="settings-item">
+    <div class="settings-item-main"><div class="settings-item-title">${esc(st.name||"")}</div><div class="settings-item-sub">${(st.evaluations||[]).length} évaluation(s)</div></div>
     <div class="settings-actions">
-      <button class="secondary" onclick="renameStudentFromSettings('${esc(String(s.id))}')">Modifier</button>
-      <button class="secondary settings-danger" onclick="deleteStudentFromSettings('${esc(String(s.id))}')">Supprimer</button>
+      <button class="secondary" onclick="renameStudentFromSettings('${esc(String(st.id))}')">Modifier</button>
+      <button class="secondary settings-danger" onclick="deleteStudentFromSettings('${esc(String(st.id))}')">Supprimer</button>
     </div>
-  </div>`).join("")||"<p>Aucun élève.</p>";
+  </div>`).join("")||`<p>Aucun élève dans la classe ${esc(settingsStudentClassName())}.</p>`;
 }
 async function addStudentFromSettings(){
   const input=document.getElementById("settings-student-name"),name=input?.value.trim();
   if(!name){showWarningMessage("Saisis le nom de l'élève.");return;}
-  if(students.some(s=>String(s.name||"").trim().toLowerCase()===name.toLowerCase())){
-    showWarningMessage("Cet élève existe déjà.");return;
+  const targetClassId=getSettingsStudentClassId();
+  if(settingsStudents().some(st=>String(st.name||"").trim().toLowerCase()===name.toLowerCase())){
+    showWarningMessage("Cet élève existe déjà dans cette classe.");return;
   }
-  const student={id:"stu_"+Date.now()+"_"+Math.random().toString(36).slice(2,7),name,classId:getActiveClassId(),evaluations:[]};
+  const student={id:"stu_"+Date.now()+"_"+Math.random().toString(36).slice(2,7),name,classId:targetClassId,evaluations:[]};
   await openDB();await put("students",student);
-  students.push(student);input.value="";renderSettingsStudents();
-  showSuccessMessage("Élève ajouté.");
+  allStudents.push(student);
+  refreshActiveStudentsFromAll();
+  input.value="";
+  renderSettingsStudents();
+  showSuccessMessage("Élève ajouté à "+settingsStudentClassName()+".");
 }
 async function renameStudentFromSettings(id){
-  const s=students.find(x=>String(x.id)===String(id));if(!s)return;
-  const name=prompt("Nouveau nom de l'élève :",s.name||"");if(name===null)return;
+  const st=allStudents.find(x=>String(x.id)===String(id));if(!st)return;
+  const name=prompt("Nouveau nom de l'élève :",st.name||"");if(name===null)return;
   const clean=name.trim();if(!clean){showWarningMessage("Le nom ne peut pas être vide.");return;}
-  s.name=clean;await openDB();await put("students",{id:s.id,name:s.name,classId:s.classId||getActiveClassId()});
-  renderSettingsStudents();showSuccessMessage("Nom de l'élève modifié.");
+  st.name=clean;
+  await openDB();
+  await put("students",{id:st.id,name:st.name,classId:st.classId||getSettingsStudentClassId()});
+  refreshActiveStudentsFromAll();
+  renderSettingsStudents();
+  showSuccessMessage("Nom de l'élève modifié.");
 }
 async function deleteStudentFromSettings(id){
-  const s=students.find(x=>String(x.id)===String(id));if(!s)return;
-  showDeleteConfirmation(`Supprimer l'élève « ${s.name} » et toutes ses évaluations ?`,async()=>{
+  const st=allStudents.find(x=>String(x.id)===String(id));if(!st)return;
+  showDeleteConfirmation(`Supprimer l'élève « ${st.name} » et toutes ses évaluations ?`,async()=>{
     try{
       await openDB();
       const evals=await getAll("evaluations");
-      for(const ev of evals)if(String(ev.studentId)===String(s.id))await deleteFromStore("evaluations",ev.id);
-      await deleteFromStore("students",s.id);
-      students=students.filter(x=>String(x.id)!==String(id));allStudents=allStudents.filter(x=>String(x.id)!==String(id));
-      if(String(selectedStudent)===String(id))selectedStudent=sortStudentsAlpha(students)[0]?.id||null;
-      renderSettingsStudents();showSuccessMessage("Élève supprimé.");
+      for(const ev of evals)if(String(ev.studentId)===String(st.id))await deleteFromStore("evaluations",ev.id);
+      await deleteFromStore("students",st.id);
+      allStudents=allStudents.filter(x=>String(x.id)!==String(id));
+      refreshActiveStudentsFromAll();
+      renderSettingsStudents();
+      showSuccessMessage("Élève supprimé.");
     }catch(err){showWarningMessage("Erreur lors de la suppression de l'élève : "+(err?.message||String(err)));}
   });
 }
@@ -4757,11 +4824,10 @@ function requestAdminCodeMasked(message="Code administrateur requis :"){
 }
 
 async function requestDeleteAllStudents(){
-  const count=students.length;
-  if(!count){
-    showWarningMessage("La liste des élèves est déjà vide.");
-    return;
-  }
+  const target=settingsStudents();
+  const count=target.length;
+  if(!count){showWarningMessage("La liste des élèves de cette classe est déjà vide.");return;}
+  const className=settingsStudentClassName();
   const code=await requestAdminCodeMasked("Saisis le code administrateur pour continuer :");
   if(code===null)return;
   if(code!==getAdminCode()){
@@ -4769,24 +4835,22 @@ async function requestDeleteAllStudents(){
     return;
   }
   showDeleteConfirmation(
-    `Supprimer définitivement les ${count} élève(s) et toutes leurs évaluations ? Cette opération est irréversible.`,
+    `Supprimer définitivement les ${count} élève(s) de « ${className} » et toutes leurs évaluations ? Cette opération est irréversible.`,
     async()=>{
       try{
         const deletionDate=new Date().toLocaleString("fr-FR");
-        const snapshot=students.map(s=>({...s,evaluations:(s.evaluations||[]).map(ev=>({...ev,comps:[...(ev.comps||[])],levels:{...(ev.levels||{})},disabledCriteria:{...(ev.disabledCriteria||{})}}))}));
-        // Les archives sont générées avant toute suppression afin de conserver l'historique complet.
+        const snapshot=target.map(st=>({...st,evaluations:(st.evaluations||[]).map(ev=>({...ev,comps:[...(ev.comps||[])],levels:{...(ev.levels||{})},disabledCriteria:{...(ev.disabledCriteria||{})}}))}));
         exportStudentDeletionExcel(snapshot,deletionDate);
         exportStudentDeletionPDF(snapshot,deletionDate);
         await openDB();
-        const activeStudentIds=new Set(students.map(s=>String(s.id)));
+        const ids=new Set(target.map(st=>String(st.id)));
         const evals=await getAll("evaluations");
-        for(const ev of evals) if(activeStudentIds.has(String(ev.studentId))) await deleteFromStore("evaluations",ev.id);
-        for(const s of students) await deleteFromStore("students",s.id);
-        allStudents=allStudents.filter(s=>!activeStudentIds.has(String(s.id)));
-        students=[];
-        selectedStudent=null;
+        for(const ev of evals)if(ids.has(String(ev.studentId)))await deleteFromStore("evaluations",ev.id);
+        for(const st of target)await deleteFromStore("students",st.id);
+        allStudents=allStudents.filter(st=>!ids.has(String(st.id)));
+        refreshActiveStudentsFromAll();
         renderSettingsStudents();
-        showSuccessMessage("La liste des élèves et toutes leurs évaluations ont été supprimées.");
+        showSuccessMessage("La liste des élèves de « "+className+" » et toutes leurs évaluations ont été supprimées.");
       }catch(err){
         showWarningMessage("Erreur lors de la suppression de la liste : "+(err?.message||String(err)));
       }
@@ -6845,11 +6909,8 @@ window.firebaseSaveCurrentConfig=async()=>{await saveFullConfig(firebaseBuildApp
         cloudStudents=await cloudDocs('students');
         cloudEvaluations=await cloudDocs('evaluations');
       }else if(!cloudHasLegacyData){
-        // Firebase réellement vierge pour ce compte : migration du cache local historique.
-        await migrateLocalToCloud();
-        cloudClasses=await cloudDocs('classes');
-        cloudStudents=await cloudDocs('students');
-        cloudEvaluations=await cloudDocs('evaluations');
+        // V89 : compte Firebase vide = aucune écriture automatique.
+        // L'utilisateur pourra envoyer volontairement les données depuis Paramètres.
       }
 
       // Toujours appliquer ce qui existe dans Firebase, même si une des collections est vide.
@@ -6877,7 +6938,7 @@ window.firebaseSaveCurrentConfig=async()=>{await saveFullConfig(firebaseBuildApp
             updatedAt:firebase.firestore.FieldValue.serverTimestamp()
           },{merge:true});
         }
-      }else if(!rootData.evaluationsInitialized){
+      }else if(!rootData.evaluationsInitialized && forceUpload){
         const uploaded=await uploadLocalEvaluations();
         await rootRef.set({
           evaluationsInitialized:true,
@@ -6893,9 +6954,7 @@ window.firebaseSaveCurrentConfig=async()=>{await saveFullConfig(firebaseBuildApp
       if(cfg){
         firebaseApplyApplicationConfig(cfg);
       }else{
-        // Ne crée une configuration que si aucune donnée distante n'a été trouvée.
-        // Cela évite qu'une nouvelle copie V88 remplace des paramètres historiques.
-        if(!cloudHasLegacyData) await saveFullConfig(firebaseBuildApplicationConfig());
+        // V89 : une simple récupération ne crée aucune configuration distante.
       }
 
       // Professeurs/comptes : priorité absolue à la collection V86.5 "comptes".
@@ -6921,20 +6980,28 @@ window.firebaseSaveCurrentConfig=async()=>{await saveFullConfig(firebaseBuildApp
           applyTeacherPermissions();
           if(typeof renderSettingsTeachers==='function') renderSettingsTeachers();
         }catch(e){}
-        // Ne pousse jamais une liste locale vide vers Firebase lors d'une simple reconnexion.
-        if(!cloudAccounts.length && !cfg && !cloudHasLegacyData){
-          await firebaseSaveApplicationAccounts();
-        }
+        // V89 : une simple récupération ne pousse jamais la liste locale des comptes.
       }catch(e){
         console.warn('Synchronisation initiale des comptes V86.5 :',e);
       }
 
-      setSyncProgress(90,'Chargement des données V86.5 dans la V88…');
+      const teacherCount=(()=>{try{return (JSON.parse(localStorage.getItem('evaluation_teachers_v84_1')||'[]')||[]).length}catch(e){return 0}})();
+      window.firebaseLastDiagnostic={
+        email:auth.currentUser?.email||'',
+        uid:auth.currentUser?.uid||'',
+        classes:cloudClasses.length,
+        students:cloudStudents.length,
+        evaluations:cloudEvaluations.length,
+        teachers:teacherCount,
+        configuration:!!cfg
+      };
+      const diagText=`Firebase : ${cloudClasses.length} classe(s), ${cloudStudents.length} élève(s), ${cloudEvaluations.length} évaluation(s), ${teacherCount} professeur(s).`;
+      setSyncProgress(90,diagText);
       cloudReady=true;
       await loadData();
       applySchoolSettings();
       setStatus('✓ Données V86.5 récupérées et synchronisées','ok');
-      setSyncProgress(100,'Synchronisation terminée : professeurs, classes, élèves et évaluations sont à jour.');
+      setSyncProgress(100,typeof diagText==='string'?diagText:'Synchronisation terminée.');
       startRealtimeListeners();
       startAccountsRealtime();
     }catch(err){
@@ -7109,6 +7176,37 @@ function startRealtimeListeners(){
   if(miniClose && miniPop){
     miniClose.addEventListener('click',()=>miniPop.classList.remove('open'));
   }
+  const miniLogout=document.getElementById('firebase-mini-logout-btn');
+  if(miniLogout){
+    miniLogout.addEventListener('click',async()=>{
+      try{
+        if(auth && auth.currentUser){
+          await auth.signOut();
+        }else if(window.firebase && typeof window.firebase.auth==="function"){
+          await window.firebase.auth().signOut();
+        }
+        if(miniPop)miniPop.classList.remove('open');
+      }catch(err){
+        showWarningMessage("Impossible de déconnecter Firebase : "+friendlyError(err));
+      }
+    });
+  }
+  const miniInfo=document.getElementById('firebase-mini-info-btn');
+  if(miniInfo){
+    miniInfo.addEventListener('click',()=>{
+      const d=window.firebaseLastDiagnostic;
+      if(!d){alert("Clique d'abord sur Synchroniser pour afficher le diagnostic Firebase.");return;}
+      alert(
+        "Compte Firebase : "+(d.email||"—")+
+        "\\nUID : "+(d.uid||"—")+
+        "\\n\\nClasses : "+d.classes+
+        "\\nÉlèves : "+d.students+
+        "\\nÉvaluations : "+d.evaluations+
+        "\\nProfesseurs : "+d.teachers+
+        "\\nConfiguration : "+(d.configuration?"oui":"non")
+      );
+    });
+  }
 
   try{
     if(!window.firebase) throw new Error('Le SDK Firebase n’a pas pu être chargé. Vérifie la connexion Internet.');
@@ -7160,9 +7258,8 @@ function startRealtimeListeners(){
       if(btn){btn.disabled=true;btn.textContent='Synchronisation…';}
       setSyncProgress(3,'Préparation de la synchronisation…');
       try{
-        // Envoyer d'abord les paramètres/comptes locaux récemment modifiés,
-        // puis effectuer la synchronisation générale.
-        if(typeof window.firebaseSaveCurrentConfig==="function")await window.firebaseSaveCurrentConfig();
+        // V89 : Synchroniser récupère d'abord Firebase.
+        // Aucun paramètre local n'est envoyé automatiquement par ce bouton.
         await synchronizeCloud({forceUpload:false});
       }finally{
         if(btn){btn.disabled=false;btn.textContent='Synchroniser maintenant';}
