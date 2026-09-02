@@ -65,3 +65,28 @@ V89.2.2 — CORRECTIF NOTES DES SAUVEGARDES
 - Les notes importées depuis Excel conservent leur valeur exacte.
 - Excel et PDF utilisent la même fonction de note pour éviter les écarts.
 - Une colonne « Source note » permet de distinguer « Import Excel rétroactif » et « Calcul critères ».
+
+
+V89.3 — SAUVEGARDE INTÉGRALE RESTAURABLE
+AUDIT :
+- Les anciennes évaluations n'ont pas toutes teacherName / teacherId : aucune identité n'est inventée.
+- L'export résout le professeur depuis teacherName puis teacherId et signale les cas non renseignés.
+- Les notes utilisent le moteur officiel evaluationScore20 ; les notes Excel rétroactives gardent leur valeur exacte.
+- Les feuilles lisibles seules ne suffisaient pas à garantir une restauration sans perte.
+
+NOUVELLE SAUVEGARDE :
+- Excel .xlsx natif avec feuilles lisibles + Audit_integrite.
+- Feuille technique _RESTAURATION contenant le snapshot JSON intégral en blocs contrôlés par SHA-256.
+- Copie technique .json téléchargée en parallèle.
+- PDF lisible téléchargé directement.
+- Les propriétés brutes des évaluations sont conservées dans le snapshot, y compris pièces jointes dataUrl lorsqu'elles existent.
+- Tous les objets : classes, élèves, professeurs, évaluations actives et archivées, situations, référentiel,
+  appConfig, paramètres et clés locales evaluation_*.
+
+RESTAURATION :
+- Nouveau bouton « Restaurer une sauvegarde » acceptant .xlsx ou .json.
+- Contrôle d'intégrité SHA-256 pour Excel.
+- Prévisualisation des volumes avant deux confirmations.
+- Restauration exacte des IDs et données locales.
+- Si Firebase est connecté : remplacement exact des collections classes / students / evaluations / comptes
+  et mise à jour des situations professionnelles + configuration.

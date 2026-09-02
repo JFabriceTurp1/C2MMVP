@@ -610,6 +610,10 @@ th,td{min-width:120px;padding:9px 8px} th:first-child,td:first-child{min-width:1
 .advanced-archive-note{padding:10px 12px;border:1px dashed #cbd5e1;border-radius:10px;background:#fff}
 @media(max-width:800px){.advanced-archive-actions{grid-template-columns:1fr}}
 
+
+/* V89.3 — restauration intégrale */
+.advanced-archive-action.restore{margin:14px 0;border-color:#9cc9b5;background:#f6fffa}
+.advanced-restore-file-btn{display:inline-flex!important;align-items:center;justify-content:center;cursor:pointer;width:auto!important;align-self:flex-start}
 </style>
 
 <style>
@@ -2301,7 +2305,18 @@ body{background:#f7f9fc;color:var(--text)}
         </div>
       </div>
 
-      <p class="muted advanced-archive-note">Le fichier Excel est généré au format .xlsx natif. Le PDF est téléchargé directement, sans fenêtre d’impression. Les pièces jointes sont répertoriées par leurs métadonnées (nom, type et taille) et ne sont pas intégrées au fichier Excel/PDF.</p>
+      <div class="advanced-archive-action restore">
+        <div>
+          <strong>3. Restaurer une sauvegarde intégrale</strong>
+          <p>Réimporte une sauvegarde créée par cette version depuis un fichier Excel (.xlsx) ou JSON. Les identifiants, classes, élèves, professeurs, évaluations, critères, situations, archives, paramètres et pièces jointes intégrées aux évaluations sont restaurés sans reconstruction manuelle.</p>
+        </div>
+        <label class="primary advanced-restore-file-btn">
+          ♻️ Restaurer une sauvegarde
+          <input type="file" accept=".xlsx,.json,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/json" onchange="restoreApplicationBackupFile(this)" style="display:none">
+        </label>
+      </div>
+
+      <p class="muted advanced-archive-note"><b>V89.3 :</b> le fichier Excel contient désormais une feuille technique <b>_RESTAURATION</b> avec une copie intégrale et contrôlée des données, y compris les champs bruts qui ne sont pas visibles dans les tableaux. Un fichier JSON technique est aussi téléchargé. Le PDF reste une archive lisible. Les pièces jointes stockées dans les évaluations sont conservées dans la sauvegarde technique et peuvent être restaurées.</p>
       <button type="button" class="secondary" onclick="lockAdvancedArchivePanel()">🔒 Reverrouiller</button>
     </div>
   </div>
@@ -5060,7 +5075,7 @@ async function importXLSXStudents(file){
 
 
 /* ============================================================
-   V89.2.2 — NOTES ARCHIVÉES COMPLÈTES
+   V89.3 — SAUVEGARDE INTÉGRALE RESTAURABLE
    Code demandé par l'administrateur : comparaison SHA-256.
    ============================================================ */
 let advancedArchiveUnlocked=false;
@@ -5123,15 +5138,32 @@ async function collectFullApplicationArchive(){
   const evaluations=await getAll("evaluations");
   let appConfig=[];
   try{appConfig=await getAll("appConfig")}catch(e){appConfig=[]}
+
+  const localStorageSnapshot={};
+  try{
+    for(let i=0;i<localStorage.length;i++){
+      const key=localStorage.key(i);
+      if(key && key.startsWith("evaluation_")){
+        localStorageSnapshot[key]=localStorage.getItem(key);
+      }
+    }
+  }catch(e){}
+
   const students=rawStudents.map(st=>({
     ...st,
     evaluations:evaluations.filter(ev=>String(ev.studentId)===String(st.id))
   }));
+
   return {
+    backupFormat:"EVALUATION_COMPETENCES_BACKUP",
+    backupSchemaVersion:1,
+    applicationVersion:"V89.3",
     generatedAt:archiveDateFr(),
     generatedAtIso:new Date().toISOString(),
+    database:{name:"C2MMVP_TEST_FICTIFS_V8",version:2},
     classes:getClasses().map(x=>({...x})),
     students,
+    rawStudents:rawStudents.map(x=>({...x})),
     evaluations:evaluations.map(x=>({...x})),
     teachers:archiveParseTeachers().map(x=>({...x})),
     situations:JSON.parse(JSON.stringify(PROFESSIONAL_SITUATIONS_V80||[])),
@@ -5139,7 +5171,16 @@ async function collectFullApplicationArchive(){
     schoolSettings:archiveSchoolSettings(),
     activeClassId:localStorage.getItem(ACTIVE_CLASS_STORAGE_KEY)||"",
     adminCode:localStorage.getItem("evaluation_admin_code_v71")||"",
-    appConfig
+    appConfig:JSON.parse(JSON.stringify(appConfig||[])),
+    localStorageSnapshot,
+    integrity:{
+      studentsCount:rawStudents.length,
+      evaluationsCount:evaluations.length,
+      classesCount:getClasses().length,
+      teachersCount:archiveParseTeachers().length,
+      situationsCount:(PROFESSIONAL_SITUATIONS_V80||[]).length,
+      competenciesCount:(competencies||[]).length
+    }
   };
 }
 function archiveClassName(id,snapshot){
@@ -5152,6 +5193,24 @@ function archiveTeacherName(id,snapshot){
   const t=snapshot.teachers.find(x=>String(x.id)===String(id));
   if(!t)return "";
   return [t.firstName,t.lastName].filter(Boolean).join(" ").trim()||t.name||"";
+}
+function archiveResolveTeacher(ev,snapshot){
+  const storedName=String(ev?.teacherName||ev?.professorName||ev?.profName||"").trim();
+  const id=String(ev?.teacherId||ev?.professorId||"").trim();
+  const fromId=id?archiveTeacherName(id,snapshot):"";
+  if(storedName)return {name:storedName,id,status:fromId?"Nom enregistré + ID retrouvé":"Nom enregistré"};
+  if(fromId)return {name:fromId,id,status:"Résolu depuis l’ID professeur"};
+  return {name:"",id,status:"Professeur non renseigné dans l’évaluation"};
+}
+function archiveEvaluationAudit(ev,snapshot){
+  const teacher=archiveResolveTeacher(ev,snapshot);
+  const st=snapshot.students.find(x=>String(x.id)===String(ev?.studentId));
+  const issues=[];
+  if(!st)issues.push("Élève introuvable");
+  if(!teacher.name)issues.push("Professeur non renseigné");
+  if(archiveEvaluationScore20(ev)==="")issues.push("Note non calculable / non évaluée");
+  if(!(ev?.comps||[]).length)issues.push("Aucune compétence");
+  return issues.join(" | ");
 }
 function archiveXmlEscape(v){
   return String(v??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
@@ -5214,7 +5273,50 @@ function archiveAppendSheet(wb,name,headers,rows){
   archiveAutoWidth(ws);
   XLSX.utils.book_append_sheet(wb,ws,String(name).slice(0,31));
 }
-function exportFullArchiveExcel(snapshot,options={}){
+
+function archiveDownloadJsonSnapshot(snapshot,prefix="Archive_complete_logiciel"){
+  const json=JSON.stringify(snapshot);
+  const blob=new Blob([json],{type:"application/json;charset=utf-8"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download=`${prefix}_${archiveTimestamp()}.json`;
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1500);
+}
+async function archiveAppendRestorePayload(wb,snapshot){
+  const json=JSON.stringify(snapshot);
+  const checksum=await sha256Hex(json);
+  const chunkSize=24000;
+  const chunks=[];
+  for(let i=0;i<json.length;i+=chunkSize)chunks.push(json.slice(i,i+chunkSize));
+  const rows=[
+    ["EVALUATION_COMPETENCES_BACKUP","1"],
+    ["Application",snapshot.applicationVersion||"V89.3"],
+    ["Date ISO",snapshot.generatedAtIso||""],
+    ["SHA-256",checksum],
+    ["Nombre de blocs",chunks.length],
+    ["Longueur JSON",json.length],
+    [],
+    ["Index","Données"]
+  ];
+  chunks.forEach((chunk,i)=>rows.push([i+1,chunk]));
+  const ws=XLSX.utils.aoa_to_sheet(rows);
+  ws["!cols"]=[{wch:18},{wch:85}];
+  XLSX.utils.book_append_sheet(wb,ws,"_RESTAURATION");
+}
+function archiveAuditRows(snapshot){
+  return snapshot.evaluations.map(ev=>{
+    const st=snapshot.students.find(x=>String(x.id)===String(ev.studentId));
+    const tr=archiveResolveTeacher(ev,snapshot);
+    return [
+      ev.id,st?.name||"",archiveClassName(st?.classId,snapshot),ev.date||ev.evaluationDate||"",
+      ev.title||"",ev.profSituation||"",archiveEvaluationScore20(ev),
+      tr.name,tr.id,tr.status,ev.archived?"Oui":"Non",archiveEvaluationAudit(ev,snapshot)
+    ];
+  });
+}
+
+async function exportFullArchiveExcel(snapshot,options={}){
   archiveRequireXlsx();
   const wb=XLSX.utils.book_new();
 
@@ -5246,19 +5348,22 @@ function exportFullArchiveExcel(snapshot,options={}){
     ]));
 
   archiveAppendSheet(wb,"Evaluations",
-    ["ID évaluation","Élève","ID élève","Classe","Date évaluation","Intitulé","Type","Lieu","Situation pro","Professeur","ID professeur","Collective / batch","Rétroactive","Note /20","Source note","Observation générale","Archivée","Date archivage","Date création","Fichier source rétroactif","Pièce jointe"],
+    ["ID évaluation","Élève","ID élève","Classe","Date évaluation","Intitulé","Type","Lieu","Situation pro","Professeur résolu","Nom professeur enregistré","ID professeur","État rattachement professeur","Collective / batch","Rétroactive","Note /20","Source note","Observation générale","Archivée","Date archivage","Date création","Date saisie","Date modification","Mode évaluation","Niveau rétroactif","Note estimée brute","Note calculée brute","Fichier source rétroactif","Pièce jointe","Type pièce jointe","Taille pièce jointe","Audit"],
     snapshot.evaluations.map(ev=>{
       const st=snapshot.students.find(x=>String(x.id)===String(ev.studentId));
       const att=archiveAttachmentMeta(ev.attachment);
+      const tr=archiveResolveTeacher(ev,snapshot);
       return [ev.id,st?.name||"",ev.studentId||"",archiveClassName(st?.classId,snapshot),
         ev.date||ev.evaluationDate||"",ev.title||"",ev.type||"",ev.place||"",ev.profSituation||"",
-        ev.teacherName||archiveTeacherName(ev.teacherId,snapshot),ev.teacherId||"",ev.batchId||"",
+        tr.name,ev.teacherName||"",tr.id,tr.status,ev.batchId||"",
         ev.retroactive?"Oui":"Non",archiveEvaluationScore20(ev),
         (ev.sourceNote20!==undefined&&ev.sourceNote20!==null&&ev.sourceNote20!=="")?"Import Excel rétroactif":"Calcul critères",
         ev.evaluationObservation||"",ev.archived?"Oui":"Non",
         ev.archivedAt?new Date(ev.archivedAt).toLocaleString("fr-FR"):"",
         ev.createdAt?new Date(ev.createdAt).toLocaleString("fr-FR"):"",
-        ev.retroImportFile||"",att.name];
+        ev.entryDate||"",ev.modifiedAt?new Date(ev.modifiedAt).toLocaleString("fr-FR"):"",
+        ev.evalPath||"",ev.retroPositionLevel||"",ev.retroEstimatedNote??"",ev.retroCalculatedNote??"",
+        ev.retroImportFile||"",att.name,att.type,att.size,archiveEvaluationAudit(ev,snapshot)];
     }));
 
   const criterionRows=[];
@@ -5307,9 +5412,15 @@ function exportFullArchiveExcel(snapshot,options={}){
   });
   archiveAppendSheet(wb,"Pieces_jointes",["ID évaluation","Élève","Date","Nom fichier","Type MIME","Taille octets"],attRows);
 
+  archiveAppendSheet(wb,"Audit_integrite",
+    ["ID évaluation","Élève","Classe","Date","Intitulé","SP","Note /20","Professeur résolu","ID professeur","Résolution professeur","Archivée","Anomalies détectées"],
+    archiveAuditRows(snapshot));
+
+  await archiveAppendRestorePayload(wb,snapshot);
   XLSX.writeFile(wb,`Archive_complete_logiciel_${archiveTimestamp()}.xlsx`,{compression:true});
+  archiveDownloadJsonSnapshot(snapshot,"Archive_complete_logiciel");
 }
-function exportStudentsOnlyExcel(snapshot){
+async function exportStudentsOnlyExcel(snapshot){
   archiveRequireXlsx();
   const wb=XLSX.utils.book_new();
   archiveAppendSheet(wb,"Eleves",["ID élève","Nom et prénom","ID classe","Classe","Nombre évaluations"],
@@ -5318,7 +5429,7 @@ function exportStudentsOnlyExcel(snapshot){
     ["ID évaluation","Élève","Classe","Date","Intitulé","Type","Situation pro","Professeur","Rétroactive","Note /20","Source note","Observation","Archivée"],
     snapshot.evaluations.map(ev=>{
       const st=snapshot.students.find(x=>String(x.id)===String(ev.studentId));
-      return [ev.id,st?.name||"",archiveClassName(st?.classId,snapshot),ev.date||"",ev.title||"",ev.type||"",ev.profSituation||"",ev.teacherName||"",ev.retroactive?"Oui":"Non",archiveEvaluationScore20(ev),(ev.sourceNote20!==undefined&&ev.sourceNote20!==null&&ev.sourceNote20!=="")?"Import Excel rétroactif":"Calcul critères",ev.evaluationObservation||"",ev.archived?"Oui":"Non"];
+      return [ev.id,st?.name||"",archiveClassName(st?.classId,snapshot),ev.date||"",ev.title||"",ev.type||"",ev.profSituation||"",archiveResolveTeacher(ev,snapshot).name,ev.retroactive?"Oui":"Non",archiveEvaluationScore20(ev),(ev.sourceNote20!==undefined&&ev.sourceNote20!==null&&ev.sourceNote20!=="")?"Import Excel rétroactif":"Calcul critères",ev.evaluationObservation||"",ev.archived?"Oui":"Non"];
     }));
   const criterionRows=[];
   snapshot.evaluations.forEach(ev=>{
@@ -5332,7 +5443,13 @@ function exportStudentsOnlyExcel(snapshot){
     });
   });
   archiveAppendSheet(wb,"Criteres",["Élève","Classe","Date","Compétence","Intitulé compétence","Critère","Niveau"],criterionRows);
+  archiveAppendSheet(wb,"Audit_integrite",
+    ["ID évaluation","Élève","Classe","Date","Intitulé","SP","Note /20","Professeur résolu","ID professeur","Résolution professeur","Archivée","Anomalies détectées"],
+    archiveAuditRows(snapshot));
+
+  await archiveAppendRestorePayload(wb,snapshot);
   XLSX.writeFile(wb,`Sauvegarde_toutes_listes_eleves_${archiveTimestamp()}.xlsx`,{compression:true});
+  archiveDownloadJsonSnapshot(snapshot,"Sauvegarde_toutes_listes_eleves");
 }
 
 function archiveHtmlEscape(v){
@@ -5372,7 +5489,7 @@ function openArchivePdfReport(snapshot,{studentsOnly=false}={}){
       if(!(st.evaluations||[]).length)rows.push([st.name,"","","","","",""]);
       else (st.evaluations||[]).forEach(ev=>{
         const note=archiveEvaluationScore20(ev);
-        rows.push([st.name,ev.date||"",ev.title||"",ev.profSituation||"",ev.teacherName||archiveTeacherName(ev.teacherId,snapshot),
+        rows.push([st.name,ev.date||"",ev.title||"",ev.profSituation||"",(archiveResolveTeacher(ev,snapshot).name||"Non renseigné"),
           note!==""?String(note)+" / 20":"",ev.archived?"Archivée":"Active"]);
       });
     });
@@ -5420,9 +5537,9 @@ async function archiveAllApplicationData(){
   if(!requireAdvancedArchiveUnlocked())return;
   try{
     const snapshot=await collectFullApplicationArchive();
-    exportFullArchiveExcel(snapshot);
+    await exportFullArchiveExcel(snapshot);
     openArchivePdfReport(snapshot,{studentsOnly:false});
-    showSuccessMessage("Archive générale téléchargée : fichier Excel (.xlsx) et fichier PDF enregistrés dans les téléchargements.");
+    showSuccessMessage("Archive générale téléchargée : Excel (.xlsx), PDF et copie technique JSON enregistrés dans les téléchargements.");
   }catch(err){
     showWarningMessage("Impossible de créer l’archive générale : "+(err?.message||String(err)));
   }
@@ -5442,11 +5559,11 @@ async function backupAndDeleteAllStudentLists(){
     );
     if(!ok)return;
 
-    exportStudentsOnlyExcel(snapshot);
+    await exportStudentsOnlyExcel(snapshot);
     openArchivePdfReport(snapshot,{studentsOnly:true});
 
     const second=confirm(
-      "La sauvegarde Excel et le PDF viennent d’être téléchargés.\n\n"+
+      "La sauvegarde Excel, le PDF et la copie technique JSON viennent d’être téléchargés.\n\n"+
       "Confirmer maintenant la SUPPRESSION DÉFINITIVE de toutes les listes d’élèves et de toutes leurs évaluations du logiciel ?"
     );
     if(!second)return;
@@ -5467,6 +5584,149 @@ async function backupAndDeleteAllStudentLists(){
     showWarningMessage("La sauvegarde / suppression a échoué : "+(err?.message||String(err)));
   }
 }
+
+async function readApplicationBackupFile(file){
+  if(/\.json$/i.test(file.name)){
+    const snapshot=JSON.parse(await file.text());
+    validateApplicationBackupSnapshot(snapshot);
+    return snapshot;
+  }
+  archiveRequireXlsx();
+  const wb=XLSX.read(await file.arrayBuffer(),{type:"array"});
+  const ws=wb.Sheets["_RESTAURATION"];
+  if(!ws)throw new Error("Cette sauvegarde Excel ne contient pas la feuille technique _RESTAURATION.");
+  const rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:false,defval:""});
+  if(String(rows?.[0]?.[0]||"")!=="EVALUATION_COMPETENCES_BACKUP"){
+    throw new Error("Format de sauvegarde non reconnu.");
+  }
+  const checksum=String(rows?.[3]?.[1]||"");
+  const start=rows.findIndex(r=>String(r?.[0]||"")==="Index"&&String(r?.[1]||"")==="Données");
+  if(start<0)throw new Error("Blocs de restauration introuvables.");
+  const chunks=rows.slice(start+1)
+    .filter(r=>String(r?.[0]||"").trim()!=="")
+    .sort((a,b)=>Number(a[0])-Number(b[0]))
+    .map(r=>String(r[1]??""));
+  const json=chunks.join("");
+  if(!json)throw new Error("La sauvegarde ne contient aucune donnée de restauration.");
+  const actual=await sha256Hex(json);
+  if(checksum && actual!==checksum)throw new Error("Contrôle d’intégrité impossible : le contenu de la sauvegarde a été modifié ou endommagé.");
+  const snapshot=JSON.parse(json);
+  validateApplicationBackupSnapshot(snapshot);
+  return snapshot;
+}
+function validateApplicationBackupSnapshot(snapshot){
+  if(!snapshot||snapshot.backupFormat!=="EVALUATION_COMPETENCES_BACKUP"){
+    throw new Error("Ce fichier n'est pas une sauvegarde intégrale reconnue.");
+  }
+  if(!Array.isArray(snapshot.classes)||!Array.isArray(snapshot.evaluations)||!Array.isArray(snapshot.teachers)||!Array.isArray(snapshot.competencies)){
+    throw new Error("La sauvegarde est incomplète : certaines collections essentielles sont absentes.");
+  }
+  if(!Array.isArray(snapshot.rawStudents)&&!Array.isArray(snapshot.students)){
+    throw new Error("La sauvegarde ne contient pas les élèves.");
+  }
+}
+function restorePreviewText(snapshot){
+  const rawStudents=Array.isArray(snapshot.rawStudents)?snapshot.rawStudents:snapshot.students.map(st=>{
+    const x={...st};delete x.evaluations;return x;
+  });
+  return [
+    `Version de sauvegarde : ${snapshot.applicationVersion||"inconnue"}`,
+    `Date : ${snapshot.generatedAt||snapshot.generatedAtIso||""}`,
+    `Classes : ${snapshot.classes.length}`,
+    `Élèves : ${rawStudents.length}`,
+    `Professeurs : ${snapshot.teachers.length}`,
+    `Évaluations : ${snapshot.evaluations.length}`,
+    `Évaluations archivées : ${snapshot.evaluations.filter(e=>e.archived).length}`,
+    `Situations professionnelles : ${(snapshot.situations||[]).length}`,
+    `Compétences : ${snapshot.competencies.length}`
+  ].join("\n");
+}
+async function restoreApplicationBackupFile(input){
+  const file=input?.files?.[0];
+  if(!file)return;
+  try{
+    if(!requireAdvancedArchiveUnlocked())return;
+    const snapshot=await readApplicationBackupFile(file);
+    const preview=restorePreviewText(snapshot);
+    const ok=confirm(
+      "SAUVEGARDE CONTRÔLÉE.\n\n"+preview+
+      "\n\nLa restauration va REMPLACER les données locales actuelles par celles de cette sauvegarde. "+
+      "Si Firebase est connecté, une tentative de restauration de la copie Firebase sera également effectuée.\n\nContinuer ?"
+    );
+    if(!ok)return;
+    const second=confirm("Confirmation finale : restaurer exactement cette sauvegarde maintenant ?");
+    if(!second)return;
+    await restoreApplicationSnapshot(snapshot);
+    showSuccessMessage("Sauvegarde restaurée avec succès. Les données ont été rechargées dans le logiciel.",()=>go("home"));
+  }catch(err){
+    showWarningMessage("Restauration impossible : "+(err?.message||String(err)));
+  }finally{
+    if(input)input.value="";
+  }
+}
+async function restoreApplicationSnapshot(snapshot){
+  validateApplicationBackupSnapshot(snapshot);
+  await openDB();
+
+  const rawStudents=Array.isArray(snapshot.rawStudents)?snapshot.rawStudents:snapshot.students.map(st=>{
+    const x={...st};delete x.evaluations;return x;
+  });
+
+  // 1. Restaurer d'abord les paramètres et référentiels.
+  if(Array.isArray(snapshot.classes))saveClasses(snapshot.classes.map(x=>({...x})));
+  if(Array.isArray(snapshot.teachers)){
+    safeLocalSetItem(TEACHERS_STORAGE_KEY,JSON.stringify(snapshot.teachers));
+  }
+  if(Array.isArray(snapshot.situations)){
+    PROFESSIONAL_SITUATIONS_V80=JSON.parse(JSON.stringify(snapshot.situations));
+    safeLocalSetItem(PROFESSIONAL_SITUATIONS_STORAGE_KEY,JSON.stringify(PROFESSIONAL_SITUATIONS_V80));
+  }
+  if(Array.isArray(snapshot.competencies)&&snapshot.competencies.length){
+    competencies=JSON.parse(JSON.stringify(snapshot.competencies));
+    await saveCompetenciesLargeStore(competencies);
+  }
+  if(snapshot.schoolSettings&&typeof snapshot.schoolSettings==="object"){
+    safeLocalSetItem(SCHOOL_SETTINGS_KEY,JSON.stringify(snapshot.schoolSettings));
+  }
+  if(snapshot.adminCode!==undefined)safeLocalSetItem(SETTINGS_ADMIN_KEY,String(snapshot.adminCode||""));
+  if(snapshot.activeClassId!==undefined)safeLocalSetItem(ACTIVE_CLASS_STORAGE_KEY,String(snapshot.activeClassId||""));
+
+  // Restaurer les autres petites clés evaluation_* conservées, sans réintroduire
+  // les anciennes grosses clés du référentiel qui ont été migrées vers IndexedDB.
+  if(snapshot.localStorageSnapshot&&typeof snapshot.localStorageSnapshot==="object"){
+    Object.entries(snapshot.localStorageSnapshot).forEach(([k,v])=>{
+      if(k==="evaluation_competencies_v74"||k==="evaluation_competencies_v71")return;
+      if(k===TEACHERS_STORAGE_KEY||k===PROFESSIONAL_SITUATIONS_STORAGE_KEY||k===SCHOOL_SETTINGS_KEY||k===ACTIVE_CLASS_STORAGE_KEY||k===SETTINGS_ADMIN_KEY)return;
+      if(v!==null&&v!==undefined)safeLocalSetItem(k,String(v));
+    });
+  }
+
+  // 2. Remplacer les stores IndexedDB.
+  await clearStore("students");
+  await clearStore("evaluations");
+  try{await clearStore("appConfig")}catch(e){}
+  for(const item of (snapshot.appConfig||[])){
+    if(item&&item.key!==undefined)await put("appConfig",JSON.parse(JSON.stringify(item)));
+  }
+  for(const st of rawStudents){
+    await put("students",JSON.parse(JSON.stringify(st)));
+  }
+  for(const ev of snapshot.evaluations){
+    const clean=JSON.parse(JSON.stringify(ev));
+    if(clean.id!==undefined&&clean.id!==null&&/^\d+$/.test(String(clean.id)))clean.id=Number(clean.id);
+    await put("evaluations",clean);
+  }
+
+  // 3. Recharger l'application avant la restauration distante.
+  await loadData();
+
+  // 4. Si Firebase est connecté, remplacer aussi la copie distante.
+  if(typeof window.firebaseRestoreArchiveSnapshot==="function"){
+    await window.firebaseRestoreArchiveSnapshot(snapshot);
+  }
+}
+window.restoreApplicationBackupFile=restoreApplicationBackupFile;
+
 window.unlockAdvancedArchivePanel=unlockAdvancedArchivePanel;
 window.lockAdvancedArchivePanel=lockAdvancedArchivePanel;
 window.archiveAllApplicationData=archiveAllApplicationData;
@@ -7864,6 +8124,57 @@ function openAssistanceMail(){
     await userRoot().collection(name).doc(String(id)).set(clean,{merge:true});
   }
   window.firebaseCloudSet=cloudSet;
+
+  async function firebaseReplaceCollectionExact(name,items){
+    if(!auth?.currentUser)return;
+    const col=userRoot().collection(name);
+    const existing=await col.get();
+    const wanted=new Set((items||[]).map(x=>String(x.id)));
+    for(const d of existing.docs){
+      if(!wanted.has(String(d.id)))await d.ref.delete();
+    }
+    for(const item of (items||[])){
+      if(item?.id===undefined||item?.id===null)continue;
+      const clean=JSON.parse(JSON.stringify(item));
+      if(name==="students")delete clean.evaluations;
+      await col.doc(String(item.id)).set(clean,{merge:false});
+    }
+  }
+  window.firebaseRestoreArchiveSnapshot=async function(snapshot){
+    if(!auth?.currentUser)return {connected:false};
+    setStatus("Restauration Firebase…","warn");
+    const rawStudents=Array.isArray(snapshot.rawStudents)?snapshot.rawStudents:snapshot.students.map(st=>{const x={...st};delete x.evaluations;return x;});
+    await firebaseReplaceCollectionExact("classes",snapshot.classes||[]);
+    await firebaseReplaceCollectionExact("students",rawStudents||[]);
+    await firebaseReplaceCollectionExact("evaluations",snapshot.evaluations||[]);
+
+    // Comptes professeurs : remplacement exact.
+    const accounts=(snapshot.teachers||[]).map(t=>({
+      id:String(t.id||""),
+      firstName:String(t.firstName||""),
+      lastName:String(t.lastName||""),
+      code:String(t.code||""),
+      role:t.role||((t.isAdmin===true)?"administrateur":"professeur"),
+      isAdmin:t.isAdmin===true,
+      active:t.active!==false,
+      assignedClasses:Array.isArray(t.assignedClasses)?t.assignedClasses.map(String):[]
+    })).filter(t=>t.id);
+    await firebaseReplaceCollectionExact("comptes",accounts);
+
+    // Situation professionnelle + configuration complète.
+    if(Array.isArray(snapshot.situations)){
+      await userRoot().collection("situationsProfessionnelles").doc("library").set({
+        items:JSON.parse(JSON.stringify(snapshot.situations)),
+        version:"V89.3",
+        restoredAt:firebase.firestore.FieldValue.serverTimestamp()
+      },{merge:false});
+    }
+    const cfg=firebaseBuildApplicationConfig();
+    await saveFullConfig(cfg);
+    setStatus("✓ Sauvegarde restaurée dans Firebase","ok");
+    return {connected:true};
+  };
+
   async function cloudGetOne(name,id){
     const snap=await userRoot().collection(name).doc(String(id)).get();
     return snap.exists?({id:snap.id,...snap.data()}):null;
