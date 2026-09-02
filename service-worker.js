@@ -1,4 +1,4 @@
-const CACHE_NAME="competences-mv-v88-6-nav-sidebar-v89";
+const CACHE_NAME="competences-mv-v89-1-2-quota";
 self.addEventListener("install",e=>e.waitUntil(caches.open(CACHE_NAME).then(c=>c.addAll(["./","./index.html"])).then(()=>self.skipWaiting())));
 self.addEventListener("activate",e=>e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==CACHE_NAME).map(x=>caches.delete(x)))).then(()=>self.clients.claim())));
 self.addEventListener("fetch",e=>{const u=new URL(e.request.url);if(e.request.method!=="GET"||/firebase|googleapis|gstatic|google\.com/.test(u.hostname))return;if(e.request.mode==="navigate")e.respondWith(fetch(e.request).catch(()=>caches.match("./index.html")));});

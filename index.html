@@ -544,7 +544,7 @@ th,td{min-width:120px;padding:9px 8px} th:first-child,td:first-child{min-width:1
 }
 
 
-/* V89 — Firebase compact + gestion élèves par classe */
+/* V89.1 — Firebase compact + gestion élèves par classe */
 #firebase-sync-popover{
   min-width:235px!important;
   max-width:285px!important;
@@ -560,6 +560,42 @@ th,td{min-width:120px;padding:9px 8px} th:first-child,td:first-child{min-width:1
 #settings-student-class-select{
   width:100%;min-height:42px;border:1px solid #cbd5e1;border-radius:9px;background:#fff;
   padding:8px 10px;font:inherit;font-weight:700;color:#17365d
+}
+
+
+/* V89.1 ESSAI — import rétroactif collectif Excel */
+.eval-choice-card.retro-excel{border-color:#9b8afb;background:linear-gradient(180deg,#faf9ff,#f4f1ff)}
+.eval-choice-card.retro-excel .eval-choice-icon{background:#ede9fe}
+.retro-excel-beta{
+  display:inline-flex;align-items:center;padding:3px 7px;border-radius:999px;
+  background:#ede9fe;color:#6941c6;font-size:10px;font-weight:900;vertical-align:middle
+}
+.retro-xlsx-panel{margin-bottom:14px}
+.retro-xlsx-step{display:flex;gap:11px;align-items:flex-start;margin-bottom:12px}
+.retro-xlsx-step h3{margin:0 0 4px}
+.retro-xlsx-num{
+  width:29px;height:29px;flex:0 0 29px;border-radius:999px;background:#6941c6;color:#fff;
+  display:flex;align-items:center;justify-content:center;font-weight:900
+}
+.retro-xlsx-file-btn{display:inline-flex!important;align-items:center;justify-content:center;cursor:pointer;width:auto!important}
+.retro-xlsx-check{display:flex!important;flex-direction:row!important;gap:8px;align-items:center!important;padding-top:28px}
+.retro-xlsx-check input{width:auto!important;margin:0}
+.retro-xlsx-summary{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 12px}
+.retro-xlsx-summary span{padding:6px 9px;border-radius:999px;background:#f2f4f7;font-size:12px;font-weight:800}
+.retro-xlsx-summary .retro-xlsx-ok{background:#ecfdf3;color:#027a48}
+.retro-xlsx-summary .retro-xlsx-error{background:#fef3f2;color:#b42318}
+.retro-xlsx-table-wrap{overflow:auto;max-height:430px;border:1px solid #e4e7ec;border-radius:11px}
+.retro-xlsx-table{width:100%;border-collapse:collapse;font-size:12px}
+.retro-xlsx-table th,.retro-xlsx-table td{padding:8px 9px;border-bottom:1px solid #eaecf0;text-align:left;white-space:nowrap}
+.retro-xlsx-table th{position:sticky;top:0;background:#f8fafc;z-index:1}
+.retro-xlsx-skip{opacity:.58}
+.retro-xlsx-error td:last-child{color:#b42318;font-weight:800}
+.retro-xlsx-ok td:last-child{color:#027a48;font-weight:800}
+.retro-xlsx-levels{display:flex;gap:7px;flex-wrap:wrap;margin:10px 0 14px}
+.retro-xlsx-levels span{font-size:11px;font-weight:800;padding:6px 9px;border:1px solid #d0d5dd;border-radius:999px;background:#fff}
+@media(max-width:700px){
+  .retro-xlsx-check{padding-top:0}
+  .retro-xlsx-table{min-width:660px}
 }
 
 </style>
@@ -2243,6 +2279,32 @@ body{background:#f7f9fc;color:var(--text)}
 <script src="https://www.gstatic.com/firebasejs/12.2.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.2.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore-compat.js"></script>
+
+<script>
+/* V89.1.2 — libération immédiate du quota localStorage.
+   On récupère l'ancien référentiel en mémoire, puis on retire les anciennes
+   grosses clés AVANT le démarrage du reste de l'application. */
+(function(){
+  try{
+    var raw74=localStorage.getItem("evaluation_competencies_v74");
+    var raw71=localStorage.getItem("evaluation_competencies_v71");
+    var raw=raw74||raw71;
+    if(raw){
+      try{
+        var parsed=JSON.parse(raw);
+        if(Array.isArray(parsed)&&parsed.length){
+          window.__legacyCompetenciesForMigration=parsed;
+        }
+      }catch(e){}
+    }
+    localStorage.removeItem("evaluation_competencies_v74");
+    localStorage.removeItem("evaluation_competencies_v71");
+    window.__quotaBootstrapDone=true;
+  }catch(e){
+    window.__quotaBootstrapError=String(e&&e.message||e);
+  }
+})();
+</script>
 <script>
 async function resetFictitiousDemoData(){
   if(!confirm("Réinitialiser les données de démonstration avec les 10 élèves fictifs ?")) return;
@@ -2420,18 +2482,24 @@ let competencies=[
 
 const REFERENTIEL_STORAGE_KEY_V74="evaluation_competencies_v74";
 function loadCustomCompetencies(){
+  // V89.1.2 : priorité au référentiel récupéré en mémoire par le bootstrap quota.
+  try{
+    const migrated=window.__legacyCompetenciesForMigration;
+    if(Array.isArray(migrated)&&migrated.length){
+      competencies=JSON.parse(JSON.stringify(migrated));
+      return;
+    }
+  }catch(e){}
+  // Compatibilité lecture si une ancienne clé subsiste malgré tout.
   try{
     const raw=localStorage.getItem(REFERENTIEL_STORAGE_KEY_V74) || localStorage.getItem("evaluation_competencies_v71");
     if(!raw)return;
     const parsed=JSON.parse(raw);
-    if(Array.isArray(parsed)&&parsed.length){
-      competencies=parsed;
-      if(!localStorage.getItem(REFERENTIEL_STORAGE_KEY_V74)) localStorage.setItem(REFERENTIEL_STORAGE_KEY_V74,JSON.stringify(parsed));
-    }
+    if(Array.isArray(parsed)&&parsed.length) competencies=parsed;
   }catch(e){console.warn("Référentiel personnalisé non chargé",e);}
 }
 function persistCompetencies(){
-  localStorage.setItem(REFERENTIEL_STORAGE_KEY_V74,JSON.stringify(competencies));
+  saveCompetenciesLargeStore(competencies).catch(e=>console.warn("Référentiel non enregistré dans IndexedDB",e));
   syncFirebaseApplicationConfigSoon();
 }
 
@@ -2451,6 +2519,26 @@ let pendingReferentielImport=null;
 const CLASSES_STORAGE_KEY="evaluation_classes_v77";
 const ACTIVE_CLASS_STORAGE_KEY="evaluation_active_class_v77";
 
+function safeLocalSetItem(key,value){
+  try{
+    localStorage.setItem(key,value);
+    return true;
+  }catch(e){
+    if(e && (e.name==="QuotaExceededError" || String(e.message||"").includes("quota"))){
+      try{
+        localStorage.removeItem("evaluation_competencies_v74");
+        localStorage.removeItem("evaluation_competencies_v71");
+        localStorage.setItem(key,value);
+        return true;
+      }catch(e2){
+        console.warn("Stockage local saturé pour "+key,e2);
+        return false;
+      }
+    }
+    throw e;
+  }
+}
+
 function slugClassId(name){
   const base=String(name||"classe").normalize("NFD").replace(/[\u0300-\u036f]/g,"")
     .toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")||"classe";
@@ -2468,8 +2556,8 @@ function getClasses(){
         }catch(e){return "C2MMVP";}
       })();
       list=[{id:"class_default",name:legacy,archived:false,createdAt:Date.now()}];
-      localStorage.setItem(CLASSES_STORAGE_KEY,JSON.stringify(list));
-      localStorage.setItem(ACTIVE_CLASS_STORAGE_KEY,list[0].id);
+      safeLocalSetItem(CLASSES_STORAGE_KEY,JSON.stringify(list));
+      safeLocalSetItem(ACTIVE_CLASS_STORAGE_KEY,list[0].id);
     }
     return list;
   }catch(e){
@@ -2477,7 +2565,7 @@ function getClasses(){
   }
 }
 function saveClasses(list){
-  localStorage.setItem(CLASSES_STORAGE_KEY,JSON.stringify(list));
+  safeLocalSetItem(CLASSES_STORAGE_KEY,JSON.stringify(list));
 }
 const saveClassesLocalOriginal = saveClasses;
 function getActiveClassId(){
@@ -2488,7 +2576,7 @@ function getActiveClassId(){
     || permitted[0]
     || (isAdminTeacher()?classes.find(c=>!c.archived):null)
     || classes[0];
-  if(active) localStorage.setItem(ACTIVE_CLASS_STORAGE_KEY,active.id);
+  if(active) safeLocalSetItem(ACTIVE_CLASS_STORAGE_KEY,active.id);
   return active?.id||"class_default";
 }
 function getActiveClass(){
@@ -2505,7 +2593,7 @@ async function setActiveClass(id){
     showWarningMessage("Cette classe ne vous a pas été attribuée par l’administrateur.");
     return;
   }
-  localStorage.setItem(ACTIVE_CLASS_STORAGE_KEY,cls.id);
+  safeLocalSetItem(ACTIVE_CLASS_STORAGE_KEY,cls.id);
   selectedStudent=null;
   viewedEvaluation=null;
   draft=null;
@@ -2612,13 +2700,16 @@ function syncLegacyClassName(){
 loadCustomCompetencies();
 function openDB(){
   return new Promise((resolve,reject)=>{
-    const req=indexedDB.open("C2MMVP_TEST_FICTIFS_V8",1);
+    const req=indexedDB.open("C2MMVP_TEST_FICTIFS_V8",2);
     req.onupgradeneeded=()=>{
       const d=req.result;
       if(!d.objectStoreNames.contains("students")) d.createObjectStore("students",{keyPath:"id"});
       if(!d.objectStoreNames.contains("evaluations")){
         const st=d.createObjectStore("evaluations",{keyPath:"id",autoIncrement:true});
         st.createIndex("studentId","studentId",{unique:false});
+      }
+      if(!d.objectStoreNames.contains("appConfig")){
+        d.createObjectStore("appConfig",{keyPath:"key"});
       }
     };
     req.onsuccess=()=>{db=req.result;resolve(db)};
@@ -2651,6 +2742,38 @@ function clearStore(store){
   });
 }
 
+async function saveLargeConfigValue(key,value){
+  await openDB();
+  return new Promise((resolve,reject)=>{
+    const r=tx("appConfig","readwrite").put({key,value,updatedAt:Date.now()});
+    r.onsuccess=()=>resolve();
+    r.onerror=()=>reject(r.error);
+  });
+}
+async function loadLargeConfigValue(key){
+  await openDB();
+  return new Promise((resolve,reject)=>{
+    const r=tx("appConfig","readonly").get(key);
+    r.onsuccess=()=>resolve(r.result?.value);
+    r.onerror=()=>reject(r.error);
+  });
+}
+async function saveCompetenciesLargeStore(list){
+  if(!Array.isArray(list)||!list.length)return;
+  await saveLargeConfigValue("competencies_v74",list);
+  try{localStorage.removeItem(REFERENTIEL_STORAGE_KEY_V74);}catch(e){}
+}
+async function loadCompetenciesLargeStore(){
+  try{
+    const list=await loadLargeConfigValue("competencies_v74");
+    if(Array.isArray(list)&&list.length){
+      competencies=list;
+      return true;
+    }
+  }catch(e){console.warn("Référentiel IndexedDB non chargé",e);}
+  return false;
+}
+
 const V77_SECOND_CLASS_FICTITIOUS_STUDENTS=[
   "ALBERT Lucas","BARET Emma","BENARD Noé","BOYER Inès","CAZAL Théo",
   "DUPUIS Léa","FONTAINE Yanis","GONTHIER Jade","HOARAU Mathis","LACROIX Chloé",
@@ -2680,6 +2803,17 @@ async function ensureSecondClassFictitiousStudents(){
 
 async function loadData(){
   await openDB();
+  if(Array.isArray(window.__legacyCompetenciesForMigration)&&window.__legacyCompetenciesForMigration.length){
+    try{
+      await saveCompetenciesLargeStore(window.__legacyCompetenciesForMigration);
+      competencies=JSON.parse(JSON.stringify(window.__legacyCompetenciesForMigration));
+      delete window.__legacyCompetenciesForMigration;
+    }catch(e){
+      console.warn("Migration du référentiel vers IndexedDB impossible",e);
+    }
+  }else{
+    await loadCompetenciesLargeStore();
+  }
   await ensureSecondClassFictitiousStudents();
   const activeId=getActiveClassId();
   let stored=await getAll("students");
@@ -2910,6 +3044,7 @@ function render(){
  if(page==="home")home();
  else if(page==="students")studentsPage();
  else if(page==="evalChoice")evaluationChoicePage();
+ else if(page==="retroExcel")retroExcelPage();
  else if(page==="eval")evaluationPage();
  else if(page==="viewEval")viewEvaluationPage();
  else if(page==="comps")compsPage();
@@ -3286,9 +3421,472 @@ function evaluationChoicePage(){
           <p>Reconstituer le niveau d’un élève à une date antérieure, par compétence(s) ou à partir d’une situation professionnelle.</p>
           <div class="eval-choice-action">Créer un positionnement rétroactif →</div>
         </button>
+        <button type="button" class="eval-choice-card retro-excel" onclick="openRetroExcelImport()">
+          <div class="eval-choice-icon">📊</div>
+          <h2>Import rétroactif collectif <span class="retro-excel-beta">ESSAI</span></h2>
+          <p>Importer le tableau Excel de positionnement et créer automatiquement les évaluations par situation professionnelle pour plusieurs élèves.</p>
+          <div class="eval-choice-action">Préparer l’import Excel →</div>
+        </button>
       </div>
       <div class="eval-choice-back"><button type="button" class="secondary" onclick="go('home')">← Retour à l’accueil</button></div>
     </div>`;
+}
+
+
+/* ============================================================
+   V89.1.2 ESSAI — IMPORT EXCEL RÉTROACTIF COLLECTIF
+   Le fichier n'est jamais intégré au logiciel : l'utilisateur
+   le choisit localement, prévisualise puis valide la création.
+   ============================================================ */
+let retroExcelImportState={
+  defaultDate:"2025-09-01",
+  useFileDate:false,
+  fileName:"",
+  rows:[],
+  parsedRows:[],
+  reading:false
+};
+
+function openRetroExcelImport(){
+  retroExcelImportState={
+    defaultDate:"2025-09-01",
+    useFileDate:false,
+    fileName:"",
+    rows:[],
+    parsedRows:[],
+    reading:false
+  };
+  page="retroExcel";
+  render();
+}
+
+function retroNormalize(v){
+  return String(v??"").trim().toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+    .replace(/[’']/g," ").replace(/[-–—]/g," ")
+    .replace(/\s+/g," ").trim();
+}
+function retroNormalizeSP(v){
+  return String(v??"").toUpperCase().replace(/[^A-Z0-9]/g,"");
+}
+function retroExcelSerialToISO(v){
+  const n=Number(v);
+  if(!Number.isFinite(n) || n<20000 || n>80000)return "";
+  const d=new Date(Date.UTC(1899,11,30)+Math.round(n*86400000));
+  return d.toISOString().slice(0,10);
+}
+function retroDateToISO(v){
+  if(v===null||v===undefined||v==="")return "";
+  if(typeof v==="number" || /^\d+(?:\.\d+)?$/.test(String(v).trim())){
+    const serial=retroExcelSerialToISO(v);
+    if(serial)return serial;
+  }
+  const x=String(v).trim();
+  let m=x.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if(m)return `${m[1]}-${String(m[2]).padStart(2,"0")}-${String(m[3]).padStart(2,"0")}`;
+  m=x.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/);
+  if(m)return `${m[3]}-${String(m[2]).padStart(2,"0")}-${String(m[1]).padStart(2,"0")}`;
+  return "";
+}
+function retroIsoToFr(iso){
+  const m=String(iso||"").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return m?`${m[3]}/${m[2]}/${m[1]}`:String(iso||"");
+}
+function retroParseNote(v){
+  if(v===null||v===undefined)return null;
+  const t=String(v).trim();
+  if(!t || retroNormalize(t)==="non evalue")return null;
+  const n=Number(t.replace(",","."));
+  return Number.isFinite(n)&&n>=0&&n<=20?n:NaN;
+}
+function retroLevelFromNote(note){
+  const n=Number(note);
+  if(n<5)return "À renforcer";
+  if(n<10)return "En cours";
+  if(n<15)return "Maîtrisé";
+  return "Autonome";
+}
+function retroFindSituation(code,label){
+  const nc=retroNormalizeSP(code);
+  const nl=retroNormalize(label);
+  return PROFESSIONAL_SITUATIONS_V80.find(sp=>retroNormalizeSP(sp.code)===nc)
+    || PROFESSIONAL_SITUATIONS_V80.find(sp=>retroNormalize(sp.label||sp.title)===nl)
+    || null;
+}
+function retroFindClass(name){
+  const n=retroNormalize(name);
+  if(n){
+    const c=getClasses().find(c=>!c.archived && retroNormalize(c.name)===n);
+    if(c)return c;
+  }
+  return getActiveClass();
+}
+function retroFindStudent(name,classId){
+  const n=retroNormalize(name);
+  const sameClass=allStudents.filter(st=>String(st.classId)===String(classId));
+  let st=sameClass.find(st=>retroNormalize(st.name)===n);
+  if(st)return st;
+  // Secours très prudent : uniquement si le même nom n'existe qu'une fois dans toute la base.
+  const global=allStudents.filter(st=>retroNormalize(st.name)===n);
+  return global.length===1?global[0]:null;
+}
+
+async function retroUnzipXlsx(file){
+  const bytes=new Uint8Array(await file.arrayBuffer());
+  const u16=i=>bytes[i]|(bytes[i+1]<<8);
+  const u32=i=>(bytes[i]|(bytes[i+1]<<8)|(bytes[i+2]<<16)|(bytes[i+3]<<24))>>>0;
+  const inflate=data=>new Response(new Blob([data]).stream().pipeThrough(new DecompressionStream("deflate-raw"))).arrayBuffer();
+  const out={};
+  for(let i=0;i<bytes.length-3;i++){
+    if(u32(i)!==0x04034b50)continue;
+    const method=u16(i+8),csize=u32(i+18),nlen=u16(i+26),elen=u16(i+28);
+    const name=new TextDecoder().decode(bytes.slice(i+30,i+30+nlen));
+    const start=i+30+nlen+elen,data=bytes.slice(start,start+csize);
+    let raw;
+    if(method===0)raw=data.buffer;
+    else if(method===8)raw=await inflate(data);
+    else continue;
+    out[name]=new TextDecoder().decode(new Uint8Array(raw));
+    i=start+csize-1;
+  }
+  return out;
+}
+function retroCellColumn(ref){
+  const letters=(String(ref).match(/[A-Z]+/)||["A"])[0];
+  let n=0;for(const ch of letters)n=n*26+(ch.charCodeAt(0)-64);
+  return n-1;
+}
+function retroRowsFromSheetXml(xml,shared){
+  const d=new DOMParser().parseFromString(xml,"application/xml");
+  return [...d.querySelectorAll("row")].map(row=>{
+    const vals=[];
+    row.querySelectorAll("c").forEach(c=>{
+      const idx=retroCellColumn(c.getAttribute("r")||"A");
+      const t=c.getAttribute("t"),v=c.querySelector("v"),is=c.querySelector("is");
+      let val="";
+      if(t==="s"&&v)val=shared[Number(v.textContent)]??"";
+      else if(t==="inlineStr"&&is)val=[...is.querySelectorAll("t")].map(x=>x.textContent).join("");
+      else if(v)val=v.textContent;
+      vals[idx]=val;
+    });
+    return vals;
+  }).filter(r=>r.some(v=>String(v??"").trim()!==""));
+}
+async function retroReadExcelRows(file){
+  if(/\.csv$/i.test(file.name)){
+    const text=await file.text();
+    const lines=text.replace(/\r/g,"").split("\n").filter(Boolean);
+    const sep=(lines[0]?.split(";").length||0)>(lines[0]?.split(",").length||0)?";":",";
+    const split=line=>{
+      const out=[];let cur="",quoted=false;
+      for(let i=0;i<line.length;i++){
+        const ch=line[i];
+        if(ch==='"' && line[i+1]==='"'){cur+='"';i++;continue;}
+        if(ch==='"'){quoted=!quoted;continue;}
+        if(ch===sep&&!quoted){out.push(cur);cur="";continue;}
+        cur+=ch;
+      }
+      out.push(cur);return out;
+    };
+    return lines.map(split);
+  }
+
+  const entries=await retroUnzipXlsx(file);
+  const parser=new DOMParser();
+  const shared=[];
+  if(entries["xl/sharedStrings.xml"]){
+    const d=parser.parseFromString(entries["xl/sharedStrings.xml"],"application/xml");
+    d.querySelectorAll("si").forEach(si=>shared.push([...si.querySelectorAll("t")].map(t=>t.textContent).join("")));
+  }
+
+  let target="";
+  const workbook=entries["xl/workbook.xml"];
+  const rels=entries["xl/_rels/workbook.xml.rels"];
+  if(workbook&&rels){
+    const wb=parser.parseFromString(workbook,"application/xml");
+    const sheet=[...wb.querySelectorAll("sheet")].find(x=>retroNormalize(x.getAttribute("name"))==="format import");
+    if(sheet){
+      const rid=sheet.getAttribute("r:id")||sheet.getAttributeNS("http://schemas.openxmlformats.org/officeDocument/2006/relationships","id");
+      const rd=parser.parseFromString(rels,"application/xml");
+      const rel=[...rd.querySelectorAll("Relationship")].find(x=>x.getAttribute("Id")===rid);
+      if(rel){
+        const t=rel.getAttribute("Target")||"";
+        target=t.startsWith("/")?t.slice(1):("xl/"+t.replace(/^\.\//,""));
+        target=target.replace(/xl\/worksheets\/\.\.\//,"xl/");
+      }
+    }
+  }
+  if(!target || !entries[target]){
+    const sheets=Object.keys(entries).filter(k=>/^xl\/worksheets\/sheet\d+\.xml$/.test(k)).sort();
+    // Le tableau de référence actuel place « Format import » en deuxième feuille.
+    target=sheets[1]||sheets[0]||"";
+  }
+  if(!target||!entries[target])throw new Error("La feuille « Format import » n'a pas été trouvée.");
+  return retroRowsFromSheetXml(entries[target],shared);
+}
+
+function retroRowsToObjects(rows){
+  if(!rows.length)return [];
+  const normHeader=v=>retroNormalize(v).replace(/\//g," ");
+  let headerIndex=rows.findIndex(r=>{
+    const h=r.map(normHeader);
+    return h.some(x=>x==="date") && h.some(x=>x==="classe") &&
+      h.some(x=>x==="eleve") && h.some(x=>x.includes("code sp"));
+  });
+  if(headerIndex<0)headerIndex=0;
+  const headers=rows[headerIndex].map(normHeader);
+  const idx=(...names)=>{
+    for(const n of names){
+      const exact=headers.indexOf(n);
+      if(exact>=0)return exact;
+    }
+    for(let i=0;i<headers.length;i++){
+      if(names.some(n=>headers[i].includes(n)))return i;
+    }
+    return -1;
+  };
+  const di=idx("date"),ci=idx("classe"),ei=idx("eleve"),spi=idx("code sp"),
+        si=idx("situation professionnelle"),ni=idx("note statut","note"),oi=idx("observation");
+  if(ei<0||spi<0||ni<0)throw new Error("Colonnes attendues absentes : Élève, Code SP et Note / statut.");
+  return rows.slice(headerIndex+1).map((r,rowNo)=>({
+    sourceRow:headerIndex+2+rowNo,
+    fileDate:di>=0?retroDateToISO(r[di]):"",
+    className:ci>=0?String(r[ci]??"").trim():"",
+    studentName:String(r[ei]??"").trim(),
+    spCode:String(r[spi]??"").trim(),
+    situationLabel:si>=0?String(r[si]??"").trim():"",
+    rawNote:r[ni],
+    observation:oi>=0?String(r[oi]??"").trim():""
+  })).filter(x=>x.studentName||x.spCode||String(x.rawNote??"").trim());
+}
+
+function retroAnalyseRows(objects){
+  const fallback=retroExcelImportState.defaultDate||"2025-09-01";
+  return objects.map(x=>{
+    const note=retroParseNote(x.rawNote);
+    const cls=retroFindClass(x.className);
+    const student=cls?retroFindStudent(x.studentName,cls.id):null;
+    const situation=retroFindSituation(x.spCode,x.situationLabel);
+    const date=retroExcelImportState.useFileDate && x.fileDate ? x.fileDate : fallback;
+    let status="ok",message="Prête à créer";
+    if(note===null){status="skip";message="Non évalué — ignoré";}
+    else if(Number.isNaN(note)){status="error";message="Note invalide";}
+    else if(!cls){status="error";message="Classe introuvable";}
+    else if(!student){status="error";message="Élève introuvable dans la classe";}
+    else if(!situation){status="error";message="Situation professionnelle introuvable";}
+    return {...x,note,cls,student,situation,date,status,message};
+  });
+}
+
+async function handleRetroExcelFile(input){
+  const file=input?.files?.[0];if(!file)return;
+  retroExcelImportState.reading=true;
+  retroExcelImportState.fileName=file.name;
+  retroExcelPage();
+  try{
+    const rows=await retroReadExcelRows(file);
+    retroExcelImportState.parsedRows=retroRowsToObjects(rows);
+    retroExcelImportState.rows=retroAnalyseRows(retroExcelImportState.parsedRows);
+  }catch(err){
+    retroExcelImportState.rows=[];
+    retroExcelImportState.parsedRows=[];
+    showWarningMessage("Impossible de préparer l'import : "+(err?.message||String(err)));
+  }finally{
+    retroExcelImportState.reading=false;
+    if(input)input.value="";
+    retroExcelPage();
+  }
+}
+function updateRetroExcelDefaultDate(v){
+  retroExcelImportState.defaultDate=v||"2025-09-01";
+  if(retroExcelImportState.parsedRows.length)retroExcelImportState.rows=retroAnalyseRows(retroExcelImportState.parsedRows);
+  retroExcelPage();
+}
+function updateRetroExcelUseFileDate(on){
+  retroExcelImportState.useFileDate=!!on;
+  if(retroExcelImportState.parsedRows.length)retroExcelImportState.rows=retroAnalyseRows(retroExcelImportState.parsedRows);
+  retroExcelPage();
+}
+function retroExcelPreviewHtml(){
+  const rows=retroExcelImportState.rows;
+  if(!rows.length)return "";
+  const ok=rows.filter(r=>r.status==="ok").length;
+  const skip=rows.filter(r=>r.status==="skip").length;
+  const err=rows.filter(r=>r.status==="error").length;
+  const preview=rows.slice(0,120).map(r=>`
+    <tr class="retro-xlsx-${r.status}">
+      <td>${esc(r.studentName||"—")}</td>
+      <td>${esc(r.situation?.code||r.spCode||"—")}</td>
+      <td>${r.note===null?"Non évalué":Number.isNaN(r.note)?"—":esc(String(r.note).replace(".",","))+" / 20"}</td>
+      <td>${esc(retroIsoToFr(r.date))}</td>
+      <td>${esc(r.message)}</td>
+    </tr>`).join("");
+  return `
+    <div class="retro-xlsx-summary">
+      <span class="retro-xlsx-ok">${ok} évaluation(s) prête(s)</span>
+      <span>${skip} « Non évalué » ignorée(s)</span>
+      <span class="${err?"retro-xlsx-error":""}">${err} anomalie(s)</span>
+    </div>
+    <div class="retro-xlsx-table-wrap"><table class="retro-xlsx-table">
+      <thead><tr><th>Élève</th><th>Situation</th><th>Note</th><th>Date</th><th>Contrôle</th></tr></thead>
+      <tbody>${preview}</tbody>
+    </table></div>
+    ${rows.length>120?`<p class="muted">Aperçu limité aux 120 premières lignes sur ${rows.length}.</p>`:""}`;
+}
+
+function retroExcelPage(){
+  setActive("eval");
+  const rows=retroExcelImportState.rows||[];
+  const valid=rows.filter(r=>r.status==="ok").length;
+  document.getElementById("main").innerHTML=`
+    <header class="app-top-header" aria-label="Import rétroactif collectif"></header>
+    <div class="page-header">
+      <div>
+        <h1>Import rétroactif collectif <span class="retro-excel-beta">V89.1.2 ESSAI</span></h1>
+        <p>Le tableau Excel sert à générer des évaluations complètes par situation professionnelle. Aucune donnée du tableau n'est intégrée dans cette version tant que tu ne sélectionnes pas toi-même un fichier.</p>
+      </div>
+      <button type="button" class="secondary" onclick="go('evalChoice')">← Retour</button>
+    </div>
+    <div class="panel retro-xlsx-panel">
+      <div class="retro-xlsx-step">
+        <div class="retro-xlsx-num">1</div>
+        <div>
+          <h3>Date rétroactive par défaut</h3>
+          <p class="muted">La date proposée est le 1er septembre 2025. Elle reste modifiable avant la création.</p>
+        </div>
+      </div>
+      <div class="form-grid">
+        <label>Date par défaut
+          <input type="date" value="${esc(retroExcelImportState.defaultDate)}" onchange="updateRetroExcelDefaultDate(this.value)">
+        </label>
+        <label class="retro-xlsx-check">
+          <input type="checkbox" ${retroExcelImportState.useFileDate?"checked":""} onchange="updateRetroExcelUseFileDate(this.checked)">
+          Utiliser la date du fichier Excel lorsqu'elle est renseignée
+        </label>
+      </div>
+    </div>
+
+    <div class="panel retro-xlsx-panel">
+      <div class="retro-xlsx-step">
+        <div class="retro-xlsx-num">2</div>
+        <div>
+          <h3>Choisir le tableau Excel</h3>
+          <p class="muted">Lecture de la feuille « Format import » : Date, Classe, Élève, Code SP, Situation professionnelle, Note / statut et Observation.</p>
+        </div>
+      </div>
+      <label class="primary retro-xlsx-file-btn">
+        📊 Sélectionner le fichier Excel
+        <input type="file" accept=".xlsx,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv" onchange="handleRetroExcelFile(this)" style="display:none">
+      </label>
+      ${retroExcelImportState.fileName?`<span class="pill" style="margin-left:8px">${esc(retroExcelImportState.fileName)}</span>`:""}
+      ${retroExcelImportState.reading?'<p><b>Lecture du fichier en cours…</b></p>':""}
+    </div>
+
+    ${rows.length?`<div class="panel retro-xlsx-panel">
+      <div class="retro-xlsx-step">
+        <div class="retro-xlsx-num">3</div>
+        <div>
+          <h3>Contrôle avant création</h3>
+          <p class="muted">Les lignes « Non évalué » sont ignorées. Les autres lignes doivent retrouver l'élève, sa classe et la situation professionnelle.</p>
+        </div>
+      </div>
+      ${retroExcelPreviewHtml()}
+    </div>`:""}
+
+    <div class="panel retro-xlsx-panel">
+      <div class="retro-xlsx-step">
+        <div class="retro-xlsx-num">4</div>
+        <div>
+          <h3>Création automatique</h3>
+          <p class="muted">Chaque note sur 20 est conservée comme résultat. Les compétences de la situation et tous leurs critères sont activés automatiquement.</p>
+        </div>
+      </div>
+      <div class="retro-xlsx-levels">
+        <span>0–4,99 → À renforcer</span>
+        <span>5–9,99 → En cours</span>
+        <span>10–14,99 → Maîtrisé</span>
+        <span>15–20 → Autonome</span>
+      </div>
+      <button type="button" class="primary" ${valid?"":"disabled"} onclick="createRetroExcelEvaluations()">
+        Créer ${valid||0} évaluation(s) rétroactive(s)
+      </button>
+      <p class="muted" style="margin-top:8px">Les évaluations d'une même situation et d'une même date sont regroupées comme une évaluation collective.</p>
+    </div>`;
+}
+
+function buildRetroExcelLevels(situation,note){
+  const levels={},disabledCriteria={},disabledCompetencies={},obs={};
+  const level=retroLevelFromNote(note);
+  const comps=[...(situation?.comps||[])];
+  comps.forEach(cid=>{
+    const comp=competencies.find(c=>String(c.id)===String(cid));
+    (comp?.criteria||[]).forEach((_,i)=>{
+      levels[cid+"-"+i]=level;
+    });
+  });
+  return {comps,levels,disabledCriteria,disabledCompetencies,obs,level};
+}
+
+async function createRetroExcelEvaluations(){
+  const valid=(retroExcelImportState.rows||[]).filter(r=>r.status==="ok");
+  if(!valid.length){showWarningMessage("Aucune évaluation valide à créer.");return;}
+  if(!confirm(`Créer ${valid.length} évaluation(s) rétroactive(s) à partir de ce tableau ?`))return;
+
+  const teacher=getActiveTeacher?.();
+  const now=Date.now();
+  const batches=new Map();
+  let created=0;
+  try{
+    for(let i=0;i<valid.length;i++){
+      const r=valid[i];
+      const key=retroNormalizeSP(r.situation.code)+"|"+r.date;
+      if(!batches.has(key))batches.set(key,"RETROXLSX_"+retroNormalizeSP(r.situation.code)+"_"+r.date.replace(/-/g,"")+"_"+now);
+      const built=buildRetroExcelLevels(r.situation,r.note);
+      const dateFr=retroIsoToFr(r.date||retroExcelImportState.defaultDate);
+      const ev={
+        teacherId:teacher?.id||"",
+        teacherName:teacher?teacherFullName(teacher):"",
+        date:dateFr,
+        title:r.situation.title||r.situation.label||r.situation.code,
+        place:"Lycée",
+        type:"Lycée",
+        comps:built.comps,
+        levels:built.levels,
+        obs:built.obs,
+        evaluationObservation:r.observation||"",
+        disabledCriteria:built.disabledCriteria,
+        disabledCompetencies:built.disabledCompetencies,
+        attachment:null,
+        evalPath:"professional",
+        profSituation:r.situation.code,
+        profOptions:{},
+        profFreeText:"",
+        studentId:r.student.id,
+        createdAt:now+i,
+        batchId:batches.get(key),
+        retroactive:true,
+        retroPositionLevel:built.level,
+        retroEstimatedNote:r.note,
+        retroCalculatedNote:r.note,
+        evaluationDate:dateFr,
+        enteredAt:now+i,
+        entryDate:new Date(now+i).toLocaleDateString("fr-FR"),
+        retroExcelImported:true,
+        retroImportFile:retroExcelImportState.fileName||"",
+        sourceNote20:r.note
+      };
+      await persistEvaluation(ev);
+      created++;
+    }
+    await loadData();
+    showSuccessMessage(
+      `${created} évaluation(s) rétroactive(s) créée(s). Les notes du tableau sont conservées et les critères ont été cochés automatiquement.`,
+      ()=>go("history")
+    );
+  }catch(err){
+    await loadData().catch(()=>{});
+    showWarningMessage(`Import interrompu après ${created} création(s) : `+(err?.message||String(err)));
+  }
 }
 
 function beginEvaluation(path){
@@ -5691,6 +6289,10 @@ function cancelEvaluation(){draft=null;go("home");}
 
 
 function evaluationScore20(e){
+  if(e && e.retroExcelImported && e.sourceNote20!==undefined && e.sourceNote20!==null){
+    const exact=Number(e.sourceNote20);
+    if(Number.isFinite(exact))return Math.max(0,Math.min(20,exact));
+  }
   const vals=[];
   e.comps.forEach(cid=>{
     const c=competencies.find(x=>x.id===cid);
@@ -6710,25 +7312,29 @@ function openAssistanceMail(){
   function firebaseApplyApplicationConfig(cfg){
     if(!cfg||typeof cfg!=="object")return;
     if(typeof cfg.adminCode==="string"&&cfg.adminCode.length>=4){
-      localStorage.setItem("evaluation_admin_code_v71",cfg.adminCode);
+      safeLocalSetItem("evaluation_admin_code_v71",cfg.adminCode);
     }
     if(cfg.schoolSettings&&typeof cfg.schoolSettings==="object"){
-      localStorage.setItem("evaluation_school_settings_v71",JSON.stringify(cfg.schoolSettings));
+      safeLocalSetItem("evaluation_school_settings_v71",JSON.stringify(cfg.schoolSettings));
     }
     if(cfg.activeClassId!==undefined&&cfg.activeClassId!==null){
-      localStorage.setItem("evaluation_active_class_v77",String(cfg.activeClassId));
+      safeLocalSetItem("evaluation_active_class_v77",String(cfg.activeClassId));
     }
     if(Array.isArray(cfg.competencies)&&cfg.competencies.length){
-      localStorage.setItem("evaluation_competencies_v74",JSON.stringify(cfg.competencies));
+      competencies=JSON.parse(JSON.stringify(cfg.competencies));
+      saveCompetenciesLargeStore(competencies).catch(e=>console.warn("Référentiel Firebase non conservé dans IndexedDB",e));
     }
     if(Array.isArray(cfg.professionalSituations)&&cfg.professionalSituations.length){
-      localStorage.setItem("evaluation_professional_situations_v81_5",JSON.stringify(cfg.professionalSituations));
+      try{
+        safeLocalSetItem("evaluation_professional_situations_v81_5",JSON.stringify(cfg.professionalSituations));
+      }catch(e){console.warn("Situations professionnelles non conservées en local",e);}
     }
     if(Array.isArray(cfg.teachers)&&cfg.teachers.length){
-      // La liste est partagée, mais la session active reste locale à l'appareil.
       const incoming=cfg.teachers.map(normalizeTeacher);
-      localStorage.setItem("evaluation_teachers_v84_1",JSON.stringify(incoming));
-      migrateTeachersV84();
+      try{
+        safeLocalSetItem("evaluation_teachers_v84_1",JSON.stringify(incoming));
+        migrateTeachersV84();
+      }catch(e){console.warn("Comptes professeurs non conservés en local",e);}
     }
   }
 
@@ -6909,7 +7515,7 @@ window.firebaseSaveCurrentConfig=async()=>{await saveFullConfig(firebaseBuildApp
         cloudStudents=await cloudDocs('students');
         cloudEvaluations=await cloudDocs('evaluations');
       }else if(!cloudHasLegacyData){
-        // V89 : compte Firebase vide = aucune écriture automatique.
+        // V89.1 : compte Firebase vide = aucune écriture automatique.
         // L'utilisateur pourra envoyer volontairement les données depuis Paramètres.
       }
 
@@ -6954,7 +7560,7 @@ window.firebaseSaveCurrentConfig=async()=>{await saveFullConfig(firebaseBuildApp
       if(cfg){
         firebaseApplyApplicationConfig(cfg);
       }else{
-        // V89 : une simple récupération ne crée aucune configuration distante.
+        // V89.1 : une simple récupération ne crée aucune configuration distante.
       }
 
       // Professeurs/comptes : priorité absolue à la collection V86.5 "comptes".
@@ -6980,7 +7586,7 @@ window.firebaseSaveCurrentConfig=async()=>{await saveFullConfig(firebaseBuildApp
           applyTeacherPermissions();
           if(typeof renderSettingsTeachers==='function') renderSettingsTeachers();
         }catch(e){}
-        // V89 : une simple récupération ne pousse jamais la liste locale des comptes.
+        // V89.1 : une simple récupération ne pousse jamais la liste locale des comptes.
       }catch(e){
         console.warn('Synchronisation initiale des comptes V86.5 :',e);
       }
@@ -7258,7 +7864,7 @@ function startRealtimeListeners(){
       if(btn){btn.disabled=true;btn.textContent='Synchronisation…';}
       setSyncProgress(3,'Préparation de la synchronisation…');
       try{
-        // V89 : Synchroniser récupère d'abord Firebase.
+        // V89.1 : Synchroniser récupère d'abord Firebase.
         // Aucun paramètre local n'est envoyé automatiquement par ce bouton.
         await synchronizeCloud({forceUpload:false});
       }finally{
