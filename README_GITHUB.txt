@@ -39,3 +39,14 @@ V89.1.2 — CORRECTIF MIGRATION QUOTA
 - Récupère d'abord leur contenu en mémoire, puis le migre vers IndexedDB.
 - Les petites écritures localStorage critiques sont protégées contre QuotaExceededError.
 - Le module rétroactif collectif de V89.1 est conservé.
+
+
+V89.2 — SAUVEGARDE ET ARCHIVAGE GÉNÉRAL
+- Nouveau panneau Paramètres protégé par un code spécifique.
+- Commande « Sauvegarder + supprimer toutes les listes » :
+  export Excel + rapport PDF avant suppression de tous les élèves et évaluations.
+- Commande « Archiver toutes les données » :
+  Excel multi-feuilles + rapport PDF avec classes, élèves, professeurs,
+  évaluations actives/archivées, critères, situations professionnelles,
+  référentiel, paramètres et métadonnées des pièces jointes.
+- Les fichiers joints eux-mêmes ne sont pas intégrés dans l'archive Excel/PDF.

@@ -598,6 +598,18 @@ th,td{min-width:120px;padding:9px 8px} th:first-child,td:first-child{min-width:1
   .retro-xlsx-table{min-width:660px}
 }
 
+
+/* V89.2 — sauvegarde et archivage général */
+.advanced-archive-card{border:2px solid #c8d6e5!important;background:linear-gradient(180deg,#fbfdff,#f7fafc)!important}
+.advanced-archive-unlocked-badge{display:inline-flex;align-items:center;gap:7px;margin:4px 0 14px;padding:7px 10px;border-radius:999px;background:#ecfdf3;color:#027a48;font-size:12px;font-weight:900}
+.advanced-archive-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:8px 0 14px}
+.advanced-archive-action{display:flex;flex-direction:column;justify-content:space-between;gap:12px;border:1px solid #d0d5dd;border-radius:14px;background:#fff;padding:15px}
+.advanced-archive-action.danger{border-color:#f3b8b3;background:#fffafa}
+.advanced-archive-action strong{display:block;color:#17365d;margin-bottom:5px}
+.advanced-archive-action p{margin:0;color:#667085;font-size:12px;line-height:1.45}
+.advanced-archive-note{padding:10px 12px;border:1px dashed #cbd5e1;border-radius:10px;background:#fff}
+@media(max-width:800px){.advanced-archive-actions{grid-template-columns:1fr}}
+
 </style>
 
 <style>
@@ -2253,6 +2265,47 @@ body{background:#f7f9fc;color:var(--text)}
     <button type="button" class="primary" onclick="addManagedSituation()">+ Nouvelle situation professionnelle</button>
     <div id="settings-situations-list" style="margin-top:14px"></div>
   </div>
+
+  <div class="settings-card settings-section advanced-archive-card">
+    <h3>🗄️ Sauvegarde et archivage général</h3>
+    <p class="muted">Zone d’administration avancée protégée par un code spécifique. Elle permet de sauvegarder l’ensemble des listes d’élèves avant suppression, ou de produire une archive complète de toutes les données structurées du logiciel.</p>
+
+    <div id="advanced-archive-locked">
+      <div class="form-grid">
+        <label>Code d’accès spécifique
+          <input id="advanced-archive-code" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off" placeholder="••••••">
+        </label>
+      </div>
+      <button type="button" class="primary" onclick="unlockAdvancedArchivePanel()">🔓 Déverrouiller</button>
+      <div id="advanced-archive-code-error" class="settings-inline-error" style="display:none;margin-top:8px">Code incorrect.</div>
+    </div>
+
+    <div id="advanced-archive-unlocked" style="display:none">
+      <div class="advanced-archive-unlocked-badge">✓ Commandes avancées déverrouillées pour cette session</div>
+
+      <div class="advanced-archive-actions">
+        <div class="advanced-archive-action danger">
+          <div>
+            <strong>1. Sauvegarder puis supprimer toutes les listes d’élèves</strong>
+            <p>Génère d’abord une sauvegarde Excel et un rapport PDF contenant tous les élèves et leurs évaluations, toutes classes confondues. Après confirmation, les élèves et leurs évaluations sont supprimés du logiciel. Les classes, professeurs, référentiel et situations professionnelles sont conservés.</p>
+          </div>
+          <button type="button" class="secondary settings-danger" onclick="backupAndDeleteAllStudentLists()">💾🗑️ Sauvegarder + supprimer toutes les listes</button>
+        </div>
+
+        <div class="advanced-archive-action">
+          <div>
+            <strong>2. Archiver toutes les données du logiciel</strong>
+            <p>Produit une archive générale Excel multi-feuilles et un rapport PDF : élèves, professeurs, classes, évaluations actives et archivées, critères, situations professionnelles, référentiel, paramètres et informations disponibles sur les pièces jointes.</p>
+          </div>
+          <button type="button" class="primary" onclick="archiveAllApplicationData()">📦 Archiver toutes les données</button>
+        </div>
+      </div>
+
+      <p class="muted advanced-archive-note">Le fichier Excel est compatible avec Microsoft Excel. Le PDF est ouvert dans une fenêtre d’impression afin de pouvoir l’enregistrer en PDF. Les pièces jointes sont répertoriées par leurs métadonnées (nom, type et taille) et ne sont pas intégrées au fichier Excel/PDF.</p>
+      <button type="button" class="secondary" onclick="lockAdvancedArchivePanel()">🔒 Reverrouiller</button>
+    </div>
+  </div>
+
   <div class="settings-card settings-section">
     <h3>📥 Importer un référentiel depuis un PDF</h3>
     <p class="referentiel-import-help">Sélectionne le PDF officiel du référentiel. Le logiciel extrait les blocs, compétences, activités, connaissances associées et critères d’évaluation, puis affiche obligatoirement un écran de vérification avant toute modification du référentiel enregistré.</p>
@@ -2281,7 +2334,7 @@ body{background:#f7f9fc;color:var(--text)}
 <script src="https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore-compat.js"></script>
 
 <script>
-/* V89.1.2 — libération immédiate du quota localStorage.
+/* V89.2 — libération immédiate du quota localStorage.
    On récupère l'ancien référentiel en mémoire, puis on retire les anciennes
    grosses clés AVANT le démarrage du reste de l'application. */
 (function(){
@@ -2482,7 +2535,7 @@ let competencies=[
 
 const REFERENTIEL_STORAGE_KEY_V74="evaluation_competencies_v74";
 function loadCustomCompetencies(){
-  // V89.1.2 : priorité au référentiel récupéré en mémoire par le bootstrap quota.
+  // V89.2 : priorité au référentiel récupéré en mémoire par le bootstrap quota.
   try{
     const migrated=window.__legacyCompetenciesForMigration;
     if(Array.isArray(migrated)&&migrated.length){
@@ -3434,7 +3487,7 @@ function evaluationChoicePage(){
 
 
 /* ============================================================
-   V89.1.2 ESSAI — IMPORT EXCEL RÉTROACTIF COLLECTIF
+   V89.2 — IMPORT EXCEL RÉTROACTIF COLLECTIF
    Le fichier n'est jamais intégré au logiciel : l'utilisateur
    le choisit localement, prévisualise puis valide la création.
    ============================================================ */
@@ -3742,7 +3795,7 @@ function retroExcelPage(){
     <header class="app-top-header" aria-label="Import rétroactif collectif"></header>
     <div class="page-header">
       <div>
-        <h1>Import rétroactif collectif <span class="retro-excel-beta">V89.1.2 ESSAI</span></h1>
+        <h1>Import rétroactif collectif <span class="retro-excel-beta">V89.2</span></h1>
         <p>Le tableau Excel sert à générer des évaluations complètes par situation professionnelle. Aucune donnée du tableau n'est intégrée dans cette version tant que tu ne sélectionnes pas toi-même un fichier.</p>
       </div>
       <button type="button" class="secondary" onclick="go('evalChoice')">← Retour</button>
@@ -4899,6 +4952,7 @@ function renderSettingsPage(){
   renderSettingsStudents();
   renderSettingsCompetencies();
   renderSettingsSituations();
+  renderAdvancedArchiveLockState();
 }
 function changeAdminCode(){
   const current=document.getElementById("settings-current-code")?.value||"";
@@ -4999,6 +5053,452 @@ async function importXLSXStudents(file){
   if(ni<0||pi<0)throw new Error("Le fichier doit contenir les colonnes « Nom » et « Prénom ».");
   return rows.slice(1).map(r=>({name:[r[ni]||"",r[pi]||""].map(x=>String(x).trim()).filter(Boolean).join(" ")})).filter(x=>x.name);
 }
+
+
+
+/* ============================================================
+   V89.2 — SAUVEGARDE / ARCHIVAGE GÉNÉRAL
+   Code demandé par l'administrateur : comparaison SHA-256.
+   ============================================================ */
+let advancedArchiveUnlocked=false;
+const ADVANCED_ARCHIVE_CODE_SHA256="4dfc7b79a68f1e453c84b5e0bf29ce5d2e40c5923b27d25adecebd3d6611f3c5";
+
+async function sha256Hex(text){
+  const data=new TextEncoder().encode(String(text||""));
+  const digest=await crypto.subtle.digest("SHA-256",data);
+  return [...new Uint8Array(digest)].map(b=>b.toString(16).padStart(2,"0")).join("");
+}
+async function unlockAdvancedArchivePanel(){
+  const input=document.getElementById("advanced-archive-code");
+  const err=document.getElementById("advanced-archive-code-error");
+  const code=String(input?.value||"").replace(/\D/g,"");
+  if(await sha256Hex(code)!==ADVANCED_ARCHIVE_CODE_SHA256){
+    if(err)err.style.display="block";
+    if(input){input.value="";input.focus();}
+    return;
+  }
+  advancedArchiveUnlocked=true;
+  if(err)err.style.display="none";
+  renderAdvancedArchiveLockState();
+}
+function lockAdvancedArchivePanel(){
+  advancedArchiveUnlocked=false;
+  renderAdvancedArchiveLockState();
+}
+function renderAdvancedArchiveLockState(){
+  const locked=document.getElementById("advanced-archive-locked");
+  const unlocked=document.getElementById("advanced-archive-unlocked");
+  if(locked)locked.style.display=advancedArchiveUnlocked?"none":"block";
+  if(unlocked)unlocked.style.display=advancedArchiveUnlocked?"block":"none";
+}
+function requireAdvancedArchiveUnlocked(){
+  if(advancedArchiveUnlocked)return true;
+  showWarningMessage("Cette commande est verrouillée. Saisis d’abord le code spécifique dans le panneau d’archivage.");
+  return false;
+}
+function archiveTimestamp(){
+  const d=new Date();
+  const p=n=>String(n).padStart(2,"0");
+  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}_${p(d.getHours())}-${p(d.getMinutes())}`;
+}
+function archiveDateFr(){
+  return new Date().toLocaleString("fr-FR");
+}
+function archiveParseTeachers(){
+  try{
+    const a=JSON.parse(localStorage.getItem("evaluation_teachers_v84_1")||"[]");
+    return Array.isArray(a)?a:[];
+  }catch(e){return [];}
+}
+function archiveSchoolSettings(){
+  try{return JSON.parse(localStorage.getItem("evaluation_school_settings_v71")||"{}")||{}}
+  catch(e){return {}}
+}
+async function collectFullApplicationArchive(){
+  await openDB();
+  const rawStudents=await getAll("students");
+  const evaluations=await getAll("evaluations");
+  let appConfig=[];
+  try{appConfig=await getAll("appConfig")}catch(e){appConfig=[]}
+  const students=rawStudents.map(st=>({
+    ...st,
+    evaluations:evaluations.filter(ev=>String(ev.studentId)===String(st.id))
+  }));
+  return {
+    generatedAt:archiveDateFr(),
+    generatedAtIso:new Date().toISOString(),
+    classes:getClasses().map(x=>({...x})),
+    students,
+    evaluations:evaluations.map(x=>({...x})),
+    teachers:archiveParseTeachers().map(x=>({...x})),
+    situations:JSON.parse(JSON.stringify(PROFESSIONAL_SITUATIONS_V80||[])),
+    competencies:JSON.parse(JSON.stringify(competencies||[])),
+    schoolSettings:archiveSchoolSettings(),
+    activeClassId:localStorage.getItem(ACTIVE_CLASS_STORAGE_KEY)||"",
+    adminCode:localStorage.getItem("evaluation_admin_code_v71")||"",
+    appConfig
+  };
+}
+function archiveClassName(id,snapshot){
+  return snapshot.classes.find(c=>String(c.id)===String(id))?.name||"";
+}
+function archiveStudentName(id,snapshot){
+  return snapshot.students.find(st=>String(st.id)===String(id))?.name||"";
+}
+function archiveTeacherName(id,snapshot){
+  const t=snapshot.teachers.find(x=>String(x.id)===String(id));
+  if(!t)return "";
+  return [t.firstName,t.lastName].filter(Boolean).join(" ").trim()||t.name||"";
+}
+function archiveXmlEscape(v){
+  return String(v??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+function archiveCell(v,style=""){
+  const val=(v===undefined||v===null)?"":v;
+  const num=typeof val==="number"&&Number.isFinite(val);
+  return `<Cell${style?` ss:StyleID="${style}"`:""}><Data ss:Type="${num?"Number":"String"}">${archiveXmlEscape(val)}</Data></Cell>`;
+}
+function archiveSheet(name,headers,rows){
+  const head=`<Row>${headers.map(h=>archiveCell(h,"Header")).join("")}</Row>`;
+  const body=rows.map(r=>`<Row>${r.map(v=>archiveCell(v)).join("")}</Row>`).join("");
+  return `<Worksheet ss:Name="${archiveXmlEscape(String(name).slice(0,31))}"><Table>${head}${body}</Table></Worksheet>`;
+}
+function archiveAttachmentMeta(a){
+  if(!a)return {name:"",type:"",size:""};
+  return {name:a.name||"",type:a.type||"",size:a.size??""};
+}
+
+function exportFullArchiveExcel(snapshot,options={}){
+  const sheets=[];
+
+  const summary=[
+    ["Date de génération",snapshot.generatedAt],
+    ["Nombre de classes",snapshot.classes.length],
+    ["Nombre d'élèves",snapshot.students.length],
+    ["Nombre d'évaluations",snapshot.evaluations.length],
+    ["Évaluations archivées",snapshot.evaluations.filter(e=>e.archived).length],
+    ["Nombre de professeurs",snapshot.teachers.length],
+    ["Nombre de situations professionnelles",snapshot.situations.length],
+    ["Nombre de compétences",snapshot.competencies.length],
+    ["Classe active",archiveClassName(snapshot.activeClassId,snapshot)]
+  ];
+  sheets.push(archiveSheet("Synthese",["Information","Valeur"],summary));
+
+  sheets.push(archiveSheet("Classes",
+    ["ID classe","Nom","Archivée","Date création"],
+    snapshot.classes.map(c=>[c.id,c.name,c.archived?"Oui":"Non",c.createdAt?new Date(c.createdAt).toLocaleString("fr-FR"):""])
+  ));
+
+  sheets.push(archiveSheet("Eleves",
+    ["ID élève","Nom et prénom","ID classe","Classe","Nombre évaluations"],
+    snapshot.students.map(st=>[st.id,st.name,st.classId,archiveClassName(st.classId,snapshot),(st.evaluations||[]).length])
+  ));
+
+  sheets.push(archiveSheet("Professeurs",
+    ["ID professeur","Prénom","Nom","Nom complet","Rôle","Administrateur","Actif","Classes attribuées","Code de connexion"],
+    snapshot.teachers.map(t=>[
+      t.id,t.firstName||"",t.lastName||"",archiveTeacherName(t.id,snapshot),
+      t.role||((t.isAdmin===true)?"administrateur":"professeur"),
+      t.isAdmin===true?"Oui":"Non",t.active===false?"Non":"Oui",
+      (t.assignedClasses||[]).map(id=>archiveClassName(id,snapshot)||id).join(" | "),
+      t.code||""
+    ])
+  ));
+
+  sheets.push(archiveSheet("Evaluations",
+    ["ID évaluation","Élève","ID élève","Classe","Date évaluation","Intitulé","Type","Lieu","Situation pro","Professeur","ID professeur","Collective / batch","Rétroactive","Note /20","Observation générale","Archivée","Date archivage","Date création","Fichier source rétroactif","Pièce jointe"],
+    snapshot.evaluations.map(ev=>{
+      const st=snapshot.students.find(x=>String(x.id)===String(ev.studentId));
+      const att=archiveAttachmentMeta(ev.attachment);
+      return [
+        ev.id,st?.name||"",ev.studentId||"",archiveClassName(st?.classId,snapshot),
+        ev.date||ev.evaluationDate||"",ev.title||"",ev.type||"",ev.place||"",
+        ev.profSituation||"",ev.teacherName||archiveTeacherName(ev.teacherId,snapshot),ev.teacherId||"",
+        ev.batchId||"",ev.retroactive?"Oui":"Non",
+        ev.sourceNote20??ev.retroCalculatedNote??ev.retroEstimatedNote??"",
+        ev.evaluationObservation||"",ev.archived?"Oui":"Non",
+        ev.archivedAt?new Date(ev.archivedAt).toLocaleString("fr-FR"):"",
+        ev.createdAt?new Date(ev.createdAt).toLocaleString("fr-FR"):"",
+        ev.retroImportFile||"",att.name
+      ];
+    })
+  ));
+
+  const criterionRows=[];
+  snapshot.evaluations.forEach(ev=>{
+    const st=snapshot.students.find(x=>String(x.id)===String(ev.studentId));
+    (ev.comps||[]).forEach(cid=>{
+      const comp=snapshot.competencies.find(c=>String(c.id)===String(cid));
+      (comp?.criteria||[]).forEach((cr,i)=>{
+        const key=cid+"-"+i;
+        criterionRows.push([
+          ev.id,st?.name||"",archiveClassName(st?.classId,snapshot),ev.date||"",
+          cid,comp?.name||comp?.title||"",
+          cr?.group||"",cr?.label||"",cr?.text||String(cr||""),
+          ev.disabledCriteria?.[key]?"Oui":"Non",
+          ev.disabledCriteria?.[key]?"Désactivé":(ev.levels?.[key]||""),
+          ev.obs?.[key]||""
+        ]);
+      });
+    });
+  });
+  sheets.push(archiveSheet("Criteres_evalues",
+    ["ID évaluation","Élève","Classe","Date","Code compétence","Compétence","Groupe","Résultat attendu","Critère","Désactivé","Niveau","Observation critère"],
+    criterionRows
+  ));
+
+  sheets.push(archiveSheet("Situations_pro",
+    ["Code","Intitulé","Titre","Active","Compétences automatiques","Options","Champ libre","Note"],
+    snapshot.situations.map(sp=>[
+      sp.code,sp.label||"",sp.title||"",sp.active===false?"Non":"Oui",
+      (sp.comps||[]).join(" | "),
+      (sp.options||[]).map(o=>`${o.label||o.id}: ${(o.add||[]).join(", ")}`).join(" || "),
+      sp.freeField||"",sp.note||""
+    ])
+  ));
+
+  const compRows=[];
+  snapshot.competencies.forEach(c=>{
+    if(!(c.criteria||[]).length){
+      compRows.push([c.id,c.code||"",c.name||c.title||"",c.block||"",c.unit||"","","",""]);
+    }else{
+      (c.criteria||[]).forEach((cr,i)=>compRows.push([
+        c.id,c.code||"",c.name||c.title||"",c.block||"",c.unit||"",
+        i+1,cr?.group||"",cr?.label||"",cr?.text||String(cr||"")
+      ]));
+    }
+  });
+  sheets.push(archiveSheet("Referentiel",
+    ["ID","Code","Compétence","Bloc","Unité","N° critère","Groupe","Résultat attendu","Critère"],
+    compRows
+  ));
+
+  sheets.push(archiveSheet("Parametres",
+    ["Clé","Valeur"],
+    [
+      ["Nom établissement",snapshot.schoolSettings.schoolName||snapshot.schoolSettings.establishment||""],
+      ["Nom classe hérité",snapshot.schoolSettings.className||""],
+      ["Année scolaire",snapshot.schoolSettings.schoolYear||""],
+      ["Classe active ID",snapshot.activeClassId],
+      ["Classe active",archiveClassName(snapshot.activeClassId,snapshot)],
+      ["Code administrateur",snapshot.adminCode],
+      ["Date archive",snapshot.generatedAt]
+    ]
+  ));
+
+  const attRows=[];
+  snapshot.evaluations.forEach(ev=>{
+    if(!ev.attachment)return;
+    const a=archiveAttachmentMeta(ev.attachment);
+    attRows.push([ev.id,archiveStudentName(ev.studentId,snapshot),ev.date||"",a.name,a.type,a.size]);
+  });
+  sheets.push(archiveSheet("Pieces_jointes",
+    ["ID évaluation","Élève","Date","Nom fichier","Type MIME","Taille octets"],attRows
+  ));
+
+  const xml=`<?xml version="1.0" encoding="UTF-8"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:o="urn:schemas-microsoft-com:office:office"
+ xmlns:x="urn:schemas-microsoft-com:office:excel"
+ xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
+<Styles>
+ <Style ss:ID="Header"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#0B3B6E" ss:Pattern="Solid"/></Style>
+</Styles>
+${sheets.join("")}
+</Workbook>`;
+  const blob=new Blob(["\uFEFF",xml],{type:"application/vnd.ms-excel"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download=`${options.studentsOnly?"Sauvegarde_toutes_listes_eleves":"Archive_complete_logiciel"}_${archiveTimestamp()}.xls`;
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1500);
+}
+
+function exportStudentsOnlyExcel(snapshot){
+  const lite={...snapshot,
+    teachers:[],situations:[],competencies:snapshot.competencies,
+    classes:snapshot.classes
+  };
+  const sheets=[];
+  sheets.push(archiveSheet("Eleves",
+    ["ID élève","Nom et prénom","ID classe","Classe","Nombre évaluations"],
+    snapshot.students.map(st=>[st.id,st.name,st.classId,archiveClassName(st.classId,snapshot),(st.evaluations||[]).length])
+  ));
+  sheets.push(archiveSheet("Evaluations",
+    ["ID évaluation","Élève","Classe","Date","Intitulé","Type","Situation pro","Professeur","Rétroactive","Note /20","Observation","Archivée"],
+    snapshot.evaluations.map(ev=>{
+      const st=snapshot.students.find(x=>String(x.id)===String(ev.studentId));
+      return [ev.id,st?.name||"",archiveClassName(st?.classId,snapshot),ev.date||"",ev.title||"",ev.type||"",ev.profSituation||"",ev.teacherName||"",ev.retroactive?"Oui":"Non",ev.sourceNote20??ev.retroCalculatedNote??ev.retroEstimatedNote??"",ev.evaluationObservation||"",ev.archived?"Oui":"Non"];
+    })
+  ));
+  const criterionRows=[];
+  snapshot.evaluations.forEach(ev=>{
+    const st=snapshot.students.find(x=>String(x.id)===String(ev.studentId));
+    (ev.comps||[]).forEach(cid=>{
+      const comp=snapshot.competencies.find(c=>String(c.id)===String(cid));
+      (comp?.criteria||[]).forEach((cr,i)=>{
+        const key=cid+"-"+i;
+        criterionRows.push([st?.name||"",archiveClassName(st?.classId,snapshot),ev.date||"",cid,comp?.name||comp?.title||"",cr?.text||cr?.label||String(cr||""),ev.disabledCriteria?.[key]?"Désactivé":(ev.levels?.[key]||"")]);
+      });
+    });
+  });
+  sheets.push(archiveSheet("Criteres",
+    ["Élève","Classe","Date","Compétence","Intitulé compétence","Critère","Niveau"],criterionRows
+  ));
+  const xml=`<?xml version="1.0" encoding="UTF-8"?><?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
+<Styles><Style ss:ID="Header"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#0B3B6E" ss:Pattern="Solid"/></Style></Styles>
+${sheets.join("")}</Workbook>`;
+  const blob=new Blob(["\uFEFF",xml],{type:"application/vnd.ms-excel"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);
+  a.download=`Sauvegarde_toutes_listes_eleves_${archiveTimestamp()}.xls`;
+  document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1500);
+}
+
+function archiveHtmlEscape(v){
+  return String(v??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+function openArchivePdfReport(snapshot,{studentsOnly=false}={}){
+  const w=window.open("","_blank");
+  if(!w){
+    showWarningMessage("Le navigateur a bloqué la fenêtre PDF. Autorise les fenêtres contextuelles puis recommence.");
+    return false;
+  }
+  const esc=archiveHtmlEscape;
+  const stats=`
+    <div class="stats">
+      <div><b>${snapshot.students.length}</b><span>élèves</span></div>
+      <div><b>${snapshot.evaluations.length}</b><span>évaluations</span></div>
+      <div><b>${snapshot.evaluations.filter(e=>e.archived).length}</b><span>archivées</span></div>
+      ${studentsOnly?"":`<div><b>${snapshot.teachers.length}</b><span>professeurs</span></div><div><b>${snapshot.classes.length}</b><span>classes</span></div>`}
+    </div>`;
+
+  let content=`<h1>${studentsOnly?"Sauvegarde de toutes les listes d’élèves":"Archive complète du logiciel"}</h1>
+  <div class="meta">Générée le <b>${esc(snapshot.generatedAt)}</b></div>${stats}`;
+
+  content+=`<h2>Élèves et évaluations</h2>`;
+  snapshot.classes.forEach(cls=>{
+    const sts=snapshot.students.filter(st=>String(st.classId)===String(cls.id));
+    content+=`<h3>${esc(cls.name)} — ${sts.length} élève(s)</h3>`;
+    if(!sts.length){content+=`<p>Aucun élève.</p>`;return;}
+    sts.forEach(st=>{
+      content+=`<div class="student"><b>${esc(st.name)}</b> — ${(st.evaluations||[]).length} évaluation(s)</div>`;
+      if(!(st.evaluations||[]).length)return;
+      content+=`<table><thead><tr><th>Date</th><th>Situation</th><th>Type</th><th>SP</th><th>Professeur</th><th>Note</th><th>État</th></tr></thead><tbody>`;
+      (st.evaluations||[]).forEach(ev=>{
+        const note=ev.sourceNote20??ev.retroCalculatedNote??ev.retroEstimatedNote??"";
+        content+=`<tr><td>${esc(ev.date||"")}</td><td>${esc(ev.title||"")}</td><td>${esc(ev.type||"")}</td><td>${esc(ev.profSituation||"")}</td><td>${esc(ev.teacherName||archiveTeacherName(ev.teacherId,snapshot))}</td><td>${esc(note!==""?String(note)+" / 20":"")}</td><td>${ev.archived?"Archivée":"Active"}</td></tr>`;
+      });
+      content+=`</tbody></table>`;
+    });
+  });
+
+  if(!studentsOnly){
+    content+=`<h2>Professeurs</h2><table><thead><tr><th>Nom</th><th>Rôle</th><th>Actif</th><th>Classes attribuées</th></tr></thead><tbody>`;
+    snapshot.teachers.forEach(t=>{
+      content+=`<tr><td>${esc(archiveTeacherName(t.id,snapshot))}</td><td>${esc(t.role||((t.isAdmin===true)?"administrateur":"professeur"))}</td><td>${t.active===false?"Non":"Oui"}</td><td>${esc((t.assignedClasses||[]).map(id=>archiveClassName(id,snapshot)||id).join(", "))}</td></tr>`;
+    });
+    content+=`</tbody></table>`;
+
+    content+=`<h2>Situations professionnelles</h2><table><thead><tr><th>Code</th><th>Intitulé</th><th>Compétences</th><th>Active</th></tr></thead><tbody>`;
+    snapshot.situations.forEach(sp=>{
+      content+=`<tr><td>${esc(sp.code)}</td><td>${esc(sp.label||sp.title||"")}</td><td>${esc((sp.comps||[]).join(", "))}</td><td>${sp.active===false?"Non":"Oui"}</td></tr>`;
+    });
+    content+=`</tbody></table>`;
+
+    content+=`<h2>Référentiel des compétences</h2>`;
+    snapshot.competencies.forEach(c=>{
+      content+=`<h3>${esc(c.id||c.code||"")} — ${esc(c.name||c.title||"")}</h3><ul>`;
+      (c.criteria||[]).forEach(cr=>content+=`<li>${esc(cr?.text||cr?.label||String(cr||""))}</li>`);
+      content+=`</ul>`;
+    });
+
+    content+=`<h2>Paramètres généraux</h2><table><tbody>
+      <tr><th>Classe active</th><td>${esc(archiveClassName(snapshot.activeClassId,snapshot))}</td></tr>
+      <tr><th>Année scolaire</th><td>${esc(snapshot.schoolSettings.schoolYear||"")}</td></tr>
+      <tr><th>Établissement</th><td>${esc(snapshot.schoolSettings.schoolName||snapshot.schoolSettings.establishment||"")}</td></tr>
+    </tbody></table>`;
+  }
+
+  w.document.write(`<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>${studentsOnly?"Sauvegarde élèves":"Archive complète"}</title>
+  <style>
+    @page{size:A4 landscape;margin:10mm}
+    body{font-family:Arial,sans-serif;color:#172033;font-size:8.5pt;line-height:1.35}
+    h1{font-size:20pt;color:#0b3b6e;margin:0 0 8pt}
+    h2{font-size:14pt;color:#0b3b6e;margin:18pt 0 7pt;border-bottom:2px solid #d9e2ec;padding-bottom:4pt}
+    h3{font-size:10.5pt;margin:10pt 0 5pt}
+    .meta{padding:8pt;background:#f8fafc;border:1px solid #d9e2ec;margin-bottom:10pt}
+    .stats{display:flex;gap:8pt;flex-wrap:wrap;margin:8pt 0 14pt}
+    .stats div{border:1px solid #d0d5dd;border-radius:8pt;padding:7pt 12pt;min-width:75pt}
+    .stats b{display:block;font-size:16pt;color:#0b3b6e}.stats span{color:#667085}
+    .student{margin:7pt 0 3pt;padding:4pt 6pt;background:#f8fafc;border-left:3pt solid #0b3b6e}
+    table{width:100%;border-collapse:collapse;margin:4pt 0 10pt;page-break-inside:auto}
+    thead{display:table-header-group}tr{page-break-inside:avoid}
+    th,td{border:1px solid #d0d5dd;padding:4pt;text-align:left;vertical-align:top}
+    th{background:#eef3f8}ul{margin-top:4pt}
+  </style></head><body>${content}
+  <script>window.onload=function(){setTimeout(function(){window.print()},350)}<\/script>
+  </body></html>`);
+  w.document.close();
+  return true;
+}
+
+async function archiveAllApplicationData(){
+  if(!requireAdvancedArchiveUnlocked())return;
+  try{
+    const snapshot=await collectFullApplicationArchive();
+    exportFullArchiveExcel(snapshot);
+    openArchivePdfReport(snapshot,{studentsOnly:false});
+    showSuccessMessage("Archive générale préparée : fichier Excel téléchargé et rapport PDF ouvert.");
+  }catch(err){
+    showWarningMessage("Impossible de créer l’archive générale : "+(err?.message||String(err)));
+  }
+}
+
+async function backupAndDeleteAllStudentLists(){
+  if(!requireAdvancedArchiveUnlocked())return;
+  try{
+    const snapshot=await collectFullApplicationArchive();
+    if(!snapshot.students.length){
+      showWarningMessage("Aucune liste d’élèves à sauvegarder ou supprimer.");
+      return;
+    }
+    const ok=confirm(
+      `Cette commande va sauvegarder puis supprimer ${snapshot.students.length} élève(s) et ${snapshot.evaluations.length} évaluation(s), toutes classes confondues.\n\n`+
+      `Les fichiers de sauvegarde seront générés avant la suppression.\n\nContinuer ?`
+    );
+    if(!ok)return;
+
+    exportStudentsOnlyExcel(snapshot);
+    openArchivePdfReport(snapshot,{studentsOnly:true});
+
+    const second=confirm(
+      "La sauvegarde Excel vient d’être lancée et le rapport PDF a été ouvert.\n\n"+
+      "Confirmer maintenant la SUPPRESSION DÉFINITIVE de toutes les listes d’élèves et de toutes leurs évaluations du logiciel ?"
+    );
+    if(!second)return;
+
+    await openDB();
+    const oldApply=typeof realtimeApply!=="undefined"?realtimeApply:false;
+    // Suppression via les wrappers existants pour conserver la synchro Firebase document par document.
+    for(const ev of snapshot.evaluations)await deleteFromStore("evaluations",ev.id);
+    for(const st of snapshot.students)await deleteFromStore("students",st.id);
+
+    selectedStudent=null;
+    viewedEvaluation=null;
+    draft=null;
+    await loadData();
+    renderAdvancedArchiveLockState();
+    showSuccessMessage("Toutes les listes d’élèves et leurs évaluations ont été supprimées après sauvegarde.");
+  }catch(err){
+    showWarningMessage("La sauvegarde / suppression a échoué : "+(err?.message||String(err)));
+  }
+}
+window.unlockAdvancedArchivePanel=unlockAdvancedArchivePanel;
+window.lockAdvancedArchivePanel=lockAdvancedArchivePanel;
+window.archiveAllApplicationData=archiveAllApplicationData;
+window.backupAndDeleteAllStudentLists=backupAndDeleteAllStudentLists;
 
 
 let settingsStudentClassId=null;
