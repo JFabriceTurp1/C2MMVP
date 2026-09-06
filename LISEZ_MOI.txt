@@ -21,3 +21,17 @@ Corrections de cette version :
 - utilisation désormais de la liste réelle des classes via getClasses() et de la classe de l’élève ;
 - ajout d’un message explicite si une erreur d’ouverture se reproduit ;
 - conservation de l’affichage/impression stricts au diplôme de l’élève.
+
+=== CORRECTIF FICHE D’ACTIVITÉ — studentClass ===
+- Correction de l’erreur « studentClass is not defined ».
+- La classe de l’élève est maintenant calculée explicitement avant l’affichage de la fiche d’activité.
+- Les compétences de la fiche sont filtrées à partir du diplôme réel de l’élève sélectionné.
+- Le clic sur une activité ouvre de nouveau correctement la fiche d’évaluation.
+
+MODIFICATIONS DE CETTE VERSION
+==============================
+- Synthèse élève imprimable / PDF : restauration des barres graphiques de positionnement.
+- Impression : conservation forcée des couleurs et du remplissage des barres dans les navigateurs compatibles.
+- iPad / tablette : barre de sélection des dates et boutons au-dessus de la synthèse rendue plus compacte.
+- iPad portrait : réorganisation automatique des commandes sur plusieurs lignes afin d'éviter tout débordement horizontal.
+- Les autres fonctions de la version précédente sont conservées.

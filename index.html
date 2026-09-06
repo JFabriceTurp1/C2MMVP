@@ -2394,6 +2394,145 @@ body{background:#f7f9fc;color:var(--text)}
   .print-diploma-only{font-weight:700!important}
 }
 </style>
+
+<style id="report-bars-print-ipad-fix-v1">
+/* Correctif synthèse élève :
+   1) conserver les barres graphiques sur l'impression/PDF,
+   2) compacter les sélecteurs de dates sur iPad/tablette. */
+@media print{
+  .report-bar{
+    display:block!important;
+    position:relative!important;
+    height:18px!important;
+    min-height:18px!important;
+    border:1px solid #cbd5e1!important;
+    background:#eef1f4!important;
+    overflow:visible!important;
+    -webkit-print-color-adjust:exact!important;
+    print-color-adjust:exact!important;
+  }
+  .report-result{
+    display:block!important;
+    position:absolute!important;
+    left:0!important;
+    top:0!important;
+    height:100%!important;
+    min-height:16px!important;
+    -webkit-print-color-adjust:exact!important;
+    print-color-adjust:exact!important;
+  }
+  .report-marker{
+    display:block!important;
+    position:absolute!important;
+    top:-4px!important;
+    width:4px!important;
+    height:26px!important;
+    background:#172033!important;
+    border:1px solid #172033!important;
+    -webkit-print-color-adjust:exact!important;
+    print-color-adjust:exact!important;
+  }
+  .report-competence,
+  .report-meta,
+  .report-title{
+    -webkit-print-color-adjust:exact!important;
+    print-color-adjust:exact!important;
+  }
+}
+
+/* iPad / tablette : la barre de commande du bilan doit rester entièrement visible. */
+@media (min-width:700px) and (max-width:1180px){
+  .report-page{max-width:100%!important}
+  .report-actions{
+    display:grid!important;
+    grid-template-columns:auto minmax(0,1fr) auto!important;
+    grid-template-areas:
+      "back period print"
+      "date period print"!important;
+    gap:8px!important;
+    align-items:end!important;
+    width:100%!important;
+  }
+  .report-actions > button.secondary:first-child{
+    grid-area:back!important;
+    padding:8px 10px!important;
+    min-height:38px!important;
+    font-size:12px!important;
+    white-space:nowrap!important;
+  }
+  .report-period-control{
+    grid-area:period!important;
+    display:grid!important;
+    grid-template-columns:minmax(120px,1fr) minmax(120px,1fr)!important;
+    gap:6px!important;
+    align-items:end!important;
+    min-width:0!important;
+  }
+  .report-period-control label{
+    min-width:0!important;
+    font-size:11px!important;
+  }
+  .report-period-control input[type="date"]{
+    width:100%!important;
+    min-width:0!important;
+    min-height:38px!important;
+    padding:6px 7px!important;
+    font-size:12px!important;
+  }
+  .report-period-control button{
+    min-height:36px!important;
+    padding:6px 8px!important;
+    font-size:11px!important;
+    line-height:1.15!important;
+    white-space:normal!important;
+  }
+  .report-date-control{
+    grid-area:date!important;
+    display:flex!important;
+    flex-direction:column!important;
+    align-items:stretch!important;
+    gap:2px!important;
+    font-size:11px!important;
+    min-width:0!important;
+  }
+  .report-date-control input{
+    width:145px!important;
+    min-height:38px!important;
+    padding:6px 7px!important;
+    font-size:12px!important;
+  }
+  .report-actions > button.primary{
+    grid-area:print!important;
+    align-self:stretch!important;
+    min-height:38px!important;
+    padding:8px 10px!important;
+    font-size:12px!important;
+    line-height:1.2!important;
+    white-space:normal!important;
+    max-width:118px!important;
+  }
+}
+
+/* iPad en portrait étroit : deux lignes simples, sans débordement horizontal. */
+@media (min-width:700px) and (max-width:900px){
+  .report-actions{
+    grid-template-columns:1fr auto!important;
+    grid-template-areas:
+      "period period"
+      "back print"
+      "date date"!important;
+  }
+  .report-period-control{
+    grid-template-columns:1fr 1fr 1fr 1fr!important;
+  }
+  .report-date-control{
+    flex-direction:row!important;
+    align-items:center!important;
+  }
+  .report-date-control input{width:160px!important}
+}
+</style>
+
 </head>
 <body class="firebase-disabled-mode">
 <!-- V88 — DONNÉES DE RÉFÉRENCE RÉINTÉGRÉES DEPUIS V86.5
@@ -4060,7 +4199,8 @@ function printActivityEvaluation(){document.body.classList.add("activity-printin
 function activityEvaluationPage(){
   setActive("eval");const d=activityDraft,a=activityItem(d?.activityId);if(!d||!a){page="activityChoice";render();return;}
   const diploma=activityDiploma(),student=students.find(s=>String(s.id)===String(d.studentId)),names=activityStudentNameParts();
-  const comps=activityComps(a),total=activityScoreTotal(),done=activityScoredCount();
+  const studentClass=studentClassLabel(d.studentId);
+  const comps=activityComps(a,d.studentId),total=activityScoreTotal(),done=activityScoredCount();
   const activityLogoSrc=document.querySelector('.app-top-header img')?.src||document.querySelector('img[src*="francois"]')?.src||"logo-francois-de-mahy.png";
   const studentOptions=sortStudentsAlpha(students).map(s=>`<option value="${esc(String(s.id))}" ${String(s.id)===String(d.studentId)?"selected":""}>${esc(s.name)}</option>`).join("");
   const rows=a.criteres.map((cr,i)=>{const val=d.scores[i];return `<tr><td class="criterion">${i+1}. ${esc(cr)}</td>${[0,1,2].map(n=>`<td class="activity-score-cell"><input class="activity-screen-only" type="radio" name="activity-score-${i}" ${Number(val)===n?"checked":""} onclick="setActivityScore(${i},${n})"><span class="activity-print-box activity-print-only ${Number(val)===n?"checked":""}"></span></td>`).join("")}<td><input class="activity-observation-input activity-screen-only" value="${esc(d.observations[i]||"")}" oninput="setActivityObservation(${i},this.value)" placeholder="Observation..."><span class="activity-print-observation activity-print-only">${esc(d.observations[i]||"")}</span></td></tr>`;}).join("");
