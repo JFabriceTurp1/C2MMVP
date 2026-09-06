@@ -2903,6 +2903,17 @@ let settingsReferentialDetailOverride=null;
 const CLASSES_STORAGE_KEY="evaluation_classes_v77";
 const ACTIVE_CLASS_STORAGE_KEY="evaluation_active_class_v77";
 const STUDENT_PURGE_MARKER_KEY="evaluation_students_intentionally_empty_v89_3_1";
+const PENDING_STUDENT_SYNC_KEY="evaluation_pending_student_sync_v1";
+function getPendingStudentSyncIds(){
+  try{const v=JSON.parse(localStorage.getItem(PENDING_STUDENT_SYNC_KEY)||"[]");return Array.isArray(v)?v.map(String):[]}catch(e){return []}
+}
+function setPendingStudentSyncIds(ids){
+  const clean=[...new Set((ids||[]).map(String).filter(Boolean))];
+  if(clean.length)localStorage.setItem(PENDING_STUDENT_SYNC_KEY,JSON.stringify(clean));
+  else localStorage.removeItem(PENDING_STUDENT_SYNC_KEY);
+}
+function addPendingStudentSyncIds(ids){setPendingStudentSyncIds([...getPendingStudentSyncIds(),...(ids||[])]);}
+
 
 /* V RÉFÉRENTIEL 2 V1 — architecture multi-référentiels.
    Les classes historiques sont automatiquement rattachées au CAP. */
@@ -5837,26 +5848,20 @@ function downloadStudentTemplate(){
   a.download="Modele_import_eleves_V74.xlsx";
   document.body.appendChild(a);a.click();a.remove();
 }
-function studentImportNormalizeHeader(v){
-  return String(v??"").trim().toLowerCase().normalize("NFD")
-    .replace(/[\u0300-\u036f]/g,"")
-    .replace(/[’']/g," ").replace(/[-–—_/]+/g," ")
-    .replace(/\s+/g," ").trim();
-}
+function studentImportNorm(v){return String(v||"").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[’']/g,"'").replace(/\s+/g," ");}
 function studentImportFindHeaderRow(rows){
-  for(let r=0;r<Math.min(rows.length,30);r++){
-    const h=(rows[r]||[]).map(studentImportNormalizeHeader);
+  for(let i=0;i<Math.min(rows.length,20);i++){
+    const h=(rows[i]||[]).map(studentImportNorm);
     const hasNom=h.some(x=>x==="nom"||x.includes("nom de famille"));
     const hasPrenom=h.some(x=>x==="prenom"||x.includes("prenom eleve"));
-    if(hasNom&&hasPrenom)return r;
+    if(hasNom&&hasPrenom)return i;
   }
   return -1;
 }
 function studentImportObjectsFromRows(rows){
-  if(!rows.length)return [];
   const hi=studentImportFindHeaderRow(rows);
-  if(hi<0)throw new Error("Le fichier doit contenir les colonnes « Nom » et « Prénom ». ");
-  const headers=(rows[hi]||[]).map(studentImportNormalizeHeader);
+  if(hi<0)throw new Error("Le fichier doit contenir les colonnes « Nom » et « Prénom ».");
+  const headers=(rows[hi]||[]).map(studentImportNorm);
   const find=(pred)=>headers.findIndex(pred);
   const ni=find(x=>x==="nom"||x.includes("nom de famille"));
   const pi=find(x=>x==="prenom"||x.includes("prenom eleve"));
@@ -5899,8 +5904,6 @@ async function studentImportUnzipXlsx(file){
   const u32=i=>(bytes[i]|(bytes[i+1]<<8)|(bytes[i+2]<<16)|(bytes[i+3]<<24))>>>0;
   const td=new TextDecoder();
   const inflate=async data=>new Uint8Array(await new Response(new Blob([data]).stream().pipeThrough(new DecompressionStream("deflate-raw"))).arrayBuffer());
-  // Lecture de la table centrale ZIP : plus fiable que les tailles du header local
-  // (Excel peut utiliser un data-descriptor, auquel cas la taille locale vaut 0).
   let eocd=-1;
   for(let i=bytes.length-22;i>=Math.max(0,bytes.length-65557);i--){if(u32(i)===0x06054b50){eocd=i;break;}}
   if(eocd<0)throw new Error("Structure ZIP/XLSX invalide.");
@@ -5952,7 +5955,6 @@ async function importXLSXStudents(file){
     const d=parser.parseFromString(entries["xl/sharedStrings.xml"],"application/xml");
     d.querySelectorAll("si").forEach(si=>shared.push([...si.querySelectorAll("t")].map(t=>t.textContent).join("")));
   }
-  // On teste toutes les feuilles et on retient celle qui contient réellement Nom + Prénom.
   const sheets=Object.keys(entries).filter(k=>/^xl\/worksheets\/sheet\d+\.xml$/.test(k)).sort((a,b)=>a.localeCompare(b,undefined,{numeric:true}));
   if(!sheets.length)throw new Error("Aucune feuille Excel lisible trouvée.");
   let bestRows=null;
@@ -5963,7 +5965,6 @@ async function importXLSXStudents(file){
   if(!bestRows)throw new Error("Aucune feuille contenant les colonnes « Nom » et « Prénom » n'a été trouvée.");
   return studentImportObjectsFromRows(bestRows);
 }
-
 
 
 /* ============================================================
@@ -6730,9 +6731,11 @@ async function importStudentsFromExcelFile(input){
       ? await importXLSXStudents(file)
       : parseStudentCSV(await file.text());
     if(!incoming.length){showWarningMessage("Aucun élève trouvé dans le fichier.");return;}
+
     const targetClassId=getSettingsStudentClassId();
-    const key=v=>String(v||"").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/\s+/g," ");
-    const existing=new Set(settingsStudents().map(st=>key(st.name)));
+    const key=v=>String(v||"").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[’']/g,"'").replace(/\s+/g," ");
+    const localBefore=await getAll("students");
+    const existing=new Set(localBefore.filter(st=>String(st.classId)===String(targetClassId)).map(st=>key(st.name)));
     const seen=new Set();
     const fresh=[];let duplicatesExisting=0,duplicatesFile=0;
     incoming.forEach(x=>{
@@ -6742,22 +6745,62 @@ async function importStudentsFromExcelFile(input){
       seen.add(k);fresh.push(x);
     });
     if(!fresh.length){showWarningMessage(`Aucun nouvel élève à importer. ${duplicatesExisting} élève(s) déjà présent(s) dans la classe${duplicatesFile?` et ${duplicatesFile} doublon(s) dans le fichier`:""}.`);return;}
+
     await openDB();
     const created=[];
+    const stamp=Date.now();
     for(let i=0;i<fresh.length;i++){
       const x=fresh[i];
-      const student={id:`stu_${Date.now()}_${i}_${Math.random().toString(36).slice(2,8)}`,name:x.name,classId:targetClassId,evaluations:[]};
-      await put("students",student);created.push(student);
+      const student={
+        id:`stu_${stamp}_${i}_${Math.random().toString(36).slice(2,8)}`,
+        name:x.name,
+        classId:targetClassId,
+        evaluations:[],
+        importedAt:Date.now()
+      };
+      await put("students",student);
+      created.push(student);
     }
-    allStudents.push(...created);
+
+    // Marque les élèves importés comme devant impérativement exister aussi dans Firebase.
+    // Ce marqueur empêche une ancienne liste distante partielle de remplacer ensuite la liste locale complète.
+    addPendingStudentSyncIds(created.map(s=>s.id));
+
+    // Contrôle immédiat du stockage local avant tout rafraîchissement de l'interface.
+    let verifiedLocal=await getAll("students");
+    const localIds=new Set(verifiedLocal.map(s=>String(s.id)));
+    const missingLocal=created.filter(s=>!localIds.has(String(s.id)));
+    if(missingLocal.length){
+      throw new Error(`Contrôle local échoué : ${missingLocal.length} élève(s) importé(s) n'ont pas été retrouvés dans le stockage.`);
+    }
+
+    // Si Firebase est connecté, pousser et vérifier le lot complet avant de considérer l'import terminé.
+    let cloudSyncText="";
+    if(typeof window.firebaseSyncPendingStudents==="function"){
+      try{
+        const synced=await window.firebaseSyncPendingStudents();
+        if(synced?.connected)cloudSyncText=` Synchronisation Firebase vérifiée : ${synced.synced||0} élève(s).`;
+      }catch(e){
+        console.warn("Synchronisation Firebase des élèves importés :",e);
+        cloudSyncText=" Les élèves sont conservés localement ; la synchronisation Firebase sera retentée automatiquement.";
+      }
+    }
+
+    // Recharger la vérité depuis IndexedDB au lieu de simplement pousser dans le tableau mémoire.
+    verifiedLocal=await getAll("students");
+    allStudents=verifiedLocal.map(s=>({...s,evaluations:[]}));
+    const evals=await getAll("evaluations");
+    evals.forEach(e=>{const s=allStudents.find(x=>String(x.id)===String(e.studentId));if(s)s.evaluations.push({...e});});
     refreshActiveStudentsFromAll();
     renderSettingsStudents();
+
+    const classCount=verifiedLocal.filter(st=>String(st.classId)===String(targetClassId)).length;
     const details=[];
     if(duplicatesExisting)details.push(`${duplicatesExisting} déjà présent(s)`);
     if(duplicatesFile)details.push(`${duplicatesFile} doublon(s) dans le fichier`);
-    showSuccessMessage(`${created.length} élève(s) importé(s) dans ${settingsStudentClassName()} sur ${incoming.length} ligne(s) élève détectée(s)${details.length?`. Ignorés : ${details.join(" ; ")}.`:"."}`);
+    showSuccessMessage(`${created.length} élève(s) importé(s) et vérifié(s) dans ${settingsStudentClassName()}. La classe contient maintenant ${classCount} élève(s)${details.length?`. Ignorés : ${details.join(" ; ")}`:""}.${cloudSyncText}`);
   }catch(err){
-    showWarningMessage("Impossible de lire complètement le fichier : "+(err?.message||String(err)));
+    showWarningMessage("Impossible de terminer l'import : "+(err?.message||String(err)));
   }finally{input.value="";}
 }
 
@@ -9494,6 +9537,31 @@ function openAssistanceMail(){
   }
   window.firebaseCloudSet=cloudSet;
 
+  window.firebaseSyncPendingStudents=async function(){
+    const ids=getPendingStudentSyncIds();
+    if(!ids.length)return {connected:!!auth?.currentUser,synced:0};
+    if(!auth?.currentUser)return {connected:false,synced:0,pending:ids.length};
+    await openDB();
+    const local=await getAll("students");
+    const byId=new Map(local.map(s=>[String(s.id),s]));
+    let synced=0;
+    for(const id of ids){
+      const st=byId.get(String(id));
+      if(!st)continue;
+      const clean=JSON.parse(JSON.stringify(st));delete clean.evaluations;
+      await userRoot().collection("students").doc(String(id)).set(clean,{merge:false});
+      synced++;
+    }
+    // Vérification distante, puis suppression du marqueur uniquement pour les IDs réellement présents.
+    const stillPending=[];
+    for(const id of ids){
+      const snap=await userRoot().collection("students").doc(String(id)).get();
+      if(!snap.exists)stillPending.push(String(id));
+    }
+    setPendingStudentSyncIds(stillPending);
+    return {connected:true,synced,pending:stillPending.length};
+  };
+
   async function firebaseReplaceCollectionExact(name,items){
     if(!auth?.currentUser)return;
     const col=userRoot().collection(name);
@@ -9697,6 +9765,17 @@ window.firebaseSaveCurrentConfig=async()=>{await saveFullConfig(firebaseBuildApp
         }
       }
 
+      // Avant de laisser Firebase remplacer le cache local, garantir que les élèves
+      // récemment importés sur ce poste ont bien été écrits et vérifiés dans le cloud.
+      const pendingBeforeSync=getPendingStudentSyncIds();
+      if(pendingBeforeSync.length){
+        try{
+          await window.firebaseSyncPendingStudents();
+          cloudStudents=await cloudDocs('students');
+        }catch(e){
+          console.warn('Élèves importés en attente de Firebase :',e);
+        }
+      }
       if(cloudStudents.length){
         await replaceLocalStudents(cloudStudents);
       }
@@ -9846,8 +9925,13 @@ window.firebaseSaveCurrentConfig=async()=>{await saveFullConfig(firebaseBuildApp
   }
   async function applyRemoteStudent(change){
     const id=change.doc.id;
-    if(change.type==='removed') await originalDelete('students',id);
-    else await originalPut('students',{id,...change.doc.data()});
+    if(change.type==='removed'){
+      if(getPendingStudentSyncIds().includes(String(id))){
+        console.warn('Suppression distante ignorée temporairement pour un élève importé en attente de synchronisation :',id);
+        return;
+      }
+      await originalDelete('students',id);
+    }else await originalPut('students',{id,...change.doc.data()});
   }
   async function applyRemoteEvaluation(change){
     const raw=change.doc.id;

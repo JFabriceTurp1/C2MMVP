@@ -1,10 +1,23 @@
-CORRECTIF — IMPORT DE LA LISTE D'ÉLÈVES
+CORRECTIF — IMPORT ET PERSISTANCE DES ÉLÈVES
 
-- Correction de l'import Excel qui pouvait ne lire qu'une partie des élèves.
-- Lecture XLSX désormais basée sur la table centrale ZIP (compatible avec les fichiers Excel utilisant des data-descriptors).
-- Recherche automatique de la feuille contenant réellement les colonnes Nom et Prénom au lieu de prendre arbitrairement la première feuille.
-- Recherche de la ligne d'en-tête dans les 30 premières lignes.
-- Import CSV renforcé : séparateurs ; , ou tabulation, champs entre guillemets et retours à la ligne.
-- Détection des doublons déjà présents et des doublons internes au fichier.
-- Message final indiquant le nombre de lignes élèves détectées, importées et ignorées.
-- Toutes les autres fonctions de la version précédente sont conservées.
+Modifications de cette version :
+- lecture Excel renforcée : recherche automatique de la bonne feuille et des colonnes Nom / Prénom ;
+- import de toutes les lignes élèves, avec gestion fiable des CSV et XLSX ;
+- contrôle local après import : chaque élève créé doit être retrouvé dans IndexedDB ;
+- synchronisation Firebase du lot importé avec vérification distante ;
+- un marqueur protège les élèves nouvellement importés tant que Firebase ne les a pas confirmés ;
+- une liste Firebase ancienne ou partielle ne peut plus faire disparaître immédiatement les élèves venant d’être importés ;
+- la liste affichée après import est relue depuis IndexedDB, puis recomptée ;
+- message final indiquant le nombre importé et le nombre total présent dans la classe.
+
+Toutes les fonctions précédentes du logiciel sont conservées.
+
+VERSION — NAVIGATION ÉVALUATIONS CORRIGÉE
+
+Corrections de cette version :
+- correction de l’ouverture « Évaluation de rentrée » ;
+- correction de l’ouverture « Évaluation sur fiche d’activités » ;
+- correction de la détermination du diplôme : la fonction utilisait une variable de classes non garantie, provoquant une erreur JavaScript silencieuse ;
+- utilisation désormais de la liste réelle des classes via getClasses() et de la classe de l’élève ;
+- ajout d’un message explicite si une erreur d’ouverture se reproduit ;
+- conservation de l’affichage/impression stricts au diplôme de l’élève.
