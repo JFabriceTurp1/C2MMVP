@@ -1,10 +1,9 @@
-V Référentiel 2 — Correction impression diplôme unique
+VERSION — NAVIGATION ÉVALUATIONS CORRIGÉE
 
-Modifications de cette version :
-- Le diplôme est déterminé uniquement à partir de la classe de l’élève concerné.
-- Toutes les impressions d’évaluation de rentrée affichent un seul diplôme et uniquement ses compétences.
-- Toutes les impressions d’évaluation sur fiche d’activités affichent un seul diplôme et uniquement ses compétences.
-- Suppression de la présentation CAP/Bac Pro simultanée dans les documents imprimés.
-- Le libellé « Diplôme préparé » affiche directement CAP ou BAC PRO, sans double case à cocher.
-- Les compétences visibles à l’écran et à l’impression sont filtrées selon le diplôme réel de l’élève.
-- Les fonctions précédentes (Firebase, évaluations de rentrée, fiches d’activités, note pilote, iPad, SP1 à SP10) sont conservées.
+Corrections de cette version :
+- correction de l’ouverture « Évaluation de rentrée » ;
+- correction de l’ouverture « Évaluation sur fiche d’activités » ;
+- correction de la détermination du diplôme : la fonction utilisait une variable de classes non garantie, provoquant une erreur JavaScript silencieuse ;
+- utilisation désormais de la liste réelle des classes via getClasses() et de la classe de l’élève ;
+- ajout d’un message explicite si une erreur d’ouverture se reproduit ;
+- conservation de l’affichage/impression stricts au diplôme de l’élève.

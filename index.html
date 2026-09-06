@@ -3895,15 +3895,24 @@ function studentClassLabel(studentId){
 }
 function strictStudentDiploma(studentId){
   const sid=studentId||rentreeDraft?.studentId||activityDraft?.studentId||selectedStudent;
-  const st=(students||[]).find(s=>String(s.id)===String(sid));
-  const cls=(classes||[]).find(c=>String(c.id)===String(st?.classId));
-  return String(cls?.referentialId||DEFAULT_REFERENTIAL_ID)===String(SECOND_REFERENTIAL_ID)?"BAC PRO":"CAP";
+  const studentPool=[...(Array.isArray(allStudents)?allStudents:[]),...(Array.isArray(students)?students:[])];
+  const st=studentPool.find(s=>String(s?.id)===String(sid||""));
+  const classPool=typeof getClasses==="function"?(getClasses()||[]):[];
+  const cls=classPool.find(c=>String(c?.id)===String(st?.classId||getActiveClassId()));
+  const refId=cls?.referentialId||getClassReferentialId(st?.classId||getActiveClassId())||DEFAULT_REFERENTIAL_ID;
+  return String(refId)===String(SECOND_REFERENTIAL_ID)?"BAC PRO":"CAP";
 }
 function activeDiplomaForRentree(studentId){return strictStudentDiploma(studentId||rentreeDraft?.studentId||selectedStudent);}
 function rentreeTheme(id){return RENTREE_EVALUATIONS_V1.find(x=>x.id===id)||null;}
 function rentreeComps(theme,studentId){return activeDiplomaForRentree(studentId)==="BAC PRO"?(theme?.compsBAC||[]):(theme?.compsCAP||[]);}
 function evaluationDisplayComps(e){return (e?.rentreeEvaluation||e?.ficheActiviteEvaluation)?(e.associatedComps||[]):(e?.comps||[]);}
-function beginRentreeEvaluation(){if(!students.length){showWarningMessage("Aucun élève n’est disponible.");return;}if(!students.some(s=>String(s.id)===String(selectedStudent)))selectedStudent=sortStudentsAlpha(students)[0]?.id||null;rentreeDraft=null;page="rentreeChoice";render();}
+function beginRentreeEvaluation(){
+  try{
+    if(!students.length){showWarningMessage("Aucun élève n’est disponible.");return;}
+    if(!students.some(s=>String(s.id)===String(selectedStudent)))selectedStudent=sortStudentsAlpha(students)[0]?.id||null;
+    rentreeDraft=null;page="rentreeChoice";render();
+  }catch(err){console.error("Ouverture évaluation de rentrée",err);showWarningMessage("Impossible d’ouvrir l’évaluation de rentrée : "+(err?.message||err));}
+}
 function rentreeChoicePage(){setActive("eval");const diploma=activeDiplomaForRentree();const cards=RENTREE_EVALUATIONS_V1.map(t=>`<button type="button" class="rentree-theme-card ${t.standby?"disabled":""}" ${t.standby?'disabled aria-disabled="true"':`onclick="startRentreeTheme('${t.id}')"`}><span class="rentree-theme-visual">${t.image?`<img src="${t.image}" alt="">`:'<span style="font-size:52px">🧾</span>'}</span><span class="rentree-theme-copy"><span class="num">Thème ${t.theme}</span><h2>${esc(t.label)}</h2><p>${esc(t.description)}</p><span class="rentree-status ${t.standby?"wait":""}">${t.standby?"EN STANDBY":"Disponible"}</span></span></button>`).join("");document.getElementById("main").innerHTML=`<header class="app-top-header" aria-label="Évaluation de rentrée"></header><div class="rentree-choice-page"><div class="rentree-choice-heading"><h1>🎓 Évaluation de rentrée</h1><p class="sub">Choisis la situation d’évaluation à réaliser. Les cinq premières situations sont opérationnelles ; le thème 6 reste en préparation conformément à la synthèse fournie.</p></div><div class="rentree-class-banner"><div><b>Classe active :</b> ${esc(activeClassName()||"—")}</div><div><b>Diplôme :</b> <span class="rentree-diploma-badge">${esc(diploma)}</span></div></div><div class="rentree-theme-grid">${cards}</div><div class="actions"><button class="secondary" onclick="startEvaluation()">← Retour aux types d’évaluation</button></div></div>`;}
 function startRentreeTheme(id){const theme=rentreeTheme(id);if(!theme||theme.standby)return;if(!selectedStudent)selectedStudent=sortStudentsAlpha(students)[0]?.id||null;if(!selectedStudent){showWarningMessage("Sélectionne un élève.");return;}rentreeDraft={themeId:id,date:new Date().toLocaleDateString("fr-FR"),studentId:selectedStudent,scores:{},observations:{},teacherObservation:"",appreciation:"",appreciationManual:false,editId:null,noteDrivenEvaluation:false,noteDrivenRequested:"",noteDrivenExact:"",noteDrivenCalculated:undefined};page="rentreeEval";render();}
 function rentreeScoreTotal(){const theme=rentreeTheme(rentreeDraft?.themeId);if(!theme)return 0;return theme.criteria.reduce((sum,_,i)=>sum+(Number(rentreeDraft.scores[i])||0),0);}
@@ -3996,9 +4005,11 @@ function activityItem(id){return ACTIVITY_EVALUATIONS_V1.find(x=>x.id===id)||nul
 function activityDiploma(studentId){return strictStudentDiploma(studentId||activityDraft?.studentId||selectedStudent);}
 function activityComps(a,studentId){return activityDiploma(studentId)==="BAC PRO"?(a?.competences_bac_pro||[]):(a?.competences_cap||[]);}
 function beginActivityEvaluation(){
-  if(!students.length){showWarningMessage("Aucun élève n’est disponible.");return;}
-  if(!students.some(s=>String(s.id)===String(selectedStudent)))selectedStudent=sortStudentsAlpha(students)[0]?.id||null;
-  activityDraft=null;activitySearch="";page="activityChoice";render();
+  try{
+    if(!students.length){showWarningMessage("Aucun élève n’est disponible.");return;}
+    if(!students.some(s=>String(s.id)===String(selectedStudent)))selectedStudent=sortStudentsAlpha(students)[0]?.id||null;
+    activityDraft=null;activitySearch="";page="activityChoice";render();
+  }catch(err){console.error("Ouverture fiche d’activités",err);showWarningMessage("Impossible d’ouvrir l’évaluation sur fiche d’activités : "+(err?.message||err));}
 }
 function setActivitySearch(v){activitySearch=String(v||"");activityChoicePage();requestAnimationFrame(()=>{const x=document.getElementById("activity-search");if(x){x.focus();x.setSelectionRange(x.value.length,x.value.length);}});}
 function activityChoicePage(){
