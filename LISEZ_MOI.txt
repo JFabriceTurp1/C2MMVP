@@ -41,3 +41,11 @@ AUTRES ÉLÉMENTS CONSERVÉS
 
 REMARQUE
 Le mode « par note » est une aide au positionnement. Après génération automatique, l’enseignant conserve la possibilité de modifier les critères afin de tenir compte de son observation réelle de l’élève.
+
+
+=== AFFICHAGE STRICT PAR DIPLÔME ===
+- Le diplôme est maintenant déterminé à partir de la classe réelle de l’élève.
+- Les évaluations de rentrée n’affichent et n’impriment que les compétences du diplôme de l’élève.
+- Les évaluations sur fiche d’activités n’affichent et n’impriment que les compétences du diplôme de l’élève.
+- Les impressions n’affichent plus simultanément CAP et Bac Pro : seul le diplôme concerné apparaît.
+- Les compétences de l’autre diplôme sont masquées pour supprimer toute ambiguïté.
