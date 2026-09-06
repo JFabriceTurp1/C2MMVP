@@ -1,9 +1,9 @@
-VERSION : correction sélection appréciation — Évaluation de rentrée
+VERSION — RÉCAPITULATIF COMPACT SUR IPAD / TABLETTE
 
-MODIFICATIONS :
-- Correction du clic sur les appréciations : « Très bien », « Bien », « En cours d'acquisition », « À renforcer ».
-- L'appréciation choisie est désormais réellement enregistrée dans le brouillon de l'évaluation.
-- La sélection visuelle se met à jour immédiatement après le clic.
-- Conservation de toutes les fonctions de la version précédente : évaluations de rentrée, impression fidèle, SP1 à SP10, Firebase activable, paramètres repliés et fonctions rétroactives réservées à l'administrateur.
-
-DATE : 06/09/2026
+Modifications de cette version :
+- Réduction importante du panneau « Récapitulatif » sur les écrans de type iPad/tablette.
+- Largeur, marges, textes, pastilles et boutons du récapitulatif réduits entre 701 et 1180 px de largeur.
+- La zone de sélection des compétences et des niveaux dispose de davantage d’espace utile.
+- Sur téléphone (700 px et moins), le récapitulatif conserve son comportement en bloc dans la page.
+- Sur grand écran, la présentation habituelle est conservée.
+- Toutes les fonctions précédentes sont conservées : Firebase activable, paramètres repliés, évaluations de rentrée, impression fidèle, SP1 à SP10 et appréciation dynamique.

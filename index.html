@@ -2303,6 +2303,46 @@ body{background:#f7f9fc;color:var(--text)}
 }
 </style>
 
+<style>
+/* V suivante — iPad/tablette : récapitulatif compact pour libérer la zone d'évaluation */
+@media (min-width:701px) and (max-width:1180px){
+  .eval-modern-recap{
+    position:fixed !important;
+    right:6px !important;
+    top:50% !important;
+    left:auto !important;
+    transform:translateY(-50%) !important;
+    width:172px !important;
+    max-width:172px !important;
+    max-height:72vh !important;
+    padding:9px !important;
+    border-radius:11px !important;
+    overflow:auto !important;
+    box-shadow:0 7px 20px rgba(16,42,67,.13) !important;
+  }
+  .eval-modern-recap-title{font-size:14px !important;margin-bottom:5px !important;}
+  .eval-modern-recap .eval-recap-item{gap:5px !important;padding:5px 0 !important;}
+  .eval-modern-recap .eval-recap-item b{font-size:11px !important;line-height:1.1 !important;}
+  .eval-modern-recap .eval-recap-item small{font-size:9.5px !important;line-height:1.15 !important;margin-top:1px !important;}
+  .eval-modern-recap .recap-dot{width:20px !important;height:20px !important;font-size:10px !important;}
+  .eval-modern-recap-actions{gap:5px !important;margin-top:8px !important;}
+  .eval-modern-recap-actions .start-evaluation-btn,
+  .eval-modern-recap-actions .validate-evaluation-btn,
+  .eval-modern-recap-actions .cancel-evaluation-recap-btn{
+    min-height:34px !important;
+    padding:5px 6px !important;
+    border-radius:8px !important;
+    font-size:10.5px !important;
+    line-height:1.1 !important;
+  }
+  /* réserve juste la largeur nécessaire au petit récapitulatif, sans écraser la sélection */
+  .eval-modern-workspace{padding-right:178px !important;}
+}
+@media (min-width:701px) and (max-width:900px){
+  .eval-modern-recap{width:154px !important;max-width:154px !important;}
+  .eval-modern-workspace{padding-right:160px !important;}
+}
+</style>
 </head>
 <body class="firebase-disabled-mode">
 <!-- V88 — DONNÉES DE RÉFÉRENCE RÉINTÉGRÉES DEPUIS V86.5
@@ -3793,15 +3833,28 @@ function rentreeComps(theme){return activeDiplomaForRentree()==="BAC PRO"?(theme
 function evaluationDisplayComps(e){return e?.rentreeEvaluation?(e.associatedComps||[]):(e?.comps||[]);}
 function beginRentreeEvaluation(){if(!students.length){showWarningMessage("Aucun élève n’est disponible.");return;}if(!students.some(s=>String(s.id)===String(selectedStudent)))selectedStudent=sortStudentsAlpha(students)[0]?.id||null;rentreeDraft=null;page="rentreeChoice";render();}
 function rentreeChoicePage(){setActive("eval");const diploma=activeDiplomaForRentree();const cards=RENTREE_EVALUATIONS_V1.map(t=>`<button type="button" class="rentree-theme-card ${t.standby?"disabled":""}" ${t.standby?'disabled aria-disabled="true"':`onclick="startRentreeTheme('${t.id}')"`}><span class="rentree-theme-visual">${t.image?`<img src="${t.image}" alt="">`:'<span style="font-size:52px">🧾</span>'}</span><span class="rentree-theme-copy"><span class="num">Thème ${t.theme}</span><h2>${esc(t.label)}</h2><p>${esc(t.description)}</p><span class="rentree-status ${t.standby?"wait":""}">${t.standby?"EN STANDBY":"Disponible"}</span></span></button>`).join("");document.getElementById("main").innerHTML=`<header class="app-top-header" aria-label="Évaluation de rentrée"></header><div class="rentree-choice-page"><div class="rentree-choice-heading"><h1>🎓 Évaluation de rentrée</h1><p class="sub">Choisis la situation d’évaluation à réaliser. Les cinq premières situations sont opérationnelles ; le thème 6 reste en préparation conformément à la synthèse fournie.</p></div><div class="rentree-class-banner"><div><b>Classe active :</b> ${esc(activeClassName()||"—")}</div><div><b>Diplôme :</b> <span class="rentree-diploma-badge">${esc(diploma)}</span></div></div><div class="rentree-theme-grid">${cards}</div><div class="actions"><button class="secondary" onclick="startEvaluation()">← Retour aux types d’évaluation</button></div></div>`;}
-function startRentreeTheme(id){const theme=rentreeTheme(id);if(!theme||theme.standby)return;if(!selectedStudent)selectedStudent=sortStudentsAlpha(students)[0]?.id||null;if(!selectedStudent){showWarningMessage("Sélectionne un élève.");return;}rentreeDraft={themeId:id,date:new Date().toLocaleDateString("fr-FR"),studentId:selectedStudent,scores:{},observations:{},teacherObservation:"",appreciation:"",editId:null};page="rentreeEval";render();}
+function startRentreeTheme(id){const theme=rentreeTheme(id);if(!theme||theme.standby)return;if(!selectedStudent)selectedStudent=sortStudentsAlpha(students)[0]?.id||null;if(!selectedStudent){showWarningMessage("Sélectionne un élève.");return;}rentreeDraft={themeId:id,date:new Date().toLocaleDateString("fr-FR"),studentId:selectedStudent,scores:{},observations:{},teacherObservation:"",appreciation:"",appreciationManual:false,editId:null};page="rentreeEval";render();}
 function rentreeScoreTotal(){const theme=rentreeTheme(rentreeDraft?.themeId);if(!theme)return 0;return theme.criteria.reduce((sum,_,i)=>sum+(Number(rentreeDraft.scores[i])||0),0);}
 function rentreeScoredCount(){const theme=rentreeTheme(rentreeDraft?.themeId);if(!theme)return 0;return theme.criteria.filter((_,i)=>rentreeDraft.scores[i]!==undefined&&rentreeDraft.scores[i]!==null&&rentreeDraft.scores[i]!=="").length;}
-function setRentreeScore(i,v){rentreeDraft.scores[i]=Number(v);const theme=rentreeTheme(rentreeDraft.themeId);if(theme&&rentreeScoredCount()===theme.criteria.length&&!rentreeDraft.appreciation)rentreeDraft.appreciation=rentreeSuggestedAppreciation(rentreeScoreTotal());rentreeEvaluationPage();}
+function setRentreeScore(i,v){
+  if(!rentreeDraft)return;
+  rentreeDraft.scores[i]=Number(v);
+  const theme=rentreeTheme(rentreeDraft.themeId);
+  // Dès que tous les critères sont renseignés, l'appréciation suit automatiquement
+  // la note. Si la note est modifiée ensuite, elle est recalculée immédiatement.
+  // L'utilisateur peut toujours la modifier manuellement après ce recalcul.
+  if(theme&&rentreeScoredCount()===theme.criteria.length){
+    rentreeDraft.appreciation=rentreeSuggestedAppreciation(rentreeScoreTotal());
+    rentreeDraft.appreciationManual=false;
+  }
+  rentreeEvaluationPage();
+}
 function setRentreeObservation(i,v){rentreeDraft.observations[i]=v;}
 function rentreeSuggestedAppreciation(n){return n>=17?"Très bien":n>=14?"Bien":n>=10?"En cours d'acquisition":"À renforcer";}
 function setRentreeAppreciation(v){
   if(!rentreeDraft)return;
   rentreeDraft.appreciation=String(v||"");
+  rentreeDraft.appreciationManual=true;
   rentreeEvaluationPage();
 }
 function setRentreeAppreciationFromButton(btn){
@@ -3851,14 +3904,14 @@ function rentreeEvaluationPage(){
       <div class="rentree-print-meta-right"><div class="meta-line"><b>Date :</b> ${esc(rentreePrintDateLabel(d.date))}</div><div class="meta-line"><b>Diplôme préparé :</b><span class="rentree-print-check ${diploma.toUpperCase().includes("CAP")?"checked":""}"><span class="box"></span> CAP</span><span class="rentree-print-check ${diploma.toUpperCase().includes("BAC")?"checked":""}"><span class="box"></span> Bac Pro</span></div></div>
     </div>
     <table class="rentree-table"><thead><tr><th>Critères d'évaluation</th><th>0</th><th>1</th><th>2</th><th>Observations</th></tr></thead><tbody>${rows}</tbody></table>
-    <div class="rentree-summary-grid"><div><b>Observations de l'enseignant :</b><textarea rows="5" placeholder="Observation générale..." oninput="rentreeDraft.teacherObservation=this.value">${esc(d.teacherObservation||"")}</textarea><div class="rentree-print-teacher-observation rentree-print-only">${esc(d.teacherObservation||"")}</div></div><div><div><b>Total des points :</b><div class="rentree-total">${total} / 20</div><div class="muted" style="text-align:center">${done} / ${theme.criteria.length} critère(s) renseigné(s)</div></div><div style="margin-top:12px"><b>Appréciation :</b><div class="rentree-appreciations">${appreciations}</div><div class="rentree-print-appreciations rentree-print-only">${printApps}</div></div></div></div>
+    <div class="rentree-summary-grid"><div><b>Observations de l'enseignant :</b><textarea rows="5" placeholder="Observation générale..." oninput="rentreeDraft.teacherObservation=this.value">${esc(d.teacherObservation||"")}</textarea><div class="rentree-print-teacher-observation rentree-print-only">${esc(d.teacherObservation||"")}</div></div><div><div><b>Total des points :</b><div class="rentree-total">${total} / 20</div><div class="muted" style="text-align:center">${done} / ${theme.criteria.length} critère(s) renseigné(s)</div></div><div style="margin-top:12px"><b>Appréciation :</b><div class="muted rentree-screen-only" style="font-size:11px;margin-top:3px">Calculée automatiquement selon la note et recalculée si celle-ci change. Tu peux ensuite choisir librement une autre appréciation.</div><div class="rentree-appreciations">${appreciations}</div><div class="rentree-print-appreciations rentree-print-only">${printApps}</div></div></div></div>
     <div class="rentree-competence-note"><b>Compétences associées ${diploma} :</b> ${comps.join(" - ")}<br><span class="muted">Cette évaluation de rentrée constitue un indicateur technique initial. Elle est rattachée aux compétences mais ne positionne pas automatiquement les critères officiels du référentiel.</span></div>
     <div class="rentree-print-bottom rentree-print-only"><div class="left"><p><b>Compétences CAP :</b> ${esc((theme.competencies?.CAP||["C1.1","C2.1"]).join(" - "))}</p><p><b>Compétences Bac Pro :</b> ${esc((theme.competencies?.BAC||theme.competencies?.BACPRO||["C1.1","C2.1"]).join(" - "))}</p></div><div class="right"><div class="rentree-print-signature">Signature :</div></div></div>
     <div class="rentree-print-footer rentree-print-only"><span>Évaluation de rentrée - Maintenance des véhicules</span><span>Page 1</span></div>
   </div><div class="rentree-actions"><button class="secondary" onclick="page='rentreeChoice';rentreeDraft=null;render()">← Changer de thème</button><button class="secondary" onclick="printRentreeEvaluation()">🖨️ Imprimer la fiche</button><button class="primary" onclick="saveRentreeEvaluation()">${d.editId?"✓ Enregistrer les modifications":"✓ Enregistrer l’évaluation"}</button></div></div>`;
 }
 async function saveRentreeEvaluation(){const d=rentreeDraft,theme=rentreeTheme(d?.themeId);if(!d||!theme)return;if(rentreeScoredCount()!==theme.criteria.length){showWarningMessage("Renseigne les 10 critères de l’évaluation (0, 1 ou 2) avant l’enregistrement.");return;}const student=students.find(s=>String(s.id)===String(d.studentId));if(!student){showWarningMessage("Élève introuvable.");return;}const note=rentreeScoreTotal(),associated=rentreeComps(theme);const existing=d.editId?student.evaluations.find(e=>String(e.id)===String(d.editId)):null;const ev={...(existing||{}),teacherId:getActiveTeacher()?.id||"",teacherName:getActiveTeacher()?teacherFullName(getActiveTeacher()):"",date:d.date,title:`Évaluation de rentrée — ${theme.label}`,place:"Lycée",type:"Évaluation de rentrée",comps:[],associatedComps:[...associated],levels:{},obs:{},disabledCriteria:{},disabledCompetencies:{},attachment:null,evalPath:"rentree",profSituation:"",profOptions:{},profFreeText:"",retroactive:false,rentreeEvaluation:true,rentreeThemeId:theme.id,rentreeThemeLabel:theme.label,rentreeCriteria:[...theme.criteria],rentreeScores:{...d.scores},rentreeObservations:{...d.observations},rentreeAppreciation:d.appreciation||rentreeSuggestedAppreciation(note),evaluationObservation:(d.teacherObservation||"").trim(),sourceNote20:note,evaluationDate:d.date,enteredAt:existing?.enteredAt||existing?.createdAt||Date.now(),entryDate:existing?.entryDate||new Date().toLocaleDateString("fr-FR"),modifiedAt:existing?Date.now():null,studentId:student.id,createdAt:existing?.createdAt||Date.now(),batchId:null};try{await persistEvaluation(ev,!!existing);if(existing){const idx=student.evaluations.findIndex(e=>String(e.id)===String(existing.id));if(idx>=0)student.evaluations[idx]={...ev};}else student.evaluations.push({...ev});rentreeDraft=null;selectedStudent=student.id;showSuccessMessage(`Évaluation de rentrée enregistrée : ${theme.label} — ${note} / 20.`,()=>go("history"));}catch(err){showWarningMessage("Erreur d’enregistrement : "+err);}}
-function editRentreeEvaluation(ev,owner){selectedStudent=owner.id;rentreeDraft={editId:ev.id,themeId:ev.rentreeThemeId,date:ev.date||new Date().toLocaleDateString("fr-FR"),studentId:owner.id,scores:{...(ev.rentreeScores||{})},observations:{...(ev.rentreeObservations||{})},teacherObservation:ev.evaluationObservation||"",appreciation:ev.rentreeAppreciation||""};page="rentreeEval";render();}
+function editRentreeEvaluation(ev,owner){selectedStudent=owner.id;rentreeDraft={editId:ev.id,themeId:ev.rentreeThemeId,date:ev.date||new Date().toLocaleDateString("fr-FR"),studentId:owner.id,scores:{...(ev.rentreeScores||{})},observations:{...(ev.rentreeObservations||{})},teacherObservation:ev.evaluationObservation||"",appreciation:ev.rentreeAppreciation||"",appreciationManual:true};page="rentreeEval";render();}
 function rentreeViewHtml(e){const theme=rentreeTheme(e.rentreeThemeId)||{criteria:e.rentreeCriteria||[],label:e.rentreeThemeLabel||"Évaluation de rentrée"};const criteria=e.rentreeCriteria||theme.criteria||[];const rows=criteria.map((cr,i)=>`<tr><td>${i+1}. ${esc(cr)}</td><td style="text-align:center"><b>${esc(String(e.rentreeScores?.[i]??"—"))}</b></td><td>${esc(e.rentreeObservations?.[i]||"")}</td></tr>`).join("");return `<div class="panel" style="margin-top:16px"><div class="row"><h2>🎓 ${esc(theme.label||e.rentreeThemeLabel||"Évaluation de rentrée")}</h2><span class="score-badge ${scoreClass(evaluationScore20(e))}">${evaluationScoreLabel(e)}</span></div><p class="muted">Compétences associées : ${evaluationDisplayComps(e).join(" - ")||"—"}</p><table class="rentree-table rentree-view-table"><tr><th>Critère</th><th>Score</th><th>Observation</th></tr>${rows}</table><div style="margin-top:12px"><b>Appréciation :</b> ${esc(e.rentreeAppreciation||"—")}</div></div>`;}
 
 function startEvaluation(){
