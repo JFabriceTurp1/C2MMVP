@@ -1,9 +1,7 @@
-VERSION — RÉCAPITULATIF COMPACT SUR IPAD / TABLETTE
+V Référentiel 2 — correctif sélection élève — fiches d’activités
 
-Modifications de cette version :
-- Réduction importante du panneau « Récapitulatif » sur les écrans de type iPad/tablette.
-- Largeur, marges, textes, pastilles et boutons du récapitulatif réduits entre 701 et 1180 px de largeur.
-- La zone de sélection des compétences et des niveaux dispose de davantage d’espace utile.
-- Sur téléphone (700 px et moins), le récapitulatif conserve son comportement en bloc dans la page.
-- Sur grand écran, la présentation habituelle est conservée.
-- Toutes les fonctions précédentes sont conservées : Firebase activable, paramètres repliés, évaluations de rentrée, impression fidèle, SP1 à SP10 et appréciation dynamique.
+Modification de cette version :
+- Correction du message erroné « Sélectionne un élève » lors du clic sur une fiche d’activité.
+- Le logiciel relit maintenant explicitement l’élève affiché dans la liste avant d’ouvrir la fiche.
+- Si le premier élève est affiché par défaut, il est automatiquement pris en compte même si l’utilisateur n’a pas manipulé la liste déroulante.
+- Conservation des 63 fiches d’activités, des évaluations de rentrée, de Firebase activable et des fonctions précédentes.
