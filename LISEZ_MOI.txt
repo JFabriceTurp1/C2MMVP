@@ -1,7 +1,9 @@
-V Référentiel 2 — correctif sélection élève — fiches d’activités
+VERSION — CORRECTIF OUVERTURE DES FICHES D’ACTIVITÉS
 
-Modification de cette version :
-- Correction du message erroné « Sélectionne un élève » lors du clic sur une fiche d’activité.
-- Le logiciel relit maintenant explicitement l’élève affiché dans la liste avant d’ouvrir la fiche.
-- Si le premier élève est affiché par défaut, il est automatiquement pris en compte même si l’utilisateur n’a pas manipulé la liste déroulante.
-- Conservation des 63 fiches d’activités, des évaluations de rentrée, de Firebase activable et des fonctions précédentes.
+Modifications de cette version :
+- Correction du clic sur une activité dans « Évaluation sur fiche d’activités ».
+- Le problème provenait d’une référence de logo non définie lors de l’ouverture de la fiche, ce qui interrompait le rendu de l’écran sans message visible.
+- Le logo est désormais résolu de la même manière que pour les évaluations de rentrée, avec repli sur logo-francois-de-mahy.png.
+- Ajout d’un message d’erreur explicite si une fiche ne peut pas être ouverte.
+- Conservation de la sélection automatique de l’élève affiché dans la liste.
+- Toutes les fonctions précédentes sont conservées.
