@@ -3799,7 +3799,15 @@ function rentreeScoredCount(){const theme=rentreeTheme(rentreeDraft?.themeId);if
 function setRentreeScore(i,v){rentreeDraft.scores[i]=Number(v);const theme=rentreeTheme(rentreeDraft.themeId);if(theme&&rentreeScoredCount()===theme.criteria.length&&!rentreeDraft.appreciation)rentreeDraft.appreciation=rentreeSuggestedAppreciation(rentreeScoreTotal());rentreeEvaluationPage();}
 function setRentreeObservation(i,v){rentreeDraft.observations[i]=v;}
 function rentreeSuggestedAppreciation(n){return n>=17?"Très bien":n>=14?"Bien":n>=10?"En cours d'acquisition":"À renforcer";}
-function setRentreeAppreciation(v){rentreeDraft.appreciation=v;rentreeEvaluationPage();}
+function setRentreeAppreciation(v){
+  if(!rentreeDraft)return;
+  rentreeDraft.appreciation=String(v||"");
+  rentreeEvaluationPage();
+}
+function setRentreeAppreciationFromButton(btn){
+  if(!btn)return;
+  setRentreeAppreciation(btn.getAttribute("data-appreciation")||"");
+}
 function rentreeStudentNameParts(){
   const d=rentreeDraft||{};
   const st=(students||[]).find(s=>String(s.id)===String(d.studentId));
@@ -3831,7 +3839,7 @@ function rentreeEvaluationPage(){
     <td><input class="rentree-observation-input" value="${esc(d.observations[i]||"")}" oninput="setRentreeObservation(${i},this.value)" placeholder="Observation..."><span class="rentree-print-observation rentree-print-only">${esc(d.observations[i]||"")}</span></td>
   </tr>`).join("");
   const appLabels=["Très bien","Bien","En cours d'acquisition","À renforcer"];
-  const appreciations=appLabels.map(a=>`<button type="button" class="rentree-appreciation ${d.appreciation===a?"active":""}" onclick="setRentreeAppreciation(${JSON.stringify(a)})">${esc(a)}</button>`).join("");
+  const appreciations=appLabels.map(a=>`<button type="button" class="rentree-appreciation ${d.appreciation===a?"active":""}" data-appreciation="${esc(a)}" onclick="setRentreeAppreciationFromButton(this)">${esc(a)}</button>`).join("");
   const printApps=appLabels.map(a=>`<div class="app-item ${d.appreciation===a?"checked":""}"><span class="box"></span><span>${esc(a)}</span></div>`).join("");
   const logoSrc=document.querySelector('.app-top-header img')?.src||document.querySelector('img[src*="francois"]')?.src||"logo-francois-de-mahy.png";
   document.getElementById("main").innerHTML=`<header class="app-top-header" aria-label="Évaluation de rentrée"></header><div class="rentree-form-page"><div class="rentree-sheet">
