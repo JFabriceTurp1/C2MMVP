@@ -5837,75 +5837,131 @@ function downloadStudentTemplate(){
   a.download="Modele_import_eleves_V74.xlsx";
   document.body.appendChild(a);a.click();a.remove();
 }
-function parseStudentCSV(text){
-  const lines=text.replace(/\r/g,"").split("\n").filter(x=>x.trim()!=="");
-  if(!lines.length)return [];
-  const sep=lines[0].includes(";")?";":",";
-  const norm=v=>String(v||"").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
-  const headers=lines[0].split(sep).map(norm);
-  const ni=headers.indexOf("nom"), pi=headers.indexOf("prenom");
-  if(ni<0||pi<0)throw new Error("Le fichier doit contenir les colonnes « Nom » et « Prénom ».");
-  return lines.slice(1).map(line=>{
-    const cols=line.split(sep);
-    return {name:[cols[ni]||"",cols[pi]||""].map(x=>x.trim()).filter(Boolean).join(" ")};
+function studentImportNormalizeHeader(v){
+  return String(v??"").trim().toLowerCase().normalize("NFD")
+    .replace(/[\u0300-\u036f]/g,"")
+    .replace(/[’']/g," ").replace(/[-–—_/]+/g," ")
+    .replace(/\s+/g," ").trim();
+}
+function studentImportFindHeaderRow(rows){
+  for(let r=0;r<Math.min(rows.length,30);r++){
+    const h=(rows[r]||[]).map(studentImportNormalizeHeader);
+    const hasNom=h.some(x=>x==="nom"||x.includes("nom de famille"));
+    const hasPrenom=h.some(x=>x==="prenom"||x.includes("prenom eleve"));
+    if(hasNom&&hasPrenom)return r;
+  }
+  return -1;
+}
+function studentImportObjectsFromRows(rows){
+  if(!rows.length)return [];
+  const hi=studentImportFindHeaderRow(rows);
+  if(hi<0)throw new Error("Le fichier doit contenir les colonnes « Nom » et « Prénom ». ");
+  const headers=(rows[hi]||[]).map(studentImportNormalizeHeader);
+  const find=(pred)=>headers.findIndex(pred);
+  const ni=find(x=>x==="nom"||x.includes("nom de famille"));
+  const pi=find(x=>x==="prenom"||x.includes("prenom eleve"));
+  return rows.slice(hi+1).map((r,i)=>{
+    const nom=String(r?.[ni]??"").trim();
+    const prenom=String(r?.[pi]??"").trim();
+    return {name:[nom,prenom].filter(Boolean).join(" "),sourceRow:hi+i+2};
   }).filter(x=>x.name);
 }
-
-async function importXLSXStudents(file){
-  const buf=await file.arrayBuffer();
-  const bytes=new Uint8Array(buf);
-  function u16(i){return bytes[i]|(bytes[i+1]<<8)}
-  function u32(i){return (bytes[i]|(bytes[i+1]<<8)|(bytes[i+2]<<16)|(bytes[i+3]<<24))>>>0}
-  function inflate(data){
-    // DecompressionStream is available in current Chromium/Edge/Firefox/Safari.
-    return new Response(new Blob([data]).stream().pipeThrough(new DecompressionStream("deflate-raw"))).arrayBuffer();
-  }
-  async function unzipEntries(){
-    const out={};
-    for(let i=0;i<bytes.length-3;i++){
-      if(u32(i)!==0x04034b50)continue;
-      const method=u16(i+8), csize=u32(i+18), nlen=u16(i+26), elen=u16(i+28);
-      const name=new TextDecoder().decode(bytes.slice(i+30,i+30+nlen));
-      const start=i+30+nlen+elen, data=bytes.slice(start,start+csize);
-      let raw;
-      if(method===0) raw=data.buffer;
-      else if(method===8) raw=await inflate(data);
-      else continue;
-      out[name]=new TextDecoder().decode(new Uint8Array(raw));
-      i=start+csize-1;
+function studentImportParseDelimited(text){
+  const src=String(text||"").replace(/^\uFEFF/,"");
+  const firstLine=(src.match(/^[^\r\n]*/)||[""])[0];
+  const candidates=[";",",","\t"];
+  const sep=candidates.sort((a,b)=>(firstLine.split(b).length-firstLine.split(a).length))[0];
+  const rows=[];let row=[],cur="",quoted=false;
+  for(let i=0;i<src.length;i++){
+    const ch=src[i];
+    if(ch==='"'){
+      if(quoted&&src[i+1]==='"'){cur+='"';i++;}
+      else quoted=!quoted;
+      continue;
     }
-    return out;
+    if(ch===sep&&!quoted){row.push(cur);cur="";continue;}
+    if((ch==='\n'||ch==='\r')&&!quoted){
+      if(ch==='\r'&&src[i+1]==='\n')i++;
+      row.push(cur);cur="";
+      if(row.some(v=>String(v).trim()!==""))rows.push(row);
+      row=[];continue;
+    }
+    cur+=ch;
   }
-  const entries=await unzipEntries();
+  row.push(cur);if(row.some(v=>String(v).trim()!==""))rows.push(row);
+  return rows;
+}
+function parseStudentCSV(text){return studentImportObjectsFromRows(studentImportParseDelimited(text));}
+
+async function studentImportUnzipXlsx(file){
+  const bytes=new Uint8Array(await file.arrayBuffer());
+  const u16=i=>bytes[i]|(bytes[i+1]<<8);
+  const u32=i=>(bytes[i]|(bytes[i+1]<<8)|(bytes[i+2]<<16)|(bytes[i+3]<<24))>>>0;
+  const td=new TextDecoder();
+  const inflate=async data=>new Uint8Array(await new Response(new Blob([data]).stream().pipeThrough(new DecompressionStream("deflate-raw"))).arrayBuffer());
+  // Lecture de la table centrale ZIP : plus fiable que les tailles du header local
+  // (Excel peut utiliser un data-descriptor, auquel cas la taille locale vaut 0).
+  let eocd=-1;
+  for(let i=bytes.length-22;i>=Math.max(0,bytes.length-65557);i--){if(u32(i)===0x06054b50){eocd=i;break;}}
+  if(eocd<0)throw new Error("Structure ZIP/XLSX invalide.");
+  const total=u16(eocd+10),cdOffset=u32(eocd+16);
+  const out={};let p=cdOffset;
+  for(let n=0;n<total&&p<bytes.length-46;n++){
+    if(u32(p)!==0x02014b50)break;
+    const method=u16(p+10),csize=u32(p+20),nlen=u16(p+28),elen=u16(p+30),clen=u16(p+32),localOffset=u32(p+42);
+    const name=td.decode(bytes.slice(p+46,p+46+nlen));
+    if(u32(localOffset)!==0x04034b50){p+=46+nlen+elen+clen;continue;}
+    const ln=u16(localOffset+26),le=u16(localOffset+28),start=localOffset+30+ln+le;
+    const data=bytes.slice(start,start+csize);
+    let raw;
+    if(method===0)raw=data;
+    else if(method===8)raw=await inflate(data);
+    else {p+=46+nlen+elen+clen;continue;}
+    out[name]=td.decode(raw);
+    p+=46+nlen+elen+clen;
+  }
+  return out;
+}
+function studentImportCellColumn(ref){
+  const letters=(String(ref).match(/[A-Z]+/)||["A"])[0];
+  let n=0;for(const ch of letters)n=n*26+(ch.charCodeAt(0)-64);return n-1;
+}
+function studentImportRowsFromSheet(xml,shared){
+  const d=new DOMParser().parseFromString(xml,"application/xml");
+  if(d.querySelector("parsererror"))return [];
+  return [...d.querySelectorAll("row")].map(row=>{
+    const vals=[];
+    row.querySelectorAll("c").forEach(c=>{
+      const idx=studentImportCellColumn(c.getAttribute("r")||"A");
+      const t=c.getAttribute("t"),v=c.querySelector("v"),is=c.querySelector("is");
+      let val="";
+      if(t==="s"&&v)val=shared[Number(v.textContent)]??"";
+      else if(t==="inlineStr"&&is)val=[...is.querySelectorAll("t")].map(x=>x.textContent).join("");
+      else if(t==="str"&&v)val=v.textContent||"";
+      else if(v)val=v.textContent||"";
+      vals[idx]=val;
+    });
+    return vals;
+  }).filter(r=>r.some(v=>String(v??"").trim()!==""));
+}
+async function importXLSXStudents(file){
+  const entries=await studentImportUnzipXlsx(file);
   const parser=new DOMParser();
   const shared=[];
   if(entries["xl/sharedStrings.xml"]){
     const d=parser.parseFromString(entries["xl/sharedStrings.xml"],"application/xml");
     d.querySelectorAll("si").forEach(si=>shared.push([...si.querySelectorAll("t")].map(t=>t.textContent).join("")));
   }
-  const sheetName=Object.keys(entries).find(k=>/^xl\/worksheets\/sheet\d+\.xml$/.test(k));
-  if(!sheetName)throw new Error("Aucune feuille Excel lisible trouvée.");
-  const d=parser.parseFromString(entries[sheetName],"application/xml");
-  const rows=[...d.querySelectorAll("row")].map(row=>{
-    const vals=[];
-    row.querySelectorAll("c").forEach(c=>{
-      const ref=c.getAttribute("r")||"";
-      const col=(ref.match(/[A-Z]+/)||["A"])[0];
-      let idx=0;for(const ch of col)idx=idx*26+(ch.charCodeAt(0)-64);idx--;
-      const t=c.getAttribute("t"), v=c.querySelector("v"), is=c.querySelector("is");
-      let val="";
-      if(t==="s"&&v)val=shared[Number(v.textContent)]??"";
-      else if(t==="inlineStr"&&is)val=[...is.querySelectorAll("t")].map(x=>x.textContent).join("");
-      else if(v)val=v.textContent;
-      vals[idx]=val;
-    });
-    return vals;
-  }).filter(r=>r.some(v=>String(v||"").trim()!==""));
-  if(!rows.length)throw new Error("Le fichier Excel est vide.");
-  const norm=v=>String(v||"").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
-  const headers=rows[0].map(norm), ni=headers.indexOf("nom"), pi=headers.indexOf("prenom");
-  if(ni<0||pi<0)throw new Error("Le fichier doit contenir les colonnes « Nom » et « Prénom ».");
-  return rows.slice(1).map(r=>({name:[r[ni]||"",r[pi]||""].map(x=>String(x).trim()).filter(Boolean).join(" ")})).filter(x=>x.name);
+  // On teste toutes les feuilles et on retient celle qui contient réellement Nom + Prénom.
+  const sheets=Object.keys(entries).filter(k=>/^xl\/worksheets\/sheet\d+\.xml$/.test(k)).sort((a,b)=>a.localeCompare(b,undefined,{numeric:true}));
+  if(!sheets.length)throw new Error("Aucune feuille Excel lisible trouvée.");
+  let bestRows=null;
+  for(const sheet of sheets){
+    const rows=studentImportRowsFromSheet(entries[sheet],shared);
+    if(studentImportFindHeaderRow(rows)>=0){bestRows=rows;break;}
+  }
+  if(!bestRows)throw new Error("Aucune feuille contenant les colonnes « Nom » et « Prénom » n'a été trouvée.");
+  return studentImportObjectsFromRows(bestRows);
 }
 
 
@@ -6675,22 +6731,36 @@ async function importStudentsFromExcelFile(input){
       : parseStudentCSV(await file.text());
     if(!incoming.length){showWarningMessage("Aucun élève trouvé dans le fichier.");return;}
     const targetClassId=getSettingsStudentClassId();
-    const existing=new Set(settingsStudents().map(st=>String(st.name||"").trim().toLowerCase()));
-    const fresh=incoming.filter(x=>!existing.has(x.name.toLowerCase()));
-    if(!fresh.length){showWarningMessage("Tous les élèves du fichier sont déjà présents dans cette classe.");return;}
+    const key=v=>String(v||"").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/\s+/g," ");
+    const existing=new Set(settingsStudents().map(st=>key(st.name)));
+    const seen=new Set();
+    const fresh=[];let duplicatesExisting=0,duplicatesFile=0;
+    incoming.forEach(x=>{
+      const k=key(x.name);if(!k)return;
+      if(existing.has(k)){duplicatesExisting++;return;}
+      if(seen.has(k)){duplicatesFile++;return;}
+      seen.add(k);fresh.push(x);
+    });
+    if(!fresh.length){showWarningMessage(`Aucun nouvel élève à importer. ${duplicatesExisting} élève(s) déjà présent(s) dans la classe${duplicatesFile?` et ${duplicatesFile} doublon(s) dans le fichier`:""}.`);return;}
     await openDB();
-    for(const x of fresh){
-      const student={id:"stu_"+Date.now()+"_"+Math.random().toString(36).slice(2,9),name:x.name,classId:targetClassId,evaluations:[]};
-      await put("students",student);
-      allStudents.push(student);
+    const created=[];
+    for(let i=0;i<fresh.length;i++){
+      const x=fresh[i];
+      const student={id:`stu_${Date.now()}_${i}_${Math.random().toString(36).slice(2,8)}`,name:x.name,classId:targetClassId,evaluations:[]};
+      await put("students",student);created.push(student);
     }
+    allStudents.push(...created);
     refreshActiveStudentsFromAll();
     renderSettingsStudents();
-    showSuccessMessage(`${fresh.length} élève(s) importé(s) dans ${settingsStudentClassName()}. Les doublons ont été ignorés.`);
+    const details=[];
+    if(duplicatesExisting)details.push(`${duplicatesExisting} déjà présent(s)`);
+    if(duplicatesFile)details.push(`${duplicatesFile} doublon(s) dans le fichier`);
+    showSuccessMessage(`${created.length} élève(s) importé(s) dans ${settingsStudentClassName()} sur ${incoming.length} ligne(s) élève détectée(s)${details.length?`. Ignorés : ${details.join(" ; ")}.`:"."}`);
   }catch(err){
-    showWarningMessage("Impossible de lire le fichier : "+(err?.message||String(err)));
+    showWarningMessage("Impossible de lire complètement le fichier : "+(err?.message||String(err)));
   }finally{input.value="";}
 }
+
 
 function renderSettingsStudents(){
   renderSettingsStudentClassSelector();
