@@ -35,3 +35,15 @@ MODIFICATIONS DE CETTE VERSION
 - iPad / tablette : barre de sélection des dates et boutons au-dessus de la synthèse rendue plus compacte.
 - iPad portrait : réorganisation automatique des commandes sur plusieurs lignes afin d'éviter tout débordement horizontal.
 - Les autres fonctions de la version précédente sont conservées.
+
+MODIFICATIONS DE CETTE VERSION
+==============================
+- Toutes les évaluations actives notées participent désormais aux calculs de moyenne :
+  évaluations classiques, situations professionnelles, rétroactives, évaluations de rentrée et fiches d’activités.
+- Les évaluations de rentrée et les fiches d’activités alimentent aussi la synthèse par compétence via leurs compétences associées.
+- Dans la synthèse élève, le positionnement d’une compétence est maintenant calculé à partir de la moyenne de toutes les évaluations actives associées sur la période sélectionnée.
+- Toute évaluation archivée est systématiquement exclue des moyennes et de la synthèse.
+- L’archivage reste réversible et séparé de la suppression.
+- Ajout d’une suppression définitive d’une évaluation pour le professeur, avec confirmation.
+- Ajout de la suppression définitive pour les évaluations collectives et depuis la page des archives.
+- Après ajout, modification, archivage, restauration ou suppression, les calculs sont recalculés à partir des données actives au prochain affichage de la synthèse.

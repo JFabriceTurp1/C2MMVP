@@ -2533,6 +2533,12 @@ body{background:#f7f9fc;color:var(--text)}
 }
 </style>
 
+
+<style id="average-delete-archive-fix-v1">
+.average-rule-note{margin:10px 0;padding:9px 12px;border-left:4px solid #2563eb;background:#eff6ff;color:#334155;font-size:12px;border-radius:6px}
+.actions-inline .action-delete + .action-delete{margin-left:3px}
+</style>
+
 </head>
 <body class="firebase-disabled-mode">
 <!-- V88 — DONNÉES DE RÉFÉRENCE RÉINTÉGRÉES DEPUIS V86.5
@@ -3509,6 +3515,12 @@ function isEvaluationArchived(e){return !!(e&&e.archived);}
 function visibleEvaluations(list){return (list||[]).filter(e=>!isEvaluationArchived(e));}
 function archivedEvaluations(list){return (list||[]).filter(e=>isEvaluationArchived(e));}
 
+/* Toutes les évaluations actives et notées participent aux moyennes.
+   Les évaluations archivées sont systématiquement exclues. */
+function activeScoredEvaluations(list){
+  return visibleEvaluations(list||[]).filter(e=>evaluationScore20(e)!==null);
+}
+
 async function setEvaluationArchived(ev, archived){
   if(!ev || ev.id===undefined || ev.id===null) throw new Error("Évaluation invalide.");
   const updated={...ev,archived:!!archived};
@@ -3582,6 +3594,52 @@ async function performDeleteEvaluation(id,owner,ev){
     viewedEvaluation=null;
     showSuccessMessage("Évaluation archivée.",()=>go("history"));
   }catch(err){showWarningMessage("Erreur lors de l’archivage : "+(err?.message||String(err)));}
+}
+
+async function permanentlyDeleteEvaluation(evaluationId,studentIdHint,returnPage){
+  const id=String(evaluationId);
+  const found=findEvaluationOwner(id,studentIdHint);
+  const owner=found.owner, ev=found.ev;
+  if(!ev){showWarningMessage("Évaluation introuvable.");return;}
+  showDeleteConfirmation(
+    `Supprimer définitivement l’évaluation « ${ev.title||"Sans intitulé"} » du ${ev.date||""} ? Cette opération est irréversible.`,
+    ()=>performPermanentEvaluationDelete(id,owner,returnPage||"history")
+  );
+}
+async function performPermanentEvaluationDelete(id,owner,returnPage){
+  try{
+    await openDB();
+    const realId=owner?.evaluations?.find(e=>String(e.id)===String(id))?.id ?? id;
+    await deleteFromStore("evaluations",realId);
+    if(owner) owner.evaluations=(owner.evaluations||[]).filter(e=>String(e.id)!==String(id));
+    viewedEvaluation=null;
+    if(owner) selectedStudent=owner.id;
+    await loadData();
+    showSuccessMessage("Évaluation supprimée définitivement.",()=>go(returnPage||"history"));
+  }catch(err){showWarningMessage("Erreur lors de la suppression définitive : "+(err?.message||String(err)));}
+}
+async function permanentlyDeleteCollective(batchId,returnPage){
+  const key=String(batchId);
+  const members=[];
+  allStudents.forEach(st=>{
+    (st.evaluations||[]).forEach(ev=>{
+      if(ev && ev.batchId && String(ev.batchId)===key) members.push({student:st,ev});
+    });
+  });
+  if(!members.length){showWarningMessage("Évaluation collective introuvable.");return;}
+  showDeleteConfirmation(
+    `Supprimer définitivement cette évaluation collective pour ${members.length} élève(s) ? Cette opération est irréversible.`,
+    ()=>performPermanentCollectiveDelete(members,returnPage||"history")
+  );
+}
+async function performPermanentCollectiveDelete(members,returnPage){
+  try{
+    await openDB();
+    for(const m of members) await deleteFromStore("evaluations",m.ev.id);
+    viewedEvaluation=null;
+    await loadData();
+    showSuccessMessage(`${members.length} évaluation(s) supprimée(s) définitivement.`,()=>go(returnPage||"history"));
+  }catch(err){showWarningMessage("Erreur lors de la suppression collective : "+(err?.message||String(err)));}
 }
 async function restoreEvaluation(evaluationId,studentIdHint){
   const id=String(evaluationId);
@@ -3866,7 +3924,7 @@ let groups=[...groupMap.values()]
   groups.forEach(g=>{
     if(!g.collective){
       const e=g.items[0];
-      body+=`<tr onclick="viewEvaluation('${String(e.id)}')" style="cursor:pointer" title="Cliquer pour visualiser" class="home-individual-row"><td>${esc(e.date)}</td><td><b>${esc(e.student)}</b></td><td>${esc(e.title)}</td><td>${evaluationDisplayComps(e).map(competenceLabel).join("<br>")}</td><td><span class="score-badge ${scoreClass(evaluationScore20(e))}">${evaluationScoreLabel(e)}</span></td><td><button class="action-icon action-edit" onclick="event.stopPropagation();editEvaluation('${String(e.id)}','${String(e.studentId)}')" title="Modifier" aria-label="Modifier">✏️</button><button class="action-icon action-delete" onclick="event.stopPropagation();deleteEvaluation('${String(e.id)}','${String(e.studentId)}')" title="Archiver" aria-label="Archiver">📦</button></td></tr>`;
+      body+=`<tr onclick="viewEvaluation('${String(e.id)}')" style="cursor:pointer" title="Cliquer pour visualiser" class="home-individual-row"><td>${esc(e.date)}</td><td><b>${esc(e.student)}</b></td><td>${esc(e.title)}</td><td>${evaluationDisplayComps(e).map(competenceLabel).join("<br>")}</td><td><span class="score-badge ${scoreClass(evaluationScore20(e))}">${evaluationScoreLabel(e)}</span></td><td><button class="action-icon action-edit" onclick="event.stopPropagation();editEvaluation('${String(e.id)}','${String(e.studentId)}')" title="Modifier" aria-label="Modifier">✏️</button><button class="action-icon action-delete" onclick="event.stopPropagation();deleteEvaluation('${String(e.id)}','${String(e.studentId)}')" title="Archiver" aria-label="Archiver">📦</button><button class="action-icon action-delete" onclick="event.stopPropagation();permanentlyDeleteEvaluation('${String(e.id)}','${String(e.studentId)}','history')" title="Supprimer définitivement" aria-label="Supprimer définitivement">🗑️</button></td></tr>`;
     }else{
       const id="collective-"+g.key.replace(/[^a-zA-Z0-9_-]/g,"_");
       body+=`<tr class="click home-collective-row" onclick="toggleCollectiveRow('${esc(id)}')" style="cursor:pointer;background:#f8fafc">
@@ -3879,7 +3937,7 @@ let groups=[...groupMap.values()]
       g.items.forEach(e=>{
         body+=`<tr onclick="viewEvaluation(\'${String(e.id)}\')" style="display:none;cursor:pointer" title="Cliquer pour visualiser" class="history-collective-child home-collective-child" data-collective="${esc(id)}">
           <td>${esc(e.date)}</td><td style="padding-left:28px">↳ ${esc(e.student)}</td><td>${esc(e.title)}</td><td>${evaluationDisplayComps(e).map(competenceLabel).join("<br>")}</td><td><span class="score-badge ${scoreClass(evaluationScore20(e))}">${evaluationScoreLabel(e)}</span></td>
-          <td><button class="action-icon action-edit" onclick="event.stopPropagation();editEvaluation('${String(e.id)}','${String(e.studentId)}')" title="Modifier" aria-label="Modifier">✏️</button><button class="action-icon action-delete" onclick="event.stopPropagation();deleteEvaluation('${String(e.id)}','${String(e.studentId)}')" title="Archiver" aria-label="Archiver">📦</button></td>
+          <td><button class="action-icon action-edit" onclick="event.stopPropagation();editEvaluation('${String(e.id)}','${String(e.studentId)}')" title="Modifier" aria-label="Modifier">✏️</button><button class="action-icon action-delete" onclick="event.stopPropagation();deleteEvaluation('${String(e.id)}','${String(e.studentId)}')" title="Archiver" aria-label="Archiver">📦</button><button class="action-icon action-delete" onclick="event.stopPropagation();permanentlyDeleteEvaluation('${String(e.id)}','${String(e.studentId)}','history')" title="Supprimer définitivement" aria-label="Supprimer définitivement">🗑️</button></td>
         </tr>`;
       });
     }
@@ -8553,7 +8611,7 @@ function evaluationScore20(e){
     if(Number.isFinite(exact))return Math.max(0,Math.min(20,exact));
   }
   const vals=[];
-  e.comps.forEach(cid=>{
+  (e.comps||[]).forEach(cid=>{
     const c=competencies.find(x=>x.id===cid);
     if(!c)return;
     c.criteria.forEach((_,i)=>{
@@ -8759,7 +8817,7 @@ function historyPage(){
         <td><span class="score-badge ${scoreClass(evaluationScore20(e))}">${evaluationScoreLabel(e)}</span></td>
         <td><span class="actions-inline">
           <button class="action-icon action-edit" onclick="event.stopPropagation();editEvaluation('${String(e.id)}','${String(e.studentId)}')" title="Modifier" aria-label="Modifier">✏️</button>
-          <button class="action-icon action-delete" onclick="event.stopPropagation();deleteEvaluation('${String(e.id)}','${String(e.studentId)}')" title="Archiver" aria-label="Archiver">📦</button>
+          <button class="action-icon action-delete" onclick="event.stopPropagation();deleteEvaluation('${String(e.id)}','${String(e.studentId)}')" title="Archiver" aria-label="Archiver">📦</button><button class="action-icon action-delete" onclick="event.stopPropagation();permanentlyDeleteEvaluation('${String(e.id)}','${String(e.studentId)}','history')" title="Supprimer définitivement" aria-label="Supprimer définitivement">🗑️</button>
         </span></td>
       </tr>`;
     }else{
@@ -8774,7 +8832,7 @@ function historyPage(){
         <td><span class="pill">${studentsCount} élèves</span></td>
         <td><div class="action-buttons" style="display:flex;flex-wrap:nowrap;align-items:center;gap:6px;white-space:nowrap">
           <button class="reduce-icon" type="button" data-toggle="${esc(id)}" onclick="event.stopPropagation();toggleCollectiveRow('${esc(id)}')" title="Réduire" aria-label="Réduire" style="display:none">▲</button>
-          <button class="action-icon action-delete" type="button" onclick="event.stopPropagation();deleteCollective('${String(g.items[0].batchId)}')" title="Archiver toute l’évaluation collective" aria-label="Archiver toute l’évaluation collective">📦</button>
+          <button class="action-icon action-delete" type="button" onclick="event.stopPropagation();deleteCollective('${String(g.items[0].batchId)}')" title="Archiver toute l’évaluation collective" aria-label="Archiver toute l’évaluation collective">📦</button><button class="action-icon action-delete" type="button" onclick="event.stopPropagation();permanentlyDeleteCollective('${String(g.items[0].batchId)}','history')" title="Supprimer définitivement toute l’évaluation collective" aria-label="Supprimer définitivement toute l’évaluation collective">🗑️</button>
         </div></td>
       </tr>`;
 
@@ -8788,7 +8846,7 @@ function historyPage(){
           <td><span class="score-badge ${scoreClass(evaluationScore20(e))}">${evaluationScoreLabel(e)}</span></td>
           <td><span class="actions-inline">
             <button class="action-icon action-edit" onclick="event.stopPropagation();editEvaluation('${String(e.id)}','${String(e.studentId)}')" title="Modifier" aria-label="Modifier">✏️</button>
-            <button class="action-icon action-delete" onclick="event.stopPropagation();deleteEvaluation('${String(e.id)}','${String(e.studentId)}')" title="Archiver" aria-label="Archiver">📦</button>
+            <button class="action-icon action-delete" onclick="event.stopPropagation();deleteEvaluation('${String(e.id)}','${String(e.studentId)}')" title="Archiver" aria-label="Archiver">📦</button><button class="action-icon action-delete" onclick="event.stopPropagation();permanentlyDeleteEvaluation('${String(e.id)}','${String(e.studentId)}','history')" title="Supprimer définitivement" aria-label="Supprimer définitivement">🗑️</button>
           </span></td>
         </tr>`;
       });
@@ -8799,7 +8857,7 @@ function historyPage(){
     <div class="page-header">
       <div>
         <h1>Historique</h1>
-        <p class="sub">Toutes les évaluations actives enregistrées dans le logiciel.</p>
+        <p class="sub">Toutes les évaluations actives enregistrées dans le logiciel. Les évaluations archivées sont conservées mais exclues de tous les calculs de moyenne et de synthèse.</p>
       </div>
       <button class="secondary" onclick="go('home')">← Accueil</button>
     </div>
@@ -8870,7 +8928,7 @@ function archivesPage(){
         <td><span class="score-badge ${scoreClass(evaluationScore20(e))}">${evaluationScoreLabel(e)}</span></td>
         <td><span class="actions-inline">
           <button class="secondary" type="button" onclick="event.stopPropagation();viewEvaluation('${String(e.id)}')">👁 Visualiser</button>
-          <button class="secondary" type="button" onclick="event.stopPropagation();restoreEvaluation('${String(e.id)}','${String(e.studentId)}')">↩ Restaurer</button>
+          <button class="secondary" type="button" onclick="event.stopPropagation();restoreEvaluation('${String(e.id)}','${String(e.studentId)}')">↩ Restaurer</button><button class="secondary settings-danger" type="button" onclick="event.stopPropagation();permanentlyDeleteEvaluation('${String(e.id)}','${String(e.studentId)}','archives')">🗑️ Supprimer</button>
         </span></td>
       </tr>`;
     }else{
@@ -8880,7 +8938,7 @@ function archivesPage(){
         <td><span class="pill">Collective</span></td><td>${esc(g.title||"")}</td>
         <td>${(g.comps||[]).map(competenceLabel).join("<br>")||"—"}</td>
         <td><span class="pill">${g.items.length} élèves</span></td>
-        <td><button class="secondary" type="button" onclick="event.stopPropagation();restoreCollective('${String(g.items[0].batchId)}')">↩ Restaurer le groupe</button></td>
+        <td><button class="secondary" type="button" onclick="event.stopPropagation();restoreCollective('${String(g.items[0].batchId)}')">↩ Restaurer le groupe</button><button class="secondary settings-danger" type="button" onclick="event.stopPropagation();permanentlyDeleteCollective('${String(g.items[0].batchId)}','archives')">🗑️ Supprimer le groupe</button></td>
       </tr>`;
       g.items.sort((a,b)=>String(a.studentName||"").localeCompare(String(b.studentName||""),"fr")).forEach(e=>{
         body+=`<tr data-collective="${esc(id)}" style="display:none;cursor:pointer" onclick="viewEvaluation('${String(e.id)}')" title="Cliquer pour visualiser l'évaluation archivée">
@@ -8890,7 +8948,7 @@ function archivesPage(){
           <td><span class="score-badge ${scoreClass(evaluationScore20(e))}">${evaluationScoreLabel(e)}</span></td>
           <td><span class="actions-inline">
             <button class="secondary" type="button" onclick="event.stopPropagation();viewEvaluation('${String(e.id)}')">👁 Visualiser</button>
-            <button class="secondary" type="button" onclick="event.stopPropagation();restoreEvaluation('${String(e.id)}','${String(e.studentId)}')">↩ Restaurer</button>
+            <button class="secondary" type="button" onclick="event.stopPropagation();restoreEvaluation('${String(e.id)}','${String(e.studentId)}')">↩ Restaurer</button><button class="secondary settings-danger" type="button" onclick="event.stopPropagation();permanentlyDeleteEvaluation('${String(e.id)}','${String(e.studentId)}','archives')">🗑️ Supprimer</button>
           </span></td>
         </tr>`;
       });
@@ -9255,13 +9313,36 @@ function filterEvaluationsByPeriod(evaluations,start,end){
     return (!a||d>=a)&&(!b||d<=b);
   }).slice().sort((x,y)=>isoComparableDate(x.date).localeCompare(isoComparableDate(y.date)));
 }
-function latestCompetenceScoreFromEvaluations(evaluations,c){
-  const es=(evaluations||[]).filter(e=>(e.comps||[]).includes(c.id))
-    .slice().sort((a,b)=>isoComparableDate(a.date).localeCompare(isoComparableDate(b.date)));
-  const last=es.at(-1);
-  if(!last)return null;
-  const vals=c.criteria.map((_,i)=>levelScore((last.levels||{})[c.id+"-"+i])).filter(x=>x>0);
-  return vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:0;
+function competenceAverageScoreFromEvaluations(evaluations,c){
+  const scores=[];
+  visibleEvaluations(evaluations||[]).forEach(e=>{
+    const linked=evaluationDisplayComps(e).includes(c.id);
+    if(!linked)return;
+
+    // Évaluations de rentrée / fiches d'activités : la note /20 devient
+    // un positionnement 0..4 pour alimenter la synthèse de compétence.
+    if(e.rentreeEvaluation||e.ficheActiviteEvaluation){
+      const note=evaluationScore20(e);
+      if(note!==null) scores.push(Math.max(0,Math.min(4,note/5)));
+      return;
+    }
+
+    // Évaluations classiques / rétroactives : moyenne des critères observés
+    // de cette compétence dans l'évaluation.
+    const vals=(c.criteria||[]).map((_,i)=>{
+      const key=c.id+"-"+i;
+      if(e.disabledCriteria && e.disabledCriteria[key])return 0;
+      return levelScore((e.levels||{})[key]);
+    }).filter(x=>x>0);
+    if(vals.length)scores.push(vals.reduce((a,b)=>a+b,0)/vals.length);
+    else{
+      // Repli utile pour une évaluation associée à la compétence mais portée
+      // uniquement par une note.
+      const note=evaluationScore20(e);
+      if(note!==null)scores.push(Math.max(0,Math.min(4,note/5)));
+    }
+  });
+  return scores.length?scores.reduce((a,b)=>a+b,0)/scores.length:null;
 }
 function applyStudentReportPeriod(studentId){
   const start=document.getElementById("report-period-start")?.value||"";
@@ -9315,10 +9396,11 @@ function reportPageForStudent(){
   const activeStudentEvaluations=visibleEvaluations(s.evaluations||[]);
   const period=getReportPeriod(s.id,activeStudentEvaluations);
   const filteredEvaluations=filterEvaluationsByPeriod(activeStudentEvaluations,period.start,period.end);
-  const scoreFor=c=>latestCompetenceScoreFromEvaluations(filteredEvaluations,c);
+  const scoredEvaluations=activeScoredEvaluations(filteredEvaluations);
+  const scoreFor=c=>competenceAverageScoreFromEvaluations(filteredEvaluations,c);
   const allScores=competencies.map(scoreFor).filter(v=>v!==null);
   const overall=allScores.length?Math.round(allScores.reduce((a,b)=>a+b,0)/allScores.length/4*100):0;
-  const notes=filteredEvaluations.map(e=>evaluationScore20(e)).filter(v=>v!==null);
+  const notes=scoredEvaluations.map(e=>evaluationScore20(e)).filter(v=>v!==null);
   const avgNote=notes.length?(notes.reduce((a,b)=>a+b,0)/notes.length).toFixed(1).replace(".",","):"—";
   const reportDate=getReportDate(s.id);
   const reportDateLabel=formatReportDate(reportDate);
@@ -9355,13 +9437,13 @@ function reportPageForStudent(){
 
     <div class="report-summary">
       <div class="report-kpi"><div class="muted">Positionnement global</div><div class="value">${allScores.length?overall+" %":"—"}</div><div class="muted">sur les compétences observées</div></div>
-      <div class="report-kpi"><div class="muted">Moyenne des évaluations</div><div class="value">${avgNote}${avgNote!=="—"?" / 20":""}</div><div class="muted">${filteredEvaluations.length} évaluation(s) sur la période</div></div>
+      <div class="report-kpi"><div class="muted">Moyenne des évaluations</div><div class="value">${avgNote}${avgNote!=="—"?" / 20":""}</div><div class="muted">${scoredEvaluations.length} évaluation(s) notée(s) active(s) sur la période</div></div>
       <div class="report-kpi"><div class="muted">Compétences observées</div><div class="value">${allScores.length} / 9</div><div class="muted">C1.1 à C2.5</div></div>
     </div>
 
     <div class="report-section">
       <h2>Mon positionnement</h2>
-      <p class="muted">La barre montre le dernier positionnement enregistré pour chaque compétence pendant la période sélectionnée.</p>
+      <p class="muted">La barre synthétise la moyenne de tous les positionnements actifs associés à chaque compétence pendant la période sélectionnée. Les évaluations archivées sont exclues.</p>
       ${competencies.map(c=>{
         const r=reportLevel(scoreFor(c));
         return `<div class="report-competence">
