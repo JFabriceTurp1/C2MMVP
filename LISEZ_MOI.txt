@@ -1,51 +1,10 @@
-V Référentiel 2 V1 — ÉVALUATION PILOTÉE PAR LA NOTE
-Date : 06/09/2026
+V Référentiel 2 — Correction impression diplôme unique
 
-MODIFICATION PRINCIPALE
-- Toutes les principales possibilités d’évaluation peuvent maintenant démarrer par la saisie d’une note sur 20.
-- Le logiciel transforme automatiquement la note en positionnement cohérent des critères.
-
-ÉVALUATIONS CLASSIQUES / SITUATIONS PROFESSIONNELLES
-- Nouveau bloc « Évaluer à partir d’une note ».
-- Saisie d’une note sur 20 puis positionnement automatique des critères sur l’échelle :
-  Non observé / À renforcer / En cours / Maîtrisé / Autonome.
-- La répartition est calculée sur l’ensemble des critères actifs pour obtenir le résultat le plus proche de la note saisie.
-- Après génération, chaque critère reste modifiable manuellement.
-- Si un critère est modifié manuellement, la note redevient calculée depuis les critères afin d’éviter une incohérence entre note et positionnement.
-
-ÉVALUATIONS DE RENTRÉE
-- Saisie possible d’une note sur 20.
-- Répartition automatique sur les 10 critères 0 / 1 / 2.
-- L’appréciation est proposée automatiquement à partir de la note.
-- Les critères restent modifiables manuellement.
-- Pour une note décimale, les cases 0 / 1 / 2 correspondent au total entier le plus proche ; la note saisie reste mémorisée tant qu’aucun critère n’est corrigé manuellement.
-
-ÉVALUATIONS SUR FICHE D’ACTIVITÉS
-- Même fonctionnement à partir d’une note sur 20.
-- Répartition automatique sur les 10 critères de la fiche (0 / 1 / 2).
-- Les 63 fiches CAP / Bac Pro restent disponibles.
-- Les compétences associées à chaque fiche sont conservées.
-
-POSITIONNEMENT RÉTROACTIF
-- Le fonctionnement par note déjà existant est conservé.
-
-AUTRES ÉLÉMENTS CONSERVÉS
-- Firebase activable.
-- Fonctions rétroactives réservées à l’administrateur.
-- Évaluations de rentrée.
-- 63 fiches d’activités CAP / Bac Pro.
-- SP1 à SP10 et illustrations SP3 / SP10.
-- Paramètres repliés par défaut.
-- Mise en page d’impression des fiches.
-- Adaptation tablette / iPad.
-
-REMARQUE
-Le mode « par note » est une aide au positionnement. Après génération automatique, l’enseignant conserve la possibilité de modifier les critères afin de tenir compte de son observation réelle de l’élève.
-
-
-=== AFFICHAGE STRICT PAR DIPLÔME ===
-- Le diplôme est maintenant déterminé à partir de la classe réelle de l’élève.
-- Les évaluations de rentrée n’affichent et n’impriment que les compétences du diplôme de l’élève.
-- Les évaluations sur fiche d’activités n’affichent et n’impriment que les compétences du diplôme de l’élève.
-- Les impressions n’affichent plus simultanément CAP et Bac Pro : seul le diplôme concerné apparaît.
-- Les compétences de l’autre diplôme sont masquées pour supprimer toute ambiguïté.
+Modifications de cette version :
+- Le diplôme est déterminé uniquement à partir de la classe de l’élève concerné.
+- Toutes les impressions d’évaluation de rentrée affichent un seul diplôme et uniquement ses compétences.
+- Toutes les impressions d’évaluation sur fiche d’activités affichent un seul diplôme et uniquement ses compétences.
+- Suppression de la présentation CAP/Bac Pro simultanée dans les documents imprimés.
+- Le libellé « Diplôme préparé » affiche directement CAP ou BAC PRO, sans double case à cocher.
+- Les compétences visibles à l’écran et à l’impression sont filtrées selon le diplôme réel de l’élève.
+- Les fonctions précédentes (Firebase, évaluations de rentrée, fiches d’activités, note pilote, iPad, SP1 à SP10) sont conservées.
