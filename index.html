@@ -2382,6 +2382,11 @@ body{background:#f7f9fc;color:var(--text)}
 }
 </style>
 
+
+<style id="note-driven-evaluation-v1">
+.note-driven-box{margin:14px 0;padding:14px 16px;border:2px solid #7c3aed;border-radius:14px;background:linear-gradient(180deg,#faf7ff,#f5f0ff)}
+.note-driven-box h3{margin:0 0 6px;color:#5b21b6}.note-driven-row{display:grid;grid-template-columns:minmax(180px,260px) minmax(220px,1fr);gap:12px;align-items:end}.note-driven-help{font-size:12px;color:#667085;line-height:1.45;margin-top:7px}.note-driven-result{margin-top:9px;display:inline-block;padding:6px 10px;border-radius:999px;background:#ede9fe;color:#5b21b6;font-weight:800;font-size:12px}.note-driven-input{font-size:18px!important;font-weight:800!important;text-align:center}.note-driven-button{width:100%}.note-driven-mini{font-size:11px;color:#667085;margin-top:4px}@media(max-width:760px){.note-driven-row{grid-template-columns:1fr}}
+</style>
 </head>
 <body class="firebase-disabled-mode">
 <!-- V88 — DONNÉES DE RÉFÉRENCE RÉINTÉGRÉES DEPUIS V86.5
@@ -3848,7 +3853,7 @@ function editEvaluation(evaluationId,studentIdHint){
     batchId:ev.batchId||null,
     attachment:ev.attachment||null,
     evalPath:ev.evalPath||"free",profSituation:ev.profSituation||"",profOptions:{...(ev.profOptions||{})},profFreeText:ev.profFreeText||"",evaluationStarted:true,
-    retroactive:!!ev.retroactive,retroPositionLevel:ev.retroPositionLevel||"",retroEstimatedNote:(ev.retroEstimatedNote??""),entryStartedAt:ev.entryStartedAt||ev.enteredAt||ev.createdAt||Date.now()
+    retroactive:!!ev.retroactive,retroPositionLevel:ev.retroPositionLevel||"",retroEstimatedNote:(ev.retroEstimatedNote??""),noteDrivenEvaluation:!!ev.noteDrivenEvaluation,noteDrivenRequested:(ev.noteDrivenRequested??(ev.noteDrivenEvaluation?ev.sourceNote20??"":"")),noteDrivenExact:(ev.noteDrivenEvaluation?ev.sourceNote20??"":""),noteDrivenCalculated:(ev.noteDrivenCalculated??undefined),entryStartedAt:ev.entryStartedAt||ev.enteredAt||ev.createdAt||Date.now()
   };
   page="eval";
   render();
@@ -3875,12 +3880,13 @@ function rentreeComps(theme){return activeDiplomaForRentree()==="BAC PRO"?(theme
 function evaluationDisplayComps(e){return (e?.rentreeEvaluation||e?.ficheActiviteEvaluation)?(e.associatedComps||[]):(e?.comps||[]);}
 function beginRentreeEvaluation(){if(!students.length){showWarningMessage("Aucun élève n’est disponible.");return;}if(!students.some(s=>String(s.id)===String(selectedStudent)))selectedStudent=sortStudentsAlpha(students)[0]?.id||null;rentreeDraft=null;page="rentreeChoice";render();}
 function rentreeChoicePage(){setActive("eval");const diploma=activeDiplomaForRentree();const cards=RENTREE_EVALUATIONS_V1.map(t=>`<button type="button" class="rentree-theme-card ${t.standby?"disabled":""}" ${t.standby?'disabled aria-disabled="true"':`onclick="startRentreeTheme('${t.id}')"`}><span class="rentree-theme-visual">${t.image?`<img src="${t.image}" alt="">`:'<span style="font-size:52px">🧾</span>'}</span><span class="rentree-theme-copy"><span class="num">Thème ${t.theme}</span><h2>${esc(t.label)}</h2><p>${esc(t.description)}</p><span class="rentree-status ${t.standby?"wait":""}">${t.standby?"EN STANDBY":"Disponible"}</span></span></button>`).join("");document.getElementById("main").innerHTML=`<header class="app-top-header" aria-label="Évaluation de rentrée"></header><div class="rentree-choice-page"><div class="rentree-choice-heading"><h1>🎓 Évaluation de rentrée</h1><p class="sub">Choisis la situation d’évaluation à réaliser. Les cinq premières situations sont opérationnelles ; le thème 6 reste en préparation conformément à la synthèse fournie.</p></div><div class="rentree-class-banner"><div><b>Classe active :</b> ${esc(activeClassName()||"—")}</div><div><b>Diplôme :</b> <span class="rentree-diploma-badge">${esc(diploma)}</span></div></div><div class="rentree-theme-grid">${cards}</div><div class="actions"><button class="secondary" onclick="startEvaluation()">← Retour aux types d’évaluation</button></div></div>`;}
-function startRentreeTheme(id){const theme=rentreeTheme(id);if(!theme||theme.standby)return;if(!selectedStudent)selectedStudent=sortStudentsAlpha(students)[0]?.id||null;if(!selectedStudent){showWarningMessage("Sélectionne un élève.");return;}rentreeDraft={themeId:id,date:new Date().toLocaleDateString("fr-FR"),studentId:selectedStudent,scores:{},observations:{},teacherObservation:"",appreciation:"",appreciationManual:false,editId:null};page="rentreeEval";render();}
+function startRentreeTheme(id){const theme=rentreeTheme(id);if(!theme||theme.standby)return;if(!selectedStudent)selectedStudent=sortStudentsAlpha(students)[0]?.id||null;if(!selectedStudent){showWarningMessage("Sélectionne un élève.");return;}rentreeDraft={themeId:id,date:new Date().toLocaleDateString("fr-FR"),studentId:selectedStudent,scores:{},observations:{},teacherObservation:"",appreciation:"",appreciationManual:false,editId:null,noteDrivenEvaluation:false,noteDrivenRequested:"",noteDrivenExact:"",noteDrivenCalculated:undefined};page="rentreeEval";render();}
 function rentreeScoreTotal(){const theme=rentreeTheme(rentreeDraft?.themeId);if(!theme)return 0;return theme.criteria.reduce((sum,_,i)=>sum+(Number(rentreeDraft.scores[i])||0),0);}
 function rentreeScoredCount(){const theme=rentreeTheme(rentreeDraft?.themeId);if(!theme)return 0;return theme.criteria.filter((_,i)=>rentreeDraft.scores[i]!==undefined&&rentreeDraft.scores[i]!==null&&rentreeDraft.scores[i]!=="").length;}
 function setRentreeScore(i,v){
   if(!rentreeDraft)return;
   rentreeDraft.scores[i]=Number(v);
+  if(!rentreeDraft._noteAutoApplying&&rentreeDraft.noteDrivenEvaluation){rentreeDraft.noteDrivenExact="";rentreeDraft.noteDrivenCalculated=undefined;}
   const theme=rentreeTheme(rentreeDraft.themeId);
   // Dès que tous les critères sont renseignés, l'appréciation suit automatiquement
   // la note. Si la note est modifiée ensuite, elle est recalculée immédiatement.
@@ -3945,6 +3951,7 @@ function rentreeEvaluationPage(){
       <div class="rentree-print-meta-left"><div class="meta-line"><b>Nom de l'élève :</b> ${esc(nameParts.last)}</div><div class="meta-line"><b>Prénom :</b> ${esc(nameParts.first)}</div><div class="meta-line"><b>Classe :</b> ${esc(activeClassName()||"—")}</div></div>
       <div class="rentree-print-meta-right"><div class="meta-line"><b>Date :</b> ${esc(rentreePrintDateLabel(d.date))}</div><div class="meta-line"><b>Diplôme préparé :</b><span class="rentree-print-check ${diploma.toUpperCase().includes("CAP")?"checked":""}"><span class="box"></span> CAP</span><span class="rentree-print-check ${diploma.toUpperCase().includes("BAC")?"checked":""}"><span class="box"></span> Bac Pro</span></div></div>
     </div>
+    <div class="note-driven-box rentree-screen-only"><h3>📝 Évaluer à partir d’une note</h3><div class="note-driven-row"><label>Note sur 20<input class="note-driven-input" type="number" min="0" max="20" step="0.5" value="${esc(d.noteDrivenRequested??"")}" placeholder="Ex. 15" onchange="rentreeDraft.noteDrivenRequested=this.value"></label><div><button type="button" class="primary note-driven-button" onclick="applyRentreeNote(rentreeDraft.noteDrivenRequested)">⚙️ Cocher automatiquement les critères 0 / 1 / 2</button><div class="note-driven-mini">La note pilote les 10 critères. Une note décimale est rapprochée du total entier le plus proche pour les cases 0 / 1 / 2.</div></div></div>${d.noteDrivenCalculated!==undefined?`<div class="note-driven-result">Note saisie : ${String(d.noteDrivenRequested).replace(".",",")} / 20 · critères générés : ${String(d.noteDrivenCalculated).replace(".",",")} / 20</div>`:""}</div>
     <table class="rentree-table"><thead><tr><th>Critères d'évaluation</th><th>0</th><th>1</th><th>2</th><th>Observations</th></tr></thead><tbody>${rows}</tbody></table>
     <div class="rentree-summary-grid"><div><b>Observations de l'enseignant :</b><textarea rows="5" placeholder="Observation générale..." oninput="rentreeDraft.teacherObservation=this.value">${esc(d.teacherObservation||"")}</textarea><div class="rentree-print-teacher-observation rentree-print-only">${esc(d.teacherObservation||"")}</div></div><div><div><b>Total des points :</b><div class="rentree-total">${total} / 20</div><div class="muted" style="text-align:center">${done} / ${theme.criteria.length} critère(s) renseigné(s)</div></div><div style="margin-top:12px"><b>Appréciation :</b><div class="muted rentree-screen-only" style="font-size:11px;margin-top:3px">Calculée automatiquement selon la note et recalculée si celle-ci change. Tu peux ensuite choisir librement une autre appréciation.</div><div class="rentree-appreciations">${appreciations}</div><div class="rentree-print-appreciations rentree-print-only">${printApps}</div></div></div></div>
     <div class="rentree-competence-note"><b>Compétences associées ${diploma} :</b> ${comps.join(" - ")}<br><span class="muted">Cette évaluation de rentrée constitue un indicateur technique initial. Elle est rattachée aux compétences mais ne positionne pas automatiquement les critères officiels du référentiel.</span></div>
@@ -3952,8 +3959,8 @@ function rentreeEvaluationPage(){
     <div class="rentree-print-footer rentree-print-only"><span>Évaluation de rentrée - Maintenance des véhicules</span><span>Page 1</span></div>
   </div><div class="rentree-actions"><button class="secondary" onclick="page='rentreeChoice';rentreeDraft=null;render()">← Changer de thème</button><button class="secondary" onclick="printRentreeEvaluation()">🖨️ Imprimer la fiche</button><button class="primary" onclick="saveRentreeEvaluation()">${d.editId?"✓ Enregistrer les modifications":"✓ Enregistrer l’évaluation"}</button></div></div>`;
 }
-async function saveRentreeEvaluation(){const d=rentreeDraft,theme=rentreeTheme(d?.themeId);if(!d||!theme)return;if(rentreeScoredCount()!==theme.criteria.length){showWarningMessage("Renseigne les 10 critères de l’évaluation (0, 1 ou 2) avant l’enregistrement.");return;}const student=students.find(s=>String(s.id)===String(d.studentId));if(!student){showWarningMessage("Élève introuvable.");return;}const note=rentreeScoreTotal(),associated=rentreeComps(theme);const existing=d.editId?student.evaluations.find(e=>String(e.id)===String(d.editId)):null;const ev={...(existing||{}),teacherId:getActiveTeacher()?.id||"",teacherName:getActiveTeacher()?teacherFullName(getActiveTeacher()):"",date:d.date,title:`Évaluation de rentrée — ${theme.label}`,place:"Lycée",type:"Évaluation de rentrée",comps:[],associatedComps:[...associated],levels:{},obs:{},disabledCriteria:{},disabledCompetencies:{},attachment:null,evalPath:"rentree",profSituation:"",profOptions:{},profFreeText:"",retroactive:false,rentreeEvaluation:true,rentreeThemeId:theme.id,rentreeThemeLabel:theme.label,rentreeCriteria:[...theme.criteria],rentreeScores:{...d.scores},rentreeObservations:{...d.observations},rentreeAppreciation:d.appreciation||rentreeSuggestedAppreciation(note),evaluationObservation:(d.teacherObservation||"").trim(),sourceNote20:note,evaluationDate:d.date,enteredAt:existing?.enteredAt||existing?.createdAt||Date.now(),entryDate:existing?.entryDate||new Date().toLocaleDateString("fr-FR"),modifiedAt:existing?Date.now():null,studentId:student.id,createdAt:existing?.createdAt||Date.now(),batchId:null};try{await persistEvaluation(ev,!!existing);if(existing){const idx=student.evaluations.findIndex(e=>String(e.id)===String(existing.id));if(idx>=0)student.evaluations[idx]={...ev};}else student.evaluations.push({...ev});rentreeDraft=null;selectedStudent=student.id;showSuccessMessage(`Évaluation de rentrée enregistrée : ${theme.label} — ${note} / 20.`,()=>go("history"));}catch(err){showWarningMessage("Erreur d’enregistrement : "+err);}}
-function editRentreeEvaluation(ev,owner){selectedStudent=owner.id;rentreeDraft={editId:ev.id,themeId:ev.rentreeThemeId,date:ev.date||new Date().toLocaleDateString("fr-FR"),studentId:owner.id,scores:{...(ev.rentreeScores||{})},observations:{...(ev.rentreeObservations||{})},teacherObservation:ev.evaluationObservation||"",appreciation:ev.rentreeAppreciation||"",appreciationManual:true};page="rentreeEval";render();}
+async function saveRentreeEvaluation(){const d=rentreeDraft,theme=rentreeTheme(d?.themeId);if(!d||!theme)return;if(rentreeScoredCount()!==theme.criteria.length){showWarningMessage("Renseigne les 10 critères de l’évaluation (0, 1 ou 2) avant l’enregistrement.");return;}const student=students.find(s=>String(s.id)===String(d.studentId));if(!student){showWarningMessage("Élève introuvable.");return;}const criteriaNote=rentreeScoreTotal(),note=(d.noteDrivenExact!==undefined&&d.noteDrivenExact!==""?Number(d.noteDrivenExact):criteriaNote),associated=rentreeComps(theme);const existing=d.editId?student.evaluations.find(e=>String(e.id)===String(d.editId)):null;const ev={...(existing||{}),teacherId:getActiveTeacher()?.id||"",teacherName:getActiveTeacher()?teacherFullName(getActiveTeacher()):"",date:d.date,title:`Évaluation de rentrée — ${theme.label}`,place:"Lycée",type:"Évaluation de rentrée",comps:[],associatedComps:[...associated],levels:{},obs:{},disabledCriteria:{},disabledCompetencies:{},attachment:null,evalPath:"rentree",profSituation:"",profOptions:{},profFreeText:"",retroactive:false,rentreeEvaluation:true,rentreeThemeId:theme.id,rentreeThemeLabel:theme.label,rentreeCriteria:[...theme.criteria],rentreeScores:{...d.scores},rentreeObservations:{...d.observations},rentreeAppreciation:d.appreciation||rentreeSuggestedAppreciation(note),evaluationObservation:(d.teacherObservation||"").trim(),noteDrivenEvaluation:!!d.noteDrivenEvaluation,noteDrivenRequested:(d.noteDrivenRequested??""),noteDrivenCalculated:(d.noteDrivenCalculated??null),sourceNote20:note,evaluationDate:d.date,enteredAt:existing?.enteredAt||existing?.createdAt||Date.now(),entryDate:existing?.entryDate||new Date().toLocaleDateString("fr-FR"),modifiedAt:existing?Date.now():null,studentId:student.id,createdAt:existing?.createdAt||Date.now(),batchId:null};try{await persistEvaluation(ev,!!existing);if(existing){const idx=student.evaluations.findIndex(e=>String(e.id)===String(existing.id));if(idx>=0)student.evaluations[idx]={...ev};}else student.evaluations.push({...ev});rentreeDraft=null;selectedStudent=student.id;showSuccessMessage(`Évaluation de rentrée enregistrée : ${theme.label} — ${note} / 20.`,()=>go("history"));}catch(err){showWarningMessage("Erreur d’enregistrement : "+err);}}
+function editRentreeEvaluation(ev,owner){selectedStudent=owner.id;rentreeDraft={editId:ev.id,themeId:ev.rentreeThemeId,date:ev.date||new Date().toLocaleDateString("fr-FR"),studentId:owner.id,scores:{...(ev.rentreeScores||{})},observations:{...(ev.rentreeObservations||{})},teacherObservation:ev.evaluationObservation||"",appreciation:ev.rentreeAppreciation||"",appreciationManual:true,noteDrivenEvaluation:!!ev.noteDrivenEvaluation,noteDrivenRequested:(ev.noteDrivenRequested??ev.sourceNote20??""),noteDrivenExact:(ev.noteDrivenEvaluation?ev.sourceNote20??"":""),noteDrivenCalculated:(ev.noteDrivenCalculated??undefined)};page="rentreeEval";render();}
 function rentreeViewHtml(e){const theme=rentreeTheme(e.rentreeThemeId)||{criteria:e.rentreeCriteria||[],label:e.rentreeThemeLabel||"Évaluation de rentrée"};const criteria=e.rentreeCriteria||theme.criteria||[];const rows=criteria.map((cr,i)=>`<tr><td>${i+1}. ${esc(cr)}</td><td style="text-align:center"><b>${esc(String(e.rentreeScores?.[i]??"—"))}</b></td><td>${esc(e.rentreeObservations?.[i]||"")}</td></tr>`).join("");return `<div class="panel" style="margin-top:16px"><div class="row"><h2>🎓 ${esc(theme.label||e.rentreeThemeLabel||"Évaluation de rentrée")}</h2><span class="score-badge ${scoreClass(evaluationScore20(e))}">${evaluationScoreLabel(e)}</span></div><p class="muted">Compétences associées : ${evaluationDisplayComps(e).join(" - ")||"—"}</p><table class="rentree-table rentree-view-table"><tr><th>Critère</th><th>Score</th><th>Observation</th></tr>${rows}</table><div style="margin-top:12px"><b>Appréciation :</b> ${esc(e.rentreeAppreciation||"—")}</div></div>`;}
 
 
@@ -3990,14 +3997,14 @@ function startActivitySheet(id){
     selectedStudent=sortStudentsAlpha(students)[0]?.id||null;
   }
   if(!selectedStudent){showWarningMessage("Sélectionne un élève.");return;}
-  activityDraft={activityId:id,date:new Date().toLocaleDateString("fr-FR"),studentId:selectedStudent,scores:{},observations:{},teacherObservation:"",appreciation:"",appreciationManual:false,editId:null};
+  activityDraft={activityId:id,date:new Date().toLocaleDateString("fr-FR"),studentId:selectedStudent,scores:{},observations:{},teacherObservation:"",appreciation:"",appreciationManual:false,editId:null,noteDrivenEvaluation:false,noteDrivenRequested:"",noteDrivenExact:"",noteDrivenCalculated:undefined};
   page="activityEval";render();
   }catch(err){console.error("Ouverture fiche d’activité",err);showWarningMessage("Impossible d’ouvrir cette fiche d’activité. Détail : "+(err?.message||String(err)));}
 }
 function activityScoreTotal(){const a=activityItem(activityDraft?.activityId);if(!a)return 0;return a.criteres.reduce((sum,_,i)=>sum+(Number(activityDraft.scores[i])||0),0);}
 function activityScoredCount(){const a=activityItem(activityDraft?.activityId);if(!a)return 0;return a.criteres.filter((_,i)=>activityDraft.scores[i]!==undefined&&activityDraft.scores[i]!==null&&activityDraft.scores[i]!=="").length;}
 function activitySuggestedAppreciation(n){return n>=17?"Très bien":n>=14?"Bien":n>=10?"En cours d'acquisition":"À renforcer";}
-function setActivityScore(i,v){if(!activityDraft)return;activityDraft.scores[i]=Number(v);const a=activityItem(activityDraft.activityId);if(a&&activityScoredCount()===a.criteres.length){activityDraft.appreciation=activitySuggestedAppreciation(activityScoreTotal());activityDraft.appreciationManual=false;}activityEvaluationPage();}
+function setActivityScore(i,v){if(!activityDraft)return;activityDraft.scores[i]=Number(v);if(!activityDraft._noteAutoApplying&&activityDraft.noteDrivenEvaluation){activityDraft.noteDrivenExact="";activityDraft.noteDrivenCalculated=undefined;}const a=activityItem(activityDraft.activityId);if(a&&activityScoredCount()===a.criteres.length){activityDraft.appreciation=activitySuggestedAppreciation(activityScoreTotal());activityDraft.appreciationManual=false;}activityEvaluationPage();}
 function setActivityObservation(i,v){activityDraft.observations[i]=v;}
 function setActivityAppreciation(v){if(!activityDraft)return;activityDraft.appreciation=String(v||"");activityDraft.appreciationManual=true;activityEvaluationPage();}
 function setActivityAppreciationByIndex(i){const vals=["Très bien","Bien","En cours d'acquisition","À renforcer"];setActivityAppreciation(vals[i]||"");}
@@ -4016,6 +4023,7 @@ function activityEvaluationPage(){
   document.getElementById("main").innerHTML=`<header class="app-top-header" aria-label="Évaluation sur fiche d’activités"></header><div class="activity-form-page"><div class="activity-sheet"><div class="activity-print-school-header activity-print-only"><img src="${activityLogoSrc}" alt="François de Mahy - Saint-Pierre, La Réunion"></div><div class="activity-sheet-header"><h1>ÉVALUATION - MAINTENANCE DES VÉHICULES</h1><h2>${esc(a.id)} : ${esc(a.titre)}</h2><p>${esc(a.description)}</p></div>
   <div class="activity-meta-grid activity-screen-only"><div><label>Élève</label><select onchange="activityDraft.studentId=this.value;selectedStudent=this.value;activityEvaluationPage()">${studentOptions}</select></div><div><label>Date</label><input type="date" value="${esc(toISODateValue(d.date))}" onchange="activityDraft.date=displayDateValue(this.value);activityEvaluationPage()"></div><div><label>Classe</label><b>${esc(activeClassName()||"—")}</b></div><div><label>Diplôme préparé</label><span class="activity-diploma-badge">${esc(diploma)}</span></div></div>
   <div class="activity-print-meta activity-print-only"><div class="activity-print-meta-left"><div class="meta-line"><b>Nom de l'élève :</b> ${esc(names.nom)}</div><div class="meta-line"><b>Prénom :</b> ${esc(names.prenom)}</div><div class="meta-line"><b>Classe :</b> ${esc(activeClassName()||"")}</div></div><div class="activity-print-meta-right"><div class="meta-line"><b>Date :</b> ${esc(d.date||"")}</div><div class="meta-line"><b>Diplôme préparé :</b><span class="activity-print-check ${diploma.includes("CAP")?"checked":""}"><span class="box"></span> CAP</span><span class="activity-print-check ${diploma.includes("BAC")?"checked":""}"><span class="box"></span> Bac Pro</span></div></div></div>
+  <div class="note-driven-box activity-screen-only"><h3>📝 Évaluer à partir d’une note</h3><div class="note-driven-row"><label>Note sur 20<input class="note-driven-input" type="number" min="0" max="20" step="0.5" value="${esc(d.noteDrivenRequested??"")}" placeholder="Ex. 13" onchange="activityDraft.noteDrivenRequested=this.value"></label><div><button type="button" class="primary note-driven-button" onclick="applyActivityNote(activityDraft.noteDrivenRequested)">⚙️ Cocher automatiquement les critères 0 / 1 / 2</button><div class="note-driven-mini">La note saisie est répartie automatiquement sur les 10 critères de la fiche. Tu peux ensuite corriger un critère manuellement.</div></div></div>${d.noteDrivenCalculated!==undefined?`<div class="note-driven-result">Note saisie : ${String(d.noteDrivenRequested).replace(".",",")} / 20 · critères générés : ${String(d.noteDrivenCalculated).replace(".",",")} / 20</div>`:""}</div>
   <table class="activity-table"><thead><tr><th>Critères d'évaluation</th><th>0</th><th>1</th><th>2</th><th>Observations</th></tr></thead><tbody>${rows}</tbody></table>
   <div class="activity-summary-grid"><div><b>Observations de l'enseignant :</b><textarea rows="5" oninput="activityDraft.teacherObservation=this.value" placeholder="Observation générale...">${esc(d.teacherObservation||"")}</textarea><div class="activity-print-teacher-observation activity-print-only">${esc(d.teacherObservation||"")}</div></div><div><b>Total des points :</b><div class="activity-total">${total} / 20</div><div class="muted" style="text-align:center">${done} / 10 critère(s) renseigné(s)</div><div style="margin-top:10px"><b>Appréciation :</b><div class="activity-appreciations">${apps}</div><div class="activity-print-appreciations activity-print-only">${printApps}</div></div></div></div>
   <div class="activity-competence-note"><b>Compétences associées ${esc(diploma)} :</b> ${esc(comps.join(" - "))}</div><div class="activity-print-bottom activity-print-only"><div class="left"><p><b>Compétences CAP :</b> ${esc(a.competences_cap.join(" - "))}</p><p><b>Compétences Bac Pro :</b> ${esc(a.competences_bac_pro.join(" - "))}</p></div><div class="right"><div class="activity-print-signature">Signature :</div></div></div><div class="activity-print-footer activity-print-only"><span>Évaluation - Maintenance des véhicules</span><span>${esc(a.id)} | Fiche d’activité</span></div></div>
@@ -4024,11 +4032,11 @@ function activityEvaluationPage(){
 async function saveActivityEvaluation(){
   const d=activityDraft,a=activityItem(d?.activityId);if(!d||!a)return;if(activityScoredCount()!==a.criteres.length){showWarningMessage("Renseigne les 10 critères (0, 1 ou 2) avant l’enregistrement.");return;}
   const student=students.find(s=>String(s.id)===String(d.studentId));if(!student){showWarningMessage("Élève introuvable.");return;}
-  const note=activityScoreTotal(),associated=activityComps(a);const existing=d.editId?student.evaluations.find(e=>String(e.id)===String(d.editId)):null;
-  const ev={...(existing||{}),teacherId:getActiveTeacher()?.id||"",teacherName:getActiveTeacher()?teacherFullName(getActiveTeacher()):"",date:d.date,title:`Fiche d’activités — ${a.id} — ${a.titre}`,place:"Lycée",type:"Évaluation sur fiche d’activités",comps:[],associatedComps:[...associated],levels:{},obs:{},disabledCriteria:{},disabledCompetencies:{},attachment:null,evalPath:"activitySheet",profSituation:"",profOptions:{},profFreeText:"",retroactive:false,ficheActiviteEvaluation:true,activityId:a.id,activityNumero:a.numero,activityTheme:a.theme,activityTitle:a.titre,activityDescription:a.description,activityCriteria:[...a.criteres],activityScores:{...d.scores},activityObservations:{...d.observations},activityAppreciation:d.appreciation||activitySuggestedAppreciation(note),evaluationObservation:(d.teacherObservation||"").trim(),sourceNote20:note,evaluationDate:d.date,enteredAt:existing?.enteredAt||existing?.createdAt||Date.now(),entryDate:existing?.entryDate||new Date().toLocaleDateString("fr-FR"),modifiedAt:existing?Date.now():null,studentId:student.id,createdAt:existing?.createdAt||Date.now(),batchId:null};
+  const criteriaNote=activityScoreTotal(),note=(d.noteDrivenExact!==undefined&&d.noteDrivenExact!==""?Number(d.noteDrivenExact):criteriaNote),associated=activityComps(a);const existing=d.editId?student.evaluations.find(e=>String(e.id)===String(d.editId)):null;
+  const ev={...(existing||{}),teacherId:getActiveTeacher()?.id||"",teacherName:getActiveTeacher()?teacherFullName(getActiveTeacher()):"",date:d.date,title:`Fiche d’activités — ${a.id} — ${a.titre}`,place:"Lycée",type:"Évaluation sur fiche d’activités",comps:[],associatedComps:[...associated],levels:{},obs:{},disabledCriteria:{},disabledCompetencies:{},attachment:null,evalPath:"activitySheet",profSituation:"",profOptions:{},profFreeText:"",retroactive:false,ficheActiviteEvaluation:true,activityId:a.id,activityNumero:a.numero,activityTheme:a.theme,activityTitle:a.titre,activityDescription:a.description,activityCriteria:[...a.criteres],activityScores:{...d.scores},activityObservations:{...d.observations},activityAppreciation:d.appreciation||activitySuggestedAppreciation(note),evaluationObservation:(d.teacherObservation||"").trim(),noteDrivenEvaluation:!!d.noteDrivenEvaluation,noteDrivenRequested:(d.noteDrivenRequested??""),noteDrivenCalculated:(d.noteDrivenCalculated??null),sourceNote20:note,evaluationDate:d.date,enteredAt:existing?.enteredAt||existing?.createdAt||Date.now(),entryDate:existing?.entryDate||new Date().toLocaleDateString("fr-FR"),modifiedAt:existing?Date.now():null,studentId:student.id,createdAt:existing?.createdAt||Date.now(),batchId:null};
   try{await persistEvaluation(ev,!!existing);if(existing){const idx=student.evaluations.findIndex(e=>String(e.id)===String(existing.id));if(idx>=0)student.evaluations[idx]={...ev};}else student.evaluations.push({...ev});activityDraft=null;selectedStudent=student.id;showSuccessMessage(`Fiche d’activités enregistrée : ${a.id} — ${note} / 20.`,()=>go("history"));}catch(err){showWarningMessage("Erreur d’enregistrement : "+err);}
 }
-function editActivityEvaluation(ev,owner){selectedStudent=owner.id;activityDraft={editId:ev.id,activityId:ev.activityId,date:ev.date||new Date().toLocaleDateString("fr-FR"),studentId:owner.id,scores:{...(ev.activityScores||{})},observations:{...(ev.activityObservations||{})},teacherObservation:ev.evaluationObservation||"",appreciation:ev.activityAppreciation||"",appreciationManual:true};page="activityEval";render();}
+function editActivityEvaluation(ev,owner){selectedStudent=owner.id;activityDraft={editId:ev.id,activityId:ev.activityId,date:ev.date||new Date().toLocaleDateString("fr-FR"),studentId:owner.id,scores:{...(ev.activityScores||{})},observations:{...(ev.activityObservations||{})},teacherObservation:ev.evaluationObservation||"",appreciation:ev.activityAppreciation||"",appreciationManual:true,noteDrivenEvaluation:!!ev.noteDrivenEvaluation,noteDrivenRequested:(ev.noteDrivenRequested??ev.sourceNote20??""),noteDrivenExact:(ev.noteDrivenEvaluation?ev.sourceNote20??"":""),noteDrivenCalculated:(ev.noteDrivenCalculated??undefined)};page="activityEval";render();}
 function activityViewHtml(e){const a=activityItem(e.activityId)||{criteres:e.activityCriteria||[],titre:e.activityTitle||"Fiche d’activités",id:e.activityId||""};const criteria=e.activityCriteria||a.criteres||[];const rows=criteria.map((cr,i)=>`<tr><td>${i+1}. ${esc(cr)}</td><td style="text-align:center"><b>${esc(String(e.activityScores?.[i]??"—"))}</b></td><td>${esc(e.activityObservations?.[i]||"")}</td></tr>`).join("");return `<div class="panel" style="margin-top:16px"><div class="row"><h2>📋 ${esc(a.id||"")} — ${esc(a.titre||e.activityTitle||"Fiche d’activités")}</h2><span class="score-badge ${scoreClass(evaluationScore20(e))}">${evaluationScoreLabel(e)}</span></div><p class="muted">Compétences associées : ${evaluationDisplayComps(e).join(" - ")||"—"}</p><table class="activity-table"><tr><th>Critère</th><th>Score</th><th>Observation</th></tr>${rows}</table><div style="margin-top:12px"><b>Appréciation :</b> ${esc(e.activityAppreciation||"—")}</div></div>`;}
 
 function startEvaluation(){
@@ -4564,10 +4572,73 @@ function beginEvaluation(path){
     title:"",date:new Date().toLocaleDateString("fr-FR"),place:"Lycée",type:"Lycée",
     comps:[],levels:{},obs:{},evaluationObservation:"",disabledCriteria:{},disabledCompetencies:{},
     mode:"individual",targetStudents:[selectedStudent],attachment:null,
-    evalPath:path==="professional"?"professional":"free",profSituation:"",profOptions:{},profFreeText:"",evaluationStarted:false
+    evalPath:path==="professional"?"professional":"free",profSituation:"",profOptions:{},profFreeText:"",evaluationStarted:false,noteDrivenEvaluation:false,noteDrivenRequested:"",noteDrivenExact:"",noteDrivenCalculated:undefined
   };
   page="eval";
   render();
+}
+
+function parseNote20Value(raw){
+  const n=Number(String(raw??"").replace(",","."));
+  return Number.isFinite(n)?Math.max(0,Math.min(20,n)):null;
+}
+function distributeNoteScores(totalCriteria,maxPerCriterion,note){
+  const n=Math.max(0,Number(totalCriteria)||0), max=Math.max(1,Number(maxPerCriterion)||1);
+  if(!n)return {scores:[],calculated:0,targetPoints:0};
+  const target=(Math.max(0,Math.min(20,note))/20)*(n*max);
+  const rounded=Math.max(0,Math.min(n*max,Math.round(target)));
+  const scores=[];
+  // Répartition homogène sur l'ensemble des critères : pas seulement les premiers critères.
+  for(let i=0;i<n;i++){
+    const a=Math.round((i+1)*rounded/n), b=Math.round(i*rounded/n);
+    scores.push(Math.max(0,Math.min(max,a-b)));
+  }
+  const sum=scores.reduce((a,b)=>a+b,0);
+  return {scores,calculated:Math.round((sum/(n*max))*20*10)/10,targetPoints:target};
+}
+function applyNoteToStandardEvaluation(raw){
+  if(!draft)return;
+  const note=parseNote20Value(raw);
+  draft.noteDrivenRequested=note===null?"":note;
+  if(note===null){evaluationPage();return;}
+  if(!draft.comps?.length){showWarningMessage("Sélectionne d’abord une situation professionnelle ou au moins une compétence.");evaluationPage();return;}
+  const active=[];
+  (draft.comps||[]).forEach(compId=>{
+    const comp=competencies.find(c=>c.id===compId); if(!comp)return;
+    (comp.criteria||[]).forEach((_,i)=>{const key=compId+"-"+i;if(!(draft.disabledCriteria&&draft.disabledCriteria[key]))active.push(key);});
+  });
+  if(!active.length){showWarningMessage("Aucun critère actif à positionner.");evaluationPage();return;}
+  const dist=distributeNoteScores(active.length,4,note);
+  const labels=["Non observé","À renforcer","En cours","Maîtrisé","Autonome"];
+  draft._noteAutoApplying=true;
+  if(!draft.levels)draft.levels={};
+  active.forEach((key,i)=>{draft.levels[key]=labels[dist.scores[i]];});
+  draft._noteAutoApplying=false;
+  draft.noteDrivenEvaluation=true;
+  draft.noteDrivenExact=note;
+  draft.noteDrivenCalculated=dist.calculated;
+  draft.evaluationStarted=true;
+  evaluationPage();
+}
+function clearStandardNoteOverrideAfterManualChange(){
+  if(!draft||draft._noteAutoApplying)return;
+  if(draft.noteDrivenEvaluation){draft.noteDrivenExact="";draft.noteDrivenCalculated=undefined;}
+}
+function applyRentreeNote(raw){
+  const d=rentreeDraft,theme=rentreeTheme(d?.themeId);if(!d||!theme)return;
+  const note=parseNote20Value(raw);d.noteDrivenRequested=note===null?"":note;if(note===null){rentreeEvaluationPage();return;}
+  const dist=distributeNoteScores(theme.criteria.length,2,note);
+  d._noteAutoApplying=true;d.scores={};dist.scores.forEach((v,i)=>d.scores[i]=v);d._noteAutoApplying=false;
+  d.noteDrivenEvaluation=true;d.noteDrivenExact=note;d.noteDrivenCalculated=dist.calculated;
+  d.appreciation=rentreeSuggestedAppreciation(note);d.appreciationManual=false;rentreeEvaluationPage();
+}
+function applyActivityNote(raw){
+  const d=activityDraft,a=activityItem(d?.activityId);if(!d||!a)return;
+  const note=parseNote20Value(raw);d.noteDrivenRequested=note===null?"":note;if(note===null){activityEvaluationPage();return;}
+  const dist=distributeNoteScores(a.criteres.length,2,note);
+  d._noteAutoApplying=true;d.scores={};dist.scores.forEach((v,i)=>d.scores[i]=v);d._noteAutoApplying=false;
+  d.noteDrivenEvaluation=true;d.noteDrivenExact=note;d.noteDrivenCalculated=dist.calculated;
+  d.appreciation=activitySuggestedAppreciation(note);d.appreciationManual=false;activityEvaluationPage();
 }
 
 function beginRetrospectiveEvaluation(){
@@ -5068,8 +5139,9 @@ document.getElementById("main").innerHTML=`
       ${competencyArea}
 
       ${draft.retroactive?`<section class="eval-modern-card eval-modern-yellow" style="margin-top:16px"><div class="eval-modern-title"><span class="eval-step">5</span> Note estimative à cette date</div><div class="form-grid"><label>Note estimative sur 20<input type="number" min="0" max="20" step="0.5" value="${esc(draft.retroEstimatedNote??"")}" placeholder="Ex. 12,5" onchange="applyRetroEstimatedNote(this.value)"></label><div><div class="muted" style="margin-bottom:6px">Positionnement automatique</div><button type="button" class="primary" onclick="applyRetroEstimatedNote(draft.retroEstimatedNote)">⚙️ Calculer et cocher automatiquement les critères</button></div></div><div class="retro-date-note">Le calcul s’applique à tous les critères actifs de la situation ou des compétences choisies. Tu peux ensuite corriger manuellement chaque critère.</div>${draft.retroCalculatedNote!==undefined?`<div class="pill" style="margin-top:10px">Résultat automatique obtenu : ${String(draft.retroCalculatedNote).replace(".",",")} / 20</div>`:""}</section>`:``}
+      ${!draft.retroactive?`<section class="note-driven-box"><h3>📝 Évaluer à partir d’une note</h3><div class="note-driven-row"><label>Note sur 20<input class="note-driven-input" type="number" min="0" max="20" step="0.5" value="${esc(draft.noteDrivenRequested??"")}" placeholder="Ex. 14" onchange="draft.noteDrivenRequested=this.value"></label><div><button type="button" class="primary note-driven-button" onclick="applyNoteToStandardEvaluation(draft.noteDrivenRequested)">⚙️ Positionner automatiquement les critères</button><div class="note-driven-mini">Le logiciel répartit les niveaux de maîtrise pour obtenir une évaluation cohérente avec la note saisie. Les critères peuvent ensuite être corrigés manuellement.</div></div></div>${draft.noteDrivenCalculated!==undefined?`<div class="note-driven-result">Note saisie : ${String(draft.noteDrivenRequested).replace(".",",")} / 20 · résultat des critères : ${String(draft.noteDrivenCalculated).replace(".",",")} / 20</div>`:""}</section>`:``}
 
-      <div id="evaluation-workspace" class="evaluation-workspace eval-modern-workspace" style="display:${draft.evaluationStarted && draft.comps.length?"grid":"none"}"><div class="evaluation-main">${draft.comps.map(id=>renderCompetence(id)).join("")}</div><aside class="evaluation-score-side"><div class="panel provisional-score-panel"><div class="muted" style="font-size:12px">NOTE PROVISOIRE</div><div id="live-score" class="provisional-score-value ${scoreClass(evaluationScore20({comps:draft.comps,levels:draft.levels,disabledCriteria:draft.disabledCriteria}))}">${evaluationScoreLabel({comps:draft.comps,levels:draft.levels,disabledCriteria:draft.disabledCriteria})}</div><div class="muted" style="font-size:12px">Mise à jour à chaque positionnement.</div></div><div class="criteria-bulk-controls"><button type="button" id="disable-all-criteria-btn" class="criteria-bulk-btn criteria-bulk-disable" onclick="disableAllCriteria()">⏸ Tout désactiver</button><button type="button" id="enable-all-criteria-btn" class="criteria-bulk-btn criteria-bulk-enable" onclick="enableAllCriteria()">↩ Tout réactiver</button><div id="linked-criteria-count" class="disabled-criteria-count linked-criteria-count">0 critère lié</div><div id="disabled-criteria-count" class="disabled-criteria-count">0 critère désactivé</div></div></aside></div>
+      <div id="evaluation-workspace" class="evaluation-workspace eval-modern-workspace" style="display:${draft.evaluationStarted && draft.comps.length?"grid":"none"}"><div class="evaluation-main">${draft.comps.map(id=>renderCompetence(id)).join("")}</div><aside class="evaluation-score-side"><div class="panel provisional-score-panel"><div class="muted" style="font-size:12px">NOTE PROVISOIRE</div><div id="live-score" class="provisional-score-value ${scoreClass(evaluationScore20({comps:draft.comps,levels:draft.levels,disabledCriteria:draft.disabledCriteria,noteDrivenEvaluation:!!draft.noteDrivenEvaluation,sourceNote20:(draft.noteDrivenExact!==''?draft.noteDrivenExact:undefined)}))}">${evaluationScoreLabel({comps:draft.comps,levels:draft.levels,disabledCriteria:draft.disabledCriteria,noteDrivenEvaluation:!!draft.noteDrivenEvaluation,sourceNote20:(draft.noteDrivenExact!==''?draft.noteDrivenExact:undefined)})}</div><div class="muted" style="font-size:12px">Mise à jour à chaque positionnement.</div></div><div class="criteria-bulk-controls"><button type="button" id="disable-all-criteria-btn" class="criteria-bulk-btn criteria-bulk-disable" onclick="disableAllCriteria()">⏸ Tout désactiver</button><button type="button" id="enable-all-criteria-btn" class="criteria-bulk-btn criteria-bulk-enable" onclick="enableAllCriteria()">↩ Tout réactiver</button><div id="linked-criteria-count" class="disabled-criteria-count linked-criteria-count">0 critère lié</div><div id="disabled-criteria-count" class="disabled-criteria-count">0 critère désactivé</div></div></aside></div>
 
       <section class="eval-modern-card eval-modern-cyan" style="margin-top:16px">
         <div class="eval-modern-title">💬 Observation de l’évaluation</div>
@@ -5248,6 +5320,7 @@ function synchronizedCriterionKeys(key){
 }
 function setLevel(key,val){
   if(draft.disabledCriteria && draft.disabledCriteria[key])return;
+  clearStandardNoteOverrideAfterManualChange();
 
   // V80.38 : un même critère présent dans plusieurs compétences est positionné une seule fois.
   // Toute modification est répercutée immédiatement sur chacune de ses occurrences.
@@ -5373,6 +5446,7 @@ function syncCompetenceToggleUI(){
 }
 function disableAllCriteria(){
   if(!draft)return;
+  clearStandardNoteOverrideAfterManualChange();
   if(!draft.disabledCriteria)draft.disabledCriteria={};
   selectedCriterionKeys().forEach(key=>{draft.disabledCriteria[key]=true;});
 
@@ -5387,6 +5461,7 @@ function disableAllCriteria(){
 }
 function enableAllCriteria(){
   if(!draft)return;
+  clearStandardNoteOverrideAfterManualChange();
   const selected=new Set(selectedCriterionKeys());
   draft.disabledCompetencies={};
   Object.keys(draft.disabledCriteria||{}).forEach(key=>{
@@ -5453,6 +5528,7 @@ function showDisabledCriteria(){
   updateLiveEvaluationScore();
 }
 function toggleCriterion(key,btn){
+  clearStandardNoteOverrideAfterManualChange();
   if(!draft.disabledCriteria) draft.disabledCriteria={};
   const disabledNow=!!draft.disabledCriteria[key];
   const disabledNext=!disabledNow;
@@ -8095,7 +8171,7 @@ if(draft.editId){
     disabledCompetencies:{...(draft.disabledCompetencies||{})},
     attachment:draft.attachment||null,
     evalPath:draft.evalPath||"free",profSituation:draft.profSituation||"",profOptions:{...(draft.profOptions||{})},profFreeText:draft.profFreeText||"",
-    retroactive:!!draft.retroactive,retroPositionLevel:draft.retroPositionLevel||"",retroEstimatedNote:(draft.retroEstimatedNote??""),retroCalculatedNote:(draft.retroCalculatedNote??null),evaluationDate:draft.date,
+    retroactive:!!draft.retroactive,retroPositionLevel:draft.retroPositionLevel||"",retroEstimatedNote:(draft.retroEstimatedNote??""),retroCalculatedNote:(draft.retroCalculatedNote??null),noteDrivenEvaluation:!!draft.noteDrivenEvaluation,noteDrivenRequested:(draft.noteDrivenRequested??""),noteDrivenCalculated:(draft.noteDrivenCalculated??null),sourceNote20:(draft.noteDrivenEvaluation?(draft.noteDrivenExact!==undefined&&draft.noteDrivenExact!==""?draft.noteDrivenExact:undefined):(existing?.retroExcelImported?existing.sourceNote20:undefined)),evaluationDate:draft.date,
     enteredAt:existing.enteredAt||existing.createdAt||Date.now(),entryDate:existing.entryDate||new Date(existing.enteredAt||existing.createdAt||Date.now()).toLocaleDateString("fr-FR"),modifiedAt:Date.now(),
     studentId:existing.studentId
   };
@@ -8146,7 +8222,7 @@ const evaluations = validTargets.map((studentId,idx)=>({
     disabledCompetencies:{...(draft.disabledCompetencies||{})},
     attachment:draft.attachment||null,
   evalPath:draft.evalPath||"free",profSituation:draft.profSituation||"",profOptions:{...(draft.profOptions||{})},profFreeText:draft.profFreeText||"",
-  retroactive:!!draft.retroactive,retroPositionLevel:draft.retroPositionLevel||"",retroEstimatedNote:(draft.retroEstimatedNote??""),retroCalculatedNote:(draft.retroCalculatedNote??null),evaluationDate:draft.date,
+  retroactive:!!draft.retroactive,retroPositionLevel:draft.retroPositionLevel||"",retroEstimatedNote:(draft.retroEstimatedNote??""),retroCalculatedNote:(draft.retroCalculatedNote??null),noteDrivenEvaluation:!!draft.noteDrivenEvaluation,noteDrivenRequested:(draft.noteDrivenRequested??""),noteDrivenCalculated:(draft.noteDrivenCalculated??null),sourceNote20:(draft.noteDrivenExact!==undefined&&draft.noteDrivenExact!==""?draft.noteDrivenExact:undefined),evaluationDate:draft.date,
   enteredAt:Date.now()+idx,entryDate:new Date().toLocaleDateString("fr-FR"),modifiedAt:null,
   studentId,
   createdAt:Date.now()+idx,
@@ -8175,6 +8251,10 @@ function cancelEvaluation(){draft=null;go("home");}
 
 
 function evaluationScore20(e){
+  if(e && e.noteDrivenEvaluation && e.sourceNote20!==undefined && e.sourceNote20!==null && e.sourceNote20!==""){
+    const exact=Number(e.sourceNote20);
+    if(Number.isFinite(exact))return Math.max(0,Math.min(20,exact));
+  }
   if(e && (e.rentreeEvaluation||e.ficheActiviteEvaluation) && e.sourceNote20!==undefined && e.sourceNote20!==null){
     const exact=Number(e.sourceNote20);
     if(Number.isFinite(exact))return Math.max(0,Math.min(20,exact));

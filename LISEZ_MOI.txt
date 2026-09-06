@@ -1,9 +1,43 @@
-VERSION — CORRECTIF OUVERTURE DES FICHES D’ACTIVITÉS
+V Référentiel 2 V1 — ÉVALUATION PILOTÉE PAR LA NOTE
+Date : 06/09/2026
 
-Modifications de cette version :
-- Correction du clic sur une activité dans « Évaluation sur fiche d’activités ».
-- Le problème provenait d’une référence de logo non définie lors de l’ouverture de la fiche, ce qui interrompait le rendu de l’écran sans message visible.
-- Le logo est désormais résolu de la même manière que pour les évaluations de rentrée, avec repli sur logo-francois-de-mahy.png.
-- Ajout d’un message d’erreur explicite si une fiche ne peut pas être ouverte.
-- Conservation de la sélection automatique de l’élève affiché dans la liste.
-- Toutes les fonctions précédentes sont conservées.
+MODIFICATION PRINCIPALE
+- Toutes les principales possibilités d’évaluation peuvent maintenant démarrer par la saisie d’une note sur 20.
+- Le logiciel transforme automatiquement la note en positionnement cohérent des critères.
+
+ÉVALUATIONS CLASSIQUES / SITUATIONS PROFESSIONNELLES
+- Nouveau bloc « Évaluer à partir d’une note ».
+- Saisie d’une note sur 20 puis positionnement automatique des critères sur l’échelle :
+  Non observé / À renforcer / En cours / Maîtrisé / Autonome.
+- La répartition est calculée sur l’ensemble des critères actifs pour obtenir le résultat le plus proche de la note saisie.
+- Après génération, chaque critère reste modifiable manuellement.
+- Si un critère est modifié manuellement, la note redevient calculée depuis les critères afin d’éviter une incohérence entre note et positionnement.
+
+ÉVALUATIONS DE RENTRÉE
+- Saisie possible d’une note sur 20.
+- Répartition automatique sur les 10 critères 0 / 1 / 2.
+- L’appréciation est proposée automatiquement à partir de la note.
+- Les critères restent modifiables manuellement.
+- Pour une note décimale, les cases 0 / 1 / 2 correspondent au total entier le plus proche ; la note saisie reste mémorisée tant qu’aucun critère n’est corrigé manuellement.
+
+ÉVALUATIONS SUR FICHE D’ACTIVITÉS
+- Même fonctionnement à partir d’une note sur 20.
+- Répartition automatique sur les 10 critères de la fiche (0 / 1 / 2).
+- Les 63 fiches CAP / Bac Pro restent disponibles.
+- Les compétences associées à chaque fiche sont conservées.
+
+POSITIONNEMENT RÉTROACTIF
+- Le fonctionnement par note déjà existant est conservé.
+
+AUTRES ÉLÉMENTS CONSERVÉS
+- Firebase activable.
+- Fonctions rétroactives réservées à l’administrateur.
+- Évaluations de rentrée.
+- 63 fiches d’activités CAP / Bac Pro.
+- SP1 à SP10 et illustrations SP3 / SP10.
+- Paramètres repliés par défaut.
+- Mise en page d’impression des fiches.
+- Adaptation tablette / iPad.
+
+REMARQUE
+Le mode « par note » est une aide au positionnement. Après génération automatique, l’enseignant conserve la possibilité de modifier les critères afin de tenir compte de son observation réelle de l’élève.
