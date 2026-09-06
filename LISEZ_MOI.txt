@@ -1,0 +1,9 @@
+V Référentiel 2 — Correctif sélection des situations professionnelles
+
+Modifications de cette version :
+- Correction du bug qui pouvait n'afficher qu'une seule situation professionnelle, notamment SP10, sur une classe Bac Pro.
+- Restauration automatique de la bibliothèque complète SP1 à SP10 lorsqu'une ancienne configuration est vide ou incomplète.
+- Conservation des situations personnalisées existantes : seules les situations standard manquantes sont rajoutées.
+- Adaptation Bac Pro : SP9 mobilise C3.1, C3.2, C3.3 et C3.4 ; SP10 mobilise C1.1, C1.2 et C1.4.
+- Le correctif s'applique aussi lors du changement de classe/référentiel et dans Paramètres.
+- Toutes les fonctions précédentes sont conservées : Firebase activable, évaluation de rentrée, impression fidèle, accès admin aux fonctions rétroactives, paramètres repliés, images SP3/SP10.
