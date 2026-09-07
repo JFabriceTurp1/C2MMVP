@@ -47,3 +47,23 @@ MODIFICATIONS DE CETTE VERSION
 - Ajout d’une suppression définitive d’une évaluation pour le professeur, avec confirmation.
 - Ajout de la suppression définitive pour les évaluations collectives et depuis la page des archives.
 - Après ajout, modification, archivage, restauration ou suppression, les calculs sont recalculés à partir des données actives au prochain affichage de la synthèse.
+
+MODIFICATIONS DE CETTE VERSION
+==============================
+- Ajout d’un champ « Support d’activité » pour les évaluations par situation professionnelle.
+- Ajout du même champ pour les évaluations sur fiche d’activités.
+- Le support peut être saisi sous forme libre : véhicule, organe, maquette, moteur, véhicule client, etc.
+- Le support d’activité est conservé lors de l’enregistrement et de la modification d’une évaluation.
+- Pour les fiches d’activités, le support est également reporté sur la fiche imprimable.
+- Dans les historiques visibles, le support d’activité apparaît sous l’intitulé de la situation lorsqu’il est renseigné.
+- Les corrections précédentes sur les moyennes, archives et suppression des évaluations sont conservées.
+
+MODIFICATIONS DE CETTE VERSION
+==============================
+- Les évaluations sur fiche d’activités peuvent maintenant être réalisées en mode Individuel ou Collectif.
+- En mode Collectif, tous les élèves de la classe sont sélectionnés par défaut.
+- Le professeur peut désélectionner certains élèves avant de choisir la fiche d’activité.
+- La note, les critères 0/1/2, l’appréciation, les observations et le support d’activité saisis sont enregistrés pour chaque élève sélectionné.
+- Les évaluations créées ensemble reçoivent un identifiant collectif commun et sont regroupées dans l’historique sous « Évaluation collective ».
+- Chaque élève conserve ensuite sa propre évaluation dans son historique et ses calculs de moyenne/synthèse.
+- La modification ultérieure d’une fiche reste individuelle afin de permettre d’ajuster un élève sans modifier les autres.
