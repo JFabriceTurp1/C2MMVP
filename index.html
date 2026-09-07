@@ -2559,6 +2559,21 @@ body{background:#f7f9fc;color:var(--text)}
 .activity-collective-summary span{font-size:12px;color:#475569}
 </style>
 
+
+<style id="collective-activity-direct-access-v2">
+.collective-activity-card{outline:3px solid rgba(14,116,144,.16);position:relative}
+.collective-activity-card::after{
+  content:"NOUVEAU";
+  position:absolute;top:10px;right:10px;padding:4px 8px;border-radius:999px;
+  background:#0e7490;color:#fff;font-size:10px;font-weight:900;letter-spacing:.06em
+}
+.activity-collective-box::before{
+  content:"MODE COLLECTIF";
+  display:inline-block;margin-bottom:8px;padding:4px 8px;border-radius:999px;
+  background:#0e7490;color:#fff;font-size:11px;font-weight:900
+}
+</style>
+
 </head>
 <body class="firebase-disabled-mode">
 <!-- V88 — DONNÉES DE RÉFÉRENCE RÉINTÉGRÉES DEPUIS V86.5
@@ -4262,6 +4277,16 @@ function beginActivityEvaluation(){
     activityDraft=null;activitySearch="";activityMode="individual";activityTargetStudents=selectedStudent?[String(selectedStudent)]:[];page="activityChoice";render();
   }catch(err){console.error("Ouverture fiche d’activités",err);showWarningMessage("Impossible d’ouvrir l’évaluation sur fiche d’activités : "+(err?.message||err));}
 }
+function beginCollectiveActivityEvaluation(){
+  if(!students.length){showWarningMessage("Aucun élève n’est disponible.");return;}
+  if(!students.some(s=>String(s.id)===String(selectedStudent))) selectedStudent=sortStudentsAlpha(students)[0]?.id||null;
+  activityDraft=null;
+  activitySearch="";
+  activityMode="collective";
+  activityTargetStudents=sortStudentsAlpha(students).map(s=>String(s.id));
+  page="activityChoice";
+  render();
+}
 function setActivitySearch(v){activitySearch=String(v||"");activityChoicePage();requestAnimationFrame(()=>{const x=document.getElementById("activity-search");if(x){x.focus();x.setSelectionRange(x.value.length,x.value.length);}});}
 function activityChoicePage(){
   setActive("eval");
@@ -4274,7 +4299,7 @@ function activityChoicePage(){
   const groups={};filtered.forEach(a=>(groups[a.theme]??=[]).push(a));
   const htmlGroups=Object.entries(groups).map(([theme,items])=>`<section class="activity-theme-block"><div class="activity-theme-title"><span>${esc(theme)}</span><span>${items.length} fiche(s)</span></div><div class="activity-card-grid">${items.map(a=>`<button type="button" class="activity-card" onclick="startActivitySheet('${a.id}')"><span class="activity-card-code">${esc(a.id)}</span><span class="activity-card-main"><h3>${esc(a.titre)}</h3><p>${esc(a.description)}</p><div class="activity-card-comps">${esc(diploma)} : ${esc((diploma==="BAC PRO"?a.competences_bac_pro:a.competences_cap).join(" - "))}</div></span></button>`).join("")}</div></section>`).join("");
   const targetBox=activityMode==="collective"?`<div class="activity-collective-box"><div class="row"><div><b>👥 Élèves concernés</b><div class="muted">${activityTargetStudents.length} / ${students.length} élève(s) sélectionné(s)</div></div><button type="button" class="secondary" onclick="toggleAllActivityTargets()">${activityTargetStudents.length===students.length?"Tout désélectionner":"Sélectionner toute la classe"}</button></div><div class="student-checklist modern-checklist">${sortStudentsAlpha(students).map(s=>`<label class="student-check"><input type="checkbox" style="width:auto" ${activityTargetStudents.includes(String(s.id))?"checked":""} onchange="toggleActivityTargetStudent('${String(s.id)}',this.checked)"> ${esc(s.name)}</label>`).join("")}</div></div>`:"";
-  document.getElementById("main").innerHTML=`<header class="app-top-header" aria-label="Fiches d'activités"></header><div class="activity-choice-page"><h1>📋 Évaluation sur fiche d’activités</h1><p class="sub">Choisis une des 63 fiches pratiques. L’évaluation peut être individuelle ou collective. En mode collectif, une évaluation est créée pour chaque élève sélectionné et regroupée dans l’historique.</p>
+  document.getElementById("main").innerHTML=`<header class="app-top-header" aria-label="Fiches d'activités"></header><div class="activity-choice-page"><h1>${activityMode==="collective"?"👥 Évaluation collective sur fiche d’activités":"📋 Évaluation sur fiche d’activités"}</h1><p class="sub">${activityMode==="collective"?"Tous les élèves de la classe sont sélectionnés par défaut. Tu peux en décocher certains, puis choisir la fiche d’activité commune. Une évaluation individuelle sera enregistrée pour chaque élève sélectionné.":"Choisis une des 63 fiches pratiques. Tu peux passer en mode collectif à tout moment."}</p>
   <div class="activity-mode-box"><label>Mode d’évaluation</label><div class="eval-segmented"><button type="button" class="${activityMode==="individual"?"active":""}" onclick="setActivityMode('individual')">👤 Individuelle</button><button type="button" class="${activityMode==="collective"?"active":""}" onclick="setActivityMode('collective')">👥 Collective</button></div></div>
   <div class="activity-toolbar"><div><label>Rechercher une fiche, un thème ou une compétence</label><input id="activity-search" type="search" value="${esc(activitySearch)}" placeholder="Ex. freinage, ACT-030, C2.4..." oninput="setActivitySearch(this.value)"></div><div class="activity-count">${filtered.length} / 63 fiche(s)</div>${activityMode==="individual"?`<div><label>Élève</label><select id="activity-student-select" onchange="selectedStudent=this.value;activityTargetStudents=[String(this.value)];activityChoicePage()">${studentOptions}</select></div>`:`<div><label>Évaluation</label><span class="activity-diploma-badge">👥 ${activityTargetStudents.length} élève(s)</span></div>`}<div><label>Diplôme</label><span class="activity-diploma-badge">${esc(diploma)}</span></div></div>
   ${targetBox}${htmlGroups||'<div class="notice">Aucune fiche ne correspond à la recherche.</div>'}<div class="actions"><button class="secondary" onclick="startEvaluation()">← Retour aux types d’évaluation</button></div></div>`;
@@ -4398,6 +4423,12 @@ function evaluationChoicePage(){
           <h2>Évaluation sur fiche d’activités</h2>
           <p>Choisir une fiche pratique parmi les 63 activités. Les 10 critères et uniquement les compétences du diplôme de l’élève sont chargés automatiquement.</p>
           <div class="eval-choice-action">Choisir une fiche d’activités →</div>
+        </button>
+        <button type="button" class="eval-choice-card activity-sheet collective-activity-card" onclick="beginCollectiveActivityEvaluation()">
+          <div class="eval-choice-icon">👥</div>
+          <h2>Évaluation collective sur fiche d’activités</h2>
+          <p>Évaluer toute la classe, ou une sélection d’élèves, à partir d’une même fiche d’activité. Chaque élève reçoit ensuite sa propre évaluation dans son historique et ses moyennes.</p>
+          <div class="eval-choice-action">Créer une évaluation collective →</div>
         </button>
         ${isAdminTeacher()?`<button type="button" class="eval-choice-card retroactive" onclick="beginRetrospectiveEvaluation()">
           <div class="eval-choice-icon">🕘</div>

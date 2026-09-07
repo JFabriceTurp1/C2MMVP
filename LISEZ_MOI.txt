@@ -67,3 +67,15 @@ MODIFICATIONS DE CETTE VERSION
 - Les évaluations créées ensemble reçoivent un identifiant collectif commun et sont regroupées dans l’historique sous « Évaluation collective ».
 - Chaque élève conserve ensuite sa propre évaluation dans son historique et ses calculs de moyenne/synthèse.
 - La modification ultérieure d’une fiche reste individuelle afin de permettre d’ajuster un élève sans modifier les autres.
+
+MODIFICATIONS DE CETTE VERSION
+==============================
+- Ajout d’un bouton/type d’évaluation distinct : « Évaluation collective sur fiche d’activités ».
+- Ce choix apparaît directement sur l’écran « Nouvelle évaluation ».
+- L’ouverture de ce type active immédiatement le mode collectif.
+- Tous les élèves de la classe sont sélectionnés par défaut.
+- Le professeur peut retirer certains élèves avant de choisir la fiche d’activité.
+- Une évaluation individuelle est enregistrée pour chaque élève sélectionné, avec un même identifiant collectif.
+- Les évaluations sont regroupées dans l’historique mais alimentent séparément les moyennes et synthèses de chaque élève.
+- Le support d’activité reste disponible pour cette évaluation collective.
+- Le cache PWA/service worker a été changé pour forcer l’affichage de cette nouvelle version sur iPad et navigateur.
