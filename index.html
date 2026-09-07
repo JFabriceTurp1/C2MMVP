@@ -2560,17 +2560,10 @@ body{background:#f7f9fc;color:var(--text)}
 </style>
 
 
-<style id="collective-activity-direct-access-v2">
-.collective-activity-card{outline:3px solid rgba(14,116,144,.16);position:relative}
-.collective-activity-card::after{
-  content:"NOUVEAU";
-  position:absolute;top:10px;right:10px;padding:4px 8px;border-radius:999px;
-  background:#0e7490;color:#fff;font-size:10px;font-weight:900;letter-spacing:.06em
-}
-.activity-collective-box::before{
-  content:"MODE COLLECTIF";
-  display:inline-block;margin-bottom:8px;padding:4px 8px;border-radius:999px;
-  background:#0e7490;color:#fff;font-size:11px;font-weight:900
+<style id="collective-selection-fix-v1">
+.collective-selection-empty-note{
+  margin-top:8px;padding:7px 10px;border-radius:8px;background:#fff7ed;
+  color:#9a3412;font-size:12px;font-weight:700;
 }
 </style>
 
@@ -4250,10 +4243,16 @@ let activityDraft=null;
 let activitySearch="";
 let activityMode="individual";
 let activityTargetStudents=[];
+let activityTargetsInitialized=false;
 function setActivityMode(mode){
   activityMode=mode==="collective"?"collective":"individual";
-  if(activityMode==="collective") activityTargetStudents=sortStudentsAlpha(students).map(s=>String(s.id));
-  else activityTargetStudents=selectedStudent?[String(selectedStudent)]:[];
+  if(activityMode==="collective"){
+    activityTargetStudents=sortStudentsAlpha(students).map(s=>String(s.id));
+    activityTargetsInitialized=true;
+  }else{
+    activityTargetStudents=selectedStudent?[String(selectedStudent)]:[];
+    activityTargetsInitialized=false;
+  }
   activityChoicePage();
 }
 function toggleActivityTargetStudent(id,checked){
@@ -4264,7 +4263,11 @@ function toggleActivityTargetStudent(id,checked){
   activityChoicePage();
 }
 function toggleAllActivityTargets(){
-  activityTargetStudents=(activityTargetStudents||[]).length===students.length?[]:sortStudentsAlpha(students).map(s=>String(s.id));
+  const classIds=sortStudentsAlpha(students).map(s=>String(s.id));
+  const selected=new Set((activityTargetStudents||[]).map(String));
+  const allSelected=classIds.length>0 && classIds.every(id=>selected.has(id));
+  activityTargetStudents=allSelected?[]:[...classIds];
+  activityTargetsInitialized=true;
   activityChoicePage();
 }
 function activityItem(id){return ACTIVITY_EVALUATIONS_V1.find(x=>x.id===id)||null;}
@@ -4274,32 +4277,25 @@ function beginActivityEvaluation(){
   try{
     if(!students.length){showWarningMessage("Aucun élève n’est disponible.");return;}
     if(!students.some(s=>String(s.id)===String(selectedStudent)))selectedStudent=sortStudentsAlpha(students)[0]?.id||null;
-    activityDraft=null;activitySearch="";activityMode="individual";activityTargetStudents=selectedStudent?[String(selectedStudent)]:[];page="activityChoice";render();
+    activityDraft=null;activitySearch="";activityMode="individual";activityTargetStudents=selectedStudent?[String(selectedStudent)]:[];activityTargetsInitialized=false;page="activityChoice";render();
   }catch(err){console.error("Ouverture fiche d’activités",err);showWarningMessage("Impossible d’ouvrir l’évaluation sur fiche d’activités : "+(err?.message||err));}
-}
-function beginCollectiveActivityEvaluation(){
-  if(!students.length){showWarningMessage("Aucun élève n’est disponible.");return;}
-  if(!students.some(s=>String(s.id)===String(selectedStudent))) selectedStudent=sortStudentsAlpha(students)[0]?.id||null;
-  activityDraft=null;
-  activitySearch="";
-  activityMode="collective";
-  activityTargetStudents=sortStudentsAlpha(students).map(s=>String(s.id));
-  page="activityChoice";
-  render();
 }
 function setActivitySearch(v){activitySearch=String(v||"");activityChoicePage();requestAnimationFrame(()=>{const x=document.getElementById("activity-search");if(x){x.focus();x.setSelectionRange(x.value.length,x.value.length);}});}
 function activityChoicePage(){
   setActive("eval");
   if(!students.some(s=>String(s.id)===String(selectedStudent))) selectedStudent=sortStudentsAlpha(students)[0]?.id||null;
-  if(activityMode==="collective" && !(activityTargetStudents||[]).length) activityTargetStudents=sortStudentsAlpha(students).map(s=>String(s.id));
+  if(activityMode==="collective" && !activityTargetsInitialized){
+    activityTargetStudents=sortStudentsAlpha(students).map(s=>String(s.id));
+    activityTargetsInitialized=true;
+  }
   const diploma=activityDiploma(selectedStudent);
   const studentOptions=sortStudentsAlpha(students).map(s=>`<option value="${esc(String(s.id))}" ${String(s.id)===String(selectedStudent)?"selected":""}>${esc(s.name)}</option>`).join("");
   const q=activitySearch.trim().toLowerCase();
   const filtered=ACTIVITY_EVALUATIONS_V1.filter(a=>!q||`${a.id} ${a.numero} ${a.theme} ${a.titre} ${a.description} ${(diploma==="BAC PRO"?a.competences_bac_pro:a.competences_cap).join(" ")}`.toLowerCase().includes(q));
   const groups={};filtered.forEach(a=>(groups[a.theme]??=[]).push(a));
   const htmlGroups=Object.entries(groups).map(([theme,items])=>`<section class="activity-theme-block"><div class="activity-theme-title"><span>${esc(theme)}</span><span>${items.length} fiche(s)</span></div><div class="activity-card-grid">${items.map(a=>`<button type="button" class="activity-card" onclick="startActivitySheet('${a.id}')"><span class="activity-card-code">${esc(a.id)}</span><span class="activity-card-main"><h3>${esc(a.titre)}</h3><p>${esc(a.description)}</p><div class="activity-card-comps">${esc(diploma)} : ${esc((diploma==="BAC PRO"?a.competences_bac_pro:a.competences_cap).join(" - "))}</div></span></button>`).join("")}</div></section>`).join("");
-  const targetBox=activityMode==="collective"?`<div class="activity-collective-box"><div class="row"><div><b>👥 Élèves concernés</b><div class="muted">${activityTargetStudents.length} / ${students.length} élève(s) sélectionné(s)</div></div><button type="button" class="secondary" onclick="toggleAllActivityTargets()">${activityTargetStudents.length===students.length?"Tout désélectionner":"Sélectionner toute la classe"}</button></div><div class="student-checklist modern-checklist">${sortStudentsAlpha(students).map(s=>`<label class="student-check"><input type="checkbox" style="width:auto" ${activityTargetStudents.includes(String(s.id))?"checked":""} onchange="toggleActivityTargetStudent('${String(s.id)}',this.checked)"> ${esc(s.name)}</label>`).join("")}</div></div>`:"";
-  document.getElementById("main").innerHTML=`<header class="app-top-header" aria-label="Fiches d'activités"></header><div class="activity-choice-page"><h1>${activityMode==="collective"?"👥 Évaluation collective sur fiche d’activités":"📋 Évaluation sur fiche d’activités"}</h1><p class="sub">${activityMode==="collective"?"Tous les élèves de la classe sont sélectionnés par défaut. Tu peux en décocher certains, puis choisir la fiche d’activité commune. Une évaluation individuelle sera enregistrée pour chaque élève sélectionné.":"Choisis une des 63 fiches pratiques. Tu peux passer en mode collectif à tout moment."}</p>
+  const targetBox=activityMode==="collective"?`<div class="activity-collective-box"><div class="row"><div><b>👥 Élèves concernés</b><div class="muted">${activityTargetStudents.length} / ${students.length} élève(s) sélectionné(s)</div></div><button type="button" class="secondary" onclick="toggleAllActivityTargets()">${students.length>0 && sortStudentsAlpha(students).every(s=>activityTargetStudents.map(String).includes(String(s.id)))?"Tout désélectionner":"Sélectionner toute la classe"}</button></div><div class="student-checklist modern-checklist">${sortStudentsAlpha(students).map(s=>`<label class="student-check"><input type="checkbox" style="width:auto" ${activityTargetStudents.map(String).includes(String(s.id))?"checked":""} onchange="toggleActivityTargetStudent('${String(s.id)}',this.checked)"> ${esc(s.name)}</label>`).join("")}</div></div>`:"";
+  document.getElementById("main").innerHTML=`<header class="app-top-header" aria-label="Fiches d'activités"></header><div class="activity-choice-page"><h1>📋 Évaluation sur fiche d’activités</h1><p class="sub">Choisis une des 63 fiches pratiques. L’évaluation peut être individuelle ou collective. En mode collectif, une évaluation est créée pour chaque élève sélectionné et regroupée dans l’historique.</p>
   <div class="activity-mode-box"><label>Mode d’évaluation</label><div class="eval-segmented"><button type="button" class="${activityMode==="individual"?"active":""}" onclick="setActivityMode('individual')">👤 Individuelle</button><button type="button" class="${activityMode==="collective"?"active":""}" onclick="setActivityMode('collective')">👥 Collective</button></div></div>
   <div class="activity-toolbar"><div><label>Rechercher une fiche, un thème ou une compétence</label><input id="activity-search" type="search" value="${esc(activitySearch)}" placeholder="Ex. freinage, ACT-030, C2.4..." oninput="setActivitySearch(this.value)"></div><div class="activity-count">${filtered.length} / 63 fiche(s)</div>${activityMode==="individual"?`<div><label>Élève</label><select id="activity-student-select" onchange="selectedStudent=this.value;activityTargetStudents=[String(this.value)];activityChoicePage()">${studentOptions}</select></div>`:`<div><label>Évaluation</label><span class="activity-diploma-badge">👥 ${activityTargetStudents.length} élève(s)</span></div>`}<div><label>Diplôme</label><span class="activity-diploma-badge">${esc(diploma)}</span></div></div>
   ${targetBox}${htmlGroups||'<div class="notice">Aucune fiche ne correspond à la recherche.</div>'}<div class="actions"><button class="secondary" onclick="startEvaluation()">← Retour aux types d’évaluation</button></div></div>`;
@@ -4423,12 +4419,6 @@ function evaluationChoicePage(){
           <h2>Évaluation sur fiche d’activités</h2>
           <p>Choisir une fiche pratique parmi les 63 activités. Les 10 critères et uniquement les compétences du diplôme de l’élève sont chargés automatiquement.</p>
           <div class="eval-choice-action">Choisir une fiche d’activités →</div>
-        </button>
-        <button type="button" class="eval-choice-card activity-sheet collective-activity-card" onclick="beginCollectiveActivityEvaluation()">
-          <div class="eval-choice-icon">👥</div>
-          <h2>Évaluation collective sur fiche d’activités</h2>
-          <p>Évaluer toute la classe, ou une sélection d’élèves, à partir d’une même fiche d’activité. Chaque élève reçoit ensuite sa propre évaluation dans son historique et ses moyennes.</p>
-          <div class="eval-choice-action">Créer une évaluation collective →</div>
         </button>
         ${isAdminTeacher()?`<button type="button" class="eval-choice-card retroactive" onclick="beginRetrospectiveEvaluation()">
           <div class="eval-choice-icon">🕘</div>
@@ -5471,7 +5461,7 @@ document.getElementById("main").innerHTML=`
     <div class="eval-modern-content">
       <div class="eval-modern-top">
         <section class="eval-modern-card eval-modern-blue"><div class="eval-modern-title"><span class="eval-step">1</span> Élève</div>
-          ${draft.mode==="individual"?`<label>Sélectionner un élève</label><select onchange="selectedStudent=this.value;draft.targetStudents=[this.value];evaluationPage()">${sortStudentsAlpha(students).map(x=>`<option value="${x.id}" ${x.id===selectedStudent?"selected":""}>${esc(x.name)}</option>`).join("")}</select>`:`<div class="muted" style="margin-bottom:8px">Évaluation collective</div><button class="secondary" type="button" onclick="toggleAllTargets()">${draft.targetStudents.length===students.length?"Tout désélectionner":"Sélectionner toute la classe"}</button><div class="student-checklist modern-checklist">${sortStudentsAlpha(students).map(x=>`<label class="student-check"><input type="checkbox" style="width:auto" ${draft.targetStudents.includes(x.id)?"checked":""} onchange="toggleTargetStudent('${x.id}',this.checked)"> ${esc(x.name)}</label>`).join("")}</div>`}
+          ${draft.mode==="individual"?`<label>Sélectionner un élève</label><select onchange="selectedStudent=this.value;draft.targetStudents=[this.value];evaluationPage()">${sortStudentsAlpha(students).map(x=>`<option value="${x.id}" ${x.id===selectedStudent?"selected":""}>${esc(x.name)}</option>`).join("")}</select>`:`<div class="muted" style="margin-bottom:8px">Évaluation collective</div><button class="secondary" type="button" onclick="toggleAllTargets()">${students.length>0 && sortStudentsAlpha(students).every(s=>(draft.targetStudents||[]).map(String).includes(String(s.id)))?"Tout désélectionner":"Sélectionner toute la classe"}</button><div class="student-checklist modern-checklist">${sortStudentsAlpha(students).map(x=>`<label class="student-check"><input type="checkbox" style="width:auto" ${(draft.targetStudents||[]).map(String).includes(String(x.id))?"checked":""} onchange="toggleTargetStudent('${x.id}',this.checked)"> ${esc(x.name)}</label>`).join("")}</div>`}
         </section>
         <section class="eval-modern-card eval-modern-purple"><div class="eval-modern-title"><span class="eval-step">2</span> ${draft.retroactive?"Date réelle de l’évaluation":"Date de l’évaluation"}</div><label>${draft.retroactive?"Date historique":"Date"}</label><input type="date" value="${esc(toISODateValue(draft.date))}" onchange="draft.date=displayDateValue(this.value);evaluationPage()">${draft.retroactive?`<div class="retro-date-note">Cette date sera utilisée dans l’historique et le calcul du positionnement. La date de saisie reste enregistrée séparément.</div>`:""}</section>
         <section class="eval-modern-card eval-modern-orange"><div class="eval-modern-title"><span class="eval-step">3</span> Type d’évaluation</div><label>Mode d’évaluation</label><div class="eval-segmented"><button type="button" class="${draft.mode==="individual"?"active":""}" onclick="setEvalMode('individual')">Individuelle</button><button type="button" class="${draft.mode==="collective"?"active":""}" onclick="setEvalMode('collective')">Collective</button></div><label style="margin-top:10px">Type</label><select onchange="draft.type=this.value;evaluationPage()">${["Lycée","PFMP"].map(x=>`<option ${draft.type===x?"selected":""}>${x}</option>`).join("")}</select></section>
@@ -5511,12 +5501,17 @@ function setEvalMode(mode){
   render();
 }
 function toggleTargetStudent(id,on){
-  if(on && !draft.targetStudents.includes(id)) draft.targetStudents.push(id);
-  if(!on) draft.targetStudents=draft.targetStudents.filter(x=>x!==id);
+  const key=String(id);
+  const current=(draft.targetStudents||[]).map(String);
+  if(on && !current.includes(key)) draft.targetStudents=[...(draft.targetStudents||[]),key];
+  if(!on) draft.targetStudents=(draft.targetStudents||[]).filter(x=>String(x)!==key);
   render();
 }
 function toggleAllTargets(){
-  draft.targetStudents = draft.targetStudents.length===students.length ? [] : sortStudentsAlpha(students).map(s=>s.id);
+  const classIds=sortStudentsAlpha(students).map(s=>String(s.id));
+  const selected=new Set((draft.targetStudents||[]).map(String));
+  const allSelected=classIds.length>0 && classIds.every(id=>selected.has(id));
+  draft.targetStudents=allSelected?[]:[...classIds];
   render();
 }
 function toggleComp(id,on){

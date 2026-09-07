@@ -70,12 +70,10 @@ MODIFICATIONS DE CETTE VERSION
 
 MODIFICATIONS DE CETTE VERSION
 ==============================
-- Ajout d’un bouton/type d’évaluation distinct : « Évaluation collective sur fiche d’activités ».
-- Ce choix apparaît directement sur l’écran « Nouvelle évaluation ».
-- L’ouverture de ce type active immédiatement le mode collectif.
-- Tous les élèves de la classe sont sélectionnés par défaut.
-- Le professeur peut retirer certains élèves avant de choisir la fiche d’activité.
-- Une évaluation individuelle est enregistrée pour chaque élève sélectionné, avec un même identifiant collectif.
-- Les évaluations sont regroupées dans l’historique mais alimentent séparément les moyennes et synthèses de chaque élève.
-- Le support d’activité reste disponible pour cette évaluation collective.
-- Le cache PWA/service worker a été changé pour forcer l’affichage de cette nouvelle version sur iPad et navigateur.
+- Correction du bouton « Tout désélectionner » dans les sélections d’élèves des évaluations collectives.
+- Une liste volontairement vidée reste désormais vide : le logiciel ne resélectionne plus automatiquement toute la classe au rafraîchissement de l’écran.
+- Correction appliquée à l’évaluation collective sur fiche d’activités.
+- Renforcement également de la sélection collective des évaluations classiques / situations professionnelles.
+- Le bouton bascule correctement entre « Tout désélectionner » et « Sélectionner toute la classe » en fonction des élèves réellement cochés.
+- Les identifiants élèves sont comparés de façon robuste afin d’éviter les erreurs liées aux formats texte/nombre.
+- Toutes les fonctions ajoutées dans les versions précédentes sont conservées.
