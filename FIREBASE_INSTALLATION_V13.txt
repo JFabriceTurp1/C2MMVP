@@ -1,0 +1,38 @@
+EVALUATION & CHARGE ATELIER V13 — MISE EN SERVICE FIREBASE
+==========================================================
+
+Projet Firebase prévu dans l’application : evaluation-competences-mv
+
+1. Dans Firebase Console, ouvrir Authentication > Sign-in method.
+2. Activer la méthode « Adresse e-mail / Mot de passe ».
+3. Créer au moins un compte utilisateur destiné au logiciel.
+4. Ouvrir Firestore Database et créer la base si elle n’existe pas encore.
+5. Publier le contenu du fichier firestore.rules dans l’onglet Règles de Firestore.
+6. Ouvrir Evaluation_Charge_atelier_V13.html avec une connexion internet.
+7. Se connecter avec le compte Firebase créé.
+8. Vérifier le voyant de synchronisation puis utiliser « Synchroniser maintenant ».
+
+STRUCTURE FIRESTORE UTILISÉE
+============================
+Toutes les données sont isolées sous users/{uid}/ :
+- classes
+- students
+- evaluations
+- comptes
+- configuration
+- situationsProfessionnelles
+- atelierSessions
+
+Chaque séance de l’Atelier du jour est enregistrée séparément par classe et par date.
+Les publications, affectations, auto-évaluations et statuts terminés sont synchronisés.
+
+SÉCURITÉ
+========
+Les règles fournies interdisent à un utilisateur connecté de lire ou modifier les
+données d’un autre compte. La clé de configuration Firebase présente dans le HTML
+identifie le projet ; elle ne remplace pas Authentication ni les règles Firestore.
+
+MODE LOCAL
+==========
+Le mode local reste disponible dans Paramètres > Administration / Développement.
+Les données locales servent également de cache de fonctionnement.
