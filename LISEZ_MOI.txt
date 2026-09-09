@@ -77,3 +77,16 @@ MODIFICATIONS DE CETTE VERSION
 - Le bouton bascule correctement entre « Tout désélectionner » et « Sélectionner toute la classe » en fonction des élèves réellement cochés.
 - Les identifiants élèves sont comparés de façon robuste afin d’éviter les erreurs liées aux formats texte/nombre.
 - Toutes les fonctions ajoutées dans les versions précédentes sont conservées.
+
+MODIFICATIONS — ÉVALUATION DE RENTRÉE INDIVIDUELLE / COLLECTIVE
+===============================================================
+- L’évaluation de rentrée propose désormais deux modes : Individuelle et Collective.
+- En mode collectif, tous les élèves de la classe active sont sélectionnés par défaut.
+- Il est possible de sélectionner/désélectionner chaque élève individuellement.
+- Le bouton « Tout désélectionner / Sélectionner toute la classe » est disponible.
+- Une seule saisie des 10 critères, observations, appréciation, note et date est appliquée à tous les élèves sélectionnés.
+- Une évaluation distincte est enregistrée dans le dossier de chaque élève.
+- Les évaluations créées collectivement partagent un batchId commun pour rester identifiables comme un même lot.
+- Les compétences associées sont recalculées pour chaque élève selon son diplôme.
+- L’édition ultérieure d’une évaluation reste individuelle, comme pour les autres évaluations collectives.
+- Tous les correctifs et fonctions des versions précédentes sont conservés.
