@@ -1,0 +1,159 @@
+EVALUATION & CHARGE ATELIER V14 — FIREBASE
+==========================================
+
+Fichier principal : Evaluation_Charge_atelier_V14.html
+
+Fonctions intégrées dans ce prototype :
+- logiciel d’évaluation des compétences conservé ;
+- nouvelle entrée « Atelier du matin » ;
+- utilisation de la classe active du logiciel d’évaluation ;
+- catalogue des situations professionnelles et des 63 fiches d’activités ;
+- publication des activités pour la journée ;
+- support obligatoire pour chaque activité publiée ;
+- support visible sur la carte du tableau du matin ;
+- support visible sous le nom de l’élève positionné ;
+- choix de l’activité puis affectation de l’élève ;
+- création automatique d’une évaluation préparée ;
+- liste « Évaluations du jour » ;
+- ouverture de la fiche d’évaluation avec l’élève, l’activité, le support,
+  les compétences et les critères déjà préparés ;
+- l’évaluation n’alimente les résultats qu’après validation du professeur.
+
+UTILISATION RAPIDE
+==================
+1. Ouvrir Evaluation_Charge_atelier_V14.html.
+2. Choisir ou vérifier la classe active dans le logiciel d’évaluation.
+3. Cliquer sur le bouton orange « Atelier du matin ».
+4. Ouvrir « Administration du jour ».
+5. Sélectionner les activités, renseigner obligatoirement leur support et publier.
+6. Dans « Tableau du matin », cliquer sur une activité puis sur un élève.
+7. Ouvrir « Évaluations du jour » et cliquer sur « Évaluer ».
+
+REMARQUE
+========
+Il s’agit d’un prototype destiné à valider l’organisation et l’enchaînement
+des écrans. Les données atelier sont conservées localement dans le navigateur.
+La synchronisation complète Firebase des publications et affectations sera à
+consolider après validation du fonctionnement et de la présentation.
+
+CORRECTIF DU BOUTON « ÉVALUER »
+===============================
+- correction de l’identification de l’élève transmis par le bouton ;
+- recherche sécurisée de l’élève dans la classe active et dans la base complète ;
+- ouverture explicite de la fiche d’évaluation du logiciel principal ;
+- préparation automatique de la situation, du support et des compétences ;
+- ajout d’un message explicite si une ancienne activité n’est plus disponible.
+
+VERSION 2
+=========
+- nouvelle numérotation appliquée à chaque changement ;
+- suppression de l’appel JavaScript directement inscrit dans le tableau ;
+- gestion du clic « Évaluer » par un écouteur permanent ;
+- affichage immédiat de « Ouverture… » après le clic ;
+- navigation directe vers la fiche d’évaluation principale ;
+- disposition graphique inchangée dans ce correctif.
+
+VERSION 3
+=========
+- déplacement du bandeau « PROFESSEUR ACTIF » en haut à droite ;
+- position uniforme sur toutes les pages où le bandeau est visible ;
+- placement dans la zone supérieure, à proximité du logo ;
+- support provenant du tableau du matin visible dans la fiche d’évaluation ;
+- conservation du support lors de l’enregistrement, quel que soit le type d’évaluation ;
+- affichage du support dans les vues d’historique.
+
+VERSION 4
+=========
+- le bouton « Atelier du matin » devient « Atelier du jour » ;
+- suppression du bouton orange flottant en bas de l’écran ;
+- déplacement du bouton dans le cadre « Classe active » de l’accueil ;
+- positionnement à côté du bouton « Changer de classe » ;
+- adaptation de cette zone sur tablette et petit écran.
+
+VERSION 5
+=========
+- reprise de la disposition du premier logiciel pour le tableau du jour ;
+- élèves à gauche et travaux du jour à droite ;
+- reprise de la disposition en colonnes pour l’administration ;
+- suppression complète du bloc « Classe concernée » ;
+- chef d’équipe toujours présent et obligatoire ;
+- capacité du chef d’équipe fixée à un seul élève ;
+- blocage des autres affectations tant que le chef d’équipe n’est pas désigné ;
+- rétablissement de l’onglet « Auto-évaluation » ;
+- auto-évaluation liée à l’élève, à son activité et au support utilisé ;
+- transmission de l’auto-évaluation vers la fiche du professeur.
+
+VERSION 6
+=========
+- suppression du bandeau « PROFESSEUR ACTIF » ;
+- déplacement du bouton de repli « ◀ » sous les boutons principaux de navigation ;
+- conservation du chef d’équipe obligatoire sur le tableau du jour, sans afficher sa carte dans l’administration ;
+- catégories de l’administration repliées par défaut ;
+- ajout des « Évaluations de rentrée » aux choix publiables ;
+- maintien de l’auto-évaluation des élèves ;
+- transmission du support aux évaluations de rentrée, à leur historique et à leur fiche de détail.
+
+VERSION 7
+=========
+- correction du bouton « Évaluer » dans « Évaluations du jour » ;
+- ouverture automatique de la fiche correspondant au type d’activité publié ;
+- ouverture directe des évaluations de rentrée sur leur grille dédiée ;
+- ouverture directe des fiches d’activités sur leurs dix critères dédiés ;
+- ouverture des situations professionnelles dans le moteur principal de compétences ;
+- préremplissage automatique de l’élève, de l’activité, du support et de l’auto-évaluation ;
+- passage de l’évaluation du jour à l’état « Terminée » après son enregistrement.
+
+VERSION 8
+=========
+- validation du statut uniquement après l’enregistrement effectif par le professeur ;
+- mise à jour fiable pour les évaluations de rentrée, les fiches d’activités et les situations professionnelles ;
+- remplacement du bouton « Évaluer » par la mention verte « ✓ Fait » ;
+- blocage d’une nouvelle ouverture accidentelle depuis la colonne « Action » ;
+- conservation du statut « Fait » après retour dans « Évaluations du jour ».
+
+VERSION 9
+=========
+- correction de l’emplacement du déclenchement « Fait » pour les évaluations de rentrée ;
+- mise à jour du statut immédiatement après une sauvegarde réussie ;
+- réparation automatique des évaluations déjà enregistrées mais restées « Préparée » ;
+- contrôle croisé de l’élève, de la date et de l’activité avant réparation ;
+- disparition définitive du bouton « Évaluer » pour une évaluation reconnue comme terminée.
+
+VERSION 10
+==========
+- remplacement des réponses écrites de l’auto-évaluation par un code couleur ;
+- quatre choix visuels : rouge, orange, jaune et vert ;
+- suppression des textes visibles « 1/4 », « 2/4 », « Moyen », « Bien », etc. ;
+- affichage d’une coche sur la couleur sélectionnée ;
+- conservation des mêmes valeurs internes pour les historiques et les synthèses.
+
+VERSION 11
+==========
+- retour automatique dans « Évaluations du jour » après une évaluation issue de l’atelier ;
+- maintien dans l’environnement Atelier du jour pour poursuivre les élèves restant à évaluer ;
+- ajout du bouton « Vue élève » dans l’en-tête de l’atelier ;
+- limitation stricte de la vue élève à « Tableau du jour » et « Auto-évaluation » ;
+- masquage et blocage de l’administration, des évaluations du jour et du retour au logiciel professeur ;
+- ajout du bouton protégé « Vision Prof » pour quitter la vue élève ;
+- code administrateur par défaut fixé à 6129 et toujours modifiable dans les paramètres ;
+- maintien automatique de la vue élève après actualisation de la page.
+
+VERSION 12
+==========
+- génération automatique d’un PDF lors du premier enregistrement d’une évaluation de rentrée ;
+- un PDF individuel produit pour chaque élève en mode collectif ;
+- nom du fichier composé du nom de l’élève, de sa classe et du sujet évalué ;
+- fiche PDF comprenant les critères, scores, observations, total et appréciation ;
+- aucune génération automatique pour les autres types d’évaluation ;
+- aucune création de doublon PDF lors de la modification d’une évaluation existante.
+
+VERSION 14 — INTÉGRATION FIREBASE CORRIGÉE
+===========================================
+- reconstruction depuis la V12 validée afin de conserver intégralement l’Atelier du jour ;
+- quatre vues Atelier présentes : Tableau, Administration, Auto-évaluation et Évaluations du jour ;
+- structure locale de l’atelier inchangée pour préserver les données et le fonctionnement validé ;
+- Firebase activé par défaut, avec mode local de secours dans Paramètres ;
+- synchronisation des publications, affectations, supports et chef d’équipe ;
+- synchronisation des auto-évaluations et des états « Préparée / Terminée » ;
+- stockage Firebase des séances par classe et par date ;
+- règles Firestore et notice de mise en service incluses dans l’archive.
