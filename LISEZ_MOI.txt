@@ -61,3 +61,16 @@ AUTRES CORRECTIONS CONSERVÉES
   avant toute utilisation dans les chemins fiche classique, RTA, historique et atelier du jour.
 - Contrôle syntaxique JavaScript effectué après correction.
 - Cette version remplace la TEST 3 pour les essais d'enregistrement.
+
+
+ÉVOLUTIONS TEST 5 — CORRECTION DE PORTÉE isRta
+- La TEST 4 déclarait encore isRta à l'intérieur de la boucle des élèves.
+- Le message de fin d'enregistrement utilisait ensuite isRta hors de cette portée, provoquant :
+  « ReferenceError: isRta is not defined ».
+- isRta est maintenant déclaré UNE SEULE FOIS avant la boucle et avant le bloc try.
+- La variable reste donc disponible pour :
+  * la construction de l'évaluation ;
+  * les métadonnées RTA ;
+  * le message de succès ;
+  * les fiches classiques et RTA ;
+  * les évaluations individuelles et collectives.
