@@ -1,0 +1,10 @@
+EVALUATION & CHARGE ATELIER — V18.2
+
+Correction :
+- « Redonner la main » efface désormais complètement l'auto-évaluation précédente.
+- Les 3 critères repartent à zéro.
+- La note /20 est effacée.
+- Le commentaire est effacé.
+- La tâche redevient active pour l'élève.
+- L'élève doit refaire toute l'auto-évaluation.
+- La note reste obligatoire pour enregistrer.
