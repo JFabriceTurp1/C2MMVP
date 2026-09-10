@@ -156,3 +156,16 @@ Cette version est volontairement une version d’essai : le planning calendrier 
 - Le bouton « Retour Accueil » est conservé.
 
 Cette version reste une version d’essai fonctionnelle. La séparation classe/date est appliquée au stockage local et à la sauvegarde atelier Firebase par classe/date.
+
+
+ÉVOLUTIONS TEST 11 — DÉPLACEMENT DES ÉLÈVES
+- Correction du déplacement d’un élève déjà affecté.
+- Nouveau fonctionnement :
+  1. sélectionner la nouvelle activité ;
+  2. cliquer sur le nom de l’élève déjà positionné ;
+  3. l’élève est déplacé directement vers la nouvelle activité.
+- L’ancienne affectation et sa séquence en attente sont remplacées proprement.
+- Les contrôles de capacité restent actifs.
+- Le chef d’équipe reste protégé : il ne peut pas être déplacé comme un élève standard sans changement préalable de son rôle.
+- Si aucune autre activité n’est sélectionnée, un clic sur un élève déjà positionné conserve l’action de libération avec confirmation.
+- Les fonctions calendrier compact, tableaux futurs et séparation Classe + Date de la TEST 10 sont conservées.
