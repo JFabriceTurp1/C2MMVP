@@ -2382,7 +2382,7 @@ body{background:#f7f9fc;color:var(--text)}
   body.rentree-printing .rentree-competence-note{display:none!important}
   body.rentree-printing .rentree-print-signature{font-weight:800!important;margin-top:1mm!important}
   body.rentree-printing .rentree-print-footer{display:flex!important;position:fixed!important;left:10mm!important;right:10mm!important;bottom:5mm!important;justify-content:space-between!important;font-size:7.5pt!important;color:#667085!important}
-  /* Évaluation, charge atelier et intégration RTA — TEST 7 : fiche de rentrée compacte sur une seule page */
+  /* Évaluation, charge atelier et intégration RTA — TEST 8 : fiche de rentrée compacte sur une seule page */
   body.rentree-printing .rentree-print-page{min-height:0!important;height:auto!important;break-inside:avoid!important;page-break-inside:avoid!important}
   body.rentree-printing .rentree-print-school-header{height:15mm!important;margin-bottom:1.5mm!important}
   body.rentree-printing .rentree-print-school-header img{max-height:14mm!important}
@@ -11646,7 +11646,7 @@ window.addEventListener("resize",function(){
 .at-custom-create input{padding:10px;border:1px solid #bac7d8;border-radius:8px;box-sizing:border-box;width:100%}@media(max-width:1050px){.at-custom-create{grid-template-columns:1fr 1fr}.at-custom-create .at-btn{grid-column:1/-1}}@media(max-width:650px){.at-custom-create{grid-template-columns:1fr}}
 </style>
 <section id="atelier-app" class="hidden" aria-label="Evaluation et charge atelier">
-  <header class="at-head"><h1>Evaluation &amp; Charge atelier Évaluation, charge atelier et intégration RTA — TEST 7 — Firebase</h1><span id="at-active-class"></span><button id="at-view-mode-btn" type="button" onclick="toggleAtelierViewMode()">Vue élève</button><button id="at-change-class-btn" type="button" onclick="openClassPicker()">⇄ Changer de classe</button><button id="at-return-main-btn" type="button" onclick="closeAtelierUnified()">Retour aux évaluations</button></header>
+  <header class="at-head"><h1>Evaluation &amp; Charge atelier Évaluation, charge atelier et intégration RTA — TEST 8 — Firebase</h1><span id="at-active-class"></span><button id="at-view-mode-btn" type="button" onclick="toggleAtelierViewMode()">Vue élève</button><button id="at-change-class-btn" type="button" onclick="openClassPicker()">⇄ Changer de classe</button><button id="at-return-main-btn" type="button" onclick="closeAtelierUnified()">Retour aux évaluations</button></header>
   <nav class="at-nav" id="at-nav"></nav><main class="at-main" id="at-main"></main>
 </section>
 <script id="atelier-unifie-v5-script">
@@ -11848,6 +11848,48 @@ window.removeRtaAtelierActivity=function(encoded){
   save(d);renderAdmin();
 }
 
+
+function sameWorkAvailableActivities(t){
+  const all=[...activities().filter(a=>a&&a.id!==TEAM_ID),
+             ...(t?.rtaActivities||[]).map(id=>activityById(id)).filter(Boolean)];
+  const map=new Map();
+  all.forEach(a=>{if(a?.id&&!map.has(String(a.id)))map.set(String(a.id),a)});
+  return [...map.values()].sort((a,b)=>String(a.code||a.id).localeCompare(String(b.code||b.id),"fr",{numeric:true}));
+}
+function sameWorkPicker(t){
+  const list=sameWorkAvailableActivities(t);
+  if(!list.length)return '<div class="at-empty">Aucune activité disponible.</div>';
+  return `<div class="at-custom-create" style="margin-bottom:10px">
+    <select id="atSameWorkActivity" style="min-width:260px;padding:9px;border:1px solid #bac7d8;border-radius:8px">
+      <option value="">Choisir le travail à reprendre…</option>
+      ${list.map(a=>{
+        const family=a.kind==="rta"?"RTA":a.kind==="custom"?"PERSO":a.kind==="activity"?"FICHE":"ACT";
+        return `<option value="${e(a.id)}">${e(family+" — "+(a.code||a.id)+" — "+(a.title||""))}</option>`;
+      }).join("")}
+    </select>
+    <input id="atSameWorkSupport" placeholder="Nouveau support : véhicule / organe / maquette">
+    <input id="atSameWorkCapacity" type="number" min="1" max="8" value="4" title="Places maximum">
+    <button type="button" class="at-btn at-success" onclick="addSameWorkOtherSupport()">＋ Ajouter cet autre support</button>
+  </div>`;
+}
+window.addSameWorkOtherSupport=function(){
+  const activityId=document.getElementById("atSameWorkActivity")?.value||"";
+  const support=(document.getElementById("atSameWorkSupport")?.value||"").trim();
+  const capacity=Math.max(1,Math.min(8,Number(document.getElementById("atSameWorkCapacity")?.value)||4));
+  if(!activityId){alert("Choisis d’abord une activité.");return}
+  if(!support){alert("Renseigne le nouveau support.");document.getElementById("atSameWorkSupport")?.focus();return}
+  const d=database(),t=today(d),a=activityById(activityId);
+  if(!a){alert("Activité introuvable.");return}
+  const publicationId=String(activityId)+"__"+Date.now().toString(36)+"_"+Math.random().toString(36).slice(2,5);
+  t.published=t.published||[];
+  t.published.push({publicationId,activityId:String(activityId),code:a.code,title:a.title,support,capacity,publishedAt:new Date().toISOString()});
+  // Le travail source reste sélectionné afin que la publication supplémentaire soit conservée lors de « Publier ».
+  window.__atSelected=window.__atSelected||new Set();
+  window.__atSelected.add(String(activityId));
+  save(d);renderAdmin();
+  setTimeout(()=>{const input=document.getElementById("support_pub_"+encodeURIComponent(publicationId));if(input){input.focus();input.select()}},0);
+}
+
 function renderAdmin(){
  const d=database(),t=today(d),
  primaries=(t.published||[]).filter(x=>publicationKey(x)===String(x.activityId)),
@@ -11888,7 +11930,7 @@ function renderAdmin(){
      </section>
 
      <section class="at-admin-zone fiches">
-       <h3>🟩 Fiches et activités d’évaluation</h3>
+       <h3>🟩 60 FICHES PRATIQUES</h3>
        <p>Bibliothèque des activités techniques utilisables à l'atelier.</p>
        <details class="at-group"><summary>${sheets.length} disponibles · ${sheets.filter(a=>selected.has(a.id)).length} sélectionnées</summary>${adminRows(sheets,selected)}</details>
      </section>
@@ -11902,7 +11944,8 @@ function renderAdmin(){
 
      <section class="at-admin-zone extras">
        <h3>🟨 Même travail / autre support</h3>
-       <p>Publications supplémentaires d'un même travail sur un autre véhicule ou support.</p>
+       <p>Reprendre une activité existante et la proposer sur un autre véhicule, organe ou support.</p>
+       ${sameWorkPicker(t)}
        <details class="at-group" ${extraCount?'open':''}><summary>${extraCount} support(s) supplémentaire(s)</summary>${duplicatePublicationRows(t)}</details>
      </section>
 
@@ -11930,7 +11973,7 @@ function renderAdmin(){
      </section>
    </div>
  </section>`;
- window.__atSelected=new Set([...selected.keys(),...(t.rtaActivities||[])]);
+ window.__atSelected=new Set([...selected.keys(),...(t.rtaActivities||[]),...(t.published||[]).map(p=>String(p.activityId))]);
 }
 window.addCustomAtelierActivity=function(){const title=(document.getElementById('atCustomTitle')?.value||'').trim();if(!title){alert('Renseigne l’intitulé de l’activité personnalisée.');return}const description=(document.getElementById('atCustomDescription')?.value||'').trim(),defaultSupport=(document.getElementById('atCustomSupport')?.value||'').trim(),capacity=Math.max(1,Math.min(8,Number(document.getElementById('atCustomCapacity')?.value)||4));const d=database(),t=today(d),id='CUSTOM-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,6),index=(t.customActivities||[]).length+1;const item={id,code:'PERSO'+index,title,description,defaultSupport,capacity,createdAt:new Date().toISOString()};t.customActivities.push(item);save(d);renderAdmin();window.__atSelected.add(id);document.getElementById('row_'+id)?.classList.add('chosen');showSuccessMessage?.('Activité personnalisée créée. Clique sur « Publier pour aujourd’hui » pour la rendre disponible aux élèves.');}
 window.deleteCustomAtelierActivity=function(id){const d=database(),t=today(d);if(Object.values(t.assignments||{}).some(v=>String(underlyingActivityId(t,v))===String(id))){alert('Cette activité est déjà affectée à un élève. Désaffecte d’abord les élèves concernés.');return}if(!confirm('Supprimer cette activité personnalisée du jour ?'))return;t.customActivities=(t.customActivities||[]).filter(x=>String(x.id)!==String(id));t.published=(t.published||[]).filter(x=>String(x.activityId)!==String(id));save(d);renderAdmin()}

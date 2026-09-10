@@ -116,3 +116,12 @@ AUTRES CORRECTIONS CONSERVÉES
 5. REDONNER LA MAIN
 - Correction du bug où l’élève pouvait disparaître de la liste Auto-évaluation.
 - « Redonner la main » restaure maintenant à la fois la tâche active ET l’affectation de l’élève.
+
+
+ÉVOLUTIONS TEST 8 — ADMINISTRATION DU JOUR
+- Le bloc « Fiches et activités d’évaluation » est renommé « 60 FICHES PRATIQUES ».
+- Correction de « Même travail / autre support » :
+  * les activités disponibles remontent désormais dans une liste de choix ;
+  * la liste regroupe les activités standards, les fiches pratiques, les situations professionnelles, les activités ponctuelles et les activités RTA ajoutées à la séance ;
+  * le professeur choisit directement le travail, renseigne le nouveau support et la capacité ;
+  * la publication supplémentaire est conservée lors de « Publier pour aujourd’hui ».
