@@ -1,0 +1,54 @@
+ÉVALUATION & CHARGE ATELIER — V18.4 — PACK GITHUB
+
+Ce ZIP est prêt à déposer à la racine du dépôt GitHub.
+Il contient volontairement UN SEUL fichier HTML : index.html.
+
+MODIFICATIONS V18.4
+-------------------
+1. Chef d'équipe
+- Le chef d'équipe peut désormais faire son auto-évaluation.
+- Une fois son auto-évaluation validée, elle est enregistrée et la tâche est considérée terminée.
+
+2. Tableau / travaux du jour
+- Les noms et prénoms affichés dans les cartes de travaux sont plus grands et en gras.
+- En Vision Prof, cliquer sur le nom d'un élève déjà affecté propose directement de le libérer.
+- La petite croix rouge de désaffectation a été supprimée.
+- La phrase d'aide sous « Choix des activités » a été supprimée.
+
+3. Auto-évaluations
+- Après l'évaluation officielle par le professeur, l'élève disparaît de la liste des auto-évaluations possibles du jour.
+- Les auto-évaluations verrouillées restent protégées tant que le professeur n'utilise pas « Redonner la main ».
+- Le chef d'équipe est désormais inclus dans les auto-évaluations.
+
+4. Évaluation de rentrée
+- En impression, le bloc auto-évaluation est beaucoup plus compact.
+- Le commentaire saisi par l'élève dans son auto-évaluation apparaît sur la fiche.
+- La mise en page d'impression a été resserrée pour tenir sur une seule page A4.
+- Le bouton « Changer de thème » est remplacé par « Annuler » et retourne à l'étape précédente.
+
+5. Atelier du jour
+- Un bouton « Changer de classe » est ajouté en haut à côté de « Vue élève ».
+- Ce bouton est masqué en Vision élève.
+
+PACK GITHUB
+-----------
+À envoyer ensemble à la racine :
+- index.html
+- firebase.json
+- firestore.rules
+- manifest.webmanifest
+- service-worker.js
+- logo-francois-de-mahy.png
+- Fiches_Evaluations_63_Activites_CAP_BacPro_V4_CHARTE_DEFINITIVE.pdf
+- FIREBASE_INSTALLATION_V18_3.txt
+- LISEZ_MOI_V18_4.txt
+
+
+RÈGLE DE NOMMAGE GITHUB
+------------------------
+À partir de cette version, les fichiers de documentation conservent toujours le même nom :
+- FIREBASE_INSTALLATION.txt
+- LISEZ_MOI.txt
+
+Ainsi, lors d'une nouvelle mise à jour dans GitHub, les fichiers existants peuvent être remplacés directement
+sans créer de doublons liés au numéro de version.
