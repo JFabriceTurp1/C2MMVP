@@ -2382,7 +2382,7 @@ body{background:#f7f9fc;color:var(--text)}
   body.rentree-printing .rentree-competence-note{display:none!important}
   body.rentree-printing .rentree-print-signature{font-weight:800!important;margin-top:1mm!important}
   body.rentree-printing .rentree-print-footer{display:flex!important;position:fixed!important;left:10mm!important;right:10mm!important;bottom:5mm!important;justify-content:space-between!important;font-size:7.5pt!important;color:#667085!important}
-  /* Évaluation, charge atelier et intégration RTA — TEST : fiche de rentrée compacte sur une seule page */
+  /* Évaluation, charge atelier et intégration RTA — TEST 3 : fiche de rentrée compacte sur une seule page */
   body.rentree-printing .rentree-print-page{min-height:0!important;height:auto!important;break-inside:avoid!important;page-break-inside:avoid!important}
   body.rentree-printing .rentree-print-school-header{height:15mm!important;margin-bottom:1.5mm!important}
   body.rentree-printing .rentree-print-school-header img{max-height:14mm!important}
@@ -4239,7 +4239,7 @@ function editEvaluation(evaluationId,studentIdHint){
   const owner=found.owner, ev=found.ev;
   if(!ev){alert("Évaluation introuvable.");return;}
   if(ev.rentreeEvaluation){editRentreeEvaluation(ev,owner);return;}
-  if(ev.ficheActiviteEvaluation){editActivityEvaluation(ev,owner);return;}
+  if(ev.ficheActiviteEvaluation || ev.rtaEvaluation || ev.evalPath==="rta" || ev.type==="Évaluation sur RTA"){editActivityEvaluation(ev,owner);return;}
   selectedStudent=owner.id;
   draft={
     editId:ev.id,
@@ -5056,17 +5056,32 @@ function startActivitySheet(id){
   page="activityEval";render();
   }catch(err){console.error("Ouverture fiche d’activité",err);showWarningMessage("Impossible d’ouvrir cette fiche d’activité. Détail : "+(err?.message||String(err)));}
 }
-function activityScoreTotal(){const a=activityItem(activityDraft?.activityId);if(!a)return 0;return a.criteres.reduce((sum,_,i)=>sum+(Number(activityDraft.scores[i])||0),0);}
-function activityScoredCount(){const a=activityItem(activityDraft?.activityId);if(!a)return 0;return a.criteres.filter((_,i)=>activityDraft.scores[i]!==undefined&&activityDraft.scores[i]!==null&&activityDraft.scores[i]!=="").length;}
+function currentActivityItem(){
+  if(!activityDraft)return null;
+  return activityItem(activityDraft.activityId) || activityDraft.activitySnapshot || null;
+}
+function activityRawPoints(){
+  const a=currentActivityItem();if(!a)return 0;
+  return (a.criteres||[]).reduce((sum,_,i)=>sum+(Number(activityDraft.scores[i])||0),0);
+}
+function activityScoreTotal(){
+  const a=currentActivityItem();if(!a||!(a.criteres||[]).length)return 0;
+  const raw=activityRawPoints(),max=(a.criteres.length*2);
+  return Math.round(((raw/max)*20)*10)/10;
+}
+function activityScoredCount(){
+  const a=currentActivityItem();if(!a)return 0;
+  return (a.criteres||[]).filter((_,i)=>activityDraft.scores[i]!==undefined&&activityDraft.scores[i]!==null&&activityDraft.scores[i]!=="").length;
+}
 function activitySuggestedAppreciation(n){return n>=17?"Très bien":n>=14?"Bien":n>=10?"En cours d'acquisition":"À renforcer";}
-function setActivityScore(i,v){if(!activityDraft)return;activityDraft.scores[i]=Number(v);if(!activityDraft._noteAutoApplying&&activityDraft.noteDrivenEvaluation){activityDraft.noteDrivenExact="";activityDraft.noteDrivenCalculated=undefined;}const a=activityItem(activityDraft.activityId);if(a&&activityScoredCount()===a.criteres.length){activityDraft.appreciation=activitySuggestedAppreciation(activityScoreTotal());activityDraft.appreciationManual=false;}activityEvaluationPage();}
+function setActivityScore(i,v){if(!activityDraft)return;activityDraft.scores[i]=Number(v);if(!activityDraft._noteAutoApplying&&activityDraft.noteDrivenEvaluation){activityDraft.noteDrivenExact="";activityDraft.noteDrivenCalculated=undefined;activityDraft.noteDrivenEvaluation=false;}const a=currentActivityItem();if(a&&activityScoredCount()===a.criteres.length){activityDraft.appreciation=activitySuggestedAppreciation(activityScoreTotal());activityDraft.appreciationManual=false;}activityEvaluationPage();}
 function setActivityObservation(i,v){activityDraft.observations[i]=v;}
 function setActivityAppreciation(v){if(!activityDraft)return;activityDraft.appreciation=String(v||"");activityDraft.appreciationManual=true;activityEvaluationPage();}
 function setActivityAppreciationByIndex(i){const vals=["Très bien","Bien","En cours d'acquisition","À renforcer"];setActivityAppreciation(vals[i]||"");}
 function activityStudentNameParts(){const s=students.find(x=>String(x.id)===String(activityDraft?.studentId));const full=String(s?.name||"").trim();const parts=full.split(/\s+/);return {full,nom:parts.slice(0,-1).join(" ")||full,prenom:parts.length>1?parts[parts.length-1]:""};}
 function printActivityEvaluation(){document.body.classList.add("activity-printing");setTimeout(()=>window.print(),50);setTimeout(()=>document.body.classList.remove("activity-printing"),1200);}
 function activityEvaluationPage(){
-  setActive("eval");const d=activityDraft,a=activityItem(d?.activityId);if(!d||!a){page="activityChoice";render();return;}
+  setActive("eval");const d=activityDraft,a=currentActivityItem();if(!d||!a){page="activityChoice";render();return;}
   const diploma=activityDiploma(),student=students.find(s=>String(s.id)===String(d.studentId)),names=activityStudentNameParts();
   const studentClass=studentClassLabel(d.studentId);
   const comps=activityComps(a,d.studentId),total=activityScoreTotal(),done=activityScoredCount();
@@ -5079,15 +5094,15 @@ function activityEvaluationPage(){
   document.getElementById("main").innerHTML=`<header class="app-top-header" aria-label="Évaluation sur fiche d’activités"></header><div class="activity-form-page"><div class="activity-sheet"><div class="activity-print-school-header activity-print-only"><img src="${activityLogoSrc}" alt="François de Mahy - Saint-Pierre, La Réunion"></div><div class="activity-sheet-header"><h1>ÉVALUATION - MAINTENANCE DES VÉHICULES</h1><h2>${esc(a.id)} : ${esc(a.titre)}</h2><p>${esc(a.description)}</p></div>
   <div class="activity-meta-grid activity-screen-only"><div><label>${d.mode==="collective"?"Évaluation":"Élève"}</label>${d.mode==="collective"?`<div class="activity-collective-summary"><b>👥 Collective</b><span>${(d.targetStudents||[]).length} élève(s)</span></div>`:`<select onchange="activityDraft.studentId=this.value;activityDraft.targetStudents=[String(this.value)];selectedStudent=this.value;activityEvaluationPage()">${studentOptions}</select>`}</div><div><label>Date</label><input type="date" value="${esc(toISODateValue(d.date))}" onchange="activityDraft.date=displayDateValue(this.value);activityEvaluationPage()"></div><div><label>Classe</label><b>${esc(studentClass||"—")}</b></div><div><label>Diplôme préparé</label><span class="activity-diploma-badge">${esc(diploma)}</span></div></div><div class="activity-support-box activity-screen-only"><label>Support d’activité</label><input type="text" value="${esc(d.activitySupport||"")}" placeholder="Ex. Peugeot 208, moteur K9K, véhicule client, maquette de freinage…" oninput="activityDraft.activitySupport=this.value"></div>
   <div class="activity-print-meta activity-print-only"><div class="activity-print-meta-left"><div class="meta-line"><b>Nom de l'élève :</b> ${esc(names.nom)}</div><div class="meta-line"><b>Prénom :</b> ${esc(names.prenom)}</div><div class="meta-line"><b>Classe :</b> ${esc(studentClass||"")}</div></div><div class="activity-print-meta-right"><div class="meta-line"><b>Date :</b> ${esc(d.date||"")}</div><div class="meta-line"><b>Diplôme préparé :</b> <span class="print-diploma-only">${esc(diploma)}</span></div><div class="meta-line"><b>Support d’activité :</b> ${esc(d.activitySupport||"—")}</div></div></div>
-  <div class="note-driven-box activity-screen-only"><h3>📝 Évaluer à partir d’une note</h3><div class="note-driven-row"><label>Note sur 20<input class="note-driven-input" type="number" min="0" max="20" step="0.5" value="${esc(d.noteDrivenRequested??"")}" placeholder="Ex. 13" onchange="activityDraft.noteDrivenRequested=this.value"></label><div><button type="button" class="primary note-driven-button" onclick="applyActivityNote(activityDraft.noteDrivenRequested)">⚙️ Cocher automatiquement les critères 0 / 1 / 2</button><div class="note-driven-mini">La note saisie est répartie automatiquement sur les 10 critères de la fiche. Tu peux ensuite corriger un critère manuellement.</div></div></div>${d.noteDrivenCalculated!==undefined?`<div class="note-driven-result">Note saisie : ${String(d.noteDrivenRequested).replace(".",",")} / 20 · critères générés : ${String(d.noteDrivenCalculated).replace(".",",")} / 20</div>`:""}</div>
+  <div class="note-driven-box activity-screen-only"><h3>📝 Évaluer à partir d’une note</h3><div class="note-driven-row"><label>Note sur 20<input class="note-driven-input" type="number" min="0" max="20" step="0.5" value="${esc(d.noteDrivenRequested??"")}" placeholder="Ex. 13" onchange="activityDraft.noteDrivenRequested=this.value"></label><div><button type="button" class="primary note-driven-button" onclick="applyActivityNote(activityDraft.noteDrivenRequested)">⚙️ Cocher automatiquement les critères 0 / 1 / 2</button><div class="note-driven-mini">La note saisie reste la note officielle sur 20. Elle est répartie automatiquement sur les ${a.criteres.length} critère(s) de cette fiche. Tu peux ensuite corriger un critère manuellement ; la note sera alors recalculée proportionnellement sur 20.</div></div></div>${d.noteDrivenCalculated!==undefined?`<div class="note-driven-result">Note saisie : ${String(d.noteDrivenRequested).replace(".",",")} / 20 · critères générés : ${String(d.noteDrivenCalculated).replace(".",",")} / 20</div>`:""}</div>
   <table class="activity-table"><thead><tr><th>Critères d'évaluation</th><th>0</th><th>1</th><th>2</th><th>Observations</th></tr></thead><tbody>${rows}</tbody></table>
-  <div class="activity-summary-grid"><div><b>Observations de l'enseignant :</b><textarea rows="5" oninput="activityDraft.teacherObservation=this.value" placeholder="Observation générale...">${esc(d.teacherObservation||"")}</textarea><div class="activity-print-teacher-observation activity-print-only">${esc(d.teacherObservation||"")}</div></div><div><b>Total des points :</b><div class="activity-total">${total} / 20</div><div class="muted" style="text-align:center">${done} / 10 critère(s) renseigné(s)</div><div style="margin-top:10px"><b>Appréciation :</b><div class="activity-appreciations">${apps}</div><div class="activity-print-appreciations activity-print-only">${printApps}</div></div></div></div>
-  <div class="activity-competence-note"><b>Compétences associées au diplôme ${esc(diploma)} :</b> ${esc(comps.join(" - "))}</div><div class="activity-print-bottom activity-print-only"><div class="left"><p><b>Compétences du diplôme ${esc(diploma)} :</b> ${esc(comps.join(" - "))}</p></div><div class="right"><div class="activity-print-signature">Signature :</div></div></div><div class="activity-print-footer activity-print-only"><span>Évaluation - Maintenance des véhicules</span><span>${esc(a.id)} | Fiche d’activité</span></div></div>
+  <div class="activity-summary-grid"><div><b>Observations de l'enseignant :</b><textarea rows="5" oninput="activityDraft.teacherObservation=this.value" placeholder="Observation générale...">${esc(d.teacherObservation||"")}</textarea><div class="activity-print-teacher-observation activity-print-only">${esc(d.teacherObservation||"")}</div></div><div><b>Note :</b><div class="activity-total">${(d.noteDrivenExact!==undefined&&d.noteDrivenExact!==""?Number(d.noteDrivenExact):total)} / 20</div><div class="muted" style="text-align:center">${done} / ${a.criteres.length} critère(s) renseigné(s)</div><div style="margin-top:10px"><b>Appréciation :</b><div class="activity-appreciations">${apps}</div><div class="activity-print-appreciations activity-print-only">${printApps}</div></div></div></div>
+  <div class="activity-competence-note"><b>Compétences associées au diplôme ${esc(diploma)} :</b> ${esc(comps.join(" - "))}</div><div class="activity-print-bottom activity-print-only"><div class="left"><p><b>Compétences du diplôme ${esc(diploma)} :</b> ${esc(comps.join(" - "))}</p></div><div class="right"><div class="activity-print-signature">Signature :</div></div></div><div class="activity-print-footer activity-print-only"><span>Évaluation - Maintenance des véhicules</span><span>${a.rtaSource||d.returnToRta?`RTA ${esc(a.rtaReference||"")} | ${esc(a.titre)}`:`${esc(a.id)} | Fiche d’activité`}</span></div></div>
   <div class="activity-actions"><button class="secondary" onclick="backToActivityPicker()">← Autre fiche / activité</button><button class="secondary" onclick="printActivityEvaluation()">🖨️ Imprimer la fiche</button><button class="primary" onclick="saveActivityEvaluation()">${d.editId?"✓ Enregistrer les modifications":"✓ Enregistrer l’évaluation"}</button></div></div>`;
 }
 async function saveActivityEvaluation(){
-  const d=activityDraft,a=activityItem(d?.activityId);if(!d||!a)return;
-  if(activityScoredCount()!==a.criteres.length){showWarningMessage("Renseigne les 10 critères (0, 1 ou 2) avant l’enregistrement.");return;}
+  const d=activityDraft,a=currentActivityItem();if(!d||!a)return;
+  if(activityScoredCount()!==a.criteres.length){showWarningMessage(`Renseigne les ${a.criteres.length} critère(s) (0, 1 ou 2) avant l’enregistrement.`);return;}
   const targetIds=d.mode==="collective"?[...(d.targetStudents||[])]:[String(d.studentId)];
   if(!targetIds.length){showWarningMessage("Aucun élève sélectionné.");return;}
   const criteriaNote=activityScoreTotal(),note=(d.noteDrivenExact!==undefined&&d.noteDrivenExact!==""?Number(d.noteDrivenExact):criteriaNote);
@@ -5098,8 +5113,8 @@ async function saveActivityEvaluation(){
       const student=students.find(s=>String(s.id)===String(sid));if(!student)continue;
       const associated=activityComps(a,student.id);
       const existing=(d.editId && targetIds.length===1)?student.evaluations.find(e=>String(e.id)===String(d.editId)):null;
-const isRta=!!a.rtaSource;
-const ev={...(existing||{}),teacherId:getActiveTeacher()?.id||"",teacherName:getActiveTeacher()?teacherFullName(getActiveTeacher()):"",date:d.date,title:isRta?`RTA — ${a.rtaLibraryName} — ${a.titre}`:`Fiche d’activités — ${a.id} — ${a.titre}`,place:"Lycée",type:isRta?"Évaluation sur RTA":"Évaluation sur fiche d’activités",comps:[],associatedComps:[...associated],levels:{},obs:{},disabledCriteria:{},disabledCompetencies:{},attachment:null,evalPath:isRta?"rta":"activitySheet",profSituation:"",profOptions:{},profFreeText:"",retroactive:false,ficheActiviteEvaluation:!isRta,rtaEvaluation:isRta,rtaLibraryId:isRta?a.rtaLibraryId:"",rtaLibraryName:isRta?a.rtaLibraryName:"",rtaVehicle:isRta?a.rtaVehicle:"",rtaSourceFile:isRta?a.rtaSourceFile:"",rtaReference:isRta?a.rtaReference:"",rtaSourceTable:isRta?a.rtaSourceTable:"",rtaActivitySnapshot:isRta?JSON.parse(JSON.stringify(a)):null,activityId:a.id,activityNumero:a.numero,activityTheme:a.theme,activityTitle:a.titre,activityDescription:a.description,activitySupport:(d.activitySupport||d.supportActivite||"").trim(),supportActivite:(d.supportActivite||d.activitySupport||"").trim(),activityCriteria:[...a.criteres],activityScores:{...d.scores},activityObservations:{...d.observations},activityAppreciation:d.appreciation||activitySuggestedAppreciation(note),evaluationObservation:(d.teacherObservation||"").trim(),noteDrivenEvaluation:!!d.noteDrivenEvaluation,noteDrivenRequested:(d.noteDrivenRequested??""),noteDrivenCalculated:(d.noteDrivenCalculated??null),sourceNote20:note,evaluationDate:d.date,enteredAt:existing?.enteredAt||existing?.createdAt||Date.now(),entryDate:existing?.entryDate||new Date().toLocaleDateString("fr-FR"),modifiedAt:existing?Date.now():null,studentId:student.id,createdAt:existing?.createdAt||Date.now(),batchId:existing?.batchId||batchId,studentSelfEvaluation:d.studentSelfEvaluation?{...d.studentSelfEvaluation}:null,atelierSource:!!d.atelierSource,atelierDay:d.atelierDay||"",atelierPublicationId:d.atelierPublicationId||"",atelierPendingKey:d.atelierPendingKey||""};
+const isRta=!!(a.rtaSource||d.returnToRta||d.activitySnapshot?.rtaSource||String(d.activityId||"").startsWith("RTA::"));
+const ev={...(existing||{}),teacherId:getActiveTeacher()?.id||"",teacherName:getActiveTeacher()?teacherFullName(getActiveTeacher()):"",date:d.date,title:isRta?`RTA — ${a.rtaLibraryName} — ${a.titre}`:`Fiche d’activités — ${a.id} — ${a.titre}`,place:"Lycée",type:isRta?"Évaluation sur RTA":"Évaluation sur fiche d’activités",comps:[],associatedComps:[...associated],levels:{},obs:{},disabledCriteria:{},disabledCompetencies:{},attachment:null,evalPath:isRta?"rta":"activitySheet",profSituation:"",profOptions:{},profFreeText:"",retroactive:false,ficheActiviteEvaluation:!isRta,rtaEvaluation:isRta,rtaLibraryId:isRta?(a.rtaLibraryId||existing?.rtaLibraryId||""):"",rtaLibraryName:isRta?(a.rtaLibraryName||existing?.rtaLibraryName||""):"",rtaVehicle:isRta?(a.rtaVehicle||existing?.rtaVehicle||""):"",rtaSourceFile:isRta?(a.rtaSourceFile||existing?.rtaSourceFile||""):"",rtaReference:isRta?(a.rtaReference||existing?.rtaReference||""):"",rtaSourceTable:isRta?(a.rtaSourceTable||existing?.rtaSourceTable||""):"",rtaActivitySnapshot:isRta?JSON.parse(JSON.stringify(a)):null,activityId:a.id,activityNumero:a.numero,activityTheme:a.theme,activityTitle:a.titre,activityDescription:a.description,activitySupport:(d.activitySupport||d.supportActivite||"").trim(),supportActivite:(d.supportActivite||d.activitySupport||"").trim(),activityCriteria:[...a.criteres],activityScores:{...d.scores},activityObservations:{...d.observations},activityAppreciation:d.appreciation||activitySuggestedAppreciation(note),evaluationObservation:(d.teacherObservation||"").trim(),noteDrivenEvaluation:!!d.noteDrivenEvaluation,noteDrivenRequested:(d.noteDrivenRequested??""),noteDrivenCalculated:(d.noteDrivenCalculated??null),sourceNote20:note,evaluationDate:d.date,enteredAt:existing?.enteredAt||existing?.createdAt||Date.now(),entryDate:existing?.entryDate||new Date().toLocaleDateString("fr-FR"),modifiedAt:existing?Date.now():null,studentId:student.id,createdAt:existing?.createdAt||Date.now(),batchId:existing?.batchId||batchId,studentSelfEvaluation:d.studentSelfEvaluation?{...d.studentSelfEvaluation}:null,atelierSource:!!d.atelierSource,atelierDay:d.atelierDay||"",atelierPublicationId:d.atelierPublicationId||"",atelierPendingKey:d.atelierPendingKey||""};
       await persistEvaluation(ev,!!existing);
       if(existing){const idx=student.evaluations.findIndex(e=>String(e.id)===String(existing.id));if(idx>=0)student.evaluations[idx]={...ev};}
       else student.evaluations.push({...ev});
@@ -5107,10 +5122,41 @@ const ev={...(existing||{}),teacherId:getActiveTeacher()?.id||"",teacherName:get
     }
     if(d.atelierSource&&typeof window.completeAtelierEvaluation==='function'){for(const sid of targetIds)window.completeAtelierEvaluation(sid,d.atelierDay,d.atelierPendingKey);}
     activityDraft=null;
-    showSuccessMessage(d.mode==="collective"?`Évaluation collective enregistrée pour ${saved} élève(s) : ${a.id} — ${note} / 20.`:`Fiche d’activités enregistrée : ${a.id} — ${note} / 20.`,()=>d.atelierSource&&typeof window.returnToAtelierPending==='function'?window.returnToAtelierPending():go("history"));
+    showSuccessMessage(d.mode==="collective"?`Évaluation collective enregistrée pour ${saved} élève(s) : ${a.id} — ${note} / 20.`:(isRta?`Évaluation RTA enregistrée : ${a.titre} — ${note} / 20.`:`Fiche d’activités enregistrée : ${a.id} — ${note} / 20.`),()=>d.atelierSource&&typeof window.returnToAtelierPending==='function'?window.returnToAtelierPending():go("history"));
   }catch(err){showWarningMessage("Erreur d’enregistrement : "+err);}
 }
-function editActivityEvaluation(ev,owner){selectedStudent=owner.id;activityDraft={editId:ev.id,activityId:ev.activityId,mode:"individual",targetStudents:[String(owner.id)],date:ev.date||new Date().toLocaleDateString("fr-FR"),studentId:owner.id,activitySupport:ev.activitySupport||ev.supportActivite||"",scores:{...(ev.activityScores||{})},observations:{...(ev.activityObservations||{})},teacherObservation:ev.evaluationObservation||"",appreciation:ev.activityAppreciation||"",appreciationManual:true,noteDrivenEvaluation:!!ev.noteDrivenEvaluation,noteDrivenRequested:(ev.noteDrivenRequested??ev.sourceNote20??""),noteDrivenExact:(ev.noteDrivenEvaluation?ev.sourceNote20??"":""),noteDrivenCalculated:(ev.noteDrivenCalculated??undefined),studentSelfEvaluation:ev.studentSelfEvaluation||null,atelierSource:!!ev.atelierSource,atelierDay:ev.atelierDay||"",atelierPublicationId:ev.atelierPublicationId||"",atelierPendingKey:ev.atelierPendingKey||""};page="activityEval";render();}
+function editActivityEvaluation(ev,owner){
+  selectedStudent=owner.id;
+  const snap=ev.rtaActivitySnapshot?JSON.parse(JSON.stringify(ev.rtaActivitySnapshot)):null;
+  const isRta=!!(ev.rtaEvaluation||ev.evalPath==="rta"||ev.type==="Évaluation sur RTA");
+  const exactNote=(ev.sourceNote20!==undefined&&ev.sourceNote20!==null&&ev.sourceNote20!=="")?Number(ev.sourceNote20):"";
+  activityDraft={
+    editId:ev.id,
+    activityId:ev.activityId,
+    activitySnapshot:snap,
+    returnToRta:isRta,
+    mode:"individual",
+    targetStudents:[String(owner.id)],
+    date:ev.date||new Date().toLocaleDateString("fr-FR"),
+    studentId:owner.id,
+    activitySupport:ev.activitySupport||ev.supportActivite||"",
+    scores:{...(ev.activityScores||{})},
+    observations:{...(ev.activityObservations||{})},
+    teacherObservation:ev.evaluationObservation||"",
+    appreciation:ev.activityAppreciation||"",
+    appreciationManual:true,
+    noteDrivenEvaluation:!!ev.noteDrivenEvaluation,
+    noteDrivenRequested:(ev.noteDrivenRequested??exactNote??""),
+    noteDrivenExact:(ev.noteDrivenEvaluation?exactNote:""),
+    noteDrivenCalculated:(ev.noteDrivenCalculated??undefined),
+    studentSelfEvaluation:ev.studentSelfEvaluation||null,
+    atelierSource:!!ev.atelierSource,
+    atelierDay:ev.atelierDay||"",
+    atelierPublicationId:ev.atelierPublicationId||"",
+    atelierPendingKey:ev.atelierPendingKey||""
+  };
+  page="activityEval";render();
+}
 function activityViewHtml(e){const a=activityItem(e.activityId)||e.rtaActivitySnapshot||{criteres:e.activityCriteria||[],titre:e.activityTitle||(e.rtaEvaluation?"Activité RTA":"Fiche d’activités"),id:e.activityId||""};const criteria=e.activityCriteria||a.criteres||[];const rows=criteria.map((cr,i)=>`<tr><td>${i+1}. ${esc(cr)}</td><td style="text-align:center"><b>${esc(String(e.activityScores?.[i]??"—"))}</b></td><td>${esc(e.activityObservations?.[i]||"")}</td></tr>`).join("");return `<div class="panel" style="margin-top:16px"><div class="row"><h2>📋 ${esc(a.id||"")} — ${esc(a.titre||e.activityTitle||"Fiche d’activités")}</h2><span class="score-badge ${scoreClass(evaluationScore20(e))}">${evaluationScoreLabel(e)}</span></div><p class="muted">Compétences associées : ${evaluationDisplayComps(e).join(" - ")||"—"}</p><table class="activity-table"><tr><th>Critère</th><th>Score</th><th>Observation</th></tr>${rows}</table><div style="margin-top:12px"><b>Appréciation :</b> ${esc(e.activityAppreciation||"—")}</div></div>`;}
 
 function startEvaluation(){
@@ -5713,7 +5759,7 @@ function applyRentreeNote(raw){
   d.appreciation=rentreeSuggestedAppreciation(note);d.appreciationManual=false;rentreeEvaluationPage();
 }
 function applyActivityNote(raw){
-  const d=activityDraft,a=activityItem(d?.activityId);if(!d||!a)return;
+  const d=activityDraft,a=currentActivityItem();if(!d||!a)return;
   const note=parseNote20Value(raw);d.noteDrivenRequested=note===null?"":note;if(note===null){activityEvaluationPage();return;}
   const dist=distributeNoteScores(a.criteres.length,2,note);
   d._noteAutoApplying=true;d.scores={};dist.scores.forEach((v,i)=>d.scores[i]=v);d._noteAutoApplying=false;
@@ -9451,7 +9497,7 @@ function evaluationScore20(e){
     const exact=Number(e.sourceNote20);
     if(Number.isFinite(exact))return Math.max(0,Math.min(20,exact));
   }
-  if(e && (e.rentreeEvaluation||e.ficheActiviteEvaluation) && e.sourceNote20!==undefined && e.sourceNote20!==null){
+  if(e && (e.rentreeEvaluation||e.ficheActiviteEvaluation||e.rtaEvaluation||e.evalPath==="rta") && e.sourceNote20!==undefined && e.sourceNote20!==null){
     const exact=Number(e.sourceNote20);
     if(Number.isFinite(exact))return Math.max(0,Math.min(20,exact));
   }
@@ -11488,7 +11534,7 @@ window.addEventListener("resize",function(){
 .at-custom-create input{padding:10px;border:1px solid #bac7d8;border-radius:8px;box-sizing:border-box;width:100%}@media(max-width:1050px){.at-custom-create{grid-template-columns:1fr 1fr}.at-custom-create .at-btn{grid-column:1/-1}}@media(max-width:650px){.at-custom-create{grid-template-columns:1fr}}
 </style>
 <section id="atelier-app" class="hidden" aria-label="Evaluation et charge atelier">
-  <header class="at-head"><h1>Evaluation &amp; Charge atelier Évaluation, charge atelier et intégration RTA — TEST — Firebase</h1><span id="at-active-class"></span><button id="at-view-mode-btn" type="button" onclick="toggleAtelierViewMode()">Vue élève</button><button id="at-change-class-btn" type="button" onclick="openClassPicker()">⇄ Changer de classe</button><button id="at-return-main-btn" type="button" onclick="closeAtelierUnified()">Retour aux évaluations</button></header>
+  <header class="at-head"><h1>Evaluation &amp; Charge atelier Évaluation, charge atelier et intégration RTA — TEST 3 — Firebase</h1><span id="at-active-class"></span><button id="at-view-mode-btn" type="button" onclick="toggleAtelierViewMode()">Vue élève</button><button id="at-change-class-btn" type="button" onclick="openClassPicker()">⇄ Changer de classe</button><button id="at-return-main-btn" type="button" onclick="closeAtelierUnified()">Retour aux évaluations</button></header>
   <nav class="at-nav" id="at-nav"></nav><main class="at-main" id="at-main"></main>
 </section>
 <script id="atelier-unifie-v5-script">

@@ -40,3 +40,16 @@ AUTRES CORRECTIONS CONSERVÉES
 - Correction de la suppression d'une bibliothèque RTA : une RTA supprimée ne se recrée plus automatiquement.
 - Bouton de restauration de la RTA 848 conservé pour les tests.
 - Architecture multi-RTA conservée : d'autres véhicules/RTA pourront être importés ensuite.
+
+
+ÉVOLUTIONS TEST 3 — CORRECTIONS HISTORIQUE ET NOTES RTA
+- Historique > Modifier reconnaît désormais explicitement les évaluations RTA.
+- Une évaluation RTA se rouvre sur l'activité RTA exacte utilisée, et non sur un autre masque.
+- Le snapshot historique de l'activité est utilisé si la bibliothèque RTA a ensuite été archivée ou supprimée.
+- La note des fiches RTA est désormais normalisée sur 20 quel que soit le nombre de critères.
+  Exemple : une RTA à 5 critères (maximum brut 10 points) est automatiquement convertie sur 20.
+- Une note saisie manuellement (ex. 15/20) reste la note officielle affichée et enregistrée.
+- Si un critère est ensuite modifié manuellement, la note est recalculée proportionnellement sur 20.
+- Les messages et compteurs utilisent maintenant le nombre réel de critères, et non toujours « 10 critères ».
+- L'historique utilise sourceNote20 pour les évaluations RTA.
+- Les métadonnées RTA sont préservées lors d'une modification.
