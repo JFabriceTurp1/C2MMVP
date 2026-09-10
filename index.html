@@ -614,6 +614,40 @@ th,td{min-width:120px;padding:9px 8px} th:first-child,td:first-child{min-width:1
 /* V89.3 — restauration intégrale */
 .advanced-archive-action.restore{margin:14px 0;border-color:#9cc9b5;background:#f6fffa}
 .advanced-restore-file-btn{display:inline-flex!important;align-items:center;justify-content:center;cursor:pointer;width:auto!important;align-self:flex-start}
+
+/* ===== RTA TEST 2 : navigation filtrée et esthétique ===== */
+.rta-shell{max-width:1180px;margin:0 auto;padding:8px 0 24px}
+.rta-hero{border-radius:18px;padding:20px 22px;margin-bottom:16px;background:linear-gradient(135deg,#f7fbff,#eef6ff);border:1px solid #d7e7f8}
+.rta-hero h1{margin:0 0 6px;font-size:27px}
+.rta-hero p{margin:0;color:#536273}
+.rta-filter-panel{background:#fff;border:1px solid #dfe7ef;border-radius:16px;padding:16px;box-shadow:0 3px 12px rgba(30,55,80,.06)}
+.rta-filter-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.rta-filter-panel label{font-weight:700;font-size:13px;color:#334155}
+.rta-filter-panel select,.rta-filter-panel input{margin-top:6px}
+.rta-step{display:flex;align-items:center;gap:8px;margin:14px 0 8px;font-size:13px;color:#64748b}
+.rta-step span{display:inline-flex;width:24px;height:24px;border-radius:50%;align-items:center;justify-content:center;background:#e8f2ff;font-weight:800;color:#28619c}
+.rta-results-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:18px 0 10px}
+.rta-results-head h2{margin:0;font-size:20px}
+.rta-count-badge{padding:6px 10px;border-radius:999px;background:#eef4f8;font-weight:700;font-size:13px}
+.rta-group{border:1px solid #dfe7ef;border-radius:14px;background:#fff;margin:10px 0;overflow:hidden}
+.rta-group>summary{cursor:pointer;padding:13px 15px;font-weight:800;list-style:none;display:flex;justify-content:space-between;gap:12px;align-items:center}
+.rta-group>summary::-webkit-details-marker{display:none}
+.rta-group>summary:after{content:"▾";font-size:15px;color:#64748b}
+.rta-group[open]>summary:after{content:"▴"}
+.rta-group-meta{font-weight:600;color:#64748b;font-size:12px}
+.rta-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:0 12px 12px}
+.rta-card{border:1px solid #dce6ef;border-radius:12px;background:#fbfdff;padding:13px;text-align:left;cursor:pointer;transition:.15s}
+.rta-card:hover{transform:translateY(-1px);box-shadow:0 5px 14px rgba(36,74,110,.10);border-color:#abc8e4}
+.rta-card-top{display:flex;justify-content:space-between;gap:8px;margin-bottom:7px}
+.rta-tag{font-size:11px;font-weight:800;padding:4px 7px;border-radius:999px;background:#eef5fb;color:#40566c}
+.rta-card h3{margin:3px 0 8px;font-size:15px;line-height:1.3}
+.rta-card p{margin:0 0 7px;font-size:12px;color:#5b6775}
+.rta-comps{font-size:11px;color:#58697a;line-height:1.4}
+.rta-source-line{margin-top:10px;padding-top:10px;border-top:1px dashed #dbe5ee;font-size:12px;color:#607080}
+.rta-empty{padding:22px;text-align:center;border:1px dashed #c9d6e2;border-radius:14px;color:#64748b;background:#fafcfe}
+@media(max-width:900px){.rta-filter-grid{grid-template-columns:1fr 1fr}.rta-cards{grid-template-columns:1fr}}
+@media(max-width:620px){.rta-filter-grid{grid-template-columns:1fr}.rta-hero h1{font-size:23px}}
+
 </style>
 
 <style id="rentree-print-fidelity-v15">
@@ -2861,8 +2895,8 @@ body{background:#f7f9fc;color:var(--text)}
 <div class="settings-rubric-title rubric-ref">📚 Intégration RTA</div>
   <div class="settings-card settings-section section-ref" style="grid-column:1/-1">
     <h3>📚 Bibliothèques RTA — intégration contrôlée</h3>
-    <p class="muted">Les 63 fiches d’activités restent indépendantes. Les RTA constituent une nouvelle bibliothèque d’évaluation. La source de référence est un tableau de synthèse validé (activités + compétences CAP/Bac Pro), et non une extraction automatique directe du PDF.</p>
-    <div class="at-notice"><b>Version d’essai :</b> la bibliothèque « RTA 848 — Renault Clio IV Phase 2 » est préchargée avec les 270 activités du tableau de synthèse fourni. Pour les futures RTA, importe un JSON de synthèse validé ; le PDF peut être conservé comme document source mais ne crée plus automatiquement les activités.</div>
+    <p class="muted">Les 63 fiches d’activités restent indépendantes. Chaque RTA constitue une bibliothèque d’évaluation séparée. La source de référence est une synthèse structurée et validée (activités + compétences CAP/Bac Pro). Plusieurs RTA et plusieurs véhicules pourront coexister.</p>
+    <div class="at-notice"><b>Version d’essai :</b> la bibliothèque « RTA 848 — Renault Clio IV Phase 2 » est préchargée avec les 270 activités du tableau de synthèse fourni. Pour les futures RTA, importe une synthèse RTA validée au format JSON. Chaque nouvelle bibliothèque reste indépendante, peut être archivée ou supprimée, et peut concerner un autre véhicule.</div>
     <div class="row" style="gap:8px;flex-wrap:wrap">
       <button type="button" class="primary" onclick="installBuiltInRta848(true)">📚 Charger / restaurer la RTA 848</button>
       <button type="button" class="secondary" onclick="document.getElementById('rta-json-input').click()">🧩 Importer une synthèse RTA JSON</button>
@@ -4676,23 +4710,29 @@ function installBuiltInRta848(force){
  const libs=getRtaLibraries();const idx=libs.findIndex(x=>String(x.id)===BUILTIN_RTA_848_ID);
  if(idx<0)libs.push(builtInRta848Library());
  else if(force)libs[idx]=builtInRta848Library();
- saveRtaLibraries(libs);try{renderSettingsRtaLibraries()}catch(e){}
+ saveRtaLibraries(libs);localStorage.setItem(RTA_LIBRARY_INIT_KEY,"1");try{renderSettingsRtaLibraries()}catch(e){}
  if(force)showSuccessMessage("RTA 848 restaurée depuis le tableau de synthèse validé : 270 activités.");
 }
 
 const RTA_LIBRARY_KEY="evaluation_rta_libraries_v1";
 let rtaAuditState={fileName:"",libraryName:"",vehicle:"",activities:[],rawText:""};
 
+const RTA_LIBRARY_INIT_KEY="evaluation_rta_libraries_initialized_v2";
 function getRtaLibraries(){
   try{
     let v=JSON.parse(localStorage.getItem(RTA_LIBRARY_KEY)||"[]");
     if(!Array.isArray(v))v=[];
-    if(!v.some(x=>String(x.id)===BUILTIN_RTA_848_ID)){
-      v.push(builtInRta848Library());
+    if(localStorage.getItem(RTA_LIBRARY_INIT_KEY)!=="1"){
+      if(!v.some(x=>String(x.id)===BUILTIN_RTA_848_ID))v.push(builtInRta848Library());
       localStorage.setItem(RTA_LIBRARY_KEY,JSON.stringify(v));
+      localStorage.setItem(RTA_LIBRARY_INIT_KEY,"1");
     }
     return v;
-  }catch(e){return[builtInRta848Library()]}
+  }catch(e){
+    const v=[builtInRta848Library()];
+    try{localStorage.setItem(RTA_LIBRARY_KEY,JSON.stringify(v));localStorage.setItem(RTA_LIBRARY_INIT_KEY,"1")}catch(_){}
+    return v;
+  }
 }
 function saveRtaLibraries(list){
   localStorage.setItem(RTA_LIBRARY_KEY,JSON.stringify(list||[]));
@@ -4861,8 +4901,13 @@ function toggleRtaLibrary(id){
 }
 function deleteRtaLibrary(id){
   const libs=getRtaLibraries(),lib=libs.find(x=>String(x.id)===String(id));if(!lib)return;
-  if(!confirm(`Supprimer définitivement la bibliothèque « ${lib.name} » ? Les évaluations historiques déjà enregistrées resteront conservées.`))return;
-  saveRtaLibraries(libs.filter(x=>String(x.id)!==String(id)));renderSettingsRtaLibraries();
+  if(!confirm(`Supprimer définitivement la bibliothèque « ${lib.name} » ?\n\nLes évaluations historiques déjà enregistrées resteront conservées.`))return;
+  const remaining=libs.filter(x=>String(x.id)!==String(id));
+  saveRtaLibraries(remaining);
+  localStorage.setItem(RTA_LIBRARY_INIT_KEY,"1");
+  if(String(rtaChoiceState?.libraryId||"")===String(id))rtaChoiceState={libraryId:"",search:"",intervention:"",energy:"",motor:""};
+  renderSettingsRtaLibraries();
+  showSuccessMessage(`Bibliothèque « ${lib.name} » supprimée. Tu peux maintenant en importer ou en tester une autre.`);
 }
 function renderSettingsRtaLibraries(){
   const root=document.getElementById("settings-rta-list"),count=document.getElementById("settings-rta-count");if(!root)return;
@@ -4879,39 +4924,87 @@ function renderSettingsRtaLibraries(){
     </div></div>`).join("")||'<p class="muted">Aucune RTA intégrée pour le moment.</p>';
 }
 
-let rtaChoiceState={libraryId:"",search:""};
+let rtaChoiceState={libraryId:"",search:"",intervention:"",energy:"",motor:""};
+function rtaEnergyOf(a){
+  const m=rtaNorm(a?.sourceMotorisation||a?.motorisation||"");
+  if(!m||m.includes("toutes versions"))return "TOUTES";
+  if(m.includes("k9k")||m.includes("dci")||m.includes("diesel"))return "DIESEL";
+  if(m.includes("h4b")||m.includes("d4f")||m.includes("m5m")||m.includes("tce")||m.includes("essence"))return "ESSENCE";
+  return "AUTRE";
+}
+function rtaInterventionOf(a){return String(a?.theme||a?.chapitre||"Autres interventions").trim()||"Autres interventions";}
 function beginRtaEvaluation(){
   const libs=getRtaLibraries().filter(x=>x.active!==false);
-  if(!libs.length){showWarningMessage("Aucune RTA active. Importe d’abord une RTA PDF dans Paramètres → Intégration RTA.");return;}
-  rtaChoiceState={libraryId:libs[0].id,search:""};page="rtaChoice";render();
+  if(!libs.length){showWarningMessage("Aucune RTA active. Va dans Paramètres → Intégration RTA pour charger ou importer une bibliothèque RTA.");return;}
+  rtaChoiceState={libraryId:libs[0].id,search:"",intervention:"",energy:"",motor:""};page="rtaChoice";render();
 }
-function setRtaChoiceLibrary(id){rtaChoiceState.libraryId=id;rtaChoicePage()}
-function setRtaChoiceSearch(v){rtaChoiceState.search=String(v||"");rtaChoicePage();requestAnimationFrame(()=>document.getElementById("rta-search")?.focus())}
+function setRtaChoiceLibrary(id){rtaChoiceState={libraryId:id,search:"",intervention:"",energy:"",motor:""};rtaChoicePage()}
+function setRtaChoiceIntervention(v){rtaChoiceState.intervention=String(v||"");rtaChoiceState.energy="";rtaChoiceState.motor="";rtaChoicePage()}
+function setRtaChoiceEnergy(v){rtaChoiceState.energy=String(v||"");rtaChoiceState.motor="";rtaChoicePage()}
+function setRtaChoiceMotor(v){rtaChoiceState.motor=String(v||"");rtaChoicePage()}
+function setRtaChoiceSearch(v){rtaChoiceState.search=String(v||"");rtaChoicePage();requestAnimationFrame(()=>{const x=document.getElementById("rta-search");if(x){x.focus();x.setSelectionRange(x.value.length,x.value.length)}})}
 function startRtaActivity(libId,activityId){
   const lib=rtaLibraryById(libId),a=lib?.activities?.find(x=>String(x.id)===String(activityId));if(!lib||!a)return;
   if(!selectedStudent||!students.some(s=>String(s.id)===String(selectedStudent)))selectedStudent=sortStudentsAlpha(students)[0]?.id||null;
   if(!selectedStudent){showWarningMessage("Sélectionne un élève.");return;}
   activityMode="individual";activityTargetStudents=[String(selectedStudent)];
-  activityDraft={activityId:`RTA::${lib.id}::${a.id}`,date:new Date().toLocaleDateString("fr-FR"),studentId:selectedStudent,mode:"individual",targetStudents:[String(selectedStudent)],activitySupport:"",scores:{},observations:{},teacherObservation:"",appreciation:"",appreciationManual:false,editId:null,noteDrivenEvaluation:false,noteDrivenRequested:"",noteDrivenExact:"",noteDrivenCalculated:undefined};
+  activityDraft={activityId:`RTA::${lib.id}::${a.id}`,date:new Date().toLocaleDateString("fr-FR"),studentId:selectedStudent,mode:"individual",targetStudents:[String(selectedStudent)],activitySupport:"",scores:{},observations:{},teacherObservation:"",appreciation:"",appreciationManual:false,editId:null,noteDrivenEvaluation:false,noteDrivenRequested:"",noteDrivenExact:"",noteDrivenCalculated:undefined,returnToRta:true};
   page="activityEval";render();
+}
+function backToActivityPicker(){
+  const a=activityDraft?.activityId?activityItem(activityDraft.activityId):null;
+  const isRta=!!(a?.rtaSource||String(activityDraft?.activityId||"").startsWith("RTA::")||activityDraft?.returnToRta);
+  activityDraft=null;
+  page=isRta?"rtaChoice":"activityChoice";
+  render();
 }
 function rtaChoicePage(){
   setActive("eval");
-  const libs=getRtaLibraries().filter(x=>x.active!==false),lib=libs.find(x=>String(x.id)===String(rtaChoiceState.libraryId))||libs[0];
+  const libs=getRtaLibraries().filter(x=>x.active!==false);
+  const lib=libs.find(x=>String(x.id)===String(rtaChoiceState.libraryId))||libs[0];
   if(!lib){page="evalChoice";render();return}
   rtaChoiceState.libraryId=lib.id;
+  const all=(lib.activities||[]).filter(a=>a.active!==false);
+  const interventions=[...new Set(all.map(rtaInterventionOf))].sort((a,b)=>a.localeCompare(b,"fr"));
+  const byIntervention=rtaChoiceState.intervention?all.filter(a=>rtaInterventionOf(a)===rtaChoiceState.intervention):all;
+  const energies=[...new Set(byIntervention.map(rtaEnergyOf).filter(x=>x!=="TOUTES"))];
+  const energyFiltered=rtaChoiceState.energy?byIntervention.filter(a=>{const e=rtaEnergyOf(a);return e==="TOUTES"||e===rtaChoiceState.energy}):byIntervention;
+  const motors=[...new Set(energyFiltered.map(a=>String(a.sourceMotorisation||a.motorisation||"").trim()).filter(x=>x&&rtaNorm(x)!=="toutes versions"))].sort((a,b)=>a.localeCompare(b,"fr"));
   const q=rtaNorm(rtaChoiceState.search);
-  const acts=(lib.activities||[]).filter(a=>a.active!==false && (!q||rtaNorm([a.titre,a.theme,a.description,a.sourceSection,a.sourceMotorisation,a.sourceTypeActivite,(a.competences_cap||[]).join(" "),(a.competences_bac_pro||[]).join(" ")].join(" ")).includes(q)));
+  const ready=!!rtaChoiceState.intervention;
+  const filtered=energyFiltered.filter(a=>{
+    if(rtaChoiceState.motor){
+      const m=String(a.sourceMotorisation||a.motorisation||"").trim();
+      if(rtaNorm(m)!=="toutes versions" && m!==rtaChoiceState.motor)return false;
+    }
+    if(!q)return true;
+    return rtaNorm([a.titre,a.theme,a.description,a.sourceSection,a.sourceMotorisation,a.sourceTypeActivite,(a.competences_cap||[]).join(" "),(a.competences_bac_pro||[]).join(" ")].join(" ")).includes(q);
+  });
+  const grouped={};
+  if(ready)filtered.forEach(a=>{const k=String(a.sourceSection||a.section||a.theme||"Autres").trim()||"Autres";(grouped[k]??=[]).push(a)});
   const studentOptions=sortStudentsAlpha(students).map(s=>`<option value="${esc(String(s.id))}" ${String(s.id)===String(selectedStudent)?"selected":""}>${esc(s.name)}</option>`).join("");
-  document.getElementById("main").innerHTML=`<div class="eval-choice-page"><div class="eval-choice-heading"><h1>📚 Évaluation / positionnement sur RTA</h1><p>Choisis la revue technique, l’élève, puis l’activité issue de la synthèse validée.</p></div>
-  <div class="panel"><div class="form-grid">
-    <label>RTA<select onchange="setRtaChoiceLibrary(this.value)">${libs.map(x=>`<option value="${esc(String(x.id))}" ${String(x.id)===String(lib.id)?"selected":""}>${esc(x.name)}${x.vehicle?" — "+esc(x.vehicle):""}</option>`).join("")}</select></label>
-    <label>Élève<select onchange="selectedStudent=this.value;rtaChoicePage()">${studentOptions}</select></label>
-    <label>Rechercher<input id="rta-search" value="${esc(rtaChoiceState.search)}" oninput="setRtaChoiceSearch(this.value)" placeholder="Chapitre, activité, moteur, compétence…"></label>
-  </div>
-  <div class="muted" style="margin-top:8px"><b>Source :</b> ${esc(lib.sourceTable||lib.sourceFile||"Synthèse RTA")} · <b>${lib.activities?.length||0} activités</b></div></div>
-  <div class="activity-choice-grid" style="margin-top:14px">${acts.map(a=>`<button type="button" class="activity-choice-card" onclick="startRtaActivity('${esc(String(lib.id))}','${esc(String(a.id).replace(/^RTA::.*::/,""))}')"><div class="activity-choice-number">RTA ${esc(String(lib.reference||""))} · p. ${esc(String(a.sourcePage||a.page||"—"))}</div><h3>${esc(a.titre)}</h3><p><b>${esc(a.theme||"")}</b>${a.sourceSection?" — "+esc(a.sourceSection):""}${a.sourceMotorisation?" · "+esc(a.sourceMotorisation):""}</p><div class="muted">CAP : ${esc((a.competences_cap||[]).join(", ")||"—")} · Bac Pro : ${esc((a.competences_bac_pro||[]).join(", ")||"—")}</div></button>`).join("")||'<div class="panel">Aucune activité ne correspond à la recherche.</div>'}</div>
-  <div class="eval-choice-back"><button class="secondary" onclick="startEvaluation()">← Retour aux types d’évaluation</button></div></div>`;
+  const groupsHtml=Object.entries(grouped).sort((a,b)=>a[0].localeCompare(b[0],"fr")).map(([section,items])=>`<details class="rta-group"><summary><span>${esc(section)}</span><span class="rta-group-meta">${items.length} activité(s)</span></summary><div class="rta-cards">${items.map(a=>`<button type="button" class="rta-card" onclick="startRtaActivity('${esc(String(lib.id))}','${esc(String(a.id))}')"><div class="rta-card-top"><span class="rta-tag">${esc(a.sourceTypeActivite||a.typeActivite||"Activité")}</span><span class="rta-tag">p. ${esc(String(a.sourcePage||a.page||"—"))}</span></div><h3>${esc(a.titre)}</h3><p>${esc(a.sourceMotorisation||a.motorisation||"Toutes versions")}</p><div class="rta-comps"><b>CAP :</b> ${esc((a.competences_cap||[]).join(" · ")||"—")}<br><b>Bac Pro :</b> ${esc((a.competences_bac_pro||[]).join(" · ")||"—")}</div></button>`).join("")}</div></details>`).join("");
+  document.getElementById("main").innerHTML=`<div class="rta-shell">
+    <div class="rta-hero"><h1>📚 Évaluation / positionnement sur RTA</h1><p>Filtre d’abord la bibliothèque et le type d’intervention. Les activités restent repliées tant que tu n’as pas précisé ton besoin.</p></div>
+    <div class="rta-filter-panel">
+      <div class="rta-step"><span>1</span><b>Contexte de l’évaluation</b></div>
+      <div class="rta-filter-grid">
+        <label>RTA<select onchange="setRtaChoiceLibrary(this.value)">${libs.map(x=>`<option value="${esc(String(x.id))}" ${String(x.id)===String(lib.id)?"selected":""}>${esc(x.name)}</option>`).join("")}</select></label>
+        <label>Élève<select onchange="selectedStudent=this.value;rtaChoicePage()">${studentOptions}</select></label>
+        <label>Intervention<select onchange="setRtaChoiceIntervention(this.value)"><option value="">— Choisir une intervention —</option>${interventions.map(x=>`<option value="${esc(x)}" ${rtaChoiceState.intervention===x?"selected":""}>${esc(x)}</option>`).join("")}</select></label>
+      </div>
+      <div class="rta-step"><span>2</span><b>Affiner le véhicule</b></div>
+      <div class="rta-filter-grid">
+        <label>Énergie<select ${!rtaChoiceState.intervention?"disabled":""} onchange="setRtaChoiceEnergy(this.value)"><option value="">Toutes les énergies</option>${energies.includes("ESSENCE")?`<option value="ESSENCE" ${rtaChoiceState.energy==="ESSENCE"?"selected":""}>Essence</option>`:""}${energies.includes("DIESEL")?`<option value="DIESEL" ${rtaChoiceState.energy==="DIESEL"?"selected":""}>Diesel</option>`:""}</select></label>
+        <label>Motorisation<select ${!rtaChoiceState.intervention?"disabled":""} onchange="setRtaChoiceMotor(this.value)"><option value="">Toutes les motorisations</option>${motors.map(x=>`<option value="${esc(x)}" ${rtaChoiceState.motor===x?"selected":""}>${esc(x)}</option>`).join("")}</select></label>
+        <label>Recherche complémentaire<input id="rta-search" type="search" value="${esc(rtaChoiceState.search)}" ${!rtaChoiceState.intervention?"disabled":""} oninput="setRtaChoiceSearch(this.value)" placeholder="Ex. frein, vidange, C2.4…"></label>
+      </div>
+      <div class="rta-source-line"><b>${esc(lib.name)}</b> · ${lib.activities?.length||0} activités disponibles · source : ${esc(lib.sourceTable||lib.sourceFile||"Synthèse RTA")}</div>
+    </div>
+    <div class="rta-results-head"><h2>Activités proposées</h2><span class="rta-count-badge">${ready?filtered.length:0} activité(s)</span></div>
+    ${!ready?'<div class="rta-empty">Choisis d’abord une <b>intervention</b>. Les activités correspondantes apparaîtront ensuite, classées par section et repliées par défaut.</div>':(groupsHtml||'<div class="rta-empty">Aucune activité ne correspond à ces critères. Modifie l’énergie, la motorisation ou la recherche.</div>')}
+    <div class="eval-choice-back"><button class="secondary" onclick="startEvaluation()">← Retour aux types d’évaluation</button></div>
+  </div>`;
 }
 
 function activityItem(id){return rtaActivityByCompositeId(id)||getManagedEvaluationActivities().find(x=>x.id===id)||null;}
@@ -4990,7 +5083,7 @@ function activityEvaluationPage(){
   <table class="activity-table"><thead><tr><th>Critères d'évaluation</th><th>0</th><th>1</th><th>2</th><th>Observations</th></tr></thead><tbody>${rows}</tbody></table>
   <div class="activity-summary-grid"><div><b>Observations de l'enseignant :</b><textarea rows="5" oninput="activityDraft.teacherObservation=this.value" placeholder="Observation générale...">${esc(d.teacherObservation||"")}</textarea><div class="activity-print-teacher-observation activity-print-only">${esc(d.teacherObservation||"")}</div></div><div><b>Total des points :</b><div class="activity-total">${total} / 20</div><div class="muted" style="text-align:center">${done} / 10 critère(s) renseigné(s)</div><div style="margin-top:10px"><b>Appréciation :</b><div class="activity-appreciations">${apps}</div><div class="activity-print-appreciations activity-print-only">${printApps}</div></div></div></div>
   <div class="activity-competence-note"><b>Compétences associées au diplôme ${esc(diploma)} :</b> ${esc(comps.join(" - "))}</div><div class="activity-print-bottom activity-print-only"><div class="left"><p><b>Compétences du diplôme ${esc(diploma)} :</b> ${esc(comps.join(" - "))}</p></div><div class="right"><div class="activity-print-signature">Signature :</div></div></div><div class="activity-print-footer activity-print-only"><span>Évaluation - Maintenance des véhicules</span><span>${esc(a.id)} | Fiche d’activité</span></div></div>
-  <div class="activity-actions"><button class="secondary" onclick="page='activityChoice';activityDraft=null;render()">← Changer de fiche</button><button class="secondary" onclick="printActivityEvaluation()">🖨️ Imprimer la fiche</button><button class="primary" onclick="saveActivityEvaluation()">${d.editId?"✓ Enregistrer les modifications":"✓ Enregistrer l’évaluation"}</button></div></div>`;
+  <div class="activity-actions"><button class="secondary" onclick="backToActivityPicker()">← Autre fiche / activité</button><button class="secondary" onclick="printActivityEvaluation()">🖨️ Imprimer la fiche</button><button class="primary" onclick="saveActivityEvaluation()">${d.editId?"✓ Enregistrer les modifications":"✓ Enregistrer l’évaluation"}</button></div></div>`;
 }
 async function saveActivityEvaluation(){
   const d=activityDraft,a=activityItem(d?.activityId);if(!d||!a)return;

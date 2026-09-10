@@ -29,3 +29,14 @@ AUTRES CORRECTIONS CONSERVÉES
 - Évaluations du jour : une tâche évaluée officiellement disparaît de la liste à traiter.
 - Impossible de redonner la main après validation professeur.
 - Code administrateur et mode Firebase repliés par défaut.
+
+
+ÉVOLUTIONS TEST 2 — NAVIGATION RTA
+- Écran RTA entièrement réorganisé et plus lisible.
+- Choix préalable de l'intervention avant affichage des activités.
+- Filtres supplémentaires : énergie (Essence / Diesel), motorisation et recherche.
+- Activités classées par section dans des blocs repliés par défaut.
+- Bouton « Autre fiche / activité » : pour une évaluation RTA, retour direct au sélecteur RTA avec les filtres précédents.
+- Correction de la suppression d'une bibliothèque RTA : une RTA supprimée ne se recrée plus automatiquement.
+- Bouton de restauration de la RTA 848 conservé pour les tests.
+- Architecture multi-RTA conservée : d'autres véhicules/RTA pourront être importés ensuite.
