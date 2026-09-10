@@ -1,8 +1,8 @@
-const CACHE_NAME='evaluation-charge-atelier-v18-4';
+const CACHE_NAME='evaluation-charge-atelier-v18-5';
 const ASSETS=[
   './',
   './index.html',
-  './Evaluation_Charge_atelier_V18_4.html',
+  './Evaluation_Charge_atelier_V18_5.html',
   './manifest.webmanifest',
   './logo-francois-de-mahy.png',
   './Fiches_Evaluations_63_Activites_CAP_BacPro_V4_CHARTE_DEFINITIVE.pdf'
