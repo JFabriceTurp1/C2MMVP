@@ -181,3 +181,19 @@ Cette version reste une version d’essai fonctionnelle. La séparation classe/d
 - La date future éventuellement consultée reste indépendante de la classe.
 - Les fonctions de la TEST 11, notamment le déplacement direct des élèves entre activités, sont conservées.
 - « Retour Accueil » est conservé.
+
+
+ÉVOLUTIONS TEST 13 — FILTRES RTA + MOTEUR DE RECHERCHE
+- Reprise complète du sélecteur des activités RTA dans Administration des activités du jour.
+- Filtre RTA / véhicule conservé.
+- Filtre Chapitre / intervention avec option « Tous les chapitres / interventions ».
+- Filtre Motorisation / version corrigé et rendu cumulatif.
+- Les filtres Chapitre + Motorisation peuvent maintenant être combinés.
+- Les choix encore valides sont conservés lors d'un changement de filtre.
+- Ajout d'un moteur de recherche instantané.
+- La recherche porte sur : numéro/ID, intitulé, section/sous-section, chapitre, motorisation/version, type et description quand ces données existent.
+- Recherche insensible aux majuscules et aux accents.
+- Ajout d'un compteur du nombre d'activités trouvées.
+- Ajout du bouton « Effacer les filtres ».
+- La liste des activités affiche aussi la motorisation/version pour faciliter le choix.
+- Les corrections précédentes (changement de classe, Classe + Date, calendrier, déplacement des élèves) sont conservées.

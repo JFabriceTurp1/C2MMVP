@@ -2382,7 +2382,7 @@ body{background:#f7f9fc;color:var(--text)}
   body.rentree-printing .rentree-competence-note{display:none!important}
   body.rentree-printing .rentree-print-signature{font-weight:800!important;margin-top:1mm!important}
   body.rentree-printing .rentree-print-footer{display:flex!important;position:fixed!important;left:10mm!important;right:10mm!important;bottom:5mm!important;justify-content:space-between!important;font-size:7.5pt!important;color:#667085!important}
-  /* Évaluation, charge atelier et intégration RTA — TEST 12 CHANGEMENT CLASSE : fiche de rentrée compacte sur une seule page */
+  /* Évaluation, charge atelier et intégration RTA — TEST 13 FILTRES RTA + RECHERCHE : fiche de rentrée compacte sur une seule page */
   body.rentree-printing .rentree-print-page{min-height:0!important;height:auto!important;break-inside:avoid!important;page-break-inside:avoid!important}
   body.rentree-printing .rentree-print-school-header{height:15mm!important;margin-bottom:1.5mm!important}
   body.rentree-printing .rentree-print-school-header img{max-height:14mm!important}
@@ -11667,7 +11667,7 @@ window.addEventListener("resize",function(){
 .at-custom-create input{padding:10px;border:1px solid #bac7d8;border-radius:8px;box-sizing:border-box;width:100%}@media(max-width:1050px){.at-custom-create{grid-template-columns:1fr 1fr}.at-custom-create .at-btn{grid-column:1/-1}}@media(max-width:650px){.at-custom-create{grid-template-columns:1fr}}
 </style>
 <section id="atelier-app" class="hidden" aria-label="Evaluation et charge atelier">
-  <header class="at-head"><h1>Evaluation &amp; Charge atelier Évaluation, charge atelier et intégration RTA — TEST 12 CHANGEMENT CLASSE — Firebase</h1><span id="at-active-class"></span><button id="at-view-mode-btn" type="button" onclick="toggleAtelierViewMode()">Vue élève</button><button id="at-change-class-btn" type="button" onclick="openClassPicker()">⇄ Changer de classe</button><button id="at-return-main-btn" type="button" onclick="closeAtelierUnified()">Retour Accueil</button></header>
+  <header class="at-head"><h1>Evaluation &amp; Charge atelier Évaluation, charge atelier et intégration RTA — TEST 13 FILTRES RTA + RECHERCHE — Firebase</h1><span id="at-active-class"></span><button id="at-view-mode-btn" type="button" onclick="toggleAtelierViewMode()">Vue élève</button><button id="at-change-class-btn" type="button" onclick="openClassPicker()">⇄ Changer de classe</button><button id="at-return-main-btn" type="button" onclick="closeAtelierUnified()">Retour Accueil</button></header>
   <nav class="at-nav" id="at-nav"></nav><main class="at-main" id="at-main"></main>
 </section>
 <script id="atelier-unifie-v5-script">
@@ -11858,25 +11858,82 @@ function atelierRtaRows(t,selected){
     </div>`;
   }).join('');
 }
+function normalizeAtelierRtaText(v){
+  return String(v??"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().trim();
+}
+function atelierRtaActivityChapter(a){return a?.theme||a?.chapitre||a?.chapter||"Autres"}
+function atelierRtaActivityMotor(a){return a?.sourceMotorisation||a?.motorisation||a?.version||a?.moteur||"Toutes versions"}
+function atelierRtaActivitySearchText(a){
+  return normalizeAtelierRtaText([
+    a?.numero,a?.id,a?.titre,a?.activite,a?.title,
+    a?.section,a?.sousSection,a?.sous_section,a?.sourceSection,
+    a?.theme,a?.chapitre,a?.chapter,
+    a?.sourceMotorisation,a?.motorisation,a?.version,a?.moteur,
+    a?.typeActivite,a?.type,a?.description
+  ].filter(Boolean).join(" "));
+}
+function atelierRtaFilteredActivities(lib,{chapter="",motor="",query=""}={}){
+  const q=normalizeAtelierRtaText(query);
+  return (lib?.activities||[]).filter(a=>a.active!==false)
+    .filter(a=>!chapter||String(atelierRtaActivityChapter(a))===String(chapter))
+    .filter(a=>!motor||String(atelierRtaActivityMotor(a))===String(motor))
+    .filter(a=>!q||atelierRtaActivitySearchText(a).includes(q))
+    .sort((a,b)=>{
+      const na=String(a.numero||a.id||""),nb=String(b.numero||b.id||"");
+      return na.localeCompare(nb,"fr",{numeric:true});
+    });
+}
+function atelierRtaPopulateFilterOptions(lib,{preserveChapter="",preserveMotor=""}={}){
+  const all=(lib?.activities||[]).filter(a=>a.active!==false);
+  const chapterEl=document.getElementById("atRtaChapter");
+  const motorEl=document.getElementById("atRtaMotor");
+
+  const motorsForChapter=all
+    .filter(a=>!preserveChapter||String(atelierRtaActivityChapter(a))===String(preserveChapter))
+    .map(atelierRtaActivityMotor);
+  const motors=[...new Set(motorsForChapter)].filter(Boolean).sort((a,b)=>String(a).localeCompare(String(b),"fr",{numeric:true}));
+
+  const chaptersForMotor=all
+    .filter(a=>!preserveMotor||String(atelierRtaActivityMotor(a))===String(preserveMotor))
+    .map(atelierRtaActivityChapter);
+  const chapters=[...new Set(chaptersForMotor)].filter(Boolean).sort((a,b)=>String(a).localeCompare(String(b),"fr",{numeric:true}));
+
+  if(chapterEl){
+    chapterEl.innerHTML='<option value="">Tous les chapitres / interventions</option>'+chapters.map(x=>`<option value="${e(x)}">${e(x)}</option>`).join("");
+    if(chapters.some(x=>String(x)===String(preserveChapter)))chapterEl.value=preserveChapter;
+  }
+  if(motorEl){
+    motorEl.innerHTML='<option value="">Toutes motorisations / versions</option>'+motors.map(x=>`<option value="${e(x)}">${e(x)}</option>`).join("");
+    if(motors.some(x=>String(x)===String(preserveMotor)))motorEl.value=preserveMotor;
+  }
+}
 function atelierRtaAdminControls(t){
   const libs=atelierRtaLibraries();
   if(!libs.length)return '<div class="at-empty">Aucune bibliothèque RTA active. Charge d’abord une RTA dans Paramètres.</div>';
   const lib=libs[0];
-  const chapters=[...new Set((lib.activities||[]).filter(a=>a.active!==false).map(a=>a.theme||a.chapitre||"Autres"))].sort((a,b)=>String(a).localeCompare(String(b),'fr'));
-  const firstChapter=chapters[0]||"";
-  const acts=(lib.activities||[]).filter(a=>a.active!==false && String(a.theme||a.chapitre||"Autres")===String(firstChapter));
+  const all=(lib.activities||[]).filter(a=>a.active!==false);
+  const chapters=[...new Set(all.map(atelierRtaActivityChapter))].filter(Boolean).sort((a,b)=>String(a).localeCompare(String(b),'fr',{numeric:true}));
+  const motors=[...new Set(all.map(atelierRtaActivityMotor))].filter(Boolean).sort((a,b)=>String(a).localeCompare(String(b),'fr',{numeric:true}));
+  const acts=atelierRtaFilteredActivities(lib);
   return `<div class="at-rta-create">
     <select id="atRtaLibrary" onchange="refreshAtelierRtaSelectors()">
       ${libs.map(x=>`<option value="${e(x.id)}">${e(x.name||x.reference||x.id)}</option>`).join('')}
     </select>
-    <select id="atRtaChapter" onchange="refreshAtelierRtaActivitySelector()">
+    <select id="atRtaChapter" onchange="refreshAtelierRtaActivitySelector('chapter')">
+      <option value="">Tous les chapitres / interventions</option>
       ${chapters.map(x=>`<option value="${e(x)}">${e(x)}</option>`).join('')}
     </select>
-    <select id="atRtaMotor" onchange="refreshAtelierRtaActivitySelector()">
-      <option value="">Toutes motorisations</option>
+    <select id="atRtaMotor" onchange="refreshAtelierRtaActivitySelector('motor')">
+      <option value="">Toutes motorisations / versions</option>
+      ${motors.map(x=>`<option value="${e(x)}">${e(x)}</option>`).join('')}
     </select>
-    <select id="atRtaActivity">
-      ${acts.map(a=>`<option value="${e(a.id)}">${e((a.numero||a.id)+' — '+(a.titre||a.activite||'Activité RTA'))}</option>`).join('')}
+    <div class="at-rta-search-wrap" style="grid-column:1/-1;display:flex;gap:8px;align-items:center">
+      <input id="atRtaSearch" type="search" autocomplete="off" placeholder="🔎 Rechercher : vidange, distribution, frein, injecteur, dCi…" oninput="refreshAtelierRtaActivitySelector('search')" style="flex:1;min-width:240px">
+      <button type="button" class="at-btn at-light" onclick="resetAtelierRtaFilters()">Effacer les filtres</button>
+    </div>
+    <div id="atRtaResultCount" style="grid-column:1/-1;font-size:.82rem;color:#475569;font-weight:700">${acts.length} activité${acts.length>1?'s':''} trouvée${acts.length>1?'s':''}</div>
+    <select id="atRtaActivity" style="grid-column:1/-1">
+      ${acts.map(a=>`<option value="${e(a.id)}">${e((a.numero||a.id)+' — '+(a.titre||a.activite||'Activité RTA')+' — '+atelierRtaActivityMotor(a))}</option>`).join('')}
     </select>
     <button type="button" class="at-btn at-success full" onclick="addRtaAtelierActivity()">＋ Ajouter cette activité RTA à la séance</button>
   </div>`;
@@ -11884,22 +11941,47 @@ function atelierRtaAdminControls(t){
 window.refreshAtelierRtaSelectors=function(){
   const libId=document.getElementById('atRtaLibrary')?.value||'';
   const lib=rtaLibraryById(libId);if(!lib)return;
-  const chapters=[...new Set((lib.activities||[]).filter(a=>a.active!==false).map(a=>a.theme||a.chapitre||"Autres"))].sort((a,b)=>String(a).localeCompare(String(b),'fr'));
-  const chapter=document.getElementById('atRtaChapter');
-  if(chapter)chapter.innerHTML=chapters.map(x=>`<option value="${e(x)}">${e(x)}</option>`).join('');
-  const motors=[...new Set((lib.activities||[]).filter(a=>a.active!==false).map(a=>a.sourceMotorisation||a.motorisation||"Toutes versions"))].sort((a,b)=>String(a).localeCompare(String(b),'fr'));
-  const motor=document.getElementById('atRtaMotor');
-  if(motor)motor.innerHTML='<option value="">Toutes motorisations</option>'+motors.map(x=>`<option value="${e(x)}">${e(x)}</option>`).join('');
-  refreshAtelierRtaActivitySelector();
+  const search=document.getElementById("atRtaSearch");
+  if(search)search.value="";
+  atelierRtaPopulateFilterOptions(lib,{preserveChapter:"",preserveMotor:""});
+  refreshAtelierRtaActivitySelector("library");
 }
-window.refreshAtelierRtaActivitySelector=function(){
-  const libId=document.getElementById('atRtaLibrary')?.value||'',chapter=document.getElementById('atRtaChapter')?.value||'',motor=document.getElementById('atRtaMotor')?.value||'';
+window.refreshAtelierRtaActivitySelector=function(source){
+  const libId=document.getElementById('atRtaLibrary')?.value||'';
   const lib=rtaLibraryById(libId);if(!lib)return;
-  const acts=(lib.activities||[]).filter(a=>a.active!==false)
-    .filter(a=>!chapter||String(a.theme||a.chapitre||"Autres")===String(chapter))
-    .filter(a=>!motor||String(a.sourceMotorisation||a.motorisation||"Toutes versions")===String(motor));
+  let chapter=document.getElementById('atRtaChapter')?.value||'';
+  let motor=document.getElementById('atRtaMotor')?.value||'';
+  const query=document.getElementById('atRtaSearch')?.value||'';
+
+  // Les listes restent cohérentes entre elles sans effacer les choix encore valides.
+  if(source==="chapter"){
+    atelierRtaPopulateFilterOptions(lib,{preserveChapter:chapter,preserveMotor:motor});
+    chapter=document.getElementById('atRtaChapter')?.value||'';
+    motor=document.getElementById('atRtaMotor')?.value||'';
+  }else if(source==="motor"){
+    atelierRtaPopulateFilterOptions(lib,{preserveChapter:chapter,preserveMotor:motor});
+    chapter=document.getElementById('atRtaChapter')?.value||'';
+    motor=document.getElementById('atRtaMotor')?.value||'';
+  }
+
+  const acts=atelierRtaFilteredActivities(lib,{chapter,motor,query});
   const select=document.getElementById('atRtaActivity');
-  if(select)select.innerHTML=acts.map(a=>`<option value="${e(a.id)}">${e((a.numero||a.id)+' — '+(a.titre||a.activite||'Activité RTA'))}</option>`).join('');
+  const oldValue=select?.value||"";
+  if(select){
+    select.innerHTML=acts.length
+      ?acts.map(a=>`<option value="${e(a.id)}">${e((a.numero||a.id)+' — '+(a.titre||a.activite||'Activité RTA')+' — '+atelierRtaActivityMotor(a))}</option>`).join('')
+      :'<option value="">Aucune activité correspondant aux filtres</option>';
+    if(acts.some(a=>String(a.id)===String(oldValue)))select.value=oldValue;
+  }
+  const count=document.getElementById("atRtaResultCount");
+  if(count)count.textContent=acts.length+" activité"+(acts.length>1?"s":"")+" trouvée"+(acts.length>1?"s":"");
+}
+window.resetAtelierRtaFilters=function(){
+  const libId=document.getElementById('atRtaLibrary')?.value||'';
+  const lib=rtaLibraryById(libId);if(!lib)return;
+  const q=document.getElementById("atRtaSearch");if(q)q.value="";
+  atelierRtaPopulateFilterOptions(lib,{preserveChapter:"",preserveMotor:""});
+  refreshAtelierRtaActivitySelector("reset");
 }
 window.addRtaAtelierActivity=function(){
   const libId=document.getElementById('atRtaLibrary')?.value||'',activityId=document.getElementById('atRtaActivity')?.value||'';
