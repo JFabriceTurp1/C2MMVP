@@ -2382,7 +2382,7 @@ body{background:#f7f9fc;color:var(--text)}
   body.rentree-printing .rentree-competence-note{display:none!important}
   body.rentree-printing .rentree-print-signature{font-weight:800!important;margin-top:1mm!important}
   body.rentree-printing .rentree-print-footer{display:flex!important;position:fixed!important;left:10mm!important;right:10mm!important;bottom:5mm!important;justify-content:space-between!important;font-size:7.5pt!important;color:#667085!important}
-  /* Évaluation, charge atelier et intégration RTA — TEST 8 : fiche de rentrée compacte sur une seule page */
+  /* Évaluation, charge atelier et intégration RTA — TEST 9 CALENDRIER : fiche de rentrée compacte sur une seule page */
   body.rentree-printing .rentree-print-page{min-height:0!important;height:auto!important;break-inside:avoid!important;page-break-inside:avoid!important}
   body.rentree-printing .rentree-print-school-header{height:15mm!important;margin-bottom:1.5mm!important}
   body.rentree-printing .rentree-print-school-header img{max-height:14mm!important}
@@ -11606,6 +11606,24 @@ window.addEventListener("resize",function(){
 .at-rta-create select,.at-rta-create input{padding:9px;border:1px solid #bac7d8;border-radius:8px;width:100%;box-sizing:border-box}
 .at-rta-create .full{grid-column:1/-1}
 .at-admin-zone.tools{position:relative;z-index:2;overflow:visible}
+.at-calendar-wrap{margin:14px 0;padding:14px;border:1px solid #d8dee9;border-radius:12px;background:#fff}
+.at-calendar-head{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:10px}
+.at-calendar-head h3{margin:0;text-transform:capitalize}
+.at-calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(92px,1fr));gap:7px}
+.at-cal-dayname{font-weight:800;text-align:center;padding:5px}
+.at-cal-cell{min-height:88px;border:1px solid #d7dee8;border-radius:10px;padding:8px;background:#fbfcfe;cursor:pointer}
+.at-cal-cell:hover{outline:2px solid #93c5fd}
+.at-cal-cell.other{opacity:.4}
+.at-cal-cell.today{border:2px solid #2563eb}
+.at-cal-cell.selected{background:#eff6ff;outline:3px solid #60a5fa}
+.at-cal-date{font-weight:900;margin-bottom:5px}.at-cal-count{font-size:.82rem;color:#475569}
+.at-planning-panel{margin-top:12px;padding:12px;border:1px solid #cbd5e1;border-radius:10px;background:#f8fafc}
+.at-plan-row{display:grid;grid-template-columns:1.5fr 1.2fr 90px auto;gap:8px;align-items:center;margin:7px 0}
+.at-plan-row select,.at-plan-row input{padding:8px;border:1px solid #b8c5d6;border-radius:8px;width:100%;box-sizing:border-box}
+.at-plan-item{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:8px 10px;border:1px solid #dbe3ee;border-radius:9px;background:white;margin:6px 0}
+.at-plan-item small{color:#64748b}
+@media(max-width:1000px){.at-calendar-grid{grid-template-columns:repeat(7,minmax(66px,1fr));font-size:.82rem}.at-cal-cell{min-height:70px;padding:5px}.at-plan-row{grid-template-columns:1fr}}
+
 .at-admin-dashboard{padding-bottom:110px}
 #at-main{padding-bottom:140px}
 
@@ -11646,7 +11664,7 @@ window.addEventListener("resize",function(){
 .at-custom-create input{padding:10px;border:1px solid #bac7d8;border-radius:8px;box-sizing:border-box;width:100%}@media(max-width:1050px){.at-custom-create{grid-template-columns:1fr 1fr}.at-custom-create .at-btn{grid-column:1/-1}}@media(max-width:650px){.at-custom-create{grid-template-columns:1fr}}
 </style>
 <section id="atelier-app" class="hidden" aria-label="Evaluation et charge atelier">
-  <header class="at-head"><h1>Evaluation &amp; Charge atelier Évaluation, charge atelier et intégration RTA — TEST 8 — Firebase</h1><span id="at-active-class"></span><button id="at-view-mode-btn" type="button" onclick="toggleAtelierViewMode()">Vue élève</button><button id="at-change-class-btn" type="button" onclick="openClassPicker()">⇄ Changer de classe</button><button id="at-return-main-btn" type="button" onclick="closeAtelierUnified()">Retour aux évaluations</button></header>
+  <header class="at-head"><h1>Evaluation &amp; Charge atelier Évaluation, charge atelier et intégration RTA — TEST 9 CALENDRIER — Firebase</h1><span id="at-active-class"></span><button id="at-view-mode-btn" type="button" onclick="toggleAtelierViewMode()">Vue élève</button><button id="at-change-class-btn" type="button" onclick="openClassPicker()">⇄ Changer de classe</button><button id="at-return-main-btn" type="button" onclick="closeAtelierUnified()">Retour Accueil</button></header>
   <nav class="at-nav" id="at-nav"></nav><main class="at-main" id="at-main"></main>
 </section>
 <script id="atelier-unifie-v5-script">
@@ -11850,11 +11868,13 @@ window.removeRtaAtelierActivity=function(encoded){
 
 
 function sameWorkAvailableActivities(t){
-  const all=[...activities().filter(a=>a&&a.id!==TEAM_ID),
-             ...(t?.rtaActivities||[]).map(id=>activityById(id)).filter(Boolean)];
-  const map=new Map();
-  all.forEach(a=>{if(a?.id&&!map.has(String(a.id)))map.set(String(a.id),a)});
-  return [...map.values()].sort((a,b)=>String(a.code||a.id).localeCompare(String(b.code||b.id),"fr",{numeric:true}));
+  const ids=new Set();
+  (t?.published||[]).forEach(p=>{if(p?.activityId)ids.add(String(p.activityId))});
+  return [...ids].map(id=>activityById(id)).filter(Boolean).sort((a,b)=>{
+    const ka=String(a.code||a.id||"")+" "+String(a.title||"");
+    const kb=String(b.code||b.id||"")+" "+String(b.title||"");
+    return ka.localeCompare(kb,"fr",{numeric:true});
+  });
 }
 function sameWorkPicker(t){
   const list=sameWorkAvailableActivities(t);
@@ -11890,7 +11910,91 @@ window.addSameWorkOtherSupport=function(){
   setTimeout(()=>{const input=document.getElementById("support_pub_"+encodeURIComponent(publicationId));if(input){input.focus();input.select()}},0);
 }
 
-function renderAdmin(){
+
+const ATELIER_PLANNING_KEY="evaluation_atelier_planning_v1";
+let atelierPlanningSelectedDate="";
+let atelierCalendarMonthIso="";
+
+function loadAtelierPlanning(){try{return JSON.parse(localStorage.getItem(ATELIER_PLANNING_KEY)||"{}")||{}}catch(e){return {}}}
+function saveAtelierPlanning(x){localStorage.setItem(ATELIER_PLANNING_KEY,JSON.stringify(x||{}))}
+function atIso(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`}
+function atDateLabel(iso){const [y,m,d]=String(iso).split("-").map(Number);return new Date(y,m-1,d).toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}
+function atPlanningEntries(iso){const p=loadAtelierPlanning();return Array.isArray(p[iso])?p[iso]:[]}
+
+function atPlanningActivities(){
+  const all=activities().filter(a=>a&&a.id!==TEAM_ID);
+  const rta=[];
+  getRtaLibraries().filter(lib=>lib&&lib.active!==false).forEach(lib=>{
+    (lib.activities||[]).filter(a=>a.active!==false).forEach(a=>rta.push({
+      id:atelierRtaCompositeId(lib.id,a.id),
+      code:"RTA "+String(a.numero||a.id||""),
+      title:a.titre||a.activite||"Activité RTA",
+      kind:"rta",
+      activity:a
+    }));
+  });
+  const map=new Map();
+  [...all,...rta].forEach(a=>{if(a?.id&&!map.has(String(a.id)))map.set(String(a.id),a)});
+  return [...map.values()].sort((a,b)=>String(a.code||a.id).localeCompare(String(b.code||b.id),"fr",{numeric:true}));
+}
+function atResolvePlanningActivity(id){return activityById(id)||atPlanningActivities().find(a=>String(a.id)===String(id))||null}
+
+function renderAtelierPlanningDay(iso){
+  atelierPlanningSelectedDate=iso||atelierPlanningSelectedDate||atIso(new Date());
+  const entries=atPlanningEntries(atelierPlanningSelectedDate),acts=atPlanningActivities();
+  return `<div class="at-planning-panel">
+    <h3>Préparation du ${e(atDateLabel(atelierPlanningSelectedDate))}</h3>
+    <p>Prépare ici les activités qui seront proposées aux élèves à cette date.</p>
+    <div class="at-plan-row">
+      <select id="atPlanActivity"><option value="">Choisir une activité…</option>${acts.map(a=>`<option value="${e(a.id)}">${e((a.kind==="rta"?"RTA — ":"")+(a.code||a.id)+" — "+(a.title||""))}</option>`).join("")}</select>
+      <input id="atPlanSupport" placeholder="Support prévu : véhicule / organe / maquette">
+      <input id="atPlanCapacity" type="number" min="1" max="8" value="4">
+      <button type="button" class="at-btn at-success" onclick="addAtelierPlanningEntry()">Ajouter</button>
+    </div>
+    <div>${entries.length?entries.map((x,i)=>`<div class="at-plan-item"><div><b>${e(x.label||x.activityId)}</b><br><small>${e(x.support||"Support non renseigné")} · ${e(x.capacity||4)} place(s)</small></div><button type="button" class="at-btn at-danger" onclick="removeAtelierPlanningEntry(${i})">Supprimer</button></div>`).join(""):'<div class="at-empty">Aucune activité planifiée pour cette date.</div>'}</div>
+    ${atelierPlanningSelectedDate===atIso(new Date())?'<button type="button" class="at-btn at-success" style="margin-top:10px" onclick="applyPlanningToToday(true)">Charger maintenant dans l’Atelier du jour</button>':''}
+  </div>`;
+}
+function calendarMonthHtml(){
+  const now=new Date();
+  if(!atelierCalendarMonthIso)atelierCalendarMonthIso=atIso(new Date(now.getFullYear(),now.getMonth(),1));
+  if(!atelierPlanningSelectedDate)atelierPlanningSelectedDate=atIso(now);
+  const base=new Date(atelierCalendarMonthIso+"T12:00:00"),y=base.getFullYear(),m=base.getMonth();
+  const first=new Date(y,m,1),start=new Date(first);start.setDate(first.getDate()-((first.getDay()+6)%7));
+  const names=["Lun","Mar","Mer","Jeu","Ven","Sam","Dim"],today=atIso(now);
+  let cells=names.map(n=>`<div class="at-cal-dayname">${n}</div>`).join("");
+  for(let i=0;i<42;i++){
+    const d=new Date(start);d.setDate(start.getDate()+i);
+    const iso=atIso(d),count=atPlanningEntries(iso).length;
+    cells+=`<div class="at-cal-cell ${d.getMonth()!==m?'other':''} ${iso===today?'today':''} ${iso===atelierPlanningSelectedDate?'selected':''}" onclick="selectAtelierPlanningDate('${iso}')"><div class="at-cal-date">${d.getDate()}</div><div class="at-cal-count">${count?count+" activité(s)":"—"}</div></div>`;
+  }
+  return `<div class="at-calendar-wrap"><div class="at-calendar-head"><button type="button" class="at-btn" onclick="moveAtelierCalendarMonth(-1)">◀</button><h3>${base.toLocaleDateString("fr-FR",{month:"long",year:"numeric"})}</h3><button type="button" class="at-btn" onclick="moveAtelierCalendarMonth(1)">▶</button></div><div class="at-calendar-grid">${cells}</div>${renderAtelierPlanningDay(atelierPlanningSelectedDate)}</div>`;
+}
+window.selectAtelierPlanningDate=function(iso){atelierPlanningSelectedDate=iso;document.getElementById("atelier-calendar-host").innerHTML=calendarMonthHtml()}
+window.moveAtelierCalendarMonth=function(delta){const d=new Date(atelierCalendarMonthIso+"T12:00:00");d.setMonth(d.getMonth()+delta);atelierCalendarMonthIso=atIso(new Date(d.getFullYear(),d.getMonth(),1));document.getElementById("atelier-calendar-host").innerHTML=calendarMonthHtml()}
+window.addAtelierPlanningEntry=function(){
+  const id=document.getElementById("atPlanActivity")?.value||"",support=(document.getElementById("atPlanSupport")?.value||"").trim(),capacity=Math.max(1,Math.min(8,Number(document.getElementById("atPlanCapacity")?.value)||4));
+  if(!id){alert("Choisis une activité.");return}
+  const a=atResolvePlanningActivity(id);if(!a){alert("Activité introuvable.");return}
+  const p=loadAtelierPlanning(),date=atelierPlanningSelectedDate||atIso(new Date());p[date]=Array.isArray(p[date])?p[date]:[];
+  p[date].push({activityId:String(id),label:(a.code||a.id)+" — "+(a.title||""),support,capacity,createdAt:new Date().toISOString()});
+  saveAtelierPlanning(p);selectAtelierPlanningDate(date)
+}
+window.removeAtelierPlanningEntry=function(i){const p=loadAtelierPlanning(),date=atelierPlanningSelectedDate||atIso(new Date());if(!Array.isArray(p[date]))return;p[date].splice(i,1);if(!p[date].length)delete p[date];saveAtelierPlanning(p);selectAtelierPlanningDate(date)}
+window.applyPlanningToToday=function(showMessage){
+  const date=atIso(new Date()),entries=atPlanningEntries(date);if(!entries.length){if(showMessage)alert("Aucune activité planifiée pour aujourd’hui.");return}
+  const d=database(),t=today(d);t.rtaActivities=t.rtaActivities||[];t.published=t.published||[];
+  entries.forEach(x=>{
+    const a=atResolvePlanningActivity(x.activityId);if(!a)return;
+    if(String(x.activityId).startsWith("RTA::")&&!t.rtaActivities.some(id=>String(id)===String(x.activityId)))t.rtaActivities.push(String(x.activityId));
+    const exists=t.published.some(p=>String(p.activityId)===String(x.activityId)&&String(p.support||"")===String(x.support||"")&&p.planned===true);
+    if(!exists)t.published.push({publicationId:String(x.activityId)+"__plan_"+Date.now().toString(36)+"_"+Math.random().toString(36).slice(2,5),activityId:String(x.activityId),code:a.code,title:a.title,support:x.support||"",capacity:x.capacity||4,publishedAt:new Date().toISOString(),planned:true});
+  });
+  t._planningAppliedDate=date;save(d);if(showMessage){alert("Planning chargé dans l’Atelier du jour.");renderAdmin()}
+}
+function autoApplyTodayPlanning(){const date=atIso(new Date()),d=database(),t=today(d);if(t._planningAppliedDate===date)return;if(atPlanningEntries(date).length)applyPlanningToToday(false)}
+
+function renderAdmin(){autoApplyTodayPlanning();
  const d=database(),t=today(d),
  primaries=(t.published||[]).filter(x=>publicationKey(x)===String(x.activityId)),
  selected=new Map(primaries.map(x=>[x.activityId,x])),
@@ -11902,7 +12006,7 @@ function renderAdmin(){
  rtaDay=atelierRtaSelectedItems(t),
  extraCount=(t.published||[]).filter(x=>publicationKey(x)!==String(x.activityId)).length;
 
- document.getElementById('at-main').innerHTML=`
+ document.getElementById('at-main').innerHTML=`<section class="at-panel"><div class="at-toolbar"><h2>📅 Planning des activités à venir</h2><span class="at-pill">Préparation anticipée</span></div><div id="atelier-calendar-host">${calendarMonthHtml()}</div></section>
  <section class="at-panel">
    <div class="at-toolbar">
      <div>

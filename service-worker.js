@@ -1,4 +1,4 @@
-const CACHE_NAME="evaluation-rta-test-848-v8";
+const CACHE_NAME="evaluation-rta-test-848-v9";
 const ASSETS=[
   "./",
   "./index.html",

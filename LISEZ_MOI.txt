@@ -125,3 +125,16 @@ AUTRES CORRECTIONS CONSERVÉES
   * la liste regroupe les activités standards, les fiches pratiques, les situations professionnelles, les activités ponctuelles et les activités RTA ajoutées à la séance ;
   * le professeur choisit directement le travail, renseigne le nouveau support et la capacité ;
   * la publication supplémentaire est conservée lors de « Publier pour aujourd’hui ».
+
+
+ÉVOLUTIONS TEST 9 — VERSION D’ESSAI CALENDRIER
+- Ajout d’un calendrier dans Administration des activités du jour.
+- Possibilité de sélectionner une date future (par exemple lundi prochain).
+- Pour chaque date : choix de l’activité, du support et de la capacité.
+- Le calendrier accepte les activités habituelles et les activités RTA.
+- Le jour concerné, les activités planifiées sont chargées automatiquement dans l’Atelier du jour une seule fois.
+- Un bouton permet aussi de charger manuellement le planning lorsque la date choisie est aujourd’hui.
+- « Même travail / autre support » est corrigé : il ne propose que les travaux déjà présents dans l’Atelier du jour.
+- « Retour aux évaluations » devient « Retour Accueil ».
+
+Cette version est volontairement une version d’essai : le planning calendrier est mémorisé localement dans le navigateur. Après validation de l’ergonomie et du fonctionnement, la synchronisation Firebase pourra être ajoutée.
