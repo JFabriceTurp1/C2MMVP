@@ -1,0 +1,15 @@
+{
+  "name": "Évaluation & Charge atelier",
+  "short_name": "Éval Atelier",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#123f73",
+  "icons": [
+    {
+      "src": "logo-francois-de-mahy.png",
+      "sizes": "any",
+      "type": "image/png"
+    }
+  ]
+}

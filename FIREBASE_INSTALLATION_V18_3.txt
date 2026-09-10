@@ -1,0 +1,19 @@
+INSTALLATION FIREBASE — V18.3
+
+1. Décompresser TOUT le contenu du ZIP dans un même dossier.
+2. Ne pas supprimer index.html, firebase.json, firestore.rules, manifest.webmanifest ou service-worker.js.
+3. Depuis un terminal placé dans ce dossier :
+   firebase login
+   firebase use evaluation-competences-mv
+   firebase deploy --only firestore:rules,hosting
+
+Le fichier HTML contient déjà la configuration du projet Firebase :
+evaluation-competences-mv
+
+Sécurité Firestore :
+Les règles fournies limitent les données de /users/{uid}/... à l'utilisateur Firebase authentifié correspondant.
+
+Après déploiement :
+- Se connecter dans l'application avec le compte Firebase.
+- Activer Firebase dans Paramètres si nécessaire.
+- Utiliser « Synchroniser » et vérifier l'état vert.
