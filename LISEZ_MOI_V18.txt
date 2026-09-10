@@ -1,0 +1,23 @@
+EVALUATION & CHARGE ATELIER — V18
+
+Base : V17.
+
+Modifications :
+- Gestion Absent / Présent dans le Tableau du jour.
+- Les absents ne sont plus comptés parmi les élèves non affectés.
+- Création automatique d'une nouvelle séquence d'évaluation à chaque nouvelle affectation.
+- Plusieurs travaux successifs possibles pour le même élève le même jour.
+- Conservation des séquences précédentes et des supports associés.
+- Auto-évaluation verrouillée après validation.
+- Note /20 obligatoire avant enregistrement.
+- Bouton « Redonner la main » côté professeur pour permettre une correction par l'élève.
+- Rattachement de l'auto-évaluation et de l'évaluation professeur à la tâche exacte via une clé de séquence.
+
+Tests conseillés :
+1. Marquer un élève absent puis présent.
+2. Vérifier qu'un absent sort du compteur non affecté.
+3. Affecter un travail, faire l'auto-évaluation et valider : elle doit être verrouillée.
+4. Côté professeur, utiliser « Redonner la main », puis modifier et revalider côté élève.
+5. Valider une première évaluation professeur.
+6. Affecter un second travail au même élève : une séquence n°2 doit apparaître automatiquement.
+7. Tester deux travaux identiques avec deux supports différents.
