@@ -53,3 +53,11 @@ AUTRES CORRECTIONS CONSERVÉES
 - Les messages et compteurs utilisent maintenant le nombre réel de critères, et non toujours « 10 critères ».
 - L'historique utilise sourceNote20 pour les évaluations RTA.
 - Les métadonnées RTA sont préservées lors d'une modification.
+
+
+ÉVOLUTIONS TEST 4 — CORRECTION BLOQUANTE ENREGISTREMENT
+- Correction de l'erreur « ReferenceError: Can't find variable: isRta ».
+- La variable isRta est maintenant initialisée au tout début de saveActivityEvaluation,
+  avant toute utilisation dans les chemins fiche classique, RTA, historique et atelier du jour.
+- Contrôle syntaxique JavaScript effectué après correction.
+- Cette version remplace la TEST 3 pour les essais d'enregistrement.
