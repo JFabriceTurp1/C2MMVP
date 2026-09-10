@@ -2382,7 +2382,7 @@ body{background:#f7f9fc;color:var(--text)}
   body.rentree-printing .rentree-competence-note{display:none!important}
   body.rentree-printing .rentree-print-signature{font-weight:800!important;margin-top:1mm!important}
   body.rentree-printing .rentree-print-footer{display:flex!important;position:fixed!important;left:10mm!important;right:10mm!important;bottom:5mm!important;justify-content:space-between!important;font-size:7.5pt!important;color:#667085!important}
-  /* Évaluation, charge atelier et intégration RTA — TEST 5 : fiche de rentrée compacte sur une seule page */
+  /* Évaluation, charge atelier et intégration RTA — TEST 6 : fiche de rentrée compacte sur une seule page */
   body.rentree-printing .rentree-print-page{min-height:0!important;height:auto!important;break-inside:avoid!important;page-break-inside:avoid!important}
   body.rentree-printing .rentree-print-school-header{height:15mm!important;margin-bottom:1.5mm!important}
   body.rentree-printing .rentree-print-school-header img{max-height:14mm!important}
@@ -4953,9 +4953,9 @@ function startRtaActivity(libId,activityId){
 }
 function backToActivityPicker(){
   const a=activityDraft?.activityId?activityItem(activityDraft.activityId):null;
-  const isRta=!!(a?.rtaSource||String(activityDraft?.activityId||"").startsWith("RTA::")||activityDraft?.returnToRta);
+  const rtaMode=isRtaEvaluationContext(a,activityDraft);
   activityDraft=null;
-  page=isRta?"rtaChoice":"activityChoice";
+  page=rtaMode?"rtaChoice":"activityChoice";
   render();
 }
 function rtaChoicePage(){
@@ -5056,6 +5056,18 @@ function startActivitySheet(id){
   page="activityEval";render();
   }catch(err){console.error("Ouverture fiche d’activité",err);showWarningMessage("Impossible d’ouvrir cette fiche d’activité. Détail : "+(err?.message||String(err)));}
 }
+function isRtaEvaluationContext(activity=null,draft=null,ev=null){
+  const a=activity||null,d=draft||activityDraft||null,e=ev||null;
+  return !!(
+    a?.rtaSource ||
+    d?.returnToRta ||
+    d?.activitySnapshot?.rtaSource ||
+    String(d?.activityId||"").startsWith("RTA::") ||
+    e?.rtaEvaluation ||
+    e?.evalPath==="rta" ||
+    e?.type==="Évaluation sur RTA"
+  );
+}
 function currentActivityItem(){
   if(!activityDraft)return null;
   return activityItem(activityDraft.activityId) || activityDraft.activitySnapshot || null;
@@ -5105,36 +5117,112 @@ async function saveActivityEvaluation(){
   if(activityScoredCount()!==a.criteres.length){showWarningMessage(`Renseigne les ${a.criteres.length} critère(s) (0, 1 ou 2) avant l’enregistrement.`);return;}
   const targetIds=d.mode==="collective"?[...(d.targetStudents||[])]:[String(d.studentId)];
   if(!targetIds.length){showWarningMessage("Aucun élève sélectionné.");return;}
-  const criteriaNote=activityScoreTotal(),note=(d.noteDrivenExact!==undefined&&d.noteDrivenExact!==""?Number(d.noteDrivenExact):criteriaNote);
+  const criteriaNote=activityScoreTotal();
+  const note=(d.noteDrivenExact!==undefined&&d.noteDrivenExact!==""?Number(d.noteDrivenExact):criteriaNote);
   const batchId=d.mode==="collective"?"ACTB"+Date.now():null;
-  const isRta=!!(a.rtaSource||d.returnToRta||d.activitySnapshot?.rtaSource||String(d.activityId||"").startsWith("RTA::"));
+  const rtaMode=isRtaEvaluationContext(a,d);
   try{
     let saved=0;
     for(const sid of targetIds){
       const student=students.find(s=>String(s.id)===String(sid));if(!student)continue;
       const associated=activityComps(a,student.id);
       const existing=(d.editId && targetIds.length===1)?student.evaluations.find(e=>String(e.id)===String(d.editId)):null;
-const ev={...(existing||{}),teacherId:getActiveTeacher()?.id||"",teacherName:getActiveTeacher()?teacherFullName(getActiveTeacher()):"",date:d.date,title:isRta?`RTA — ${a.rtaLibraryName} — ${a.titre}`:`Fiche d’activités — ${a.id} — ${a.titre}`,place:"Lycée",type:isRta?"Évaluation sur RTA":"Évaluation sur fiche d’activités",comps:[],associatedComps:[...associated],levels:{},obs:{},disabledCriteria:{},disabledCompetencies:{},attachment:null,evalPath:isRta?"rta":"activitySheet",profSituation:"",profOptions:{},profFreeText:"",retroactive:false,ficheActiviteEvaluation:!isRta,rtaEvaluation:isRta,rtaLibraryId:isRta?(a.rtaLibraryId||existing?.rtaLibraryId||""):"",rtaLibraryName:isRta?(a.rtaLibraryName||existing?.rtaLibraryName||""):"",rtaVehicle:isRta?(a.rtaVehicle||existing?.rtaVehicle||""):"",rtaSourceFile:isRta?(a.rtaSourceFile||existing?.rtaSourceFile||""):"",rtaReference:isRta?(a.rtaReference||existing?.rtaReference||""):"",rtaSourceTable:isRta?(a.rtaSourceTable||existing?.rtaSourceTable||""):"",rtaActivitySnapshot:isRta?JSON.parse(JSON.stringify(a)):null,activityId:a.id,activityNumero:a.numero,activityTheme:a.theme,activityTitle:a.titre,activityDescription:a.description,activitySupport:(d.activitySupport||d.supportActivite||"").trim(),supportActivite:(d.supportActivite||d.activitySupport||"").trim(),activityCriteria:[...a.criteres],activityScores:{...d.scores},activityObservations:{...d.observations},activityAppreciation:d.appreciation||activitySuggestedAppreciation(note),evaluationObservation:(d.teacherObservation||"").trim(),noteDrivenEvaluation:!!d.noteDrivenEvaluation,noteDrivenRequested:(d.noteDrivenRequested??""),noteDrivenCalculated:(d.noteDrivenCalculated??null),sourceNote20:note,evaluationDate:d.date,enteredAt:existing?.enteredAt||existing?.createdAt||Date.now(),entryDate:existing?.entryDate||new Date().toLocaleDateString("fr-FR"),modifiedAt:existing?Date.now():null,studentId:student.id,createdAt:existing?.createdAt||Date.now(),batchId:existing?.batchId||batchId,studentSelfEvaluation:d.studentSelfEvaluation?{...d.studentSelfEvaluation}:null,atelierSource:!!d.atelierSource,atelierDay:d.atelierDay||"",atelierPublicationId:d.atelierPublicationId||"",atelierPendingKey:d.atelierPendingKey||""};
+      const ev={
+        ...(existing||{}),
+        teacherId:getActiveTeacher()?.id||"",
+        teacherName:getActiveTeacher()?teacherFullName(getActiveTeacher()):"",
+        date:d.date,
+        title:rtaMode?`RTA — ${a.rtaLibraryName||existing?.rtaLibraryName||""} — ${a.titre}`:`Fiche d’activités — ${a.id} — ${a.titre}`,
+        place:"Lycée",
+        type:rtaMode?"Évaluation sur RTA":"Évaluation sur fiche d’activités",
+        comps:[],
+        associatedComps:[...associated],
+        levels:{},
+        obs:{},
+        disabledCriteria:{},
+        disabledCompetencies:{},
+        attachment:null,
+        evalPath:rtaMode?"rta":"activitySheet",
+        profSituation:"",
+        profOptions:{},
+        profFreeText:"",
+        retroactive:false,
+        ficheActiviteEvaluation:!rtaMode,
+        rtaEvaluation:rtaMode,
+        rtaLibraryId:rtaMode?(a.rtaLibraryId||existing?.rtaLibraryId||""):"",
+        rtaLibraryName:rtaMode?(a.rtaLibraryName||existing?.rtaLibraryName||""):"",
+        rtaVehicle:rtaMode?(a.rtaVehicle||existing?.rtaVehicle||""):"",
+        rtaSourceFile:rtaMode?(a.rtaSourceFile||existing?.rtaSourceFile||""):"",
+        rtaReference:rtaMode?(a.rtaReference||existing?.rtaReference||""):"",
+        rtaSourceTable:rtaMode?(a.rtaSourceTable||existing?.rtaSourceTable||""):"",
+        rtaActivitySnapshot:rtaMode?JSON.parse(JSON.stringify(a)):null,
+        activityId:a.id,
+        activityNumero:a.numero,
+        activityTheme:a.theme,
+        activityTitle:a.titre,
+        activityDescription:a.description,
+        activitySupport:(d.activitySupport||d.supportActivite||"").trim(),
+        supportActivite:(d.supportActivite||d.activitySupport||"").trim(),
+        activityCriteria:[...a.criteres],
+        activityScores:{...d.scores},
+        activityObservations:{...d.observations},
+        activityAppreciation:d.appreciation||activitySuggestedAppreciation(note),
+        evaluationObservation:(d.teacherObservation||"").trim(),
+        noteDrivenEvaluation:!!d.noteDrivenEvaluation,
+        noteDrivenRequested:(d.noteDrivenRequested??""),
+        noteDrivenCalculated:(d.noteDrivenCalculated??null),
+        sourceNote20:note,
+        evaluationDate:d.date,
+        enteredAt:existing?.enteredAt||existing?.createdAt||Date.now(),
+        entryDate:existing?.entryDate||new Date().toLocaleDateString("fr-FR"),
+        modifiedAt:existing?Date.now():null,
+        studentId:student.id,
+        createdAt:existing?.createdAt||Date.now(),
+        batchId:existing?.batchId||batchId,
+        studentSelfEvaluation:d.studentSelfEvaluation?{...d.studentSelfEvaluation}:null,
+        atelierSource:!!d.atelierSource,
+        atelierDay:d.atelierDay||"",
+        atelierPublicationId:d.atelierPublicationId||"",
+        atelierPendingKey:d.atelierPendingKey||""
+      };
       await persistEvaluation(ev,!!existing);
-      if(existing){const idx=student.evaluations.findIndex(e=>String(e.id)===String(existing.id));if(idx>=0)student.evaluations[idx]={...ev};}
-      else student.evaluations.push({...ev});
+      if(existing){
+        const idx=student.evaluations.findIndex(e=>String(e.id)===String(existing.id));
+        if(idx>=0)student.evaluations[idx]={...ev};
+      }else{
+        student.evaluations.push({...ev});
+      }
       saved++;
     }
-    if(d.atelierSource&&typeof window.completeAtelierEvaluation==='function'){for(const sid of targetIds)window.completeAtelierEvaluation(sid,d.atelierDay,d.atelierPendingKey);}
+    if(d.atelierSource&&typeof window.completeAtelierEvaluation==='function'){
+      for(const sid of targetIds)window.completeAtelierEvaluation(sid,d.atelierDay,d.atelierPendingKey);
+    }
     activityDraft=null;
-    showSuccessMessage(d.mode==="collective"?`Évaluation collective enregistrée pour ${saved} élève(s) : ${a.id} — ${note} / 20.`:(isRta?`Évaluation RTA enregistrée : ${a.titre} — ${note} / 20.`:`Fiche d’activités enregistrée : ${a.id} — ${note} / 20.`),()=>d.atelierSource&&typeof window.returnToAtelierPending==='function'?window.returnToAtelierPending():go("history"));
-  }catch(err){showWarningMessage("Erreur d’enregistrement : "+err);}
+    showSuccessMessage(
+      d.mode==="collective"
+        ?`Évaluation collective enregistrée pour ${saved} élève(s) : ${a.id} — ${note} / 20.`
+        :(rtaMode
+          ?`Évaluation RTA enregistrée : ${a.titre} — ${note} / 20.`
+          :`Fiche d’activités enregistrée : ${a.id} — ${note} / 20.`),
+      ()=>d.atelierSource&&typeof window.returnToAtelierPending==='function'
+        ?window.returnToAtelierPending()
+        :go("history")
+    );
+  }catch(err){
+    console.error("saveActivityEvaluation",err);
+    showWarningMessage("Erreur d’enregistrement : "+(err?.message||err));
+  }
 }
 function editActivityEvaluation(ev,owner){
   selectedStudent=owner.id;
   const snap=ev.rtaActivitySnapshot?JSON.parse(JSON.stringify(ev.rtaActivitySnapshot)):null;
-  const isRta=!!(ev.rtaEvaluation||ev.evalPath==="rta"||ev.type==="Évaluation sur RTA");
+  const rtaMode=isRtaEvaluationContext(null,null,ev);
   const exactNote=(ev.sourceNote20!==undefined&&ev.sourceNote20!==null&&ev.sourceNote20!=="")?Number(ev.sourceNote20):"";
   activityDraft={
     editId:ev.id,
     activityId:ev.activityId,
     activitySnapshot:snap,
-    returnToRta:isRta,
+    returnToRta:rtaMode,
     mode:"individual",
     targetStudents:[String(owner.id)],
     date:ev.date||new Date().toLocaleDateString("fr-FR"),
@@ -11534,7 +11622,7 @@ window.addEventListener("resize",function(){
 .at-custom-create input{padding:10px;border:1px solid #bac7d8;border-radius:8px;box-sizing:border-box;width:100%}@media(max-width:1050px){.at-custom-create{grid-template-columns:1fr 1fr}.at-custom-create .at-btn{grid-column:1/-1}}@media(max-width:650px){.at-custom-create{grid-template-columns:1fr}}
 </style>
 <section id="atelier-app" class="hidden" aria-label="Evaluation et charge atelier">
-  <header class="at-head"><h1>Evaluation &amp; Charge atelier Évaluation, charge atelier et intégration RTA — TEST 5 — Firebase</h1><span id="at-active-class"></span><button id="at-view-mode-btn" type="button" onclick="toggleAtelierViewMode()">Vue élève</button><button id="at-change-class-btn" type="button" onclick="openClassPicker()">⇄ Changer de classe</button><button id="at-return-main-btn" type="button" onclick="closeAtelierUnified()">Retour aux évaluations</button></header>
+  <header class="at-head"><h1>Evaluation &amp; Charge atelier Évaluation, charge atelier et intégration RTA — TEST 6 — Firebase</h1><span id="at-active-class"></span><button id="at-view-mode-btn" type="button" onclick="toggleAtelierViewMode()">Vue élève</button><button id="at-change-class-btn" type="button" onclick="openClassPicker()">⇄ Changer de classe</button><button id="at-return-main-btn" type="button" onclick="closeAtelierUnified()">Retour aux évaluations</button></header>
   <nav class="at-nav" id="at-nav"></nav><main class="at-main" id="at-main"></main>
 </section>
 <script id="atelier-unifie-v5-script">

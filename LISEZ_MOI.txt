@@ -74,3 +74,17 @@ AUTRES CORRECTIONS CONSERVÉES
   * le message de succès ;
   * les fiches classiques et RTA ;
   * les évaluations individuelles et collectives.
+
+
+ÉVOLUTIONS TEST 6 — CORRECTION ROBUSTE ENREGISTREMENT / CACHE
+- Suppression de la variable locale « isRta » dans les chemins d'enregistrement.
+- Nouvelle fonction commune isRtaEvaluationContext(...) pour détecter les évaluations RTA.
+- saveActivityEvaluation utilise désormais « rtaMode », défini une fois et disponible pendant tout l'enregistrement.
+- editActivityEvaluation et « Autre fiche / activité » utilisent la même détection.
+- Vérification automatique : aucun identifiant local « isRta » ne subsiste.
+- Service worker renforcé :
+  * cache v6 ;
+  * suppression des anciens caches à l'activation ;
+  * prise de contrôle immédiate ;
+  * index.html chargé en priorité depuis le réseau avec cache désactivé.
+- Objectif : éviter qu'une ancienne version reste servie par GitHub Pages / iPad.
