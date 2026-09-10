@@ -2382,7 +2382,7 @@ body{background:#f7f9fc;color:var(--text)}
   body.rentree-printing .rentree-competence-note{display:none!important}
   body.rentree-printing .rentree-print-signature{font-weight:800!important;margin-top:1mm!important}
   body.rentree-printing .rentree-print-footer{display:flex!important;position:fixed!important;left:10mm!important;right:10mm!important;bottom:5mm!important;justify-content:space-between!important;font-size:7.5pt!important;color:#667085!important}
-  /* Évaluation, charge atelier et intégration RTA — TEST 9 CALENDRIER : fiche de rentrée compacte sur une seule page */
+  /* Évaluation, charge atelier et intégration RTA — TEST 10 CALENDRIER CLASSES : fiche de rentrée compacte sur une seule page */
   body.rentree-printing .rentree-print-page{min-height:0!important;height:auto!important;break-inside:avoid!important;page-break-inside:avoid!important}
   body.rentree-printing .rentree-print-school-header{height:15mm!important;margin-bottom:1.5mm!important}
   body.rentree-printing .rentree-print-school-header img{max-height:14mm!important}
@@ -3401,6 +3401,7 @@ async function setActiveClass(id){
     return;
   }
   safeLocalSetItem(ACTIVE_CLASS_STORAGE_KEY,cls.id);
+  state.selectedActivity="";
   selectedStudent=null;
   viewedEvaluation=null;
   draft=null;
@@ -11346,7 +11347,7 @@ window.firebaseSaveCurrentConfig=async()=>{await saveFullConfig(firebaseBuildApp
     if(String(item.classId||"")!==activeClassId)return;
     const date=String(item.date||"");if(!date)return;
     const local=readAtelierLocal();local.days=local.days||{};
-    if(change.type==='removed')delete local.days[date];else local.days[date]=JSON.parse(JSON.stringify(item.session||{}));
+    local.classDays=local.classDays||{};local.classDays[activeClassId]=local.classDays[activeClassId]||{};if(change.type==='removed')delete local.classDays[activeClassId][date];else local.classDays[activeClassId][date]=JSON.parse(JSON.stringify(item.session||{}));
     writeAtelierLocal(local);
     if(typeof window.refreshAtelierFromFirebase==='function')window.refreshAtelierFromFirebase();
   }
@@ -11606,23 +11607,23 @@ window.addEventListener("resize",function(){
 .at-rta-create select,.at-rta-create input{padding:9px;border:1px solid #bac7d8;border-radius:8px;width:100%;box-sizing:border-box}
 .at-rta-create .full{grid-column:1/-1}
 .at-admin-zone.tools{position:relative;z-index:2;overflow:visible}
-.at-calendar-wrap{margin:14px 0;padding:14px;border:1px solid #d8dee9;border-radius:12px;background:#fff}
-.at-calendar-head{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:10px}
+.at-calendar-wrap{margin:8px 0;padding:10px;border:1px solid #d8dee9;border-radius:12px;background:#fff;display:grid;grid-template-columns:minmax(390px,540px) minmax(320px,1fr);gap:12px;align-items:start}
+.at-calendar-head{display:flex;gap:6px;align-items:center;justify-content:space-between;margin-bottom:5px}
 .at-calendar-head h3{margin:0;text-transform:capitalize}
-.at-calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(92px,1fr));gap:7px}
-.at-cal-dayname{font-weight:800;text-align:center;padding:5px}
-.at-cal-cell{min-height:88px;border:1px solid #d7dee8;border-radius:10px;padding:8px;background:#fbfcfe;cursor:pointer}
+.at-calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(48px,1fr));gap:4px}
+.at-cal-dayname{font-weight:800;text-align:center;padding:2px;font-size:.76rem}
+.at-cal-cell{min-height:38px;border:1px solid #d7dee8;border-radius:7px;padding:4px;background:#fbfcfe;cursor:pointer}
 .at-cal-cell:hover{outline:2px solid #93c5fd}
 .at-cal-cell.other{opacity:.4}
 .at-cal-cell.today{border:2px solid #2563eb}
 .at-cal-cell.selected{background:#eff6ff;outline:3px solid #60a5fa}
-.at-cal-date{font-weight:900;margin-bottom:5px}.at-cal-count{font-size:.82rem;color:#475569}
-.at-planning-panel{margin-top:12px;padding:12px;border:1px solid #cbd5e1;border-radius:10px;background:#f8fafc}
+.at-cal-date{font-weight:900;font-size:.86rem;line-height:1}.at-cal-count{font-size:.68rem;color:#475569;margin-top:3px}
+.at-planning-panel{margin-top:0;padding:10px;border:1px solid #cbd5e1;border-radius:10px;background:#f8fafc;max-height:300px;overflow:auto}
 .at-plan-row{display:grid;grid-template-columns:1.5fr 1.2fr 90px auto;gap:8px;align-items:center;margin:7px 0}
 .at-plan-row select,.at-plan-row input{padding:8px;border:1px solid #b8c5d6;border-radius:8px;width:100%;box-sizing:border-box}
 .at-plan-item{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:8px 10px;border:1px solid #dbe3ee;border-radius:9px;background:white;margin:6px 0}
 .at-plan-item small{color:#64748b}
-@media(max-width:1000px){.at-calendar-grid{grid-template-columns:repeat(7,minmax(66px,1fr));font-size:.82rem}.at-cal-cell{min-height:70px;padding:5px}.at-plan-row{grid-template-columns:1fr}}
+@media(max-width:1000px){.at-calendar-wrap{grid-template-columns:1fr}.at-calendar-grid{grid-template-columns:repeat(7,minmax(42px,1fr));font-size:.8rem}.at-cal-cell{min-height:36px;padding:3px}.at-plan-row{grid-template-columns:1fr}}
 
 .at-admin-dashboard{padding-bottom:110px}
 #at-main{padding-bottom:140px}
@@ -11664,7 +11665,7 @@ window.addEventListener("resize",function(){
 .at-custom-create input{padding:10px;border:1px solid #bac7d8;border-radius:8px;box-sizing:border-box;width:100%}@media(max-width:1050px){.at-custom-create{grid-template-columns:1fr 1fr}.at-custom-create .at-btn{grid-column:1/-1}}@media(max-width:650px){.at-custom-create{grid-template-columns:1fr}}
 </style>
 <section id="atelier-app" class="hidden" aria-label="Evaluation et charge atelier">
-  <header class="at-head"><h1>Evaluation &amp; Charge atelier Évaluation, charge atelier et intégration RTA — TEST 9 CALENDRIER — Firebase</h1><span id="at-active-class"></span><button id="at-view-mode-btn" type="button" onclick="toggleAtelierViewMode()">Vue élève</button><button id="at-change-class-btn" type="button" onclick="openClassPicker()">⇄ Changer de classe</button><button id="at-return-main-btn" type="button" onclick="closeAtelierUnified()">Retour Accueil</button></header>
+  <header class="at-head"><h1>Evaluation &amp; Charge atelier Évaluation, charge atelier et intégration RTA — TEST 10 CALENDRIER CLASSES — Firebase</h1><span id="at-active-class"></span><button id="at-view-mode-btn" type="button" onclick="toggleAtelierViewMode()">Vue élève</button><button id="at-change-class-btn" type="button" onclick="openClassPicker()">⇄ Changer de classe</button><button id="at-return-main-btn" type="button" onclick="closeAtelierUnified()">Retour Accueil</button></header>
   <nav class="at-nav" id="at-nav"></nav><main class="at-main" id="at-main"></main>
 </section>
 <script id="atelier-unifie-v5-script">
@@ -11674,24 +11675,63 @@ const mainGo=window.go;
 const KEY="evaluation_charge_atelier_v1";
 const STUDENT_VIEW_KEY="evaluation_atelier_student_view_v11";
 const TEAM_ID="CHEF_EQUIPE";
-const state={page:"morning",selectedActivity:"",filter:"all",autoStudent:"",autoAnswers:{},studentView:sessionStorage.getItem(STUDENT_VIEW_KEY)==="1"};
-function day(){const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
+const state={page:"morning",selectedActivity:"",filter:"all",autoStudent:"",autoAnswers:{},studentView:sessionStorage.getItem(STUDENT_VIEW_KEY)==="1",workDate:""};
+function realDay(){const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
+function day(){return state.workDate||realDay()}
+function atelierClassId(){try{return String(getActiveClassId()||"classe")}catch(e){return "classe"}}
+function atelierSessionKey(date=day(),classId=atelierClassId()){return String(classId)+"__"+String(date)}
+function blankAtelierSession(){return {published:[],assignments:{},pending:{},selfEvals:{},customActivities:[],rtaActivities:[],absent:{},activeTask:{}}}
 function load(){try{return JSON.parse(localStorage.getItem(KEY)||"{}")||{}}catch(e){return {}}}
+function ensureAtelierClassSession(d,date=day(),classId=atelierClassId()){
+  d.classDays=d.classDays||{};
+  d.classDays[classId]=d.classDays[classId]||{};
+  if(!d.classDays[classId][date]){
+    // Migration unique de l'ancien tableau non cloisonné vers la première classe utilisée.
+    if(!d._classDaysMigrationDone && d.days?.[date]){
+      d.classDays[classId][date]=JSON.parse(JSON.stringify(d.days[date]));
+      d._classDaysMigrationDone={classId,date,at:new Date().toISOString()};
+    }else{
+      d.classDays[classId][date]=blankAtelierSession();
+    }
+  }
+  return d.classDays[classId][date];
+}
 function save(data){
-  const session=data?.days?.[day()];
+  const classId=atelierClassId(),date=day(),session=ensureAtelierClassSession(data,date,classId);
   if(session) session.updatedAtClient=Date.now();
   localStorage.setItem(KEY,JSON.stringify(data));
   if(session&&typeof window.firebaseSaveAtelierSession==='function'){
-    let classId='classe';try{classId=String(getActiveClassId()||'classe')}catch(e){}
-    window.firebaseSaveAtelierSession(session,classId,day()).catch(err=>console.warn('Séance atelier non synchronisée',err));
+    window.firebaseSaveAtelierSession(session,classId,date).catch(err=>console.warn('Séance atelier non synchronisée',err));
   }
 }
-function database(){const d=load();d.days=d.days||{};d.days[day()]=d.days[day()]||{published:[],assignments:{},pending:{},selfEvals:{},customActivities:[],rtaActivities:[],absent:{},activeTask:{}};const t=d.days[day()];t.published=Array.isArray(t.published)?t.published:[];t.published=t.published.map((p,i)=>({...p,publicationId:String(p.publicationId||p.instanceId||p.activityId||('PUB-'+i))}));t.assignments=t.assignments||{};t.pending=t.pending||{};t.selfEvals=t.selfEvals||{};t.customActivities=Array.isArray(t.customActivities)?t.customActivities:[];t.rtaActivities=Array.isArray(t.rtaActivities)?t.rtaActivities:[];t.absent=t.absent||{};t.activeTask=t.activeTask||{};Object.keys(t.assignments).forEach(studentId=>{if(t.activeTask[studentId])return;const legacy=t.pending[studentId];if(legacy){const key='T-'+studentId+'-'+Date.now()+'-'+Math.random().toString(36).slice(2,7);t.pending[key]={...legacy,pendingKey:key,sequence:legacy.sequence||1};delete t.pending[studentId];t.activeTask[studentId]=key;if(t.selfEvals[studentId]){t.selfEvals[key]={...t.selfEvals[studentId],pendingKey:key};delete t.selfEvals[studentId]}}else{const found=Object.entries(t.pending).find(([k,r])=>String(r?.studentId)===String(studentId)&&r?.status!=='validated');if(found)t.activeTask[studentId]=found[0]}});return d}
+function database(){
+  const d=load(),t=ensureAtelierClassSession(d,day(),atelierClassId());
+  t.published=Array.isArray(t.published)?t.published:[];
+  t.published=t.published.map((p,i)=>({...p,publicationId:String(p.publicationId||p.instanceId||p.activityId||('PUB-'+i))}));
+  t.assignments=t.assignments||{};t.pending=t.pending||{};t.selfEvals=t.selfEvals||{};
+  t.customActivities=Array.isArray(t.customActivities)?t.customActivities:[];
+  t.rtaActivities=Array.isArray(t.rtaActivities)?t.rtaActivities:[];
+  t.absent=t.absent||{};t.activeTask=t.activeTask||{};
+  Object.keys(t.assignments).forEach(studentId=>{
+    if(t.activeTask[studentId])return;
+    const legacy=t.pending[studentId];
+    if(legacy){
+      const key='T-'+studentId+'-'+Date.now()+'-'+Math.random().toString(36).slice(2,7);
+      t.pending[key]={...legacy,pendingKey:key,sequence:legacy.sequence||1};
+      delete t.pending[studentId];t.activeTask[studentId]=key;
+      if(t.selfEvals[studentId]){t.selfEvals[key]={...t.selfEvals[studentId],pendingKey:key};delete t.selfEvals[studentId]}
+    }else{
+      const found=Object.entries(t.pending).find(([k,r])=>String(r?.studentId)===String(studentId)&&r?.status!=='validated');
+      if(found)t.activeTask[studentId]=found[0];
+    }
+  });
+  return d;
+}
 function publicationKey(p){return String(p?.publicationId||p?.activityId||"")}
 function publicationById(t,id){return (t?.published||[]).find(p=>publicationKey(p)===String(id))||null}
 function underlyingActivityId(t,id){if(String(id)===TEAM_ID)return TEAM_ID;return publicationById(t,id)?.activityId||String(id||"")}
 function assignedActivity(t,id){return activityById(underlyingActivityId(t,id))}
-function today(d){return d.days[day()]}
+function today(d){return ensureAtelierClassSession(d,day(),atelierClassId())}
 function pendingRecordsForStudent(t,studentId){return Object.entries(t?.pending||{}).filter(([k,r])=>String(r?.studentId)===String(studentId)).map(([key,r])=>({key,...r}))}
 function activePendingKey(t,studentId){const key=t?.activeTask?.[studentId];if(key&&t?.pending?.[key])return key;const found=pendingRecordsForStudent(t,studentId).filter(r=>r.status!=='validated').sort((a,b)=>String(b.createdAt||'').localeCompare(String(a.createdAt||'')))[0];return found?.key||''}
 function isAtAbsent(t,studentId){return !!t?.absent?.[studentId]}
@@ -11751,7 +11791,7 @@ window.toggleAtelierViewMode=async function(){if(!state.studentView){state.stude
 window.returnToAtelierPending=function(){state.studentView=false;sessionStorage.removeItem(STUDENT_VIEW_KEY);state.page='pending';state.selectedActivity='';document.getElementById('atelier-app').classList.remove('hidden');document.getElementById('at-active-class').textContent=classLabel();render()}
 function render(){if(state.studentView&&!['morning','auto'].includes(state.page))state.page='morning';nav();if(state.page==='admin')renderAdmin();else if(state.page==='pending')renderPending();else if(state.page==='auto')renderAutoEvaluation();else renderMorning()}
 function renderMorning(){const d=database(),t=today(d),ps=pupils(),present=ps.filter(s=>!isAtAbsent(t,s.id)),absent=ps.filter(s=>isAtAbsent(t,s.id)),pub=[{publicationId:TEAM_ID,activityId:TEAM_ID,code:'CHEF',title:"Chef d’équipe",support:"Gestion de l’atelier pédagogique",capacity:1},...(t.published||[])];const hasLeader=Object.entries(t.assignments).some(([sid,v])=>!isAtAbsent(t,sid)&&v===TEAM_ID);const assignedPresent=present.filter(s=>t.assignments[s.id]).length;const nonAssigned=present.filter(s=>!t.assignments[s.id]).length;const cards=pub.map(p=>{const key=publicationKey(p),a=activityById(p.activityId)||p;const names=present.filter(s=>String(t.assignments[s.id])===key).map(s=>s.name);return `<article class="at-card published ${p.activityId===TEAM_ID?'at-team-card':''} ${state.selectedActivity===key?'selected':''}" onclick="selectAtActivity('${e(key)}')"><span class="at-code">${e(a.code||'ACT')}</span><span class="at-title">${e(a.title)}</span><div class="at-support">${p.activityId===TEAM_ID?'Rôle':'🚗 Support'} : ${e(p.support||'Non renseigné')}</div><div class="at-count">${names.length}/${p.capacity||4} élève${names.length>1?'s':''}${p.activityId===TEAM_ID&&!names.length?' — OBLIGATOIRE':''}</div><div class="at-names">${names.length?e(names.join(' • ')):'Aucun élève désigné'}</div></article>`}).join('');
-document.getElementById('at-main').innerHTML=`<section class="at-panel"><div class="at-toolbar"><h2>Choix des activités</h2><span class="at-pill">${e(classLabel())} — ${assignedPresent}/${present.length} présents positionnés · ${nonAssigned} non affecté(s) · ${absent.length} absent(s)</span></div>${absent.length?`<div class="at-absent-strip"><b>Absents :</b>${absent.map(s=>`<span class="at-absent-chip">${e(s.name)}</span>`).join('')}</div>`:''}</section><div class="at-morning-layout"><section class="at-panel"><div class="at-toolbar"><h2>Élèves</h2><small>2. Clique sur le nom de l’élève</small></div><div class="at-students">${ps.map(s=>{const absentFlag=isAtAbsent(t,s.id),assignment=t.assignments[s.id],a=assignedActivity(t,assignment),p=assignment===TEAM_ID?pub[0]:publicationById(t,assignment);const studentButton=`<button class="at-student ${assignment?'assigned':''} ${absentFlag?'absent':''}" ${absentFlag?'disabled':''} onclick="handleAtStudentClick('${e(s.id)}')">${e(s.name)}${absentFlag?'<small style="display:block;margin-top:5px">ABSENT</small>':assignment?`<small style="display:block;margin-top:5px;color:#557">${e(a?.title||underlyingActivityId(t,assignment))}${assignment===TEAM_ID?'':`<br>🚗 ${e(p?.support||'Support non renseigné')}`}</small>`:''}</button>`;return `<div class="at-student-wrap">${studentButton}${!state.studentView?`<button type="button" class="at-btn at-absent-btn ${absentFlag?'active':''}" title="${absentFlag?'Remettre présent':'Marquer absent'}" onclick="event.stopPropagation();toggleAtAbsent('${e(s.id)}')">${absentFlag?'Présent':'Absent'}</button>`:''}</div>`}).join('')}</div></section><section class="at-panel"><div class="at-toolbar"><h2>Travaux du jour</h2><small>1. Clique d’abord sur une activité</small></div><div class="at-grid">${cards}</div></section></div>`}
+document.getElementById('at-main').innerHTML=`<section class="at-panel"><div class="at-toolbar"><div><h2>Tableau du ${e(atDateLabel(day()))}</h2><div class="muted">${e(classLabel())}</div></div><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="at-pill">${assignedPresent}/${present.length} présents positionnés · ${nonAssigned} non affecté(s) · ${absent.length} absent(s)</span>${day()!==realDay()?'<button type="button" class="at-btn at-primary" onclick="returnAtelierToToday()">↩ Revenir à aujourd’hui</button>':''}</div></div>${absent.length?`<div class="at-absent-strip"><b>Absents :</b>${absent.map(s=>`<span class="at-absent-chip">${e(s.name)}</span>`).join('')}</div>`:''}</section><div class="at-morning-layout"><section class="at-panel"><div class="at-toolbar"><h2>Élèves</h2><small>2. Clique sur le nom de l’élève</small></div><div class="at-students">${ps.map(s=>{const absentFlag=isAtAbsent(t,s.id),assignment=t.assignments[s.id],a=assignedActivity(t,assignment),p=assignment===TEAM_ID?pub[0]:publicationById(t,assignment);const studentButton=`<button class="at-student ${assignment?'assigned':''} ${absentFlag?'absent':''}" ${absentFlag?'disabled':''} onclick="handleAtStudentClick('${e(s.id)}')">${e(s.name)}${absentFlag?'<small style="display:block;margin-top:5px">ABSENT</small>':assignment?`<small style="display:block;margin-top:5px;color:#557">${e(a?.title||underlyingActivityId(t,assignment))}${assignment===TEAM_ID?'':`<br>🚗 ${e(p?.support||'Support non renseigné')}`}</small>`:''}</button>`;return `<div class="at-student-wrap">${studentButton}${!state.studentView?`<button type="button" class="at-btn at-absent-btn ${absentFlag?'active':''}" title="${absentFlag?'Remettre présent':'Marquer absent'}" onclick="event.stopPropagation();toggleAtAbsent('${e(s.id)}')">${absentFlag?'Présent':'Absent'}</button>`:''}</div>`}).join('')}</div></section><section class="at-panel"><div class="at-toolbar"><h2>Travaux du jour</h2><small>1. Clique d’abord sur une activité</small></div><div class="at-grid">${cards}</div></section></div>`}
 window.selectAtActivity=function(id){state.selectedActivity=String(id);renderMorning()}
 window.toggleAtAbsent=function(studentId){const d=database(),t=today(d);if(isAtAbsent(t,studentId)){delete t.absent[studentId];save(d);renderMorning();return}const currentKey=activePendingKey(t,studentId),current=t.pending?.[currentKey];if(t.assignments[studentId]&&current?.status!=='validated'){if(!confirm("Cet élève a un travail en cours. Le marquer absent supprimera cette affectation et l’auto-évaluation associée. Continuer ?"))return;if(currentKey){delete t.pending[currentKey];delete t.selfEvals[currentKey]}delete t.assignments[studentId];delete t.activeTask[studentId]}else if(t.assignments[studentId]){delete t.assignments[studentId];delete t.activeTask[studentId]}t.absent[studentId]=true;save(d);renderMorning()}
 window.handleAtStudentClick=function(studentId){
@@ -11919,7 +11959,8 @@ function loadAtelierPlanning(){try{return JSON.parse(localStorage.getItem(ATELIE
 function saveAtelierPlanning(x){localStorage.setItem(ATELIER_PLANNING_KEY,JSON.stringify(x||{}))}
 function atIso(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`}
 function atDateLabel(iso){const [y,m,d]=String(iso).split("-").map(Number);return new Date(y,m-1,d).toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}
-function atPlanningEntries(iso){const p=loadAtelierPlanning();return Array.isArray(p[iso])?p[iso]:[]}
+function atPlanningKey(iso,classId=atelierClassId()){return String(classId)+"__"+String(iso)}
+function atPlanningEntries(iso){const p=loadAtelierPlanning(),k=atPlanningKey(iso);return Array.isArray(p[k])?p[k]:[]}
 
 function atPlanningActivities(){
   const all=activities().filter(a=>a&&a.id!==TEAM_ID);
@@ -11944,7 +11985,8 @@ function renderAtelierPlanningDay(iso){
   const entries=atPlanningEntries(atelierPlanningSelectedDate),acts=atPlanningActivities();
   return `<div class="at-planning-panel">
     <h3>Préparation du ${e(atDateLabel(atelierPlanningSelectedDate))}</h3>
-    <p>Prépare ici les activités qui seront proposées aux élèves à cette date.</p>
+    <p><b>${e(classLabel())}</b> — prépare les activités, puis ouvre directement le tableau de cette date pour placer les élèves.</p>
+    <button type="button" class="at-btn at-primary" style="margin:0 0 9px 0" onclick="openAtelierDateBoard(\'${e(atelierPlanningSelectedDate)}\')">👁 Ouvrir le tableau de cette date</button>
     <div class="at-plan-row">
       <select id="atPlanActivity"><option value="">Choisir une activité…</option>${acts.map(a=>`<option value="${e(a.id)}">${e((a.kind==="rta"?"RTA — ":"")+(a.code||a.id)+" — "+(a.title||""))}</option>`).join("")}</select>
       <input id="atPlanSupport" placeholder="Support prévu : véhicule / organe / maquette">
@@ -11952,23 +11994,52 @@ function renderAtelierPlanningDay(iso){
       <button type="button" class="at-btn at-success" onclick="addAtelierPlanningEntry()">Ajouter</button>
     </div>
     <div>${entries.length?entries.map((x,i)=>`<div class="at-plan-item"><div><b>${e(x.label||x.activityId)}</b><br><small>${e(x.support||"Support non renseigné")} · ${e(x.capacity||4)} place(s)</small></div><button type="button" class="at-btn at-danger" onclick="removeAtelierPlanningEntry(${i})">Supprimer</button></div>`).join(""):'<div class="at-empty">Aucune activité planifiée pour cette date.</div>'}</div>
-    ${atelierPlanningSelectedDate===atIso(new Date())?'<button type="button" class="at-btn at-success" style="margin-top:10px" onclick="applyPlanningToToday(true)">Charger maintenant dans l’Atelier du jour</button>':''}
+    <button type="button" class="at-btn at-success" style="margin-top:8px" onclick="applyPlanningToDate(atelierPlanningSelectedDate,true)">Charger les activités dans ce tableau</button>
   </div>`;
 }
 function calendarMonthHtml(){
   const now=new Date();
   if(!atelierCalendarMonthIso)atelierCalendarMonthIso=atIso(new Date(now.getFullYear(),now.getMonth(),1));
-  if(!atelierPlanningSelectedDate)atelierPlanningSelectedDate=atIso(now);
-  const base=new Date(atelierCalendarMonthIso+"T12:00:00"),y=base.getFullYear(),m=base.getMonth();
-  const first=new Date(y,m,1),start=new Date(first);start.setDate(first.getDate()-((first.getDay()+6)%7));
-  const names=["Lun","Mar","Mer","Jeu","Ven","Sam","Dim"],today=atIso(now);
+  if(!atelierPlanningSelectedDate)atelierPlanningSelectedDate=day();
+  const base=new Date(atelierCalendarMonthIso+"T12:00:00"),y=base.getFullYear(),mo=base.getMonth();
+  const first=new Date(y,mo,1),start=new Date(first);start.setDate(first.getDate()-((first.getDay()+6)%7));
+  const names=["Lun","Mar","Mer","Jeu","Ven","Sam","Dim"],todayIso=realDay();
   let cells=names.map(n=>`<div class="at-cal-dayname">${n}</div>`).join("");
   for(let i=0;i<42;i++){
     const d=new Date(start);d.setDate(start.getDate()+i);
     const iso=atIso(d),count=atPlanningEntries(iso).length;
-    cells+=`<div class="at-cal-cell ${d.getMonth()!==m?'other':''} ${iso===today?'today':''} ${iso===atelierPlanningSelectedDate?'selected':''}" onclick="selectAtelierPlanningDate('${iso}')"><div class="at-cal-date">${d.getDate()}</div><div class="at-cal-count">${count?count+" activité(s)":"—"}</div></div>`;
+    cells+=`<div class="at-cal-cell ${d.getMonth()!==mo?'other':''} ${iso===todayIso?'today':''} ${iso===atelierPlanningSelectedDate?'selected':''}" onclick="selectAtelierPlanningDate('${iso}')">
+      <div class="at-cal-date">${d.getDate()}</div>
+      <div class="at-cal-count">${count?count+" act.":"—"}</div>
+    </div>`;
   }
-  return `<div class="at-calendar-wrap"><div class="at-calendar-head"><button type="button" class="at-btn" onclick="moveAtelierCalendarMonth(-1)">◀</button><h3>${base.toLocaleDateString("fr-FR",{month:"long",year:"numeric"})}</h3><button type="button" class="at-btn" onclick="moveAtelierCalendarMonth(1)">▶</button></div><div class="at-calendar-grid">${cells}</div>${renderAtelierPlanningDay(atelierPlanningSelectedDate)}</div>`;
+  return `<div class="at-calendar-wrap">
+    <div>
+      <div class="at-calendar-head">
+        <button type="button" class="at-btn" onclick="moveAtelierCalendarMonth(-1)">◀</button>
+        <h3>${base.toLocaleDateString("fr-FR",{month:"long",year:"numeric"})}</h3>
+        <button type="button" class="at-btn" onclick="moveAtelierCalendarMonth(1)">▶</button>
+      </div>
+      <div class="at-calendar-grid">${cells}</div>
+    </div>
+    ${renderAtelierPlanningDay(atelierPlanningSelectedDate)}
+  </div>`;
+}
+
+window.openAtelierDateBoard=function(iso){
+  atelierPlanningSelectedDate=iso||realDay();
+  window.applyPlanningToDate(atelierPlanningSelectedDate,false);
+  state.workDate=atelierPlanningSelectedDate;
+  state.selectedActivity="";
+  state.page="morning";
+  render();
+}
+window.returnAtelierToToday=function(){
+  state.workDate="";
+  atelierPlanningSelectedDate=realDay();
+  state.selectedActivity="";
+  state.page="morning";
+  render();
 }
 window.selectAtelierPlanningDate=function(iso){atelierPlanningSelectedDate=iso;document.getElementById("atelier-calendar-host").innerHTML=calendarMonthHtml()}
 window.moveAtelierCalendarMonth=function(delta){const d=new Date(atelierCalendarMonthIso+"T12:00:00");d.setMonth(d.getMonth()+delta);atelierCalendarMonthIso=atIso(new Date(d.getFullYear(),d.getMonth(),1));document.getElementById("atelier-calendar-host").innerHTML=calendarMonthHtml()}
@@ -11976,25 +12047,39 @@ window.addAtelierPlanningEntry=function(){
   const id=document.getElementById("atPlanActivity")?.value||"",support=(document.getElementById("atPlanSupport")?.value||"").trim(),capacity=Math.max(1,Math.min(8,Number(document.getElementById("atPlanCapacity")?.value)||4));
   if(!id){alert("Choisis une activité.");return}
   const a=atResolvePlanningActivity(id);if(!a){alert("Activité introuvable.");return}
-  const p=loadAtelierPlanning(),date=atelierPlanningSelectedDate||atIso(new Date());p[date]=Array.isArray(p[date])?p[date]:[];
-  p[date].push({activityId:String(id),label:(a.code||a.id)+" — "+(a.title||""),support,capacity,createdAt:new Date().toISOString()});
+  const p=loadAtelierPlanning(),date=atelierPlanningSelectedDate||atIso(new Date()),k=atPlanningKey(date);p[k]=Array.isArray(p[k])?p[k]:[];
+  p[k].push({activityId:String(id),label:(a.code||a.id)+" — "+(a.title||""),support,capacity,createdAt:new Date().toISOString(),classId:atelierClassId()});
   saveAtelierPlanning(p);selectAtelierPlanningDate(date)
 }
-window.removeAtelierPlanningEntry=function(i){const p=loadAtelierPlanning(),date=atelierPlanningSelectedDate||atIso(new Date());if(!Array.isArray(p[date]))return;p[date].splice(i,1);if(!p[date].length)delete p[date];saveAtelierPlanning(p);selectAtelierPlanningDate(date)}
-window.applyPlanningToToday=function(showMessage){
-  const date=atIso(new Date()),entries=atPlanningEntries(date);if(!entries.length){if(showMessage)alert("Aucune activité planifiée pour aujourd’hui.");return}
-  const d=database(),t=today(d);t.rtaActivities=t.rtaActivities||[];t.published=t.published||[];
+window.removeAtelierPlanningEntry=function(i){const p=loadAtelierPlanning(),date=atelierPlanningSelectedDate||atIso(new Date()),k=atPlanningKey(date);if(!Array.isArray(p[k]))return;p[k].splice(i,1);if(!p[k].length)delete p[k];saveAtelierPlanning(p);selectAtelierPlanningDate(date)}
+window.applyPlanningToDate=function(date,showMessage){
+  const entries=atPlanningEntries(date);
+  if(!entries.length){if(showMessage)alert("Aucune activité planifiée pour cette date.");return}
+  const d=load(),classId=atelierClassId(),t=ensureAtelierClassSession(d,date,classId);
+  t.rtaActivities=t.rtaActivities||[];t.published=t.published||[];
   entries.forEach(x=>{
     const a=atResolvePlanningActivity(x.activityId);if(!a)return;
     if(String(x.activityId).startsWith("RTA::")&&!t.rtaActivities.some(id=>String(id)===String(x.activityId)))t.rtaActivities.push(String(x.activityId));
     const exists=t.published.some(p=>String(p.activityId)===String(x.activityId)&&String(p.support||"")===String(x.support||"")&&p.planned===true);
-    if(!exists)t.published.push({publicationId:String(x.activityId)+"__plan_"+Date.now().toString(36)+"_"+Math.random().toString(36).slice(2,5),activityId:String(x.activityId),code:a.code,title:a.title,support:x.support||"",capacity:x.capacity||4,publishedAt:new Date().toISOString(),planned:true});
+    if(!exists)t.published.push({
+      publicationId:String(x.activityId)+"__plan_"+Date.now().toString(36)+"_"+Math.random().toString(36).slice(2,5),
+      activityId:String(x.activityId),code:a.code,title:a.title,support:x.support||"",capacity:x.capacity||4,
+      publishedAt:new Date().toISOString(),planned:true,plannedFor:date,classId
+    });
   });
-  t._planningAppliedDate=date;save(d);if(showMessage){alert("Planning chargé dans l’Atelier du jour.");renderAdmin()}
+  t._planningAppliedDate=date;
+  localStorage.setItem(KEY,JSON.stringify(d));
+  if(showMessage)alert("Planning chargé dans le tableau du "+atDateLabel(date)+".");
+}
+window.applyPlanningToToday=function(showMessage){return window.applyPlanningToDate(realDay(),showMessage)}
+function autoApplyTodayPlanning(){
+  const date=realDay(),d=load(),t=ensureAtelierClassSession(d,date,atelierClassId());
+  if(t._planningAppliedDate===date)return;
+  if(atPlanningEntries(date).length)window.applyPlanningToDate(date,false);
 }
 function autoApplyTodayPlanning(){const date=atIso(new Date()),d=database(),t=today(d);if(t._planningAppliedDate===date)return;if(atPlanningEntries(date).length)applyPlanningToToday(false)}
 
-function renderAdmin(){autoApplyTodayPlanning();
+function renderAdmin(){autoApplyTodayPlanning();if(!atelierPlanningSelectedDate)atelierPlanningSelectedDate=day();
  const d=database(),t=today(d),
  primaries=(t.published||[]).filter(x=>publicationKey(x)===String(x.activityId)),
  selected=new Map(primaries.map(x=>[x.activityId,x])),
@@ -12010,12 +12095,12 @@ function renderAdmin(){autoApplyTodayPlanning();
  <section class="at-panel">
    <div class="at-toolbar">
      <div>
-       <h2>Administration des activités du jour</h2>
+       <h2>Administration des activités — ${e(atDateLabel(day()))}</h2>
        <div class="muted" style="margin-top:4px">Classe active : <b>${e(classLabel())}</b></div>
      </div>
      <div class="at-admin-top-actions">
-       <button class="at-btn at-primary" onclick="publishAtelierDay()">✓ Publier pour aujourd’hui</button>
-       <button class="at-btn at-danger" onclick="resetAtelierDay()">Réinitialiser les choix du jour</button>
+       <button class="at-btn at-primary" onclick="publishAtelierDay()">✓ Publier pour cette date</button>
+       <button class="at-btn at-danger" onclick="resetAtelierDay()">Réinitialiser cette date</button>
      </div>
    </div>
    <div class="at-admin-intro">Chaque famille d’activités possède maintenant sa propre couleur. Ouvre uniquement la rubrique dont tu as besoin, sélectionne les travaux, renseigne les supports puis publie.</div>
@@ -12086,8 +12171,8 @@ window.toggleAtCatalog=function(ev,id){window.__atSelected=window.__atSelected||
 window.duplicateAtelierPublication=function(activityId){const d=database(),t=today(d),a=activityById(activityId);if(!a){alert('Activité introuvable.');return}const primary=(t.published||[]).find(p=>String(p.activityId)===String(activityId)&&publicationKey(p)===String(activityId));const support=(document.getElementById('support_'+activityId)?.value||primary?.support||'').trim();const capacity=Math.max(1,Math.min(8,Number(document.getElementById('capacity_'+activityId)?.value)||primary?.capacity||4));if(!support){alert('Renseigne d’abord le support de la première publication.');return}const publicationId=String(activityId)+'__'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,5);t.published.push({publicationId,activityId:String(activityId),code:a.code,title:a.title,support:support+' — autre support',capacity,publishedAt:new Date().toISOString()});save(d);renderAdmin();setTimeout(()=>{const input=document.getElementById('support_pub_'+encodeURIComponent(publicationId));if(input){input.focus();input.select();}},0)}
 window.removeAtelierPublication=function(encoded){const key=decodeURIComponent(encoded);const d=database(),t=today(d);if(Object.values(t.assignments||{}).some(v=>String(v)===String(key))){alert('Ce support est encore affecté à un élève. Désaffecte d’abord les élèves concernés dans le Tableau du jour.');return}if(!confirm('Retirer cette publication supplémentaire ?'))return;t.published=(t.published||[]).filter(p=>publicationKey(p)!==String(key));save(d);renderAdmin()}
 window.publishAtelierDay=function(){const d=database(),t=today(d),out=[];for(const id of (window.__atSelected||[])){const a=activityById(id),support=(document.getElementById('support_'+id)?.value||'').trim(),capacity=Math.max(1,Math.min(8,Number(document.getElementById('capacity_'+id)?.value)||4));if(!support){alert('Renseigne le support pour « '+(a?.title||id)+' ».');return}out.push({publicationId:String(id),activityId:String(id),code:a?.code,title:a?.title,support,capacity,publishedAt:new Date().toISOString()})}const extras=(t.published||[]).filter(p=>publicationKey(p)!==String(p.activityId));for(const p of extras){if(!(window.__atSelected||new Set()).has(String(p.activityId)))continue;const key=publicationKey(p),support=(document.getElementById('support_pub_'+encodeURIComponent(key))?.value||p.support||'').trim(),capacity=Math.max(1,Math.min(8,Number(document.getElementById('capacity_pub_'+encodeURIComponent(key))?.value)||p.capacity||4));if(!support){alert('Renseigne le support de la publication supplémentaire « '+(p.title||p.activityId)+' ».');return}out.push({...p,publicationId:key,support,capacity,publishedAt:p.publishedAt||new Date().toISOString()})}t.published=out;const validKeys=new Set(out.map(publicationKey));Object.keys(t.assignments).forEach(s=>{if(t.assignments[s]!==TEAM_ID&&!validKeys.has(String(t.assignments[s]))){const k=activePendingKey(t,s);if(k&&t.pending?.[k]?.status!=='validated'){delete t.pending[k];delete t.selfEvals[k]}delete t.assignments[s];delete t.activeTask[s]}});save(d);alert(out.length+' travail(aux) publié(s), supports supplémentaires compris. Le chef d’équipe obligatoire est ajouté automatiquement.');renderAdmin()}
-window.resetAtelierDay=function(){if(!confirm("Effacer les publications, affectations, activités personnalisées et évaluations encore en attente aujourd’hui ?"))return;const d=database();d.days[day()]={published:[],assignments:{},pending:{},selfEvals:{},customActivities:[],rtaActivities:[],absent:{},activeTask:{}};save(d);renderAdmin()}
-window.exportAtelierData=function(){const blob=new Blob([JSON.stringify(database(),null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='atelier_du_jour_'+day()+'.json';a.click();URL.revokeObjectURL(a.href)}
+window.resetAtelierDay=function(){if(!confirm("Effacer les publications, affectations, activités personnalisées et évaluations encore en attente aujourd’hui ?"))return;const d=database();d.classDays=d.classDays||{};d.classDays[atelierClassId()]=d.classDays[atelierClassId()]||{};d.classDays[atelierClassId()][day()]=blankAtelierSession();save(d);renderAdmin()}
+window.exportAtelierData=function(){const blob=new Blob([JSON.stringify(database(),null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='atelier_'+classLabel().replace(/[^a-z0-9]+/gi,'_')+'_'+day()+'.json';a.click();URL.revokeObjectURL(a.href)}
 window.importAtelierData=function(file){if(!file)return;const reader=new FileReader();reader.onload=()=>{try{const data=JSON.parse(reader.result);localStorage.setItem(KEY,JSON.stringify(data));renderAdmin();alert('Sauvegarde importée.')}catch(err){alert('Fichier JSON invalide.')}};reader.readAsText(file)}
 function autoQuestion(key,label,values,current){return `<div class="at-question"><b>${e(label)}</b><div class="at-scale" role="group" aria-label="${e(label)}">${values.map((v,i)=>`<button type="button" class="at-color-choice at-color-${i+1} ${Number(current)===i+1?'selected':''}" onclick="pickAtAuto('${key}',${i+1})" aria-label="${e(v)}" title="${e(v)}"></button>`).join('')}</div></div>`}
 function renderAutoEvaluation(){const d=database(),t=today(d),eligible=pupils().filter(s=>{
@@ -12142,7 +12227,33 @@ window.reopenAtAutoEvaluation=function(encoded){
  alert("La main a été redonnée à l’élève. Son auto-évaluation a été entièrement réinitialisée.");
  renderPending();
 }
-window.completeAtelierEvaluation=function(studentId,sessionDay,pendingKey){const d=database(),key=sessionDay||day(),session=d.days?.[key],id=String(studentId);if(!session)return false;let taskKey=pendingKey&&session.pending?.[pendingKey]?pendingKey:(session.activeTask?.[id]||'');if(!taskKey||!session.pending?.[taskKey]){const found=Object.entries(session.pending||{}).find(([k,r])=>String(r?.studentId)===id&&r?.status!=='validated');taskKey=found?.[0]||''}if(!taskKey||!session.pending?.[taskKey])return false;session.pending[taskKey].status='validated';session.pending[taskKey].validatedAt=new Date().toISOString();if(session.activeTask?.[id]===taskKey)delete session.activeTask[id];save(d);return true}
+window.completeAtelierEvaluation=function(studentId,sessionDay,pendingKey){
+  const d=load(),date=sessionDay||day(),id=String(studentId);
+  let session=null;
+  // Priorité à la classe active, puis recherche de secours dans les autres classes.
+  const activeClass=atelierClassId();
+  session=d.classDays?.[activeClass]?.[date]||null;
+  if(!session && d.classDays){
+    for(const cls of Object.keys(d.classDays)){
+      const candidate=d.classDays?.[cls]?.[date];
+      if(candidate && (candidate.pending?.[pendingKey] || Object.values(candidate.pending||{}).some(r=>String(r?.studentId)===id))){
+        session=candidate;break;
+      }
+    }
+  }
+  if(!session)return false;
+  let taskKey=pendingKey&&session.pending?.[pendingKey]?pendingKey:(session.activeTask?.[id]||'');
+  if(!taskKey||!session.pending?.[taskKey]){
+    const found=Object.entries(session.pending||{}).find(([k,r])=>String(r?.studentId)===id&&r?.status!=='validated');
+    taskKey=found?.[0]||'';
+  }
+  if(!taskKey||!session.pending?.[taskKey])return false;
+  session.pending[taskKey].status='validated';
+  session.pending[taskKey].validatedAt=new Date().toISOString();
+  if(session.activeTask?.[id]===taskKey)delete session.activeTask[id];
+  localStorage.setItem(KEY,JSON.stringify(d));
+  return true;
+}
 function reconcileAtelierEvaluations(d,t){let changed=false;const pool=[...(Array.isArray(allStudents)?allStudents:[]),...(Array.isArray(students)?students:[])];for(const [key,r] of Object.entries(t.pending||{})){if(r.status==='validated')continue;const owner=pool.find(s=>String(s.id)===String(r.studentId)),activity=activityById(r.activityId);const done=(owner?.evaluations||[]).some(ev=>{if(!ev.atelierSource||String(ev.atelierDay||'')!==day()||String(ev.studentId)!==String(r.studentId))return false;if(ev.atelierPendingKey&&String(ev.atelierPendingKey)===String(key))return true;if(r.publicationId&&ev.atelierPublicationId&&String(ev.atelierPublicationId)!==String(r.publicationId))return false;if(activity?.kind==='rentree')return String(ev.rentreeThemeId||'')===String(activity.rentreeTheme?.id||'');if(activity?.kind==='activity')return String(ev.activityId||'')===String(activity.activity?.id||'');if(activity?.kind==='professional')return String(ev.profSituation||'')===String(activity.profCode||'');return String(ev.title||'')===String(r.title||'');});if(done){r.status='validated';r.validatedAt=r.validatedAt||new Date().toISOString();if(t.activeTask?.[r.studentId]===key)delete t.activeTask[r.studentId];changed=true;}}if(changed)save(d);}
 function renderPending(){
  const d=database(),t=today(d);

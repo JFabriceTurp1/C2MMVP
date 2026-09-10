@@ -138,3 +138,21 @@ AUTRES CORRECTIONS CONSERVÉES
 - « Retour aux évaluations » devient « Retour Accueil ».
 
 Cette version est volontairement une version d’essai : le planning calendrier est mémorisé localement dans le navigateur. Après validation de l’ergonomie et du fonctionnement, la synchronisation Firebase pourra être ajoutée.
+
+
+ÉVOLUTIONS TEST 10 — CALENDRIER COMPACT + TABLEAUX FUTURS + CLASSES SÉPARÉES
+- Calendrier fortement réduit en hauteur pour garder les choix d’activités visibles.
+- Affichage du calendrier et du panneau de préparation côte à côte sur grand écran.
+- Depuis une date du calendrier, bouton « Ouvrir le tableau de cette date ».
+- Possibilité d’ouvrir un tableau futur et d’y placer les élèves avant le jour J.
+- Le tableau affiche clairement la date consultée et la classe active.
+- Bouton « Revenir à aujourd’hui » quand on consulte une date future.
+- Les activités planifiées pour une date peuvent être chargées directement dans le tableau correspondant.
+- Décloisonnement des classes : les données atelier sont désormais séparées par CLASSE + DATE.
+  Une activité/affectation préparée pour une classe n’est pas recopiée vers une autre classe.
+- Le planning calendrier est lui aussi séparé par classe.
+- L’ancien tableau non cloisonné est migré une seule fois vers la première classe utilisée afin d’éviter sa duplication dans les autres classes.
+- « Même travail / autre support » reste limité aux travaux du tableau correspondant à la classe et à la date affichées.
+- Le bouton « Retour Accueil » est conservé.
+
+Cette version reste une version d’essai fonctionnelle. La séparation classe/date est appliquée au stockage local et à la sauvegarde atelier Firebase par classe/date.
