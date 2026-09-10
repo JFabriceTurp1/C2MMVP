@@ -2382,7 +2382,7 @@ body{background:#f7f9fc;color:var(--text)}
   body.rentree-printing .rentree-competence-note{display:none!important}
   body.rentree-printing .rentree-print-signature{font-weight:800!important;margin-top:1mm!important}
   body.rentree-printing .rentree-print-footer{display:flex!important;position:fixed!important;left:10mm!important;right:10mm!important;bottom:5mm!important;justify-content:space-between!important;font-size:7.5pt!important;color:#667085!important}
-  /* Évaluation, charge atelier et intégration RTA — TEST 6 : fiche de rentrée compacte sur une seule page */
+  /* Évaluation, charge atelier et intégration RTA — TEST 7 : fiche de rentrée compacte sur une seule page */
   body.rentree-printing .rentree-print-page{min-height:0!important;height:auto!important;break-inside:avoid!important;page-break-inside:avoid!important}
   body.rentree-printing .rentree-print-school-header{height:15mm!important;margin-bottom:1.5mm!important}
   body.rentree-printing .rentree-print-school-header img{max-height:14mm!important}
@@ -4233,11 +4233,22 @@ function findEvaluationOwner(evaluationId,studentIdHint){
   return {owner:null,ev:null};
 }
 
-function editEvaluation(evaluationId,studentIdHint){
+async function editEvaluation(evaluationId,studentIdHint){
   const id=String(evaluationId);
   const found=findEvaluationOwner(id,studentIdHint);
   const owner=found.owner, ev=found.ev;
   if(!ev){alert("Évaluation introuvable.");return;}
+  // TEST 7 : entrer en modification retire automatiquement le drapeau « À finaliser ».
+  if(ev.needsFinalization){
+    ev.needsFinalization=false;
+    delete ev.finalizationFlaggedAt;
+    try{
+      await openDB();
+      await put("evaluations",{...ev});
+    }catch(err){
+      console.warn("Réinitialisation À finaliser impossible",err);
+    }
+  }
   if(ev.rentreeEvaluation){editRentreeEvaluation(ev,owner);return;}
   if(ev.ficheActiviteEvaluation || ev.rtaEvaluation || ev.evalPath==="rta" || ev.type==="Évaluation sur RTA"){editActivityEvaluation(ev,owner);return;}
   selectedStudent=owner.id;
@@ -11585,6 +11596,19 @@ window.addEventListener("resize",function(){
 #atelier-open-btn:hover{background:#f6ad25}
 #atelier-app{position:fixed;inset:0;z-index:16000;background:#eef4f8;overflow:auto;color:#152335;font-family:Arial,sans-serif}
 #atelier-app.hidden{display:none!important}.at-head{position:sticky;top:0;z-index:3;background:#0b4383;color:#fff;padding:12px 18px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 10px #0002}.at-head h1{font-size:21px;margin:0;flex:1}.at-head button,.at-btn{border:0;border-radius:9px;padding:9px 13px;font-weight:800;cursor:pointer}.at-head button{background:#fff;color:#0b4383}.at-nav{display:flex;gap:8px;flex-wrap:wrap;padding:12px 18px 0}.at-nav button{border:1px solid #b8c8dc;background:#fff;color:#17365d;border-radius:10px;padding:10px 14px;font-weight:800;cursor:pointer}.at-nav button.active{background:#0b4383;color:#fff}.at-main{padding:14px 18px 30px}.at-panel{background:#fff;border:1px solid #d2dce8;border-radius:14px;padding:15px;margin-bottom:14px;box-shadow:0 3px 12px #0f172a0c}.at-toolbar{display:flex;gap:9px;align-items:center;flex-wrap:wrap}.at-toolbar h2{margin:0 auto 0 0;color:#17365d;font-size:19px}.at-toolbar select,.at-toolbar input{padding:9px;border:1px solid #bac7d8;border-radius:8px}.at-primary{background:#2463eb;color:#fff}.at-success{background:#16824b;color:#fff}.at-light{background:#eef3f8;color:#17365d}.at-danger{background:#b42318;color:#fff}.at-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(285px,1fr));gap:10px;margin-top:12px}.at-card{border:1px solid #e0a13b;background:#fff4df;border-radius:11px;padding:12px;min-height:112px;cursor:pointer;position:relative}.at-card.selected{border:3px solid #1e66b3;background:#e8f4ee;box-shadow:0 0 0 3px #1e66b322}.at-card.published{border-color:#16824b;background:#e7f7ed}.at-code{display:inline-block;background:#eaf1f8;color:#0b4383;border-radius:6px;padding:3px 7px;font-weight:900;font-size:12px}.at-title{font-weight:900;margin-left:7px}.at-support{margin-top:9px;padding:7px 9px;border-left:4px solid #ef8f00;background:#fff;color:#683b00;border-radius:5px;font-weight:900}.at-count{margin-top:8px;color:#08783f;font-weight:900}.at-names{font-size:15px;font-weight:900;line-height:1.35;color:#334155;margin-top:7px}.at-students{display:grid;grid-template-columns:repeat(auto-fit,minmax(185px,1fr));gap:8px;margin-top:12px}.at-student{border:1px solid #cbd5e1;background:#fff;border-radius:9px;padding:10px;text-align:left;cursor:pointer;font-weight:800}.at-student.assigned{background:#e8f5ed;border-color:#37a268}.at-student.selected{outline:3px solid #2463eb}.at-group{border:1px solid #d6e1ee;border-radius:12px;margin-top:10px;overflow:hidden}.at-group summary{cursor:pointer;background:#f3f7fb;padding:11px;font-weight:900;color:#17365d}.at-catalog-row{display:grid;grid-template-columns:minmax(220px,1fr) minmax(220px,1fr) 110px;gap:8px;padding:9px;border-top:1px solid #e6ebf1;align-items:center}.at-catalog-row input{padding:8px;border:1px solid #bac7d8;border-radius:8px;width:100%;box-sizing:border-box}.at-catalog-row.chosen{background:#e7f7ed}.at-pill{font-size:12px;border-radius:999px;padding:4px 8px;background:#eef2f6}.at-notice{padding:11px;border-left:4px solid #2463eb;background:#eff6ff;margin-top:10px}.at-table{width:100%;border-collapse:collapse;margin-top:10px}.at-table th,.at-table td{padding:9px;border-bottom:1px solid #e2e8f0;text-align:left}.at-table th{background:#f1f5f9;color:#17365d}.at-empty{text-align:center;padding:24px;color:#64748b}.at-status-draft{color:#b45309;font-weight:900}.at-status-ready{color:#16824b;font-weight:900}
+.at-auto-students button.team-leader{color:#b42318!important;border-color:#ef4444!important;background:#fff1f2!important;font-weight:900!important}
+.at-auto-students button.team-leader.active{background:#fee2e2!important;outline:3px solid #dc2626!important}
+.at-team-leader-title{color:#b42318!important;font-weight:900!important}
+.at-status-validate{color:#1d4ed8;font-weight:900}
+.at-admin-zone.rta{border-color:#7c3aed;background:linear-gradient(180deg,#faf5ff,#f5f3ff)}
+.at-admin-zone.rta h3{color:#6d28d9}
+.at-rta-create{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.at-rta-create select,.at-rta-create input{padding:9px;border:1px solid #bac7d8;border-radius:8px;width:100%;box-sizing:border-box}
+.at-rta-create .full{grid-column:1/-1}
+.at-admin-zone.tools{position:relative;z-index:2;overflow:visible}
+.at-admin-dashboard{padding-bottom:110px}
+#at-main{padding-bottom:140px}
+
 @media(max-width:720px){.active-class-actions{width:100%;justify-content:flex-start}.at-catalog-row{grid-template-columns:1fr}.at-head h1{font-size:16px}.at-main{padding:10px}.at-grid{grid-template-columns:1fr}}
 .at-morning-layout{display:grid;grid-template-columns:minmax(390px,.7fr) minmax(600px,1.3fr);gap:10px}.at-morning-layout>.at-panel{margin-bottom:0}.at-team-card{background:#fff0f0!important;border:2px solid #ef4444!important}.at-team-card .at-code{background:#e97171;color:#fff}.at-team-card .at-count{color:#c43b3b}.at-admin-layout{display:grid;grid-template-columns:430px minmax(0,1fr) minmax(0,1fr);gap:10px;margin-top:12px;align-items:start}.at-admin-team{border:2px solid #ef4444;background:#fff1f2;border-radius:12px;padding:12px;min-height:150px}.at-admin-team h3{margin:0 0 4px;color:#8b1e1e}.at-required{display:inline-block;background:#e33434;color:#fff;border-radius:999px;padding:3px 8px;font-size:10px;font-weight:900;margin-left:7px}.at-admin-column{border:1px solid #d5dfeb;border-radius:12px;overflow:hidden;background:#fff;min-height:150px}.at-admin-column>details{border:0;margin:0;border-radius:0}.at-admin-column>details+details{border-top:1px solid #dbe4ee}.at-admin-actions{display:flex;justify-content:flex-end;gap:9px;flex-wrap:wrap}.at-auto-form{max-width:850px;margin:12px auto}.at-question{border:1px solid #d6e0eb;border-radius:11px;padding:12px;margin:9px 0}.at-scale{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:8px}.at-scale button{border:1px solid #c5d0dd;border-radius:8px;background:#fff;padding:9px;cursor:pointer}.at-scale button.selected{background:#2463eb;color:#fff;border-color:#2463eb}.at-auto-students{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}.at-auto-students button{border:1px solid #cbd5e1;border-radius:9px;background:#fff;padding:9px 11px;cursor:pointer}.at-auto-students button.done{background:#e8f5ed;border-color:#37a268}.at-auto-students button.active{outline:3px solid #2463eb}
 .at-admin-layout{grid-template-columns:repeat(3,minmax(0,1fr))}
@@ -11622,7 +11646,7 @@ window.addEventListener("resize",function(){
 .at-custom-create input{padding:10px;border:1px solid #bac7d8;border-radius:8px;box-sizing:border-box;width:100%}@media(max-width:1050px){.at-custom-create{grid-template-columns:1fr 1fr}.at-custom-create .at-btn{grid-column:1/-1}}@media(max-width:650px){.at-custom-create{grid-template-columns:1fr}}
 </style>
 <section id="atelier-app" class="hidden" aria-label="Evaluation et charge atelier">
-  <header class="at-head"><h1>Evaluation &amp; Charge atelier Évaluation, charge atelier et intégration RTA — TEST 6 — Firebase</h1><span id="at-active-class"></span><button id="at-view-mode-btn" type="button" onclick="toggleAtelierViewMode()">Vue élève</button><button id="at-change-class-btn" type="button" onclick="openClassPicker()">⇄ Changer de classe</button><button id="at-return-main-btn" type="button" onclick="closeAtelierUnified()">Retour aux évaluations</button></header>
+  <header class="at-head"><h1>Evaluation &amp; Charge atelier Évaluation, charge atelier et intégration RTA — TEST 7 — Firebase</h1><span id="at-active-class"></span><button id="at-view-mode-btn" type="button" onclick="toggleAtelierViewMode()">Vue élève</button><button id="at-change-class-btn" type="button" onclick="openClassPicker()">⇄ Changer de classe</button><button id="at-return-main-btn" type="button" onclick="closeAtelierUnified()">Retour aux évaluations</button></header>
   <nav class="at-nav" id="at-nav"></nav><main class="at-main" id="at-main"></main>
 </section>
 <script id="atelier-unifie-v5-script">
@@ -11644,7 +11668,7 @@ function save(data){
     window.firebaseSaveAtelierSession(session,classId,day()).catch(err=>console.warn('Séance atelier non synchronisée',err));
   }
 }
-function database(){const d=load();d.days=d.days||{};d.days[day()]=d.days[day()]||{published:[],assignments:{},pending:{},selfEvals:{},customActivities:[],absent:{},activeTask:{}};const t=d.days[day()];t.published=Array.isArray(t.published)?t.published:[];t.published=t.published.map((p,i)=>({...p,publicationId:String(p.publicationId||p.instanceId||p.activityId||('PUB-'+i))}));t.assignments=t.assignments||{};t.pending=t.pending||{};t.selfEvals=t.selfEvals||{};t.customActivities=Array.isArray(t.customActivities)?t.customActivities:[];t.absent=t.absent||{};t.activeTask=t.activeTask||{};Object.keys(t.assignments).forEach(studentId=>{if(t.activeTask[studentId])return;const legacy=t.pending[studentId];if(legacy){const key='T-'+studentId+'-'+Date.now()+'-'+Math.random().toString(36).slice(2,7);t.pending[key]={...legacy,pendingKey:key,sequence:legacy.sequence||1};delete t.pending[studentId];t.activeTask[studentId]=key;if(t.selfEvals[studentId]){t.selfEvals[key]={...t.selfEvals[studentId],pendingKey:key};delete t.selfEvals[studentId]}}else{const found=Object.entries(t.pending).find(([k,r])=>String(r?.studentId)===String(studentId)&&r?.status!=='validated');if(found)t.activeTask[studentId]=found[0]}});return d}
+function database(){const d=load();d.days=d.days||{};d.days[day()]=d.days[day()]||{published:[],assignments:{},pending:{},selfEvals:{},customActivities:[],rtaActivities:[],absent:{},activeTask:{}};const t=d.days[day()];t.published=Array.isArray(t.published)?t.published:[];t.published=t.published.map((p,i)=>({...p,publicationId:String(p.publicationId||p.instanceId||p.activityId||('PUB-'+i))}));t.assignments=t.assignments||{};t.pending=t.pending||{};t.selfEvals=t.selfEvals||{};t.customActivities=Array.isArray(t.customActivities)?t.customActivities:[];t.rtaActivities=Array.isArray(t.rtaActivities)?t.rtaActivities:[];t.absent=t.absent||{};t.activeTask=t.activeTask||{};Object.keys(t.assignments).forEach(studentId=>{if(t.activeTask[studentId])return;const legacy=t.pending[studentId];if(legacy){const key='T-'+studentId+'-'+Date.now()+'-'+Math.random().toString(36).slice(2,7);t.pending[key]={...legacy,pendingKey:key,sequence:legacy.sequence||1};delete t.pending[studentId];t.activeTask[studentId]=key;if(t.selfEvals[studentId]){t.selfEvals[key]={...t.selfEvals[studentId],pendingKey:key};delete t.selfEvals[studentId]}}else{const found=Object.entries(t.pending).find(([k,r])=>String(r?.studentId)===String(studentId)&&r?.status!=='validated');if(found)t.activeTask[studentId]=found[0]}});return d}
 function publicationKey(p){return String(p?.publicationId||p?.activityId||"")}
 function publicationById(t,id){return (t?.published||[]).find(p=>publicationKey(p)===String(id))||null}
 function underlyingActivityId(t,id){if(String(id)===TEAM_ID)return TEAM_ID;return publicationById(t,id)?.activityId||String(id||"")}
@@ -11667,7 +11691,22 @@ function activities(){
   try{const d=database(),t=today(d);(t.customActivities||[]).forEach((x,i)=>a.push({id:String(x.id),code:x.code||('PERSO'+(i+1)),title:x.title||'Activité personnalisée',description:x.description||'Activité du jour personnalisée',kind:'custom',comps:Array.isArray(x.comps)?x.comps:[]}))}catch(err){}
   return a;
 }
-function activityById(id){if(id===TEAM_ID)return {id:TEAM_ID,code:'CHEF',title:"Chef d’équipe",description:"Coordination et gestion de l’atelier pédagogique",kind:'team'};return activities().find(x=>x.id===id)}
+function activityById(id){
+  if(id===TEAM_ID)return {id:TEAM_ID,code:'CHEF',title:"Chef d’équipe",description:"Coordination et gestion de l’atelier pédagogique",kind:'team'};
+  const direct=activities().find(x=>String(x.id)===String(id));
+  if(direct)return direct;
+  const ra=rtaActivityByCompositeId(id);
+  if(ra)return {
+    id:String(id),
+    code:"RTA "+String(ra.numero||ra.id||""),
+    title:ra.titre||ra.activite||"Activité RTA",
+    description:[ra.rtaLibraryName,ra.theme||ra.chapitre,ra.sourceMotorisation||ra.motorisation].filter(Boolean).join(" — "),
+    kind:"rta",
+    activity:ra,
+    comps:[...(ra.competences_cap||[]),...(ra.competences_bac_pro||[])]
+  };
+  return null;
+}
 function updateAtelierModeUI(){const mode=document.getElementById('at-view-mode-btn'),back=document.getElementById('at-return-main-btn'),changeClass=document.getElementById('at-change-class-btn'),app=document.getElementById('atelier-app');if(mode)mode.textContent=state.studentView?'🔒 Vision Prof':'👁 Vue élève';if(back)back.hidden=state.studentView;if(changeClass)changeClass.hidden=state.studentView;app?.classList.toggle('at-student-view',state.studentView)}
 function nav(){const items=state.studentView?[['morning','Tableau du jour'],['auto','Auto-évaluation']]:[['morning','Tableau du jour'],['admin','Administration du jour'],['auto','Auto-évaluation'],['pending','Évaluations du jour']];document.getElementById('at-nav').innerHTML=items.map(x=>`<button class="${state.page===x[0]?'active':''}" onclick="atelierPage('${x[0]}')">${x[1]}</button>`).join('');updateAtelierModeUI()}
 window.openAtelierUnified=function(){if(state.studentView&&!['morning','auto'].includes(state.page))state.page='morning';document.getElementById('atelier-app').classList.remove('hidden');document.getElementById('at-active-class').textContent=classLabel();render()}
@@ -11723,6 +11762,92 @@ window.assignAtStudent=function(studentId){if(!state.selectedActivity){alert("Cl
 function adminRows(list,selected){return list.map(a=>{const p=selected.get(a.id);return `<div class="at-catalog-row ${p?'chosen':''}" id="row_${e(a.id)}" onclick="toggleAtCatalog(event,'${e(a.id)}')"><div><b>${e(a.code)} — ${e(a.title)}</b><br><small>${e(a.description||'')}</small>${p?`<div class="at-duplicate-note"><button type="button" class="at-btn at-light" style="padding:5px 8px" onclick="event.stopPropagation();duplicateAtelierPublication('${e(a.id)}')">＋ Même travail / autre support</button></div>`:''}</div><input id="support_${e(a.id)}" value="${e(p?.support||'')}" placeholder="Support : véhicule / organe / maquette" onclick="event.stopPropagation()"><input id="capacity_${e(a.id)}" type="number" min="1" max="8" value="${p?.capacity||4}" title="Places maximum" onclick="event.stopPropagation()"></div>`}).join('')}
 function customActivityRows(list,selected){return list.length?list.map(a=>{const p=selected.get(a.id);return `<div class="at-catalog-row ${p?'chosen':''}" id="row_${e(a.id)}" onclick="toggleAtCatalog(event,'${e(a.id)}')"><div><b>${e(a.code||'PERSO')} — ${e(a.title)}</b><br><small>${e(a.description||'Activité personnalisée')}</small><div style="margin-top:7px"><button type="button" class="at-btn at-danger" style="padding:5px 8px" onclick="event.stopPropagation();deleteCustomAtelierActivity('${e(a.id)}')">Supprimer</button>${p?` <button type="button" class="at-btn at-light" style="padding:5px 8px" onclick="event.stopPropagation();duplicateAtelierPublication('${e(a.id)}')">＋ Autre support</button>`:''}</div></div><input id="support_${e(a.id)}" value="${e(p?.support||a.defaultSupport||'')}" placeholder="Support : véhicule / organe / maquette" onclick="event.stopPropagation()"><input id="capacity_${e(a.id)}" type="number" min="1" max="8" value="${p?.capacity||a.capacity||4}" title="Places maximum" onclick="event.stopPropagation()"></div>`}).join(''):'<div class="at-empty">Aucune activité personnalisée créée aujourd’hui.</div>'}
 function duplicatePublicationRows(t){const extras=(t.published||[]).filter(p=>publicationKey(p)!==String(p.activityId));return extras.length?extras.map((p,i)=>{const a=activityById(p.activityId)||p;const key=publicationKey(p);return `<div class="at-catalog-row chosen at-extra-publication"><div><b>${e(a.code||'ACT')} — ${e(a.title||p.title||p.activityId)}</b><br><small>Publication supplémentaire n°${i+1} — même travail, support distinct</small><div style="margin-top:7px"><button type="button" class="at-btn at-danger" style="padding:5px 8px" onclick="removeAtelierPublication('${e(encodeURIComponent(key))}')">Retirer ce support</button></div></div><input id="support_pub_${e(encodeURIComponent(key))}" value="${e(p.support||'')}" placeholder="Support : véhicule / organe / maquette"><input id="capacity_pub_${e(encodeURIComponent(key))}" type="number" min="1" max="8" value="${p.capacity||4}" title="Places maximum"></div>`}).join(''):'<div class="at-empty">Aucun support supplémentaire publié.</div>'}
+
+function atelierRtaLibraries(){
+  return getRtaLibraries().filter(lib=>lib&&lib.active!==false);
+}
+function atelierRtaCompositeId(libId,activityId){
+  return "RTA::"+String(libId)+"::"+String(activityId);
+}
+function atelierRtaSelectedItems(t){
+  return (t?.rtaActivities||[]).map(id=>activityById(id)).filter(Boolean);
+}
+function atelierRtaRows(t,selected){
+  const list=atelierRtaSelectedItems(t);
+  if(!list.length)return '<div class="at-empty">Aucune activité RTA ajoutée à la séance.</div>';
+  return list.map(a=>{
+    const p=selected.get(a.id);
+    return `<div class="at-catalog-row ${p?'chosen':''}" id="row_${e(a.id)}" onclick="toggleAtCatalog(event,'${e(a.id)}')">
+      <div><b>${e(a.code)} — ${e(a.title)}</b><br><small>${e(a.description||'Activité RTA')}</small>
+      <div style="margin-top:7px"><button type="button" class="at-btn at-danger" style="padding:5px 8px" onclick="event.stopPropagation();removeRtaAtelierActivity('${e(encodeURIComponent(a.id))}')">Retirer</button></div></div>
+      <input id="support_${e(a.id)}" value="${e(p?.support||'')}" placeholder="Support : véhicule / organe / maquette" onclick="event.stopPropagation()">
+      <input id="capacity_${e(a.id)}" type="number" min="1" max="8" value="${p?.capacity||4}" title="Places maximum" onclick="event.stopPropagation()">
+    </div>`;
+  }).join('');
+}
+function atelierRtaAdminControls(t){
+  const libs=atelierRtaLibraries();
+  if(!libs.length)return '<div class="at-empty">Aucune bibliothèque RTA active. Charge d’abord une RTA dans Paramètres.</div>';
+  const lib=libs[0];
+  const chapters=[...new Set((lib.activities||[]).filter(a=>a.active!==false).map(a=>a.theme||a.chapitre||"Autres"))].sort((a,b)=>String(a).localeCompare(String(b),'fr'));
+  const firstChapter=chapters[0]||"";
+  const acts=(lib.activities||[]).filter(a=>a.active!==false && String(a.theme||a.chapitre||"Autres")===String(firstChapter));
+  return `<div class="at-rta-create">
+    <select id="atRtaLibrary" onchange="refreshAtelierRtaSelectors()">
+      ${libs.map(x=>`<option value="${e(x.id)}">${e(x.name||x.reference||x.id)}</option>`).join('')}
+    </select>
+    <select id="atRtaChapter" onchange="refreshAtelierRtaActivitySelector()">
+      ${chapters.map(x=>`<option value="${e(x)}">${e(x)}</option>`).join('')}
+    </select>
+    <select id="atRtaMotor" onchange="refreshAtelierRtaActivitySelector()">
+      <option value="">Toutes motorisations</option>
+    </select>
+    <select id="atRtaActivity">
+      ${acts.map(a=>`<option value="${e(a.id)}">${e((a.numero||a.id)+' — '+(a.titre||a.activite||'Activité RTA'))}</option>`).join('')}
+    </select>
+    <button type="button" class="at-btn at-success full" onclick="addRtaAtelierActivity()">＋ Ajouter cette activité RTA à la séance</button>
+  </div>`;
+}
+window.refreshAtelierRtaSelectors=function(){
+  const libId=document.getElementById('atRtaLibrary')?.value||'';
+  const lib=rtaLibraryById(libId);if(!lib)return;
+  const chapters=[...new Set((lib.activities||[]).filter(a=>a.active!==false).map(a=>a.theme||a.chapitre||"Autres"))].sort((a,b)=>String(a).localeCompare(String(b),'fr'));
+  const chapter=document.getElementById('atRtaChapter');
+  if(chapter)chapter.innerHTML=chapters.map(x=>`<option value="${e(x)}">${e(x)}</option>`).join('');
+  const motors=[...new Set((lib.activities||[]).filter(a=>a.active!==false).map(a=>a.sourceMotorisation||a.motorisation||"Toutes versions"))].sort((a,b)=>String(a).localeCompare(String(b),'fr'));
+  const motor=document.getElementById('atRtaMotor');
+  if(motor)motor.innerHTML='<option value="">Toutes motorisations</option>'+motors.map(x=>`<option value="${e(x)}">${e(x)}</option>`).join('');
+  refreshAtelierRtaActivitySelector();
+}
+window.refreshAtelierRtaActivitySelector=function(){
+  const libId=document.getElementById('atRtaLibrary')?.value||'',chapter=document.getElementById('atRtaChapter')?.value||'',motor=document.getElementById('atRtaMotor')?.value||'';
+  const lib=rtaLibraryById(libId);if(!lib)return;
+  const acts=(lib.activities||[]).filter(a=>a.active!==false)
+    .filter(a=>!chapter||String(a.theme||a.chapitre||"Autres")===String(chapter))
+    .filter(a=>!motor||String(a.sourceMotorisation||a.motorisation||"Toutes versions")===String(motor));
+  const select=document.getElementById('atRtaActivity');
+  if(select)select.innerHTML=acts.map(a=>`<option value="${e(a.id)}">${e((a.numero||a.id)+' — '+(a.titre||a.activite||'Activité RTA'))}</option>`).join('');
+}
+window.addRtaAtelierActivity=function(){
+  const libId=document.getElementById('atRtaLibrary')?.value||'',activityId=document.getElementById('atRtaActivity')?.value||'';
+  if(!libId||!activityId){alert("Choisis une RTA puis une activité.");return}
+  const composite=atelierRtaCompositeId(libId,activityId),d=database(),t=today(d);
+  t.rtaActivities=t.rtaActivities||[];
+  if(!t.rtaActivities.some(x=>String(x)===String(composite)))t.rtaActivities.push(composite);
+  save(d);renderAdmin();
+  window.__atSelected=window.__atSelected||new Set();
+  window.__atSelected.add(composite);
+  document.getElementById('row_'+composite)?.classList.add('chosen');
+}
+window.removeRtaAtelierActivity=function(encoded){
+  const id=decodeURIComponent(encoded),d=database(),t=today(d);
+  if(Object.values(t.assignments||{}).some(v=>String(underlyingActivityId(t,v))===String(id))){alert("Cette activité RTA est déjà affectée à un élève. Désaffecte d’abord les élèves concernés.");return}
+  if(!confirm("Retirer cette activité RTA de la séance du jour ?"))return;
+  t.rtaActivities=(t.rtaActivities||[]).filter(x=>String(x)!==String(id));
+  t.published=(t.published||[]).filter(p=>String(p.activityId)!==String(id));
+  save(d);renderAdmin();
+}
+
 function renderAdmin(){
  const d=database(),t=today(d),
  primaries=(t.published||[]).filter(x=>publicationKey(x)===String(x.activityId)),
@@ -11732,6 +11857,7 @@ function renderAdmin(){
  professional=all.filter(a=>a.kind==='professional'),
  sheets=all.filter(a=>a.kind==='activity'),
  custom=all.filter(a=>a.kind==='custom'),
+ rtaDay=atelierRtaSelectedItems(t),
  extraCount=(t.published||[]).filter(x=>publicationKey(x)!==String(x.activityId)).length;
 
  document.getElementById('at-main').innerHTML=`
@@ -11767,6 +11893,13 @@ function renderAdmin(){
        <details class="at-group"><summary>${sheets.length} disponibles · ${sheets.filter(a=>selected.has(a.id)).length} sélectionnées</summary>${adminRows(sheets,selected)}</details>
      </section>
 
+     <section class="at-admin-zone rta">
+       <h3>🟣 Activités issues d’une RTA</h3>
+       <p>Choisis une bibliothèque RTA, une intervention et ajoute-la à la séance. Elle pourra ensuite être publiée et évaluée comme les autres travaux du jour.</p>
+       ${atelierRtaAdminControls(t)}
+       <details class="at-group" ${rtaDay.length?'open':''}><summary>${rtaDay.length} activité(s) RTA ajoutée(s) à la séance</summary>${atelierRtaRows(t,selected)}</details>
+     </section>
+
      <section class="at-admin-zone extras">
        <h3>🟨 Même travail / autre support</h3>
        <p>Publications supplémentaires d'un même travail sur un autre véhicule ou support.</p>
@@ -11797,7 +11930,7 @@ function renderAdmin(){
      </section>
    </div>
  </section>`;
- window.__atSelected=new Set(selected.keys());
+ window.__atSelected=new Set([...selected.keys(),...(t.rtaActivities||[])]);
 }
 window.addCustomAtelierActivity=function(){const title=(document.getElementById('atCustomTitle')?.value||'').trim();if(!title){alert('Renseigne l’intitulé de l’activité personnalisée.');return}const description=(document.getElementById('atCustomDescription')?.value||'').trim(),defaultSupport=(document.getElementById('atCustomSupport')?.value||'').trim(),capacity=Math.max(1,Math.min(8,Number(document.getElementById('atCustomCapacity')?.value)||4));const d=database(),t=today(d),id='CUSTOM-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,6),index=(t.customActivities||[]).length+1;const item={id,code:'PERSO'+index,title,description,defaultSupport,capacity,createdAt:new Date().toISOString()};t.customActivities.push(item);save(d);renderAdmin();window.__atSelected.add(id);document.getElementById('row_'+id)?.classList.add('chosen');showSuccessMessage?.('Activité personnalisée créée. Clique sur « Publier pour aujourd’hui » pour la rendre disponible aux élèves.');}
 window.deleteCustomAtelierActivity=function(id){const d=database(),t=today(d);if(Object.values(t.assignments||{}).some(v=>String(underlyingActivityId(t,v))===String(id))){alert('Cette activité est déjà affectée à un élève. Désaffecte d’abord les élèves concernés.');return}if(!confirm('Supprimer cette activité personnalisée du jour ?'))return;t.customActivities=(t.customActivities||[]).filter(x=>String(x.id)!==String(id));t.published=(t.published||[]).filter(x=>String(x.activityId)!==String(id));save(d);renderAdmin()}
@@ -11806,7 +11939,7 @@ window.toggleAtCatalog=function(ev,id){window.__atSelected=window.__atSelected||
 window.duplicateAtelierPublication=function(activityId){const d=database(),t=today(d),a=activityById(activityId);if(!a){alert('Activité introuvable.');return}const primary=(t.published||[]).find(p=>String(p.activityId)===String(activityId)&&publicationKey(p)===String(activityId));const support=(document.getElementById('support_'+activityId)?.value||primary?.support||'').trim();const capacity=Math.max(1,Math.min(8,Number(document.getElementById('capacity_'+activityId)?.value)||primary?.capacity||4));if(!support){alert('Renseigne d’abord le support de la première publication.');return}const publicationId=String(activityId)+'__'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,5);t.published.push({publicationId,activityId:String(activityId),code:a.code,title:a.title,support:support+' — autre support',capacity,publishedAt:new Date().toISOString()});save(d);renderAdmin();setTimeout(()=>{const input=document.getElementById('support_pub_'+encodeURIComponent(publicationId));if(input){input.focus();input.select();}},0)}
 window.removeAtelierPublication=function(encoded){const key=decodeURIComponent(encoded);const d=database(),t=today(d);if(Object.values(t.assignments||{}).some(v=>String(v)===String(key))){alert('Ce support est encore affecté à un élève. Désaffecte d’abord les élèves concernés dans le Tableau du jour.');return}if(!confirm('Retirer cette publication supplémentaire ?'))return;t.published=(t.published||[]).filter(p=>publicationKey(p)!==String(key));save(d);renderAdmin()}
 window.publishAtelierDay=function(){const d=database(),t=today(d),out=[];for(const id of (window.__atSelected||[])){const a=activityById(id),support=(document.getElementById('support_'+id)?.value||'').trim(),capacity=Math.max(1,Math.min(8,Number(document.getElementById('capacity_'+id)?.value)||4));if(!support){alert('Renseigne le support pour « '+(a?.title||id)+' ».');return}out.push({publicationId:String(id),activityId:String(id),code:a?.code,title:a?.title,support,capacity,publishedAt:new Date().toISOString()})}const extras=(t.published||[]).filter(p=>publicationKey(p)!==String(p.activityId));for(const p of extras){if(!(window.__atSelected||new Set()).has(String(p.activityId)))continue;const key=publicationKey(p),support=(document.getElementById('support_pub_'+encodeURIComponent(key))?.value||p.support||'').trim(),capacity=Math.max(1,Math.min(8,Number(document.getElementById('capacity_pub_'+encodeURIComponent(key))?.value)||p.capacity||4));if(!support){alert('Renseigne le support de la publication supplémentaire « '+(p.title||p.activityId)+' ».');return}out.push({...p,publicationId:key,support,capacity,publishedAt:p.publishedAt||new Date().toISOString()})}t.published=out;const validKeys=new Set(out.map(publicationKey));Object.keys(t.assignments).forEach(s=>{if(t.assignments[s]!==TEAM_ID&&!validKeys.has(String(t.assignments[s]))){const k=activePendingKey(t,s);if(k&&t.pending?.[k]?.status!=='validated'){delete t.pending[k];delete t.selfEvals[k]}delete t.assignments[s];delete t.activeTask[s]}});save(d);alert(out.length+' travail(aux) publié(s), supports supplémentaires compris. Le chef d’équipe obligatoire est ajouté automatiquement.');renderAdmin()}
-window.resetAtelierDay=function(){if(!confirm("Effacer les publications, affectations, activités personnalisées et évaluations encore en attente aujourd’hui ?"))return;const d=database();d.days[day()]={published:[],assignments:{},pending:{},selfEvals:{},customActivities:[],absent:{},activeTask:{}};save(d);renderAdmin()}
+window.resetAtelierDay=function(){if(!confirm("Effacer les publications, affectations, activités personnalisées et évaluations encore en attente aujourd’hui ?"))return;const d=database();d.days[day()]={published:[],assignments:{},pending:{},selfEvals:{},customActivities:[],rtaActivities:[],absent:{},activeTask:{}};save(d);renderAdmin()}
 window.exportAtelierData=function(){const blob=new Blob([JSON.stringify(database(),null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='atelier_du_jour_'+day()+'.json';a.click();URL.revokeObjectURL(a.href)}
 window.importAtelierData=function(file){if(!file)return;const reader=new FileReader();reader.onload=()=>{try{const data=JSON.parse(reader.result);localStorage.setItem(KEY,JSON.stringify(data));renderAdmin();alert('Sauvegarde importée.')}catch(err){alert('Fichier JSON invalide.')}};reader.readAsText(file)}
 function autoQuestion(key,label,values,current){return `<div class="at-question"><b>${e(label)}</b><div class="at-scale" role="group" aria-label="${e(label)}">${values.map((v,i)=>`<button type="button" class="at-color-choice at-color-${i+1} ${Number(current)===i+1?'selected':''}" onclick="pickAtAuto('${key}',${i+1})" aria-label="${e(v)}" title="${e(v)}"></button>`).join('')}</div></div>`}
@@ -11815,16 +11948,14 @@ function renderAutoEvaluation(){const d=database(),t=today(d),eligible=pupils().
  if(!assignment||isAtAbsent(t,s.id)||!key||!pending)return false;
  if(pending.status==='validated')return false;
  return true;
-}),chosen=eligible.find(s=>s.id===state.autoStudent);if(!chosen&&eligible.length)state.autoStudent=eligible[0].id;const pupil=eligible.find(s=>s.id===state.autoStudent),pendingKey=pupil?activePendingKey(t,pupil.id):'',pending=pendingKey?t.pending[pendingKey]:null,existing=pendingKey?t.selfEvals[pendingKey]:null;if(pupil&&(!state.autoAnswers||state.autoAnswers.studentId!==pupil.id||state.autoAnswers.pendingKey!==pendingKey))state.autoAnswers={studentId:pupil.id,pendingKey,organisation:existing?.organisation||0,resultats:existing?.resultats||0,confiance:existing?.confiance||0};const aid=pupil?t.assignments[pupil.id]:null,pub=aid===TEAM_ID?{publicationId:TEAM_ID,activityId:TEAM_ID,support:"Gestion de l’atelier pédagogique"}:publicationById(t,aid),a=activityById(pub?.activityId||aid);document.getElementById('at-main').innerHTML=`<section class="at-panel"><div class="at-toolbar"><h2>Auto-évaluation des élèves</h2><span class="at-pill">${eligible.length} élève(s) avec un travail actif</span></div>${eligible.length?`<div class="at-auto-students">${eligible.map(s=>{const k=activePendingKey(t,s.id),self=k?t.selfEvals[k]:null;return `<button type="button" class="${self?'done':''} ${s.id===state.autoStudent?'active':''}" onclick="selectAtAutoStudent('${e(encodeURIComponent(s.id))}')">${e(s.name)}${self?.locked?' 🔒':self?' ✓':''}</button>`}).join('')}</div>`:'<div class="at-empty">Aucun élève n’a actuellement de travail à auto-évaluer.</div>'}</section>${pupil?`<section class="at-panel at-auto-form"><h2>${e(pupil.name)}</h2><div class="at-notice"><b>Activité :</b> ${e(a?.title||aid)}${pending?.sequence?` — tâche n°${e(pending.sequence)}`:''}<br><b>Support :</b> ${e(pub?.support||'Non renseigné')}</div>${existing?.locked?`<div class="at-self-lock"><strong>🔒 Auto-évaluation enregistrée et verrouillée.</strong><br>L’élève ne peut plus la modifier. Un professeur peut lui redonner la main depuis « Évaluations du jour ».</div>${state.studentView?'':`<div style="margin-top:10px">${studentSelfEvalCard(existing)}</div>`}`:`${autoQuestion('organisation','Organisation',['À revoir','Moyen','Bien','Très bien'],state.autoAnswers.organisation)}${autoQuestion('resultats',"Résultat de l’intervention",['À revoir','Moyen','Bien','Très bien'],state.autoAnswers.resultats)}${autoQuestion('confiance','Confiance / autonomie',['Non autonome','Avec aide','Presque autonome','Autonome'],state.autoAnswers.confiance)}<label><b>Note estimée /20 <span style="color:#b42318">*</span></b></label><input id="atAutoNote" type="number" min="0" max="20" step="0.5" required value="${e(existing?.note??'')}" style="width:100%;padding:10px;margin:6px 0 10px"><div class="muted" style="margin:-4px 0 10px">La note est obligatoire pour enregistrer l’auto-évaluation.</div><label><b>Commentaire de l’élève</b></label><textarea id="atAutoComment" rows="3" style="width:100%;box-sizing:border-box;padding:10px;margin-top:6px">${e(existing?.comment||'')}</textarea><div class="at-admin-actions" style="margin-top:12px"><button class="at-btn at-success" onclick="saveAtAutoEvaluation()">Valider mon auto-évaluation</button></div>`}</section>`:''}`}
+}),chosen=eligible.find(s=>s.id===state.autoStudent);if(!chosen&&eligible.length)state.autoStudent=eligible[0].id;const pupil=eligible.find(s=>s.id===state.autoStudent),pendingKey=pupil?activePendingKey(t,pupil.id):'',pending=pendingKey?t.pending[pendingKey]:null,existing=pendingKey?t.selfEvals[pendingKey]:null;if(pupil&&(!state.autoAnswers||state.autoAnswers.studentId!==pupil.id||state.autoAnswers.pendingKey!==pendingKey))state.autoAnswers={studentId:pupil.id,pendingKey,organisation:existing?.organisation||0,resultats:existing?.resultats||0,confiance:existing?.confiance||0};const aid=pupil?t.assignments[pupil.id]:null,pub=aid===TEAM_ID?{publicationId:TEAM_ID,activityId:TEAM_ID,support:"Gestion de l’atelier pédagogique"}:publicationById(t,aid),a=activityById(pub?.activityId||aid);document.getElementById('at-main').innerHTML=`<section class="at-panel"><div class="at-toolbar"><h2>Auto-évaluation des élèves</h2><span class="at-pill">${eligible.length} élève(s) avec un travail actif</span></div>${eligible.length?`<div class="at-auto-students">${eligible.map(s=>{const k=activePendingKey(t,s.id),self=k?t.selfEvals[k]:null;const leader=String(t.assignments?.[s.id]||"")===TEAM_ID;return `<button type="button" class="${self?'done':''} ${s.id===state.autoStudent?'active':''} ${leader?'team-leader':''}" onclick="selectAtAutoStudent('${e(encodeURIComponent(s.id))}')">${e(s.name)}${leader?' — Chef d’équipe':''}${self?.locked?' 🔒':self?' ✓':''}</button>`}).join('')}</div>`:'<div class="at-empty">Aucun élève n’a actuellement de travail à auto-évaluer.</div>'}</section>${pupil?`<section class="at-panel at-auto-form"><h2 class="${String(aid)===TEAM_ID?'at-team-leader-title':''}">${e(pupil.name)}${String(aid)===TEAM_ID?' — Chef d’équipe':''}</h2><div class="at-notice"><b>Activité :</b> ${e(a?.title||aid)}${pending?.sequence?` — tâche n°${e(pending.sequence)}`:''}<br><b>Support :</b> ${e(pub?.support||'Non renseigné')}</div>${existing?.locked?`<div class="at-self-lock"><strong>🔒 Auto-évaluation enregistrée et verrouillée.</strong><br>L’élève ne peut plus la modifier. Un professeur peut lui redonner la main depuis « Évaluations du jour ».</div>${state.studentView?'':`<div style="margin-top:10px">${studentSelfEvalCard(existing)}</div>`}`:`${autoQuestion('organisation','Organisation',['À revoir','Moyen','Bien','Très bien'],state.autoAnswers.organisation)}${autoQuestion('resultats',"Résultat de l’intervention",['À revoir','Moyen','Bien','Très bien'],state.autoAnswers.resultats)}${autoQuestion('confiance','Confiance / autonomie',['Non autonome','Avec aide','Presque autonome','Autonome'],state.autoAnswers.confiance)}<label><b>Note estimée /20 <span style="color:#b42318">*</span></b></label><input id="atAutoNote" type="number" min="0" max="20" step="0.5" required value="${e(existing?.note??'')}" style="width:100%;padding:10px;margin:6px 0 10px"><div class="muted" style="margin:-4px 0 10px">La note est obligatoire pour enregistrer l’auto-évaluation.</div><label><b>Commentaire de l’élève</b></label><textarea id="atAutoComment" rows="3" style="width:100%;box-sizing:border-box;padding:10px;margin-top:6px">${e(existing?.comment||'')}</textarea><div class="at-admin-actions" style="margin-top:12px"><button class="at-btn at-success" onclick="saveAtAutoEvaluation()">Valider mon auto-évaluation</button></div>`}</section>`:''}`}
 window.selectAtAutoStudent=function(encoded){state.autoStudent=decodeURIComponent(encoded);state.autoAnswers=null;renderAutoEvaluation()}
 window.pickAtAuto=function(key,value){state.autoAnswers=state.autoAnswers||{};state.autoAnswers[key]=value;renderAutoEvaluation()}
 window.saveAtAutoEvaluation=function(){const d=database(),t=today(d),id=state.autoStudent,a=state.autoAnswers||{},pendingKey=activePendingKey(t,id);if(!id||!pendingKey){alert("Aucun travail actif n’a été retrouvé pour cet élève.");return}const existing=t.selfEvals?.[pendingKey];if(existing?.locked){alert("Cette auto-évaluation est verrouillée. Un professeur doit d’abord redonner la main.");return}if(!a.organisation||!a.resultats||!a.confiance){alert('Réponds aux trois critères.');return}const rawNote=(document.getElementById('atAutoNote')?.value??'').trim();if(rawNote===''){alert('La note estimée /20 est obligatoire.');document.getElementById('atAutoNote')?.focus();return}const note=Number(rawNote);if(!Number.isFinite(note)||note<0||note>20){alert('Saisis une note entre 0 et 20.');return}const pupil=pupils().find(s=>s.id===id),assignmentId=t.assignments[id],pub=publicationById(t,assignmentId),activityId=pub?.activityId||assignmentId,act=activityById(activityId),record={studentId:id,studentName:pupil?.name||id,pendingKey,publicationId:publicationKey(pub)||String(assignmentId||''),activityId,activityTitle:act?.title||activityId,support:pub?.support||'',organisation:a.organisation,resultats:a.resultats,confiance:a.confiance,note,comment:(document.getElementById('atAutoComment')?.value||'').trim(),savedAt:new Date().toISOString(),locked:true,lockedAt:new Date().toISOString()};t.selfEvals[pendingKey]=record;
 if(t.pending[pendingKey]){
  t.pending[pendingKey].selfEvaluation=record;
- if(String(activityId)===TEAM_ID){
-   t.pending[pendingKey].status='validated';
-   t.pending[pendingKey].validatedAt=new Date().toISOString();
- }
+ t.pending[pendingKey].status='awaiting_validation';
+ t.pending[pendingKey].selfEvaluatedAt=new Date().toISOString();
 }
 /* L'auto-évaluation validée libère immédiatement l'élève dans le Tableau du jour.
    La séquence reste conservée pour l'évaluation professeur. */
@@ -11852,7 +11983,11 @@ window.reopenAtAutoEvaluation=function(encoded){
  }
  if(studentId){
    t.activeTask=t.activeTask||{};
+   t.assignments=t.assignments||{};
    t.activeTask[studentId]=key;
+   // Réactive l'affectation supprimée lors de la validation de l'auto-évaluation.
+   const restorePublication=String(task?.publicationId||self?.publicationId||task?.activityId||"");
+   if(restorePublication)t.assignments[studentId]=restorePublication;
  }
  save(d);
  state.autoAnswers=null;
@@ -11862,7 +11997,32 @@ window.reopenAtAutoEvaluation=function(encoded){
 }
 window.completeAtelierEvaluation=function(studentId,sessionDay,pendingKey){const d=database(),key=sessionDay||day(),session=d.days?.[key],id=String(studentId);if(!session)return false;let taskKey=pendingKey&&session.pending?.[pendingKey]?pendingKey:(session.activeTask?.[id]||'');if(!taskKey||!session.pending?.[taskKey]){const found=Object.entries(session.pending||{}).find(([k,r])=>String(r?.studentId)===id&&r?.status!=='validated');taskKey=found?.[0]||''}if(!taskKey||!session.pending?.[taskKey])return false;session.pending[taskKey].status='validated';session.pending[taskKey].validatedAt=new Date().toISOString();if(session.activeTask?.[id]===taskKey)delete session.activeTask[id];save(d);return true}
 function reconcileAtelierEvaluations(d,t){let changed=false;const pool=[...(Array.isArray(allStudents)?allStudents:[]),...(Array.isArray(students)?students:[])];for(const [key,r] of Object.entries(t.pending||{})){if(r.status==='validated')continue;const owner=pool.find(s=>String(s.id)===String(r.studentId)),activity=activityById(r.activityId);const done=(owner?.evaluations||[]).some(ev=>{if(!ev.atelierSource||String(ev.atelierDay||'')!==day()||String(ev.studentId)!==String(r.studentId))return false;if(ev.atelierPendingKey&&String(ev.atelierPendingKey)===String(key))return true;if(r.publicationId&&ev.atelierPublicationId&&String(ev.atelierPublicationId)!==String(r.publicationId))return false;if(activity?.kind==='rentree')return String(ev.rentreeThemeId||'')===String(activity.rentreeTheme?.id||'');if(activity?.kind==='activity')return String(ev.activityId||'')===String(activity.activity?.id||'');if(activity?.kind==='professional')return String(ev.profSituation||'')===String(activity.profCode||'');return String(ev.title||'')===String(r.title||'');});if(done){r.status='validated';r.validatedAt=r.validatedAt||new Date().toISOString();if(t.activeTask?.[r.studentId]===key)delete t.activeTask[r.studentId];changed=true;}}if(changed)save(d);}
-function renderPending(){const d=database(),t=today(d);reconcileAtelierEvaluations(d,t);const rows=Object.entries(t.pending||{}).map(([key,r])=>({key,...r})).filter(r=>r.status!=='validated').sort((a,b)=>String(a.createdAt||'').localeCompare(String(b.createdAt||'')));document.getElementById('at-main').innerHTML=`<section class="at-panel"><div class="at-toolbar"><h2>Évaluations créées depuis l’atelier</h2><span class="at-pill">${rows.length} séquence(s) · mise à jour automatique</span></div><div class="at-notice">Cette liste est recalculée à chaque ouverture et à chaque affectation. Si un élève prend un nouveau travail plus tard dans la journée, une nouvelle séquence apparaît automatiquement sans effacer les précédentes.</div>${rows.length?`<table class="at-table"><thead><tr><th>Élève</th><th>Séq.</th><th>Activité</th><th>Support</th><th>Auto-éval.</th><th>État</th><th>Action</th></tr></thead><tbody>${rows.map(r=>{const self=t.selfEvals?.[r.key]||r.selfEvaluation||null;return `<tr><td>${e(r.studentName)}</td><td>${e(r.sequence||1)}</td><td>${e(r.title)}</td><td>🚗 ${e(r.support||'Non renseigné')}</td><td>${self?`<b>${e(self.note)}/20</b> ${self.locked?'🔒':'✏️'}${self.locked?`<br><button type="button" class="at-btn at-reopen" style="margin-top:5px" onclick="reopenAtAutoEvaluation('${e(encodeURIComponent(r.key))}')">Redonner la main</button>`:''}`:'Non renseignée'}</td><td class="${r.status==='validated'?'at-status-ready':'at-status-draft'}">${r.status==='validated'?'Terminée':'Préparée'}</td><td>${r.selfOnly?(r.status==='validated'?'<span class="at-status-ready">✓ Auto-évaluation faite</span>':'<span class="at-status-draft">Auto-évaluation du chef</span>'):(r.status==='validated'?'<span class="at-status-ready">✓ Fait</span>':`<button type="button" class="at-btn at-success" data-at-evaluate="${e(encodeURIComponent(r.key))}">Évaluer</button>`)}</td></tr>`}).join('')}</tbody></table>`:'<div class="at-empty">Aucun élève positionné aujourd’hui.</div>'}</section>`}
+function renderPending(){
+ const d=database(),t=today(d);
+ reconcileAtelierEvaluations(d,t);
+ const rows=Object.entries(t.pending||{}).map(([key,r])=>({key,...r}))
+   .filter(r=>r.status!=='validated')
+   .sort((a,b)=>String(a.createdAt||'').localeCompare(String(b.createdAt||'')));
+ document.getElementById('at-main').innerHTML=`<section class="at-panel">
+   <div class="at-toolbar"><h2>Évaluations créées depuis l’atelier</h2><span class="at-pill">${rows.length} séquence(s) · mise à jour automatique</span></div>
+   <div class="at-notice">Dès que l’élève enregistre son auto-évaluation, l’état passe à <b>À valider</b>. Le professeur peut alors réaliser l’évaluation officielle, y compris pour le chef d’équipe.</div>
+   ${rows.length?`<table class="at-table"><thead><tr><th>Élève</th><th>Séq.</th><th>Activité</th><th>Support</th><th>Auto-éval.</th><th>État</th><th>Action</th></tr></thead><tbody>${rows.map(r=>{
+     const self=t.selfEvals?.[r.key]||r.selfEvaluation||null;
+     const leader=String(r.activityId)===TEAM_ID||String(r.publicationId)===TEAM_ID;
+     const statusLabel=self?'À valider':'Préparée';
+     const statusClass=self?'at-status-validate':'at-status-draft';
+     return `<tr>
+       <td class="${leader?'at-team-leader-title':''}">${e(r.studentName)}${leader?' — Chef d’équipe':''}</td>
+       <td>${e(r.sequence||1)}</td>
+       <td>${e(r.title)}</td>
+       <td>🚗 ${e(r.support||'Non renseigné')}</td>
+       <td>${self?`<b>${e(self.note)}/20</b> ${self.locked?'🔒':'✏️'}${self.locked?`<br><button type="button" class="at-btn at-reopen" style="margin-top:5px" onclick="reopenAtAutoEvaluation('${e(encodeURIComponent(r.key))}')">Redonner la main</button>`:''}`:'Non renseignée'}</td>
+       <td class="${statusClass}">${statusLabel}</td>
+       <td>${self?`<button type="button" class="at-btn at-success" data-at-evaluate="${e(encodeURIComponent(r.key))}">Évaluer</button>`:'<span class="at-status-draft">En attente de l’auto-évaluation</span>'}</td>
+     </tr>`;
+   }).join('')}</tbody></table>`:'<div class="at-empty">Aucun élève positionné aujourd’hui.</div>'}
+ </section>`;
+}
 window.evaluateAtelierStudent=function(taskKey){
  try{
   taskKey=String(taskKey);
@@ -11882,6 +12042,15 @@ window.evaluateAtelierStudent=function(taskKey){
    window.closeAtelierUnified();page='rentreeEval';mainRender();return;
   }else if(a.kind==='professional'){draft={...base,evalPath:'professional',profSituation:a.profCode,comps:[...(a.comps||[])]};if(typeof applyProfessionalSituation==='function')applyProfessionalSituation();
   }else if(a.kind==='activity'){activityMode='individual';activityTargetStudents=[String(st.id)];activityDraft={activityId:a.activity.id,date:new Date().toLocaleDateString('fr-FR'),studentId:st.id,mode:'individual',targetStudents:[String(st.id)],activitySupport:r.support||'',supportActivite:r.support||'',scores:{},observations:{},teacherObservation:'',appreciation:'',appreciationManual:false,editId:null,noteDrivenEvaluation:false,noteDrivenRequested:'',noteDrivenExact:'',noteDrivenCalculated:undefined,studentSelfEvaluation:selfEvaluation,atelierSource:true,atelierDay:day(),atelierPublicationId:r.publicationId||'',atelierPendingKey:taskKey};window.closeAtelierUnified();page='activityEval';mainRender();return;
+  }else if(a.kind==='rta'){
+   activityMode='individual';activityTargetStudents=[String(st.id)];
+   activityDraft={activityId:a.id,activitySnapshot:{...a.activity},returnToRta:true,date:new Date().toLocaleDateString('fr-FR'),studentId:st.id,mode:'individual',targetStudents:[String(st.id)],activitySupport:r.support||'',supportActivite:r.support||'',scores:{},observations:{},teacherObservation:'',appreciation:'',appreciationManual:false,editId:null,noteDrivenEvaluation:false,noteDrivenRequested:'',noteDrivenExact:'',noteDrivenCalculated:undefined,studentSelfEvaluation:selfEvaluation,atelierSource:true,atelierDay:day(),atelierPublicationId:r.publicationId||'',atelierPendingKey:taskKey};
+   window.closeAtelierUnified();page='activityEval';mainRender();return;
+  }else if(a.kind==='team'){
+   const teamSnapshot={id:"CHEF-EQUIPE",numero:"CHEF",titre:"Chef d’équipe — coordination de l’atelier",theme:"Organisation de l’atelier",description:"Évaluation du rôle de chef d’équipe pendant la séance",competences_cap:[],competences_bac_pro:[],criteres:["Organiser et répartir les tâches de l’équipe","Faire respecter les consignes de sécurité et l’organisation de l’atelier","Communiquer clairement avec les membres de l’équipe","Suivre l’avancement des travaux et réagir aux difficultés","Rendre compte au professeur et participer à la remise en ordre de l’atelier"]};
+   activityMode='individual';activityTargetStudents=[String(st.id)];
+   activityDraft={activityId:teamSnapshot.id,activitySnapshot:teamSnapshot,date:new Date().toLocaleDateString('fr-FR'),studentId:st.id,mode:'individual',targetStudents:[String(st.id)],activitySupport:r.support||"Gestion de l’atelier pédagogique",supportActivite:r.support||"Gestion de l’atelier pédagogique",scores:{},observations:{},teacherObservation:'',appreciation:'',appreciationManual:false,editId:null,noteDrivenEvaluation:false,noteDrivenRequested:'',noteDrivenExact:'',noteDrivenCalculated:undefined,studentSelfEvaluation:selfEvaluation,atelierSource:true,atelierDay:day(),atelierPublicationId:r.publicationId||TEAM_ID,atelierPendingKey:taskKey};
+   window.closeAtelierUnified();page='activityEval';mainRender();return;
   }else{const isBac=String(getActiveReferentialId()).toLowerCase().includes('bac');const comps=a.kind==='custom'?(a.comps||[]):(isBac?(a.activity?.competences_bac_pro||[]):(a.activity?.competences_cap||[]));draft={...base,evalPath:'free',profSituation:'',comps:[...comps]};}
   window.closeAtelierUnified();mainGo('eval');
  }catch(err){console.error('Ouverture évaluation atelier impossible',err);alert('Impossible d’ouvrir cette évaluation : '+(err?.message||err));if(state.page==='pending')renderPending();}

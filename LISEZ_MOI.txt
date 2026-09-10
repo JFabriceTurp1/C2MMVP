@@ -88,3 +88,31 @@ AUTRES CORRECTIONS CONSERVÉES
   * prise de contrôle immédiate ;
   * index.html chargé en priorité depuis le réseau avec cache désactivé.
 - Objectif : éviter qu'une ancienne version reste servie par GitHub Pages / iPad.
+
+
+ÉVOLUTIONS TEST 7 — HISTORIQUE / ATELIER DU JOUR / RTA / CHEF D’ÉQUIPE
+1. HISTORIQUE
+- Quand une évaluation marquée « À finaliser » est ouverte en modification, le drapeau est automatiquement désactivé.
+- Au retour dans l’historique, l’indicateur apparaît donc de nouveau en gris.
+
+2. ADMINISTRATION DES ACTIVITÉS DU JOUR
+- Correctif de mise en page pour éviter qu’un bouton soit masqué par la zone Import / Export JSON.
+- Ajout d’une zone « Activités issues d’une RTA ».
+- Choix de la bibliothèque RTA, du chapitre/intervention, de la motorisation et de l’activité.
+- L’activité RTA ajoutée peut être sélectionnée, recevoir un support et une capacité, puis être publiée pour la journée.
+- Les élèves peuvent se positionner dessus comme sur une activité classique.
+- L’évaluation professeur ouvre directement une fiche RTA avec les critères et compétences de la bibliothèque RTA.
+
+3. AUTO-ÉVALUATION
+- Le chef d’équipe est affiché en rouge.
+- Son nom comporte explicitement la mention « Chef d’équipe ».
+
+4. ÉVALUATIONS DU JOUR
+- Après l’auto-évaluation, l’état devient « À valider ».
+- Le professeur peut alors évaluer l’élève.
+- Le chef d’équipe suit désormais exactement ce même flux : auto-évaluation puis évaluation professeur.
+- Une grille dédiée au rôle de chef d’équipe est proposée au professeur.
+
+5. REDONNER LA MAIN
+- Correction du bug où l’élève pouvait disparaître de la liste Auto-évaluation.
+- « Redonner la main » restaure maintenant à la fois la tâche active ET l’affectation de l’élève.
