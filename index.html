@@ -648,6 +648,15 @@ th,td{min-width:120px;padding:9px 8px} th:first-child,td:first-child{min-width:1
 @media(max-width:900px){.rta-filter-grid{grid-template-columns:1fr 1fr}.rta-cards{grid-template-columns:1fr}}
 @media(max-width:620px){.rta-filter-grid{grid-template-columns:1fr}.rta-hero h1{font-size:23px}}
 
+
+.rta-search-engine{margin-top:14px;padding:14px;border:1px solid #cfe0f2;border-radius:14px;background:#f7fbff}
+.rta-search-engine label{display:block;margin-bottom:7px;font-size:14px;color:#17365d}
+.rta-search-row{display:flex;gap:8px;align-items:center}
+.rta-search-row input{flex:1;min-width:0;margin:0!important;font-size:15px}
+.rta-search-row button{white-space:nowrap}
+.rta-search-engine small{display:block;margin-top:7px;color:#64748b;line-height:1.35}
+@media(max-width:620px){.rta-search-row{flex-direction:column;align-items:stretch}}
+
 </style>
 
 <style id="rentree-print-fidelity-v15">
@@ -2382,7 +2391,7 @@ body{background:#f7f9fc;color:var(--text)}
   body.rentree-printing .rentree-competence-note{display:none!important}
   body.rentree-printing .rentree-print-signature{font-weight:800!important;margin-top:1mm!important}
   body.rentree-printing .rentree-print-footer{display:flex!important;position:fixed!important;left:10mm!important;right:10mm!important;bottom:5mm!important;justify-content:space-between!important;font-size:7.5pt!important;color:#667085!important}
-  /* Évaluation, charge atelier et intégration RTA — TEST 13 FILTRES RTA + RECHERCHE : fiche de rentrée compacte sur une seule page */
+  /* Évaluation, charge atelier et intégration RTA — TEST 14 RECHERCHE POSITIONNEMENT RTA : fiche de rentrée compacte sur une seule page */
   body.rentree-printing .rentree-print-page{min-height:0!important;height:auto!important;break-inside:avoid!important;page-break-inside:avoid!important}
   body.rentree-printing .rentree-print-school-header{height:15mm!important;margin-bottom:1.5mm!important}
   body.rentree-printing .rentree-print-school-header img{max-height:14mm!important}
@@ -4985,21 +4994,29 @@ function rtaChoicePage(){
   const energyFiltered=rtaChoiceState.energy?byIntervention.filter(a=>{const e=rtaEnergyOf(a);return e==="TOUTES"||e===rtaChoiceState.energy}):byIntervention;
   const motors=[...new Set(energyFiltered.map(a=>String(a.sourceMotorisation||a.motorisation||"").trim()).filter(x=>x&&rtaNorm(x)!=="toutes versions"))].sort((a,b)=>a.localeCompare(b,"fr"));
   const q=rtaNorm(rtaChoiceState.search);
-  const ready=!!rtaChoiceState.intervention;
+  // Le moteur de recherche peut être utilisé même sans avoir choisi une intervention.
+  // Les résultats apparaissent dès qu'une recherche est saisie, ou dès qu'un filtre est actif.
+  const ready=!!(rtaChoiceState.intervention||rtaChoiceState.energy||rtaChoiceState.motor||q);
   const filtered=energyFiltered.filter(a=>{
     if(rtaChoiceState.motor){
       const m=String(a.sourceMotorisation||a.motorisation||"").trim();
       if(rtaNorm(m)!=="toutes versions" && m!==rtaChoiceState.motor)return false;
     }
     if(!q)return true;
-    return rtaNorm([a.titre,a.theme,a.description,a.sourceSection,a.sourceMotorisation,a.sourceTypeActivite,(a.competences_cap||[]).join(" "),(a.competences_bac_pro||[]).join(" ")].join(" ")).includes(q);
+    return rtaNorm([
+      a.id,a.numero,a.titre,a.activite,a.title,a.theme,a.chapitre,a.description,
+      a.sourceSection,a.section,a.sousSection,a.sous_section,
+      a.sourceMotorisation,a.motorisation,a.version,a.moteur,
+      a.sourceTypeActivite,a.typeActivite,a.type,
+      (a.competences_cap||[]).join(" "),(a.competences_bac_pro||[]).join(" ")
+    ].filter(Boolean).join(" ")).includes(q);
   });
   const grouped={};
   if(ready)filtered.forEach(a=>{const k=String(a.sourceSection||a.section||a.theme||"Autres").trim()||"Autres";(grouped[k]??=[]).push(a)});
   const studentOptions=sortStudentsAlpha(students).map(s=>`<option value="${esc(String(s.id))}" ${String(s.id)===String(selectedStudent)?"selected":""}>${esc(s.name)}</option>`).join("");
   const groupsHtml=Object.entries(grouped).sort((a,b)=>a[0].localeCompare(b[0],"fr")).map(([section,items])=>`<details class="rta-group"><summary><span>${esc(section)}</span><span class="rta-group-meta">${items.length} activité(s)</span></summary><div class="rta-cards">${items.map(a=>`<button type="button" class="rta-card" onclick="startRtaActivity('${esc(String(lib.id))}','${esc(String(a.id))}')"><div class="rta-card-top"><span class="rta-tag">${esc(a.sourceTypeActivite||a.typeActivite||"Activité")}</span><span class="rta-tag">p. ${esc(String(a.sourcePage||a.page||"—"))}</span></div><h3>${esc(a.titre)}</h3><p>${esc(a.sourceMotorisation||a.motorisation||"Toutes versions")}</p><div class="rta-comps"><b>CAP :</b> ${esc((a.competences_cap||[]).join(" · ")||"—")}<br><b>Bac Pro :</b> ${esc((a.competences_bac_pro||[]).join(" · ")||"—")}</div></button>`).join("")}</div></details>`).join("");
   document.getElementById("main").innerHTML=`<div class="rta-shell">
-    <div class="rta-hero"><h1>📚 Évaluation / positionnement sur RTA</h1><p>Filtre d’abord la bibliothèque et le type d’intervention. Les activités restent repliées tant que tu n’as pas précisé ton besoin.</p></div>
+    <div class="rta-hero"><h1>📚 Évaluation / positionnement sur RTA</h1><p>Filtre par intervention, énergie ou motorisation, ou utilise directement le moteur de recherche pour retrouver rapidement une activité.</p></div>
     <div class="rta-filter-panel">
       <div class="rta-step"><span>1</span><b>Contexte de l’évaluation</b></div>
       <div class="rta-filter-grid">
@@ -5009,14 +5026,22 @@ function rtaChoicePage(){
       </div>
       <div class="rta-step"><span>2</span><b>Affiner le véhicule</b></div>
       <div class="rta-filter-grid">
-        <label>Énergie<select ${!rtaChoiceState.intervention?"disabled":""} onchange="setRtaChoiceEnergy(this.value)"><option value="">Toutes les énergies</option>${energies.includes("ESSENCE")?`<option value="ESSENCE" ${rtaChoiceState.energy==="ESSENCE"?"selected":""}>Essence</option>`:""}${energies.includes("DIESEL")?`<option value="DIESEL" ${rtaChoiceState.energy==="DIESEL"?"selected":""}>Diesel</option>`:""}</select></label>
-        <label>Motorisation<select ${!rtaChoiceState.intervention?"disabled":""} onchange="setRtaChoiceMotor(this.value)"><option value="">Toutes les motorisations</option>${motors.map(x=>`<option value="${esc(x)}" ${rtaChoiceState.motor===x?"selected":""}>${esc(x)}</option>`).join("")}</select></label>
-        <label>Recherche complémentaire<input id="rta-search" type="search" value="${esc(rtaChoiceState.search)}" ${!rtaChoiceState.intervention?"disabled":""} oninput="setRtaChoiceSearch(this.value)" placeholder="Ex. frein, vidange, C2.4…"></label>
+        <label>Énergie<select onchange="setRtaChoiceEnergy(this.value)"><option value="">Toutes les énergies</option>${energies.includes("ESSENCE")?`<option value="ESSENCE" ${rtaChoiceState.energy==="ESSENCE"?"selected":""}>Essence</option>`:""}${energies.includes("DIESEL")?`<option value="DIESEL" ${rtaChoiceState.energy==="DIESEL"?"selected":""}>Diesel</option>`:""}</select></label>
+        <label>Motorisation<select onchange="setRtaChoiceMotor(this.value)"><option value="">Toutes les motorisations</option>${motors.map(x=>`<option value="${esc(x)}" ${rtaChoiceState.motor===x?"selected":""}>${esc(x)}</option>`).join("")}</select></label>
+        <div></div>
+      </div>
+      <div class="rta-search-engine">
+        <label for="rta-search"><b>🔎 Rechercher rapidement dans cette RTA</b></label>
+        <div class="rta-search-row">
+          <input id="rta-search" type="search" value="${esc(rtaChoiceState.search)}" oninput="setRtaChoiceSearch(this.value)" placeholder="Ex. vidange, distribution, frein, injecteur, dCi, C2.4, page…">
+          <button type="button" class="secondary" onclick="rtaChoiceState.search='';rtaChoicePage()">Effacer</button>
+        </div>
+        <small>Recherche dans le numéro, l’intitulé, le chapitre, la section, la motorisation, le type d’activité et les compétences.</small>
       </div>
       <div class="rta-source-line"><b>${esc(lib.name)}</b> · ${lib.activities?.length||0} activités disponibles · source : ${esc(lib.sourceTable||lib.sourceFile||"Synthèse RTA")}</div>
     </div>
     <div class="rta-results-head"><h2>Activités proposées</h2><span class="rta-count-badge">${ready?filtered.length:0} activité(s)</span></div>
-    ${!ready?'<div class="rta-empty">Choisis d’abord une <b>intervention</b>. Les activités correspondantes apparaîtront ensuite, classées par section et repliées par défaut.</div>':(groupsHtml||'<div class="rta-empty">Aucune activité ne correspond à ces critères. Modifie l’énergie, la motorisation ou la recherche.</div>')}
+    ${!ready?'<div class="rta-empty">Choisis une <b>intervention</b> ou utilise directement le <b>moteur de recherche</b> ci-dessus. Les activités correspondantes apparaîtront ensuite, classées par section.</div>':(groupsHtml||'<div class="rta-empty">Aucune activité ne correspond à ces critères. Modifie les filtres ou la recherche.</div>')}
     <div class="eval-choice-back"><button class="secondary" onclick="startEvaluation()">← Retour aux types d’évaluation</button></div>
   </div>`;
 }
@@ -11667,7 +11692,7 @@ window.addEventListener("resize",function(){
 .at-custom-create input{padding:10px;border:1px solid #bac7d8;border-radius:8px;box-sizing:border-box;width:100%}@media(max-width:1050px){.at-custom-create{grid-template-columns:1fr 1fr}.at-custom-create .at-btn{grid-column:1/-1}}@media(max-width:650px){.at-custom-create{grid-template-columns:1fr}}
 </style>
 <section id="atelier-app" class="hidden" aria-label="Evaluation et charge atelier">
-  <header class="at-head"><h1>Evaluation &amp; Charge atelier Évaluation, charge atelier et intégration RTA — TEST 13 FILTRES RTA + RECHERCHE — Firebase</h1><span id="at-active-class"></span><button id="at-view-mode-btn" type="button" onclick="toggleAtelierViewMode()">Vue élève</button><button id="at-change-class-btn" type="button" onclick="openClassPicker()">⇄ Changer de classe</button><button id="at-return-main-btn" type="button" onclick="closeAtelierUnified()">Retour Accueil</button></header>
+  <header class="at-head"><h1>Evaluation &amp; Charge atelier Évaluation, charge atelier et intégration RTA — TEST 14 RECHERCHE POSITIONNEMENT RTA — Firebase</h1><span id="at-active-class"></span><button id="at-view-mode-btn" type="button" onclick="toggleAtelierViewMode()">Vue élève</button><button id="at-change-class-btn" type="button" onclick="openClassPicker()">⇄ Changer de classe</button><button id="at-return-main-btn" type="button" onclick="closeAtelierUnified()">Retour Accueil</button></header>
   <nav class="at-nav" id="at-nav"></nav><main class="at-main" id="at-main"></main>
 </section>
 <script id="atelier-unifie-v5-script">

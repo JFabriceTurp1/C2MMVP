@@ -197,3 +197,14 @@ Cette version reste une version d’essai fonctionnelle. La séparation classe/d
 - Ajout du bouton « Effacer les filtres ».
 - La liste des activités affiche aussi la motorisation/version pour faciliter le choix.
 - Les corrections précédentes (changement de classe, Classe + Date, calendrier, déplacement des élèves) sont conservées.
+
+
+ÉVOLUTIONS TEST 14 — MOTEUR DE RECHERCHE DANS « ÉVALUATION / POSITIONNEMENT SUR RTA »
+- Ajout d’un moteur de recherche clairement visible dans la page Évaluation / positionnement sur RTA.
+- Le moteur peut être utilisé immédiatement, même sans sélectionner d’abord une intervention.
+- Recherche instantanée et cumulable avec les filtres Intervention, Énergie et Motorisation.
+- Recherche élargie au numéro/ID, intitulé, chapitre, section/sous-section, motorisation/version, type d’activité, description et compétences CAP/Bac Pro.
+- Recherche insensible aux majuscules et accents via la normalisation RTA existante.
+- Ajout d’un bouton « Effacer » pour vider rapidement la recherche.
+- Les messages d’aide de la page ont été adaptés à cette nouvelle logique.
+- Toutes les corrections des TEST 12 et TEST 13 sont conservées.
