@@ -1,4 +1,4 @@
-const CACHE_NAME='evaluation-charge-atelier-rta-integration-1';
+const CACHE_NAME="evaluation-rta-test-848-v1";
 const ASSETS=[
   './',
   './index.html',
