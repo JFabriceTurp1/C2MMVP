@@ -1,38 +1,51 @@
-ÉVALUATION & CHARGE ATELIER — VERSION V18.5
+ÉVALUATION, CHARGE ATELIER ET INTÉGRATION RTA
 
-PACK GITHUB À NOMS STABLES
---------------------------
-Le ZIP contient toujours les mêmes noms de fichiers afin de pouvoir remplacer directement
-les fichiers existants dans GitHub :
+PACK GITHUB — NOMS DE FICHIERS STABLES
+
+PRINCIPALES ÉVOLUTIONS
+
+1. ÉVALUATIONS DU JOUR
+- Quand l'évaluation professeur d'une tâche Atelier du jour est enregistrée, la ligne disparaît de « Évaluations du jour ».
+- Il n'est plus possible de « Redonner la main » à l'élève pour cette séquence une fois l'évaluation professeur validée.
+- L'historique reste conservé.
+
+2. PARAMÈTRES / ADMINISTRATION
+- « Code administrateur » est replié par défaut.
+- « Mode développement local / Firebase » est replié par défaut.
+- Les fiches et activités d'évaluation restent manageables dans Paramètres.
+
+3. NOUVELLE CATÉGORIE « ÉVALUATION SUR RTA »
+- Plusieurs RTA peuvent coexister.
+- L'enseignant choisit d'abord la RTA, puis l'activité.
+- Les activités RTA sont rattachées aux compétences CAP / Bac Pro.
+- Les évaluations enregistrées conservent un instantané de la RTA et de l'activité utilisées.
+
+4. IMPORT RTA PDF
+- Paramètres → Intégration RTA → Importer une RTA PDF.
+- Extraction automatique du texte du PDF.
+- Détection automatique des activités techniques.
+- Proposition automatique des compétences CAP et Bac Pro à partir des référentiels chargés.
+- Ouverture obligatoire d'une zone d'audit avant intégration.
+- Dans l'audit : validation/invalidation activité par activité, correction des intitulés, compétences et remarques.
+- Aucun élément n'est intégré tant que l'administrateur n'a pas validé l'audit.
+
+5. JSON RTA
+- Téléchargement du JSON d'audit.
+- Export JSON de chaque bibliothèque RTA.
+- Import d'un JSON RTA avec passage par la même zone d'audit.
+- Les bibliothèques RTA sont incluses dans la configuration synchronisée Firebase.
+
+NOTE
+L'analyse automatique des PDF dépend de la structure du document et nécessite l'accès au module PDF.js déjà utilisé par le logiciel.
+La zone d'audit est volontairement obligatoire afin que l'administrateur garde le contrôle avant intégration.
+
+FICHIERS GITHUB STABLES
 - index.html
 - firebase.json
 - firestore.rules
 - manifest.webmanifest
 - service-worker.js
+- logo-francois-de-mahy.png
+- Fiches_Evaluations_63_Activites_CAP_BacPro_V4_CHARTE_DEFINITIVE.pdf
 - FIREBASE_INSTALLATION.txt
 - LISEZ_MOI.txt
-- logo-francois-de-mahy.png
-- ressource PDF des activités
-
-CORRECTIONS V18.5
------------------
-1. Évaluation de rentrée / impression
-- Le logo du lycée François de Mahy est rétabli.
-- Il est désormais embarqué directement dans index.html pour garantir son impression,
-  même si le navigateur rencontre un problème de chargement de ressource externe.
-
-2. Atelier du jour
-- « Changer de classe » fonctionne au-dessus de la fenêtre Atelier.
-- Le sélecteur de classe est maintenant affiché au premier plan.
-- Après changement de classe, l'Atelier du jour se rafraîchit sur la nouvelle classe.
-- « Retour aux évaluations » ferme l'Atelier et retourne sur l'accueil des évaluations.
-
-3. Historique
-- L'historique n'affiche que les évaluations de la classe active.
-- Une pastille « À finaliser » est ajoutée dans les actions.
-- Par défaut elle est grise.
-- Au clic elle devient bleue et reste enregistrée avec l'évaluation.
-- Un second clic la remet en gris.
-- Pour une évaluation collective, la pastille de la ligne principale applique le statut
-  à l'ensemble des élèves du groupe.
-- Le statut est enregistré dans l'évaluation et suit donc la synchronisation Firebase.

@@ -1,8 +1,8 @@
-const CACHE_NAME='evaluation-charge-atelier-v18-5';
+const CACHE_NAME='evaluation-charge-atelier-rta-integration-1';
 const ASSETS=[
   './',
   './index.html',
-  './Evaluation_Charge_atelier_V18_5.html',
+  './Evaluation_Charge_atelier_rta-integration-1.html',
   './manifest.webmanifest',
   './logo-francois-de-mahy.png',
   './Fiches_Evaluations_63_Activites_CAP_BacPro_V4_CHARTE_DEFINITIVE.pdf'
