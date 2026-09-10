@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Evaluation &amp; Charge atelier V14 — Firebase</title>
+<title>Evaluation &amp; Charge atelier V15 — Firebase</title>
 <style>
 *{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f5f7fa;color:#172033}
 .app{display:flex;min-height:100vh}.side{width:235px;background:#172033;color:#fff;padding:22px 14px}.logo{font-size:19px;font-weight:700;padding:8px 10px 24px}
@@ -614,6 +614,31 @@ th,td{min-width:120px;padding:9px 8px} th:first-child,td:first-child{min-width:1
 /* V89.3 — restauration intégrale */
 .advanced-archive-action.restore{margin:14px 0;border-color:#9cc9b5;background:#f6fffa}
 .advanced-restore-file-btn{display:inline-flex!important;align-items:center;justify-content:center;cursor:pointer;width:auto!important;align-self:flex-start}
+</style>
+
+<style id="rentree-print-fidelity-v15">
+#rentree-batch-print-container{display:none}
+@media print{
+  body.rentree-printing{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;background:#fff!important}
+  body.rentree-printing>*:not(#rentree-batch-print-container){display:none!important}
+  body.rentree-printing #rentree-batch-print-container{display:block!important;width:190mm!important;margin:0 auto!important}
+  body.rentree-printing #rentree-batch-print-container .rentree-print-page{display:block!important;width:190mm!important;min-height:272mm!important;box-sizing:border-box!important;break-after:page!important;page-break-after:always!important}
+  body.rentree-printing #rentree-batch-print-container .rentree-print-page:last-child{break-after:auto!important;page-break-after:auto!important}
+  body.rentree-printing #rentree-batch-print-container .rentree-sheet{border:1px solid #b8c8dc!important;border-radius:4mm!important;padding:4mm!important;box-shadow:none!important;background:#fff!important;overflow:hidden!important}
+  body.rentree-printing #rentree-batch-print-container .rentree-print-school-header{height:17mm!important;margin:0 0 2.5mm!important;padding:1mm 2mm!important;border-bottom:2px solid #17365d!important;background:#f8fafc!important}
+  body.rentree-printing #rentree-batch-print-container .rentree-print-school-header img{max-height:15mm!important}
+  body.rentree-printing #rentree-batch-print-container .rentree-sheet-header{border:1px solid #c4d2e2!important;border-radius:3mm!important;overflow:hidden!important;background:#fff!important;margin-bottom:3mm!important}
+  body.rentree-printing #rentree-batch-print-container .rentree-sheet-title h2{background:#eaf2f8!important;color:#17365d!important;border-radius:2mm!important}
+  body.rentree-printing #rentree-batch-print-container .rentree-sheet-image{background:#f8fafc!important}
+  body.rentree-printing #rentree-batch-print-container .rentree-print-meta{border:1px solid #c4d2e2!important;border-radius:3mm!important;overflow:hidden!important;background:#f8fbff!important;margin-bottom:3mm!important}
+  body.rentree-printing #rentree-batch-print-container .rentree-print-meta .meta-line{background:#fff!important}
+  body.rentree-printing #rentree-batch-print-container .print-diploma-only{display:inline-flex!important;padding:1.2mm 2.4mm!important;border-radius:999px!important;background:#eef2ff!important;color:#3730a3!important;font-weight:900!important}
+  body.rentree-printing #rentree-batch-print-container .rentree-table th{background:#24679c!important;color:#fff!important}
+  body.rentree-printing #rentree-batch-print-container .rentree-summary-grid{background:#fff!important}
+  body.rentree-printing #rentree-batch-print-container .rentree-total{color:#17365d!important}
+  body.rentree-printing #rentree-batch-print-container .rentree-print-footer{position:static!important;margin-top:2.5mm!important;padding-top:1.5mm!important;border-top:1px solid #dbe4ee!important}
+  @page{size:A4 portrait;margin:8mm 10mm 10mm!important}
+}
 </style>
 
 <style>
@@ -4246,15 +4271,18 @@ function setRentreeAppreciationFromButton(btn){
   if(!btn)return;
   setRentreeAppreciation(btn.getAttribute("data-appreciation")||"");
 }
-function rentreeStudentNameParts(){
-  const d=rentreeDraft||{};
-  const st=(students||[]).find(s=>String(s.id)===String(d.studentId));
+function rentreeStudentNamePartsFor(student){
+  const st=student||null;
   const full=String(st?.name||"").trim();
   if(!full)return {last:"",first:""};
   const parts=full.split(/\s+/).filter(Boolean);
   if(parts.length===1)return {last:parts[0],first:""};
   // Dans les listes élèves du logiciel, le nom de famille est généralement placé en premier.
   return {last:parts[0],first:parts.slice(1).join(" ")};
+}
+function rentreeStudentNameParts(){
+  const d=rentreeDraft||{};
+  return rentreeStudentNamePartsFor((students||[]).find(s=>String(s.id)===String(d.studentId)));
 }
 function rentreePrintDateLabel(v){
   const raw=String(v||"").trim();
@@ -4263,7 +4291,49 @@ function rentreePrintDateLabel(v){
   if(/^\d{4}-\d{2}-\d{2}$/.test(iso))return `${iso.slice(8,10)} / ${iso.slice(5,7)} / ${iso.slice(0,4)}`;
   return raw||"____ / ____ / ______";
 }
-function printRentreeEvaluation(){document.body.classList.add("rentree-printing");setTimeout(()=>{window.print();setTimeout(()=>document.body.classList.remove("rentree-printing"),250);},100);}
+function buildRentreePrintSheet(student,pageNumber,pageCount){
+  const d=rentreeDraft||{};
+  const source=document.querySelector(".rentree-form-page .rentree-sheet");
+  if(!source||!student)return null;
+  const clone=source.cloneNode(true);
+  const parts=rentreeStudentNamePartsFor(student);
+  const studentClass=studentClassLabel(student.id)||"—";
+  const diploma=activeDiplomaForRentree(student.id);
+  const comps=rentreeComps(rentreeTheme(d.themeId),student.id);
+  const meta=clone.querySelector(".rentree-print-meta");
+  if(meta)meta.innerHTML=`<div class="rentree-print-meta-left"><div class="meta-line"><b>Nom de l'élève :</b> ${esc(parts.last)}</div><div class="meta-line"><b>Prénom :</b> ${esc(parts.first)}</div><div class="meta-line"><b>Classe :</b> ${esc(studentClass)}</div></div><div class="rentree-print-meta-right"><div class="meta-line"><b>Date :</b> ${esc(rentreePrintDateLabel(d.date))}</div><div class="meta-line"><b>Diplôme préparé :</b> <span class="print-diploma-only">${esc(diploma)}</span></div></div>`;
+  clone.querySelectorAll(".rentree-print-observation").forEach((node,index)=>{node.textContent=String(d.observations?.[index]||"");});
+  const teacherObservation=clone.querySelector(".rentree-print-teacher-observation");
+  if(teacherObservation)teacherObservation.textContent=String(d.teacherObservation||"");
+  const bottomLeft=clone.querySelector(".rentree-print-bottom .left");
+  if(bottomLeft)bottomLeft.innerHTML=`<p><b>Compétences du diplôme ${esc(diploma)} :</b> ${esc(comps.join(" - ")||"—")}</p>`;
+  const footerSpans=clone.querySelectorAll(".rentree-print-footer span");
+  if(footerSpans[1])footerSpans[1].textContent=`Page ${pageNumber} / ${pageCount}`;
+  const wrapper=document.createElement("section");
+  wrapper.className="rentree-print-page";
+  wrapper.setAttribute("aria-label",`Fiche d'évaluation de ${student.name||"l'élève"}`);
+  wrapper.appendChild(clone);
+  return wrapper;
+}
+function cleanupRentreePrint(){
+  document.body.classList.remove("rentree-printing");
+  document.getElementById("rentree-batch-print-container")?.remove();
+}
+function printRentreeEvaluation(){
+  const d=rentreeDraft||{};
+  const targetIds=d.mode==="collective"?[...(d.targetStudents||[])]:[d.studentId];
+  const targetStudents=targetIds.map(id=>(students||[]).find(s=>String(s.id)===String(id))).filter(Boolean);
+  if(!targetStudents.length){showWarningMessage("Sélectionne au moins un élève avant l’impression.");return;}
+  cleanupRentreePrint();
+  const container=document.createElement("div");
+  container.id="rentree-batch-print-container";
+  targetStudents.forEach((student,index)=>{const sheet=buildRentreePrintSheet(student,index+1,targetStudents.length);if(sheet)container.appendChild(sheet);});
+  document.body.appendChild(container);
+  document.body.classList.add("rentree-printing");
+  const done=()=>setTimeout(cleanupRentreePrint,100);
+  window.addEventListener("afterprint",done,{once:true});
+  setTimeout(()=>{window.print();setTimeout(cleanupRentreePrint,500);},150);
+}
 function rentreePdfFilenamePart(value){
   return String(value||"").replace(/[<>:"/\\|?*\u0000-\u001F]/g," ").replace(/\s+/g," ").trim().replace(/[. ]+$/g,"")||"Non renseigne";
 }
@@ -4337,7 +4407,7 @@ function rentreeEvaluationPage(){
     <div class="rentree-competence-note"><b>Compétences associées ${diploma} :</b> ${comps.join(" - ")}<br><span class="muted">Cette évaluation de rentrée constitue un indicateur technique initial. Elle est rattachée aux compétences mais ne positionne pas automatiquement les critères officiels du référentiel.</span></div>
     <div class="rentree-print-bottom rentree-print-only"><div class="left"><p><b>Compétences du diplôme ${esc(diploma)} :</b> ${esc(comps.join(" - "))}</p></div><div class="right"><div class="rentree-print-signature">Signature :</div></div></div>
     <div class="rentree-print-footer rentree-print-only"><span>Évaluation de rentrée - Maintenance des véhicules</span><span>Page 1</span></div>
-  </div><div class="rentree-actions"><button class="secondary" onclick="page='rentreeChoice';rentreeDraft=null;render()">← Changer de thème</button><button class="secondary" onclick="printRentreeEvaluation()">🖨️ Imprimer la fiche</button><button class="primary" onclick="saveRentreeEvaluation()">${d.editId?"✓ Enregistrer les modifications":"✓ Enregistrer l’évaluation"}</button></div></div>`;
+  </div><div class="rentree-actions"><button class="secondary" onclick="page='rentreeChoice';rentreeDraft=null;render()">← Changer de thème</button><button class="secondary" onclick="printRentreeEvaluation()">${d.mode==="collective"?`🖨️ Imprimer toutes les fiches (${(d.targetStudents||[]).length})`:"🖨️ Imprimer la fiche"}</button><button class="primary" onclick="saveRentreeEvaluation()">${d.editId?"✓ Enregistrer les modifications":"✓ Enregistrer l’évaluation"}</button></div></div>`;
 }
 async function saveRentreeEvaluation(){
   const d=rentreeDraft,theme=rentreeTheme(d?.themeId);if(!d||!theme)return;
@@ -10734,7 +10804,7 @@ window.addEventListener("resize",function(){
 @media(max-width:1150px){.at-morning-layout,.at-admin-layout{grid-template-columns:1fr}.at-admin-column{min-height:0}}
 </style>
 <section id="atelier-app" class="hidden" aria-label="Evaluation et charge atelier">
-  <header class="at-head"><h1>Evaluation &amp; Charge atelier V14 — Firebase</h1><span id="at-active-class"></span><button id="at-view-mode-btn" type="button" onclick="toggleAtelierViewMode()">Vue élève</button><button id="at-return-main-btn" type="button" onclick="closeAtelierUnified()">Retour aux évaluations</button></header>
+  <header class="at-head"><h1>Evaluation &amp; Charge atelier V15 — Firebase</h1><span id="at-active-class"></span><button id="at-view-mode-btn" type="button" onclick="toggleAtelierViewMode()">Vue élève</button><button id="at-return-main-btn" type="button" onclick="closeAtelierUnified()">Retour aux évaluations</button></header>
   <nav class="at-nav" id="at-nav"></nav><main class="at-main" id="at-main"></main>
 </section>
 <script id="atelier-unifie-v5-script">
