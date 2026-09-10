@@ -169,3 +169,15 @@ Cette version reste une version d’essai fonctionnelle. La séparation classe/d
 - Le chef d’équipe reste protégé : il ne peut pas être déplacé comme un élève standard sans changement préalable de son rôle.
 - Si aucune autre activité n’est sélectionnée, un clic sur un élève déjà positionné conserve l’action de libération avec confirmation.
 - Les fonctions calendrier compact, tableaux futurs et séparation Classe + Date de la TEST 10 sont conservées.
+
+
+ÉVOLUTIONS TEST 12 — CORRECTION CHANGEMENT DE CLASSE
+- Correction du blocage empêchant de changer de classe.
+- Cause corrigée : la fonction générale de changement de classe appelait directement la variable interne « state » du module Atelier, ce qui provoquait une erreur JavaScript.
+- La fonction générale appelle désormais un point d’entrée sécurisé du module Atelier.
+- Le changement de classe fonctionne à nouveau depuis les différentes vues de l’application.
+- Le tableau Atelier est rafraîchi après changement de classe.
+- La séparation CLASSE + DATE reste conservée : changer de classe n’entraîne aucune recopie du tableau d’une autre classe.
+- La date future éventuellement consultée reste indépendante de la classe.
+- Les fonctions de la TEST 11, notamment le déplacement direct des élèves entre activités, sont conservées.
+- « Retour Accueil » est conservé.
