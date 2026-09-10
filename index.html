@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Evaluation &amp; Charge atelier V15 — Firebase</title>
+<title>Evaluation &amp; Charge atelier V16 — Firebase</title>
 <style>
 *{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f5f7fa;color:#172033}
 .app{display:flex;min-height:100vh}.side{width:235px;background:#172033;color:#fff;padding:22px 14px}.logo{font-size:19px;font-weight:700;padding:8px 10px 24px}
@@ -2596,7 +2596,11 @@ body{background:#f7f9fc;color:var(--text)}
 <style id="rentree-collective-v1">
 .student-check-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:8px}
 .student-check{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid #dbe4ee;border-radius:9px;background:#fff}
-</style></head>
+</style>
+<style id="v16-ui-updates">
+.self-eval-compact{padding:10px 12px!important}.self-eval-compact .eval-modern-title{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.self-eval-note{margin-left:auto;padding:4px 9px;border-radius:999px;background:#e0f2fe;color:#075985;font-size:14px;font-weight:900}.self-eval-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}.self-eval-item{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;color:#475569}.self-eval-item i{width:10px;height:10px;border-radius:50%;display:inline-block}.self-eval-comment{margin-top:6px;font-size:11px;color:#64748b}.history-teacher{margin-top:3px;font-size:12px;color:#0f4c81;font-weight:700}.evaluation-history-table td{font-size:12px;line-height:1.35;vertical-align:top}.evaluation-history-table tr.history-individual-row>td,.evaluation-history-table tr.history-collective-row>td{border-top:2px solid #64748b!important}.evaluation-history-table tr.home-collective-child>td{border-top:1px solid #cbd5e1!important}.report-eval-meta{font-size:12px;color:#475569;font-weight:650}@media print{.self-eval-item i{-webkit-print-color-adjust:exact;print-color-adjust:exact}.report-eval-meta{font-size:10px}}
+</style>
+</head>
 <body class="firebase-disabled-mode">
 <!-- V88 — DONNÉES DE RÉFÉRENCE RÉINTÉGRÉES DEPUIS V86.5
      Jeux embarqués repris : référentiel compétences, élèves par défaut, seconde classe fictive, situations professionnelles.
@@ -4177,6 +4181,9 @@ function evaluationSupportLabel(e){
   return String(e?.activitySupport||e?.supportActivite||"").trim();
 }
 
+function selfEvalColor(v){const n=Number(v);return !Number.isFinite(n)?"#94a3b8":n>=3?"#16a34a":n>=2?"#f59e0b":"#ef4444";}
+function studentSelfEvalCard(se){if(!se)return `<section class="eval-modern-card self-eval-compact"><div class="eval-modern-title">👤 Auto-évaluation de l’élève</div><div class="muted">Auto-évaluation non renseignée</div></section>`;const dot=(label,v)=>`<span class="self-eval-item"><i style="background:${selfEvalColor(v)}"></i>${label} ${esc(v??"—")}/4</span>`;return `<section class="eval-modern-card self-eval-compact"><div class="eval-modern-title">👤 Auto-évaluation de l’élève <span class="self-eval-note">${esc(se.note??"—")}/20</span></div><div class="self-eval-row">${dot("Organisation",se.organisation)}${dot("Résultat",se.resultats)}${dot("Autonomie",se.confiance)}</div>${se.comment?`<div class="self-eval-comment">${esc(se.comment)}</div>`:""}</section>`;}
+function evaluationTeacherLabel(e){return String(e?.teacherName||e?.professorName||e?.profName||"").trim();}
 function beginRentreeEvaluation(){
   try{
     if(!students.length){showWarningMessage("Aucun élève n’est disponible.");return;}
@@ -5684,7 +5691,7 @@ document.getElementById("main").innerHTML=`
       ${competencyArea}
 
       ${(draft.evalPath==="professional"||draft.atelierSource||draft.activitySupport)?`<section class="eval-modern-card eval-modern-cyan activity-support-prof"><div class="eval-modern-title">🚗 Support d’activité</div><div class="muted" style="margin-bottom:8px">Véhicule, organe, maquette ou autre support utilisé pour cette évaluation.</div><input type="text" value="${esc(draft.activitySupport||"")}" placeholder="Ex. Peugeot 208, véhicule client, moteur K9K, maquette de freinage…" oninput="draft.activitySupport=this.value"></section>`:""}
-      ${draft.studentSelfEvaluation?`<section class="eval-modern-card"><div class="eval-modern-title">👤 Auto-évaluation de l’élève</div><div class="muted"><b>Organisation :</b> ${esc(draft.studentSelfEvaluation.organisation||"—")}/4 &nbsp; <b>Résultat :</b> ${esc(draft.studentSelfEvaluation.resultats||"—")}/4 &nbsp; <b>Autonomie :</b> ${esc(draft.studentSelfEvaluation.confiance||"—")}/4 &nbsp; <b>Note estimée :</b> ${esc(draft.studentSelfEvaluation.note??"—")}/20</div>${draft.studentSelfEvaluation.comment?`<div style="margin-top:8px"><b>Commentaire :</b> ${esc(draft.studentSelfEvaluation.comment)}</div>`:""}</section>`:""}
+      ${studentSelfEvalCard(draft.studentSelfEvaluation)}
 
       ${draft.retroactive?`<section class="eval-modern-card eval-modern-yellow" style="margin-top:16px"><div class="eval-modern-title"><span class="eval-step">5</span> Note estimative à cette date</div><div class="form-grid"><label>Note estimative sur 20<input type="number" min="0" max="20" step="0.5" value="${esc(draft.retroEstimatedNote??"")}" placeholder="Ex. 12,5" onchange="applyRetroEstimatedNote(this.value)"></label><div><div class="muted" style="margin-bottom:6px">Positionnement automatique</div><button type="button" class="primary" onclick="applyRetroEstimatedNote(draft.retroEstimatedNote)">⚙️ Calculer et cocher automatiquement les critères</button></div></div><div class="retro-date-note">Le calcul s’applique à tous les critères actifs de la situation ou des compétences choisies. Tu peux ensuite corriger manuellement chaque critère.</div>${draft.retroCalculatedNote!==undefined?`<div class="pill" style="margin-top:10px">Résultat automatique obtenu : ${String(draft.retroCalculatedNote).replace(".",",")} / 20</div>`:""}</section>`:``}
       ${!draft.retroactive?`<section class="note-driven-box"><h3>📝 Évaluer à partir d’une note</h3><div class="note-driven-row"><label>Note sur 20<input class="note-driven-input" type="number" min="0" max="20" step="0.5" value="${esc(draft.noteDrivenRequested??"")}" placeholder="Ex. 14" onchange="draft.noteDrivenRequested=this.value"></label><div><button type="button" class="primary note-driven-button" onclick="applyNoteToStandardEvaluation(draft.noteDrivenRequested)">⚙️ Positionner automatiquement les critères</button><div class="note-driven-mini">Le logiciel répartit les niveaux de maîtrise pour obtenir une évaluation cohérente avec la note saisie. Les critères peuvent ensuite être corrigés manuellement.</div></div></div>${draft.noteDrivenCalculated!==undefined?`<div class="note-driven-result">Note saisie : ${String(draft.noteDrivenRequested).replace(".",",")} / 20 · résultat des critères : ${String(draft.noteDrivenCalculated).replace(".",",")} / 20</div>`:""}</section>`:``}
@@ -9152,7 +9159,7 @@ function historyPage(){
           <td>${esc(e.date||"")}</td>
           <td style="padding-left:28px">↳ ${esc(e.studentName||"")}</td>
           <td><span class="pill">Élève</span></td>
-          <td>${esc(e.title||"")}${evaluationSupportLabel(e)?`<div class="history-support">Support : ${esc(evaluationSupportLabel(e))}</div>`:""}</td>
+          <td>${esc(e.title||"")}${evaluationSupportLabel(e)?`<div class="history-support">Support : ${esc(evaluationSupportLabel(e))}</div>`:""}${evaluationTeacherLabel(e)?`<div class="history-teacher">Professeur : ${esc(evaluationTeacherLabel(e))}</div>`:""}</td>
           <td>${evaluationDisplayComps(e).map(competenceLabel).join("<br>")||"—"}</td>
           <td><span class="score-badge ${scoreClass(evaluationScore20(e))}">${evaluationScoreLabel(e)}</span></td>
           <td><span class="actions-inline">
@@ -9254,7 +9261,7 @@ function archivesPage(){
       g.items.sort((a,b)=>String(a.studentName||"").localeCompare(String(b.studentName||""),"fr")).forEach(e=>{
         body+=`<tr data-collective="${esc(id)}" style="display:none;cursor:pointer" onclick="viewEvaluation('${String(e.id)}')" title="Cliquer pour visualiser l'évaluation archivée">
           <td>${esc(e.date||"")}</td><td style="padding-left:28px">↳ ${esc(e.studentName||"")}</td>
-          <td><span class="pill">Élève</span></td><td>${esc(e.title||"")}${evaluationSupportLabel(e)?`<div class="history-support">Support : ${esc(evaluationSupportLabel(e))}</div>`:""}</td>
+          <td><span class="pill">Élève</span></td><td>${esc(e.title||"")}${evaluationSupportLabel(e)?`<div class="history-support">Support : ${esc(evaluationSupportLabel(e))}</div>`:""}${evaluationTeacherLabel(e)?`<div class="history-teacher">Professeur : ${esc(evaluationTeacherLabel(e))}</div>`:""}</td>
           <td>${evaluationDisplayComps(e).map(competenceLabel).join("<br>")||"—"}</td>
           <td><span class="score-badge ${scoreClass(evaluationScore20(e))}">${evaluationScoreLabel(e)}</span></td>
           <td><span class="actions-inline">
@@ -9295,7 +9302,7 @@ function studentHistoryPage(){
     const isCollective=!!e.batchId;
     return `<tr class="${isCollective?"history-collective-row":"history-individual-row"}" onclick="viewEvaluation('${String(e.id)}')" style="cursor:pointer" title="Cliquer pour visualiser">
       <td>${esc(e.date||"")}</td>
-      <td><b>${esc(e.title||"Évaluation")}</b>${evaluationSupportLabel(e)?`<div class="history-support">Support : ${esc(evaluationSupportLabel(e))}</div>`:""}</td>
+      <td><b>${esc(e.title||"Évaluation")}</b>${evaluationSupportLabel(e)?`<div class="history-support">Support : ${esc(evaluationSupportLabel(e))}</div>`:""}${evaluationTeacherLabel(e)?`<div class="history-teacher">Professeur : ${esc(evaluationTeacherLabel(e))}</div>`:""}</td>
       <td><span class="pill">${isCollective?"Collective":"Individuelle"}</span></td>
       <td>${evaluationDisplayComps(e).map(competenceLabel).join("<br>")||"—"}</td>
       <td><span class="score-badge ${scoreClass(evaluationScore20(e))}">${evaluationScoreLabel(e)}</span></td>
@@ -9773,7 +9780,7 @@ function reportPageForStudent(){
       ${filteredEvaluations.length?filteredEvaluations.slice().reverse().map(e=>`
         <div class="report-eval">
           <b>${esc(e.date)}</b>
-          <div><b>${esc(e.title)}</b><br><span class="muted">${evaluationDisplayComps(e).map(competenceLabel).join("<br>")}</span></div>
+          <div><b>${esc(e.title)}</b>${evaluationSupportLabel(e)?`<br><span class="report-eval-meta">🚗 Support : ${esc(evaluationSupportLabel(e))}</span>`:""}${evaluationTeacherLabel(e)?`<br><span class="report-eval-meta">👤 Professeur : ${esc(evaluationTeacherLabel(e))}</span>`:""}<br><span class="muted">${evaluationDisplayComps(e).map(competenceLabel).join("<br>")}</span></div>
           <div class="report-note">${evaluationScoreLabel(e)}</div>
         </div>`).join(""):'<p class="muted">Aucune évaluation enregistrée sur la période sélectionnée.</p>'}
     </div>
@@ -10804,7 +10811,7 @@ window.addEventListener("resize",function(){
 @media(max-width:1150px){.at-morning-layout,.at-admin-layout{grid-template-columns:1fr}.at-admin-column{min-height:0}}
 </style>
 <section id="atelier-app" class="hidden" aria-label="Evaluation et charge atelier">
-  <header class="at-head"><h1>Evaluation &amp; Charge atelier V15 — Firebase</h1><span id="at-active-class"></span><button id="at-view-mode-btn" type="button" onclick="toggleAtelierViewMode()">Vue élève</button><button id="at-return-main-btn" type="button" onclick="closeAtelierUnified()">Retour aux évaluations</button></header>
+  <header class="at-head"><h1>Evaluation &amp; Charge atelier V16 — Firebase</h1><span id="at-active-class"></span><button id="at-view-mode-btn" type="button" onclick="toggleAtelierViewMode()">Vue élève</button><button id="at-return-main-btn" type="button" onclick="closeAtelierUnified()">Retour aux évaluations</button></header>
   <nav class="at-nav" id="at-nav"></nav><main class="at-main" id="at-main"></main>
 </section>
 <script id="atelier-unifie-v5-script">
@@ -10837,7 +10844,7 @@ function nav(){const items=state.studentView?[['morning','Tableau du jour'],['au
 window.openAtelierUnified=function(){if(state.studentView&&!['morning','auto'].includes(state.page))state.page='morning';document.getElementById('atelier-app').classList.remove('hidden');document.getElementById('at-active-class').textContent=classLabel();render()}
 window.closeAtelierUnified=function(){if(state.studentView)return;document.getElementById('atelier-app').classList.add('hidden')}
 window.atelierPage=function(p){if(state.studentView&&!['morning','auto'].includes(p))p='morning';state.page=p;state.selectedActivity="";render()}
-window.toggleAtelierViewMode=async function(){if(!state.studentView){state.studentView=true;state.page='morning';sessionStorage.setItem(STUDENT_VIEW_KEY,'1');render();return}const code=typeof requestAdminCodeMasked==='function'?await requestAdminCodeMasked('Saisis le code administrateur pour revenir en Vision Prof :'):prompt('Code administrateur :');if(code===null)return;if(String(code)!==String(getAdminCode())){if(typeof showWarningMessage==='function')showWarningMessage('Code administrateur incorrect.');else alert('Code administrateur incorrect.');return}state.studentView=false;state.page='pending';sessionStorage.removeItem(STUDENT_VIEW_KEY);render()}
+window.toggleAtelierViewMode=async function(){if(!state.studentView){state.studentView=true;state.page='morning';sessionStorage.setItem(STUDENT_VIEW_KEY,'1');render();return}const activeTeacher=(typeof getActiveTeacher==='function'?getActiveTeacher():null);const code=typeof requestTeacherInput==='function'?await requestTeacherInput('Quitter la Vision élève','',{secret:true,placeholder:'Code professeur',help:'Saisis le code du professeur actuellement connecté.'}):prompt('Code professeur :');if(code===null)return;if(!activeTeacher||String(code).trim()!==String(activeTeacher.code||'').trim()){if(typeof showWarningMessage==='function')showWarningMessage('Code professeur incorrect.');else alert('Code professeur incorrect.');return}state.studentView=false;state.page='pending';sessionStorage.removeItem(STUDENT_VIEW_KEY);render()}
 window.returnToAtelierPending=function(){state.studentView=false;sessionStorage.removeItem(STUDENT_VIEW_KEY);state.page='pending';state.selectedActivity='';document.getElementById('atelier-app').classList.remove('hidden');document.getElementById('at-active-class').textContent=classLabel();render()}
 function render(){if(state.studentView&&!['morning','auto'].includes(state.page))state.page='morning';nav();if(state.page==='admin')renderAdmin();else if(state.page==='pending')renderPending();else if(state.page==='auto')renderAutoEvaluation();else renderMorning()}
 function renderMorning(){const d=database(),t=today(d),ps=pupils(),pub=[{activityId:TEAM_ID,code:'CHEF',title:"Chef d’équipe",support:"Gestion de l’atelier pédagogique",capacity:1},...(t.published||[])];const hasLeader=Object.values(t.assignments).includes(TEAM_ID);const cards=pub.map(p=>{const a=activityById(p.activityId)||p;const names=ps.filter(s=>t.assignments[s.id]===p.activityId).map(s=>s.name);return `<article class="at-card published ${p.activityId===TEAM_ID?'at-team-card':''} ${state.selectedActivity===p.activityId?'selected':''}" onclick="selectAtActivity('${e(p.activityId)}')"><span class="at-code">${e(a.code||'ACT')}</span><span class="at-title">${e(a.title)}</span><div class="at-support">${p.activityId===TEAM_ID?'Rôle':'🚗 Support'} : ${e(p.support||'Non renseigné')}</div><div class="at-count">${names.length}/${p.capacity||4} élève${names.length>1?'s':''}${p.activityId===TEAM_ID&&!names.length?' — OBLIGATOIRE':''}</div><div class="at-names">${names.length?e(names.join(' • ')):'Aucun élève désigné'}</div></article>`}).join('');

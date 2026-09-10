@@ -1,0 +1,16 @@
+EVALUATION & CHARGE ATELIER — V16
+================================
+Base : V15 fournie par Fabrice le 10/09/2026.
+
+MODIFICATIONS V16
+- Atelier du jour : l’auto-évaluation de l’élève (note estimée /20 + Organisation + Résultat + Autonomie) remonte dans la fiche de validation de l’évaluation.
+- Présentation compacte et colorimétrique de l’auto-évaluation ; indication « Auto-évaluation non renseignée » lorsqu’aucune donnée n’est disponible.
+- Les données d’auto-évaluation restent enregistrées avec l’évaluation issue d’Atelier du jour et sont donc disponibles lors de la réouverture/validation.
+- Synthèse élève : chaque évaluation affiche maintenant le support d’activité (ex. Honda Jazz) et le professeur évaluateur.
+- Historique des évaluations : support d’activité + professeur évaluateur visibles directement à l’écran.
+- Historique : police compacte/lisible et séparateurs renforcés entre les évaluations.
+- Vision élève : pour revenir en Vision Prof, le logiciel demande désormais le code du professeur actuellement connecté, et non le code administrateur.
+- Les informations de la synthèse élève sont reprises lors de l’impression / génération PDF par le navigateur.
+
+REMARQUE
+Les évaluations anciennes qui ne contiennent pas encore de nom de professeur ou de support restent compatibles ; le champ absent n’est simplement pas affiché.
