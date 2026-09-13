@@ -1,0 +1,10 @@
+VERSION 13 — CORRECTION DE DÉMARRAGE + FIREBASE ACTIF PAR DÉFAUT
+
+Corrections principales :
+- correction d'une erreur JavaScript qui empêchait le fichier V12 de démarrer correctement ;
+- Firebase est désormais actif par défaut à l'ouverture ;
+- l'utilisateur peut toujours désactiver Firebase depuis Paramètres ;
+- conservation des fonctions V12 : sélection multiple des bilans, génération PDF, suppression multiple et synchronisation non destructive des évaluations.
+
+IMPORTANT :
+La synchronisation Firebase reste soumise à la connexion au compte Firebase et aux règles Firestore.

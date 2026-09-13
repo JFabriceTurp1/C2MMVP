@@ -2834,7 +2834,7 @@ body{background:#f7f9fc;color:var(--text)}
 <div class="app">
 <button id="sidebar-toggle" class="sidebar-toggle" type="button" onclick="toggleSidebar()" aria-label="Masquer la barre latérale" aria-expanded="true" title="Masquer la barre latérale">◀</button>
 <aside class="side">
-<div class="logo">COMPÉTENCES MV<br><small style="font-size:11px;font-weight:400">V3 — Évaluation • Atelier • RTA • TP</small></div>
+<div class="logo">COMPÉTENCES MV<br><small style="font-size:11px;font-weight:400">V10 — Évaluation • Atelier • RTA • TP</small></div>
 <div class="nav">
 <button id="nav-home" onclick="go('home')">🏠 <span>Accueil</span></button>
 <button id="nav-students" onclick="go('students')">👨‍🎓 <span>Élèves</span></button>
@@ -7167,8 +7167,11 @@ function makeSettingsRubricsCollapsible(){
   });
   root.dataset.rubricsCollapsedReady="1";
 }
-const FIREBASE_MODE_STORAGE_KEY="evaluation_firebase_enabled_v6_manual";
-function isFirebaseModeEnabled(){return localStorage.getItem(FIREBASE_MODE_STORAGE_KEY)==="1";}
+const FIREBASE_MODE_STORAGE_KEY="evaluation_firebase_enabled_v13_default_on";
+function isFirebaseModeEnabled(){
+  const value=localStorage.getItem(FIREBASE_MODE_STORAGE_KEY);
+  return value!=="0"; // V13 : Firebase actif par défaut ; l’utilisateur peut le désactiver dans Paramètres.
+}
 function refreshFirebaseModeControl(){
   const enabled=isFirebaseModeEnabled();
   const btn=document.getElementById("firebase-mode-toggle-btn");
@@ -7214,6 +7217,7 @@ function renderSettingsPage(){
   renderSettingsRtaLibraries();
   renderAdvancedArchiveLockState();
   refreshFirebaseModeControl();
+  try{if(typeof renderBilanWeightSettings==="function")renderBilanWeightSettings()}catch(e){}
 }
 function changeAdminCode(){
   const current=document.getElementById("settings-current-code")?.value||"";
@@ -11052,7 +11056,7 @@ function openAssistanceMail(){
 <script id="v81-firebase-test-runtime">
 (function(){
   // V RÉFÉRENTIEL 2 — Firebase activable depuis Paramètres.
-  const FIREBASE_ENABLED_FOR_THIS_BUILD=(typeof isFirebaseModeEnabled==="function" ? isFirebaseModeEnabled() : false); // V6 : Firebase désactivé par défaut, activation manuelle depuis Paramètres
+  const FIREBASE_ENABLED_FOR_THIS_BUILD=(typeof isFirebaseModeEnabled==="function" ? isFirebaseModeEnabled() : false); // V13 : Firebase activé par défaut ; désactivation possible depuis Paramètres
   if(FIREBASE_ENABLED_FOR_THIS_BUILD){
     document.body.classList.remove("firebase-disabled-mode");
     window.__FIREBASE_DISABLED_FOR_DEVELOPMENT=false;
@@ -11107,6 +11111,7 @@ function openAssistanceMail(){
       bilanRecords:(()=>{try{return JSON.parse(localStorage.getItem("evaluation_bilan_records_v92")||"[]")||[]}catch(e){return[]}})(),
       savedReports:(()=>{try{return JSON.parse(localStorage.getItem("evaluation_saved_reports_v90")||"[]")||[]}catch(e){return[]}})(),
       retroPeriodObservations:(()=>{try{return JSON.parse(localStorage.getItem("evaluation_period_observations_v90")||"[]")||[]}catch(e){return[]}})(),
+      bilanWeighting:(()=>{try{return JSON.parse(localStorage.getItem("evaluation_bilan_weighting_v10")||"null")||null}catch(e){return null}})(),
       teachers:(()=>{try{return JSON.parse(localStorage.getItem("evaluation_teachers_v84_1")||"[]")||[]}catch(e){return[]}})(),
       updatedAtClient:Date.now()
     };
@@ -11155,6 +11160,9 @@ function openAssistanceMail(){
     }
     if(Array.isArray(cfg.retroPeriodObservations)){
       try{safeLocalSetItem("evaluation_period_observations_v90",JSON.stringify(cfg.retroPeriodObservations));}catch(e){console.warn("Observations de période non conservées en local",e);}
+    }
+    if(cfg.bilanWeighting&&typeof cfg.bilanWeighting==="object"){
+      try{safeLocalSetItem("evaluation_bilan_weighting_v10",JSON.stringify(cfg.bilanWeighting));}catch(e){console.warn("Pondération des bilans non conservée en local",e);}
     }
     if(Array.isArray(cfg.teachers)&&cfg.teachers.length){
       const incoming=cfg.teachers.map(normalizeTeacher);
@@ -11534,6 +11542,74 @@ window.firebaseSaveCurrentConfig=async()=>{await saveFullConfig(firebaseBuildApp
     },{merge:true});
     await batch.commit();
   }
+
+  /* V12 — Sécurité des évaluations : une synchronisation Firebase ne doit jamais
+     effacer une évaluation présente localement. Les données locales et cloud sont
+     fusionnées par empreinte métier avant toute écriture. */
+  function evaluationSyncFingerprint(ev){
+    const date=String(ev?.evaluationDate||ev?.date||'').trim();
+    const title=String(ev?.profSituation||ev?.title||ev?.type||'').trim().toLowerCase();
+    const note=(ev?.sourceNote20!==undefined&&ev?.sourceNote20!==null)?String(ev.sourceNote20):String(ev?.retroCalculatedNote??ev?.retroEstimatedNote??'');
+    const batch=String(ev?.batchId||'');
+    const created=String(ev?.createdAt||ev?.enteredAt||'');
+    return [String(ev?.studentId||''),date,title,note,batch,created].join('|');
+  }
+  async function mergeEvaluationsWithoutLoss(cloudRows,{pushLocal=true}={}){
+    await openDB();
+    const localRows=await getAll('evaluations');
+    const cloud=Array.isArray(cloudRows)?cloudRows.map(x=>JSON.parse(JSON.stringify(x))):[];
+    const cloudByFp=new Map(cloud.map(x=>[evaluationSyncFingerprint(x),x]));
+    const usedCloudIds=new Map(cloud.map(x=>[String(x.id),evaluationSyncFingerprint(x)]));
+    const additions=[];
+    const idsToRemoveAfterCopy=[];
+    for(const local of localRows){
+      const fp=evaluationSyncFingerprint(local);
+      if(cloudByFp.has(fp)) continue;
+      const copy=JSON.parse(JSON.stringify(local));
+      let id=copy.id;
+      if(id===undefined||id===null||id==='' || (usedCloudIds.has(String(id)) && usedCloudIds.get(String(id))!==fp)){
+        const oldId=id;
+        id='EVALSYNC_'+Date.now()+'_'+Math.random().toString(36).slice(2,9);
+        copy.id=id;
+        if(oldId!==undefined&&oldId!==null&&oldId!=='') idsToRemoveAfterCopy.push(oldId);
+      }
+      usedCloudIds.set(String(id),fp);
+      cloudByFp.set(fp,copy);
+      additions.push(copy);
+      cloud.push(copy);
+    }
+    if(pushLocal && additions.length && auth.currentUser){
+      const root=userRoot();
+      const chunkSize=350;
+      for(let i=0;i<additions.length;i+=chunkSize){
+        const batch=firestore.batch();
+        additions.slice(i,i+chunkSize).forEach(ev=>batch.set(root.collection('evaluations').doc(String(ev.id)),ev,{merge:true}));
+        await batch.commit();
+      }
+    }
+    // Aucune purge globale : on écrit d'abord l'union complète.
+    for(const ev of cloud){
+      const clean=JSON.parse(JSON.stringify(ev));
+      if(clean.id!==undefined && clean.id!==null && /^\d+$/.test(String(clean.id))) clean.id=Number(clean.id);
+      await originalPut('evaluations',clean);
+    }
+    for(const oldId of idsToRemoveAfterCopy){
+      try{await originalDelete('evaluations',/^\d+$/.test(String(oldId))?Number(oldId):oldId)}catch(e){}
+    }
+    return {rows:cloud,localCount:localRows.length,added:additions.length};
+  }
+  async function migrateLocalToCloudSafe(cloudEvaluations){
+    const localClasses=getClasses();
+    await openDB();
+    const localStudents=await getAll('students');
+    const batch=firestore.batch();
+    const root=userRoot();
+    for(const c of localClasses) batch.set(root.collection('classes').doc(String(c.id)),JSON.parse(JSON.stringify(c)),{merge:true});
+    for(const st of localStudents){const clean={...st};delete clean.evaluations;batch.set(root.collection('students').doc(String(st.id)),JSON.parse(JSON.stringify(clean)),{merge:true});}
+    batch.set(root,{email:auth.currentUser.email||'',evaluationsInitialized:true,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
+    await batch.commit();
+    return await mergeEvaluationsWithoutLoss(cloudEvaluations,{pushLocal:true});
+  }
   async function synchronizeCloud({forceUpload=false}={}){
     if(syncing || !auth.currentUser) return;
     const reconnectPushPending=localStorage.getItem("evaluation_firebase_reconnect_push_pending")==="1";
@@ -11559,13 +11635,14 @@ window.firebaseSaveCurrentConfig=async()=>{await saveFullConfig(firebaseBuildApp
       const cloudHasLegacyData = cloudClasses.length || cloudStudents.length || cloudEvaluations.length;
 
       if(forceUpload){
-        setSyncProgress(50,'Envoi sécurisé des données locales créées hors ligne…');
-        await migrateLocalToCloud();
+        setSyncProgress(50,'Fusion sécurisée des évaluations locales et Firebase…');
+        const safeMerge=await migrateLocalToCloudSafe(cloudEvaluations);
         await saveFullConfig(firebaseBuildApplicationConfig());
         await firebaseSaveApplicationAccounts();
         cloudClasses=await cloudDocs('classes');
         cloudStudents=await cloudDocs('students');
         cloudEvaluations=await cloudDocs('evaluations');
+        console.info('V12 évaluations protégées :',safeMerge);
       }else if(!cloudHasLegacyData){
         // V89.1 : compte Firebase vide = aucune écriture automatique.
         // L'utilisateur pourra envoyer volontairement les données depuis Paramètres.
@@ -11596,26 +11673,15 @@ window.firebaseSaveCurrentConfig=async()=>{await saveFullConfig(firebaseBuildApp
         await replaceLocalStudents(cloudStudents);
       }
 
-      // Transition historique : si Firebase contient déjà des évaluations, elles ont priorité.
-      // Sinon, seulement si le marqueur n'existe pas, on tente de remonter l'ancien cache V86.5.
-      if(cloudEvaluations.length){
-        await replaceLocalEvaluations(cloudEvaluations);
-        if(!rootData.evaluationsInitialized){
-          await rootRef.set({
-            evaluationsInitialized:true,
-            evaluationsMigratedFromLocal:false,
-            updatedAt:firebase.firestore.FieldValue.serverTimestamp()
-          },{merge:true});
-        }
-      }else if(!rootData.evaluationsInitialized && forceUpload){
-        const uploaded=await uploadLocalEvaluations();
-        await rootRef.set({
-          evaluationsInitialized:true,
-          evaluationsMigratedFromLocal:uploaded,
-          updatedAt:firebase.firestore.FieldValue.serverTimestamp()
-        },{merge:true});
+      // V12 : Firebase ne remplace plus destructivement l'historique local.
+      // Toute évaluation présente d'un seul côté est conservée et recopiée de l'autre côté.
+      if(cloudEvaluations.length || (await getAll('evaluations')).length){
+        const merged=await mergeEvaluationsWithoutLoss(cloudEvaluations,{pushLocal:true});
         cloudEvaluations=await cloudDocs('evaluations');
-        if(cloudEvaluations.length) await replaceLocalEvaluations(cloudEvaluations);
+        if(!cloudEvaluations.length) cloudEvaluations=merged.rows;
+        if(!rootData.evaluationsInitialized){
+          await rootRef.set({evaluationsInitialized:true,evaluationsMigratedFromLocal:merged.added||0,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
+        }
       }
 
       setSyncProgress(58,'Synchronisation de l’Atelier du jour…');
@@ -13087,18 +13153,42 @@ const oldDraft=window.tpGenCurrentDraft;window.tpGenCurrentDraft=function(){cons
 <!-- /TP V8.3 patch safe -->
 
 <style id="v92-bilan-eleve-style">
-.bilan-create-grid{display:grid;grid-template-columns:minmax(220px,1.2fr) minmax(220px,1.2fr) auto;gap:12px;align-items:end}.bilan-create-grid label{display:flex;flex-direction:column;gap:6px;font-weight:700}.bilan-create-grid select{min-height:42px}.bilan-history-row{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid #e5e7eb}.bilan-history-row small{color:#667085}.bilan-record-page{max-width:1180px;margin:0 auto}.bilan-record-actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-bottom:12px}.bilan-sheet{background:#fff;border:1px solid #dbe4f0;border-radius:16px;padding:24px;box-shadow:0 8px 26px rgba(15,23,42,.06)}.bilan-sheet-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;border-bottom:3px solid #2563eb;padding-bottom:14px}.bilan-sheet-head h1{margin:0;color:#123d72}.bilan-period-chip{background:#dbeafe;color:#1d4ed8;font-weight:900;padding:9px 14px;border-radius:999px}.bilan-identity{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:18px 0}.bilan-identity>div,.bilan-kpis>div,.bilan-kpis>label{background:#f8fafc;border:1px solid #e2e8f0;border-radius:11px;padding:12px}.bilan-identity span,.bilan-kpis span{display:block;color:#64748b;font-size:12px;margin-bottom:4px}.bilan-kpis{display:grid;grid-template-columns:1fr 1fr 1.2fr;gap:10px;margin:12px 0 22px}.bilan-kpis strong{font-size:20px;color:#0f3f73}.bilan-print-date{font-weight:700;display:flex;flex-direction:column;gap:5px}.bilan-table{width:100%;border-collapse:collapse;margin:8px 0 22px}.bilan-table th,.bilan-table td{border-bottom:1px solid #e5e7eb;padding:9px;text-align:left;vertical-align:top}.bilan-table th{background:#f8fafc;color:#334155}.bilan-progress{height:7px;background:linear-gradient(90deg,#d92d20 0 25%,#f79009 25% 50%,#fdb022 50% 75%,#12b76a 75% 100%);border-radius:999px;margin-top:6px;position:relative;overflow:visible}.bilan-progress span{display:block;height:100%;border-radius:999px;opacity:.30}.bilan-progress-marker{position:absolute;top:-3px;width:3px;height:13px;border-radius:2px;transform:translateX(-1px);box-shadow:0 0 0 1px rgba(255,255,255,.85)}.bilan-eval-comps{margin-top:7px;display:grid;gap:7px}.bilan-eval-comp{min-width:180px}.bilan-eval-comp-head{display:flex;justify-content:space-between;gap:8px;align-items:center;font-size:11px;line-height:1.2}.bilan-eval-comp-name{font-weight:700;color:#334155}.bilan-eval-comp-level{font-weight:800;white-space:nowrap}.bilan-eval-bar{height:6px;background:linear-gradient(90deg,#d92d20 0 25%,#f79009 25% 50%,#fdb022 50% 75%,#12b76a 75% 100%);border-radius:999px;margin-top:4px;position:relative}.bilan-eval-marker{position:absolute;top:-3px;width:3px;height:12px;border-radius:2px;transform:translateX(-1px);box-shadow:0 0 0 1px rgba(255,255,255,.9)}.bilan-eval-comp.unobserved .bilan-eval-bar{background:#e5e7eb}.bilan-eval-comp.unobserved .bilan-eval-marker{display:none}.bilan-observation{width:100%;box-sizing:border-box;border:1px solid #cbd5e1;border-radius:10px;padding:12px}.bilan-observation-print{border:1px solid #dbe4f0;border-radius:10px;padding:14px;min-height:70px}.bilan-signatures{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:28px}.bilan-signatures>div{min-height:90px;border-top:1px solid #94a3b8;padding-top:8px;color:#475569}.print-only{display:none!important}@media(max-width:900px){.bilan-create-grid,.bilan-identity,.bilan-kpis{grid-template-columns:1fr}.bilan-history-row{align-items:flex-start;flex-direction:column}}
+.bilan-create-grid{display:grid;grid-template-columns:minmax(190px,1fr) minmax(210px,1fr) minmax(240px,1.2fr) auto;gap:12px;align-items:end}.bilan-create-grid label{display:flex;flex-direction:column;gap:6px;font-weight:700}.bilan-create-grid select,.bilan-create-grid input{min-height:42px;box-sizing:border-box}.bilan-teachers-box{margin:0 0 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:11px;padding:12px}.bilan-teachers-box label{display:flex;flex-direction:column;gap:6px;font-weight:700}.bilan-teachers-box input{min-height:40px}.bilan-teachers-box span{display:block;color:#64748b;font-size:12px;margin-bottom:4px}.bilan-teachers-box strong{font-size:16px;color:#0f3f73}.bilan-history-row{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid #e5e7eb}.bilan-history-row small{color:#667085}.bilan-record-page{max-width:1180px;margin:0 auto}.bilan-record-actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-bottom:12px}.bilan-sheet{background:#fff;border:1px solid #dbe4f0;border-radius:16px;padding:24px;box-shadow:0 8px 26px rgba(15,23,42,.06)}.bilan-sheet-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;border-bottom:3px solid #2563eb;padding-bottom:14px}.bilan-sheet-head h1{margin:0;color:#123d72}.bilan-period-chip{background:#dbeafe;color:#1d4ed8;font-weight:900;padding:9px 14px;border-radius:999px}.bilan-identity{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:18px 0}.bilan-identity>div,.bilan-kpis>div,.bilan-kpis>label{background:#f8fafc;border:1px solid #e2e8f0;border-radius:11px;padding:12px}.bilan-identity span,.bilan-kpis span{display:block;color:#64748b;font-size:12px;margin-bottom:4px}.bilan-kpis{display:grid;grid-template-columns:1fr 1fr 1.2fr;gap:10px;margin:12px 0 22px}.bilan-kpis strong{font-size:20px;color:#0f3f73}.bilan-print-date{font-weight:700;display:flex;flex-direction:column;gap:5px}.bilan-table{width:100%;border-collapse:collapse;margin:8px 0 22px}.bilan-table th,.bilan-table td{border-bottom:1px solid #e5e7eb;padding:9px;text-align:left;vertical-align:top}.bilan-table th{background:#f8fafc;color:#334155}.bilan-progress{height:7px;background:linear-gradient(90deg,#d92d20 0 25%,#f79009 25% 50%,#fdb022 50% 75%,#12b76a 75% 100%);border-radius:999px;margin-top:6px;position:relative;overflow:visible}.bilan-progress span{display:block;height:100%;border-radius:999px;opacity:.30}.bilan-progress-marker{position:absolute;top:-3px;width:3px;height:13px;border-radius:2px;transform:translateX(-1px);box-shadow:0 0 0 1px rgba(255,255,255,.85)}.bilan-eval-comps{margin-top:7px;display:grid;gap:7px}.bilan-eval-comp{min-width:180px}.bilan-eval-comp-head{display:flex;justify-content:space-between;gap:8px;align-items:center;font-size:11px;line-height:1.2}.bilan-eval-comp-name{font-weight:700;color:#334155}.bilan-eval-comp-level{font-weight:800;white-space:nowrap}.bilan-eval-bar{height:6px;background:linear-gradient(90deg,#d92d20 0 25%,#f79009 25% 50%,#fdb022 50% 75%,#12b76a 75% 100%);border-radius:999px;margin-top:4px;position:relative}.bilan-eval-marker{position:absolute;top:-3px;width:3px;height:12px;border-radius:2px;transform:translateX(-1px);box-shadow:0 0 0 1px rgba(255,255,255,.9)}.bilan-eval-comp.unobserved .bilan-eval-bar{background:#e5e7eb}.bilan-eval-comp.unobserved .bilan-eval-marker{display:none}.bilan-observation{width:100%;box-sizing:border-box;border:1px solid #cbd5e1;border-radius:10px;padding:12px}.bilan-observation-print{border:1px solid #dbe4f0;border-radius:10px;padding:14px;min-height:70px}.bilan-signatures{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:28px}.bilan-signatures>div{min-height:90px;border-top:1px solid #94a3b8;padding-top:8px;color:#475569}.print-only{display:none!important}@media(max-width:900px){.bilan-create-grid,.bilan-identity,.bilan-kpis{grid-template-columns:1fr}.bilan-history-row{align-items:flex-start;flex-direction:column}}
 @media print{body.bilan-printing .side,body.bilan-printing .app-top-header,body.bilan-printing .permanent-owner-name,body.bilan-printing #active-teacher-chip,body.bilan-printing #firebase-sync-mini,body.bilan-printing .no-print{display:none!important}body.bilan-printing .main{margin:0!important;width:100%!important;padding:0!important}body.bilan-printing .bilan-record-page{max-width:none!important}body.bilan-printing .bilan-sheet{border:0!important;box-shadow:none!important;padding:0!important}.print-only{display:block!important}body.bilan-printing .bilan-table{font-size:10px}body.bilan-printing .bilan-sheet h2{font-size:15px;margin-top:14px}body.bilan-printing .bilan-progress,body.bilan-printing .bilan-eval-bar,body.bilan-printing .bilan-progress-marker,body.bilan-printing .bilan-eval-marker{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}body.bilan-printing .bilan-eval-comp{break-inside:avoid;page-break-inside:avoid}@page{size:A4 portrait;margin:9mm}}
 </style>
 <script id="v92-bilans-eleves-runtime">
-/* V93 — Bilans élève + génération classe + classe corrigée */
+/* V10 — Bilans : pondération périodes + progression dans le parcours */
 (function(){
   const BILAN_RECORDS_KEY="evaluation_bilan_records_v92";
   function readRecords(){try{const a=JSON.parse(localStorage.getItem(BILAN_RECORDS_KEY)||"[]");return Array.isArray(a)?a:[]}catch(e){return[]}}
   function writeRecords(a){localStorage.setItem(BILAN_RECORDS_KEY,JSON.stringify(Array.isArray(a)?a:[]));try{if(typeof syncFirebaseApplicationConfigSoon==="function")syncFirebaseApplicationConfigSoon()}catch(e){}}
   function yearStart(schoolYear){const y=Number(String(schoolYear||"").slice(0,4));return Number.isFinite(y)?`${y}-08-01`:""}
-  function sortedStudents(){try{return sortStudentsAlpha(students||[])}catch(e){return (students||[]).slice().sort((a,b)=>String(a.name||"").localeCompare(String(b.name||""),"fr"))}}
-  function findStudent(id){return (students||[]).find(s=>String(s.id)===String(id)) || ((typeof allStudents!=="undefined"&&Array.isArray(allStudents))?allStudents.find(s=>String(s.id)===String(id)):null)}
+  function sortedStudents(){
+    try{
+      const activeId=String(getActiveClassId()||"");
+      const pool=(typeof allStudents!=="undefined"&&Array.isArray(allStudents)&&allStudents.length)?allStudents:(students||[]);
+      const rows=activeId?pool.filter(s=>String(s.classId||"")===activeId):pool.slice();
+      return sortStudentsAlpha(rows);
+    }catch(e){return (students||[]).slice().sort((a,b)=>String(a.name||"").localeCompare(String(b.name||""),"fr"))}
+  }
+  function findStudent(id){
+    const key=String(id);
+    const all=(typeof allStudents!=="undefined"&&Array.isArray(allStudents))?allStudents:[];
+    return all.find(s=>String(s.id)===key) || (students||[]).find(s=>String(s.id)===key) || null;
+  }
+  function evaluationsForStudent(studentOrId){
+    const key=String(typeof studentOrId==="object"?studentOrId?.id:studentOrId||"");
+    const sources=[];
+    if(typeof allStudents!=="undefined"&&Array.isArray(allStudents))sources.push(...allStudents.filter(s=>String(s.id)===key));
+    if(Array.isArray(students))sources.push(...students.filter(s=>String(s.id)===key));
+    if(typeof studentOrId==="object"&&studentOrId)sources.push(studentOrId);
+    const out=[],seen=new Set();
+    sources.forEach(st=>(st?.evaluations||[]).forEach(ev=>{
+      const sig=ev?.id!==undefined&&ev?.id!==null?`id:${String(ev.id)}`:`sig:${String(ev?.studentId||key)}|${String(ev?.date||"")}|${String(ev?.title||ev?.type||"")}|${String(ev?.batchId||"")}`;
+      if(!seen.has(sig)){seen.add(sig);out.push(ev)}
+    }));
+    return typeof visibleEvaluations==="function"?visibleEvaluations(out):out.filter(e=>!e?.archived);
+  }
   function resolveClassName(classId,student){
     try{
       const classes=(typeof getClasses==="function"?getClasses():[])||[];
@@ -13121,6 +13211,22 @@ const oldDraft=window.tpGenCurrentDraft;window.tpGenCurrentDraft=function(){cons
       return r?.observation||"";
     }catch(e){return ""}
   }
+  const BILAN_WEIGHT_KEY="evaluation_bilan_weighting_v10";
+  function defaultBilanWeighting(){return {P1:{weight:1,progress:50},P2:{weight:2,progress:65},P3:{weight:3,progress:80},P4:{weight:4,progress:100}}}
+  function getBilanWeighting(){try{const x=JSON.parse(localStorage.getItem(BILAN_WEIGHT_KEY)||"null");return x&&typeof x==="object"?Object.assign(defaultBilanWeighting(),x):defaultBilanWeighting()}catch(e){return defaultBilanWeighting()}}
+  function periodCodeForDate(date,schoolYear){
+    const d=isoComparableDate(date); if(!d)return "";
+    const ps=(typeof loadBilanPeriods==="function"?loadBilanPeriods():[]).filter(p=>String(p.schoolYear||"")===String(schoolYear||"")&&p.date).slice().sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+    for(const p of ps){if(d<=isoComparableDate(p.date))return String(p.code||"").toUpperCase()}
+    return ps.length?String(ps[ps.length-1].code||"").toUpperCase():"";
+  }
+  function periodWeightForDate(date,schoolYear){const code=periodCodeForDate(date,schoolYear),cfg=getBilanWeighting();return Math.max(.01,Number(cfg[code]?.weight)||1)}
+  function periodProgressForDate(date,schoolYear){const code=periodCodeForDate(date,schoolYear),cfg=getBilanWeighting();return Math.max(0,Math.min(100,Number(cfg[code]?.progress)??100))/100}
+  function periodProgressForPeriod(period){const cfg=getBilanWeighting(),code=String(period?.code||"").toUpperCase();return Math.max(0,Math.min(100,Number(cfg[code]?.progress)??100))/100}
+  function weightedCompetenceScore(evs,c,schoolYear){
+    const rows=[]; (evs||[]).forEach(e=>{const sc=bilanScoreForEvaluationCompetence(e,c);if(sc!==null&&Number.isFinite(Number(sc)))rows.push({score:Number(sc),weight:periodWeightForDate(e.date,schoolYear)})});
+    if(!rows.length)return null; const den=rows.reduce((a,r)=>a+r.weight,0); return den?rows.reduce((a,r)=>a+r.score*r.weight,0)/den:null;
+  }
   function bilanScoreForEvaluationCompetence(e,c){
     try{
       if(!evaluationDisplayComps(e).includes(c.id))return null;
@@ -13140,61 +13246,91 @@ const oldDraft=window.tpGenCurrentDraft;window.tpGenCurrentDraft=function(){cons
   }
   function buildSnapshot(student,period){
     const start=yearStart(period.schoolYear),end=period.date;
-    const all=typeof visibleEvaluations==="function"?visibleEvaluations(student.evaluations||[]):(student.evaluations||[]);
+    // Même source que l'Historique : allStudents est prioritaire, puis students.
+    // Cela évite les bilans à 0 lorsque l'objet élève passé au module n'embarque pas ses évaluations.
+    const all=evaluationsForStudent(student);
     const evs=(typeof filterEvaluationsByPeriod==="function"?filterEvaluationsByPeriod(all,start,end):all.filter(e=>{const d=isoComparableDate(e.date);return d&&(!start||d>=start)&&(!end||d<=end)}));
     const compRows=(competencies||[]).map(c=>{
-      let score=null;try{score=competenceAverageScoreFromEvaluations(evs,c)}catch(e){}
-      let level={label:"Non observée",pct:0};try{level=reportLevel(score)}catch(e){}
+      let score=null;try{score=weightedCompetenceScore(evs,c,period.schoolYear)}catch(e){}
+      const progression=periodProgressForPeriod(period);
+      const displayScore=score===null?null:score*progression;
+      let level={label:"Non observée",pct:0};try{level=reportLevel(displayScore)}catch(e){}
       const linked=evs.filter(e=>{try{return evaluationDisplayComps(e).includes(c.id)}catch(err){return false}}).sort((a,b)=>String(a.date||"").localeCompare(String(b.date||"")));
-      return {id:c.id,name:c.name||c.label||"",score:score,pct:level.pct||0,label:level.label||"Non observée",lastDate:linked.length?linked[linked.length-1].date:""};
+      return {id:c.id,name:c.name||c.label||"",score:displayScore,rawScore:score,pct:level.pct||0,label:level.label||"Non observée",progressionPct:Math.round(progression*100),lastDate:linked.length?linked[linked.length-1].date:""};
     });
     const observed=compRows.filter(r=>r.score!==null);
-    const overall=observed.length?Math.round(observed.reduce((a,r)=>a+(Number(r.score)||0),0)/observed.length/4*100):0;
+    const overall=observed.length?Math.round(observed.reduce((a,r)=>a+(Number(r.pct)||0),0)/observed.length):0;
     const notes=evs.map(e=>{try{return evaluationScore20(e)}catch(err){return null}}).filter(v=>v!==null&&v!==undefined&&Number.isFinite(Number(v))).map(Number);
     const avgNote=notes.length?Math.round((notes.reduce((a,b)=>a+b,0)/notes.length)*10)/10:null;
     const evalRows=evs.map(e=>{
       const compLevels=(competencies||[]).filter(c=>{try{return evaluationDisplayComps(e).includes(c.id)}catch(err){return false}}).map(c=>{
         const score=bilanScoreForEvaluationCompetence(e,c);
-        let lev={label:"Non observée",pct:0};try{lev=reportLevel(score)}catch(err){}
-        return {id:c.id,name:c.name||c.label||"",score:score,pct:lev.pct||0,label:lev.label||"Non observée"};
+        const progression=periodProgressForDate(e.date,period.schoolYear);
+        const displayScore=score===null?null:score*progression;
+        let lev={label:"Non observée",pct:0};try{lev=reportLevel(displayScore)}catch(err){}
+        return {id:c.id,name:c.name||c.label||"",score:displayScore,rawScore:score,pct:lev.pct||0,label:lev.label||"Non observée",progressionPct:Math.round(progression*100)};
       });
       return {id:e.id,date:e.date||"",title:e.title||e.type||"Évaluation",note:(()=>{try{return evaluationScore20(e)}catch(err){return null}})(),situation:e.profSituation||"",support:e.activitySupport||e.supportActivite||"",teacher:e.teacherName||"",competencies:compLevels};
     });
     return {startDate:start,endDate:end,overallPct:overall,avgNote,competencies:compRows,evaluations:evalRows,evaluationCount:evs.length};
   }
-  function makeRecord(student,period){
+  function makeRecord(student,period,teacherNames=""){
     const snap=buildSnapshot(student,period);
     const now=Date.now();
     const classId=student.classId||getActiveClassId();
-    return {id:`BILANREC_${String(student.id)}_${String(period.id)}_${now}`,studentId:student.id,studentName:student.name||"",classId:classId,className:resolveClassName(classId,student),schoolYear:period.schoolYear,periodId:period.id,periodCode:period.code,periodName:period.name,closureDate:period.date,printDate:period.retroactive?period.date:new Date().toISOString().slice(0,10),observation:retroObservation(student.id,period),retroactive:!!period.retroactive,snapshot:snap,createdAt:now,updatedAt:now};
+    return {id:`BILANREC_${String(student.id)}_${String(period.id)}_${now}`,studentId:student.id,studentName:student.name||"",classId:classId,className:resolveClassName(classId,student),schoolYear:period.schoolYear,periodId:period.id,periodCode:period.code,periodName:period.name,closureDate:period.date,printDate:period.retroactive?period.date:new Date().toISOString().slice(0,10),teacherNames:String(teacherNames||"").trim(),observation:retroObservation(student.id,period),retroactive:!!period.retroactive,snapshot:snap,createdAt:now,updatedAt:now};
   }
   function createOrOpen(){
     const sid=document.getElementById("bilan-student-select")?.value||"",pid=document.getElementById("bilan-period-select")?.value||"";
+    const teacherNames=String(document.getElementById("bilan-teachers-input")?.value||"").trim();
     if(!sid||!pid){showWarningMessage("Choisis une période de bilan et un élève, ou Toute la classe.");return}
     const p=periodById(pid);if(!p){showWarningMessage("Période de bilan introuvable.");return}
     if(sid==="__ALL__"){
       const classStudents=sortedStudents();
       if(!classStudents.length){showWarningMessage("Aucun élève dans la classe active.");return}
       const list=readRecords();
-      let created=0,already=0;
+      let created=0,already=0,updated=0;
       classStudents.forEach(st=>{
-        const exists=list.some(r=>String(r.studentId)===String(st.id)&&String(r.periodId)===String(pid));
-        if(exists){already++;return}
-        list.push(makeRecord(st,p));created++;
+        const existing=list.find(r=>String(r.studentId)===String(st.id)&&String(r.periodId)===String(pid));
+        if(existing){
+          already++;
+          if(teacherNames&&!String(existing.teacherNames||"").trim()){existing.teacherNames=teacherNames;existing.updatedAt=Date.now();updated++}
+          if(Number(existing.snapshot?.evaluationCount||0)===0){const fresh=buildSnapshot(st,p);if(fresh.evaluationCount>0){existing.snapshot=fresh;existing.updatedAt=Date.now();updated++}}
+          return;
+        }
+        list.push(makeRecord(st,p,teacherNames));created++;
       });
       writeRecords(list);
-      showSuccessMessage(`${created} bilan(s) créé(s) pour la classe${already?` · ${already} déjà existant(s)`:""}.`,()=>bilansPage());
+      showSuccessMessage(`${created} bilan(s) créé(s) pour la classe${already?` · ${already} déjà existant(s)`:""}${updated?` · ${updated} mis à jour`:""}.`,()=>bilansPage());
       return;
     }
-    const existing=readRecords().filter(r=>String(r.studentId)===String(sid)&&String(r.periodId)===String(pid)).sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0))[0];
-    if(existing){openRecord(existing.id);return}
+    const list=readRecords();
+    const existing=list.filter(r=>String(r.studentId)===String(sid)&&String(r.periodId)===String(pid)).sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0))[0];
+    if(existing){
+      let changed=false;
+      if(teacherNames&&!String(existing.teacherNames||"").trim()){existing.teacherNames=teacherNames;changed=true}
+      if(Number(existing.snapshot?.evaluationCount||0)===0){const st=findStudent(sid);if(st){const fresh=buildSnapshot(st,p);if(fresh.evaluationCount>0){existing.snapshot=fresh;changed=true}}}
+      if(changed){existing.updatedAt=Date.now();writeRecords(list)}
+      openRecord(existing.id);return
+    }
     const st=findStudent(sid);if(!st){showWarningMessage("Élève introuvable.");return}
-    const rec=makeRecord(st,p),list=readRecords();list.push(rec);writeRecords(list);openRecord(rec.id);
+    const rec=makeRecord(st,p,teacherNames);list.push(rec);writeRecords(list);openRecord(rec.id);
   }
-  function openRecord(id){const r=readRecords().find(x=>String(x.id)===String(id));if(!r){showWarningMessage("Bilan introuvable.");return}renderRecord(r)}
+  function openRecord(id){
+    const list=readRecords(),i=list.findIndex(x=>String(x.id)===String(id));
+    if(i<0){showWarningMessage("Bilan introuvable.");return}
+    const r=list[i];
+    // Réparation automatique des anciens bilans créés à 0 alors que l'historique contient des évaluations.
+    if(Number(r.snapshot?.evaluationCount||0)===0){
+      const p=periodById(r.periodId),st=findStudent(r.studentId);
+      if(p&&st){const fresh=buildSnapshot(st,p);if(fresh.evaluationCount>0){r.snapshot=fresh;r.updatedAt=Date.now();writeRecords(list)}}
+    }
+    renderRecord(r);
+  }
   function saveRecord(id){
     const list=readRecords(),i=list.findIndex(x=>String(x.id)===String(id));if(i<0)return;
     list[i].printDate=isoComparableDate(document.getElementById("bilan-print-date")?.value||list[i].printDate)||list[i].printDate;
+    list[i].teacherNames=String(document.getElementById("bilan-teachers-record")?.value||list[i].teacherNames||"").trim();
     list[i].observation=String(document.getElementById("bilan-observation")?.value||"");list[i].updatedAt=Date.now();writeRecords(list);
     showSuccessMessage("Bilan enregistré dans l’historique.",()=>renderRecord(list[i]));
   }
@@ -13206,8 +13342,12 @@ const oldDraft=window.tpGenCurrentDraft;window.tpGenCurrentDraft=function(){cons
   function printRecord(id){
     const list=readRecords(),i=list.findIndex(x=>String(x.id)===String(id));if(i<0)return;
     const d=isoComparableDate(document.getElementById("bilan-print-date")?.value||list[i].printDate);if(d)list[i].printDate=d;
+    list[i].teacherNames=String(document.getElementById("bilan-teachers-record")?.value||list[i].teacherNames||"").trim();
     list[i].observation=String(document.getElementById("bilan-observation")?.value||list[i].observation||"");list[i].updatedAt=Date.now();writeRecords(list);
-    document.body.classList.add("bilan-printing");window.print();setTimeout(()=>document.body.classList.remove("bilan-printing"),500);
+    // Recomposer le bilan avant impression afin que date, professeurs et observation
+    // modifiés juste avant l'impression apparaissent bien sur la version papier/PDF.
+    renderRecord(list[i]);
+    document.body.classList.add("bilan-printing");setTimeout(()=>{window.print();setTimeout(()=>document.body.classList.remove("bilan-printing"),500)},60);
   }
   function deleteRecord(id){
     const r=readRecords().find(x=>String(x.id)===String(id));if(!r)return;
@@ -13228,11 +13368,12 @@ const oldDraft=window.tpGenCurrentDraft;window.tpGenCurrentDraft=function(){cons
       <section class="bilan-sheet">
         <div class="bilan-sheet-head"><div><h1>Bilan de compétences</h1><p>${esc(r.periodName||r.periodCode||"Bilan")} — année scolaire ${esc(r.schoolYear||"")}</p></div><div class="bilan-period-chip">${esc(r.periodCode||"")}</div></div>
         <div class="bilan-identity"><div><span>Élève</span><b>${esc(r.studentName||"")}</b></div><div><span>Classe</span><b>${esc(r.className||resolveClassName(r.classId,findStudent(r.studentId))||"")}</b></div><div><span>Date de clôture</span><b>${esc(fmt(r.closureDate))}</b></div><div><span>Évaluations prises en compte</span><b>${Number(s.evaluationCount||0)}</b></div></div>
-        <div class="bilan-kpis"><div><span>Positionnement global</span><strong>${Number(s.overallPct||0)} %</strong></div><div><span>Moyenne des notes disponibles</span><strong>${s.avgNote===null||s.avgNote===undefined?"—":String(s.avgNote).replace(".",",")+" / 20"}</strong></div><label class="bilan-print-date no-print">Date d’édition / signature<input id="bilan-print-date" type="date" value="${esc(r.printDate||r.closureDate||"")}"></label><div class="print-only"><span>Date d’édition / signature</span><strong>${esc(fmt(r.printDate||r.closureDate))}</strong></div></div>
+        <div class="bilan-teachers-box"><label class="no-print">Professeur(s) évaluateur(s)<input id="bilan-teachers-record" type="text" value="${esc(r.teacherNames||"")}" placeholder="Ex. M. Dupont / Mme Martin"></label><div class="print-only"><span>Professeur(s) évaluateur(s)</span><strong>${esc(r.teacherNames||"—")}</strong></div></div>
+        <div class="bilan-kpis"><div><span>Progression vers le niveau attendu</span><strong>${Number(s.overallPct||0)} %</strong><small style="display:block;color:#64748b;margin-top:4px">Pondérée selon la période</small></div><div><span>Moyenne des notes disponibles</span><strong>${s.avgNote===null||s.avgNote===undefined?"—":String(s.avgNote).replace(".",",")+" / 20"}</strong></div><label class="bilan-print-date no-print">Date d’édition / signature<input id="bilan-print-date" type="date" value="${esc(r.printDate||r.closureDate||"")}"></label><div class="print-only"><span>Date d’édition / signature</span><strong>${esc(fmt(r.printDate||r.closureDate))}</strong></div></div>
         <h2>Positionnement par compétence</h2><table class="bilan-table"><thead><tr><th>Compétence</th><th>Positionnement</th><th>Dernière observation</th></tr></thead><tbody>${compHtml(s.competencies)}</tbody></table>
         <h2>Évaluations retenues jusqu’au ${esc(fmt(r.closureDate))}</h2><table class="bilan-table"><thead><tr><th>Date</th><th>Évaluation</th><th>Situation</th><th>Support</th><th>Résultat</th></tr></thead><tbody>${evalHtml(s.evaluations)}</tbody></table>
         <h2>Observation de période</h2><textarea id="bilan-observation" class="bilan-observation no-print" rows="6" placeholder="Observation personnalisée…">${esc(r.observation||"")}</textarea><div class="bilan-observation-print print-only">${esc(r.observation||"").replace(/\n/g,"<br>")||"—"}</div>
-        <div class="bilan-signatures"><div>Signature de l’élève</div><div>Signature du professeur</div></div>
+        <div class="bilan-signatures"><div>Signature de l’élève</div><div>Signature du/des professeur(s)</div></div>
       </section></div>`;
   }
   function periodOptions(rows){return rows.map(p=>`<option value="${esc(p.id)}">${esc(p.schoolYear)} — ${esc(p.code)} — clôture ${esc(fmt(p.date))}</option>`).join("")}
@@ -13240,18 +13381,114 @@ const oldDraft=window.tpGenCurrentDraft;window.tpGenCurrentDraft=function(){cons
   function historyHtml(){
     const list=readRecords().slice().sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
     if(!list.length)return '<p class="muted">Aucun bilan élève enregistré.</p>';
-    return `<div class="bilan-history-list">${list.map(r=>`<div class="bilan-history-row"><div><b>${esc(r.studentName||"")}</b><div>${esc(r.periodCode||"")} · ${esc(r.schoolYear||"")} · clôture ${esc(fmt(r.closureDate))}</div><small>Édité/signé : ${esc(fmt(r.printDate))}</small></div><div><button class="secondary" onclick="openBilanRecord('${String(r.id).replace(/'/g,"\\'")}')">Ouvrir / rééditer</button><button class="secondary" onclick="deleteBilanRecord('${String(r.id).replace(/'/g,"\\'")}')">🗑️</button></div></div>`).join("")}</div>`;
+    return `<div class="bilan-history-list">${list.map(r=>`<div class="bilan-history-row"><div><b>${esc(r.studentName||"")}</b><div>${esc(r.periodCode||"")} · ${esc(r.schoolYear||"")} · clôture ${esc(fmt(r.closureDate))}</div><small>Édité/signé : ${esc(fmt(r.printDate))}${r.teacherNames?` · Professeur(s) : ${esc(r.teacherNames)}`:""}</small></div><div><button class="secondary" onclick="openBilanRecord('${String(r.id).replace(/'/g,"\\'")}')">Ouvrir / rééditer</button><button class="secondary" onclick="deleteBilanRecord('${String(r.id).replace(/'/g,"\\'")}')">🗑️</button></div></div>`).join("")}</div>`;
   }
+  window.getBilanWeighting=getBilanWeighting;
+  window.saveBilanWeightingSettings=function(){
+    const cfg=getBilanWeighting();
+    ["P1","P2","P3","P4"].forEach(code=>{const w=Number(document.getElementById(`bilan-weight-${code}`)?.value),p=Number(document.getElementById(`bilan-progress-${code}`)?.value);cfg[code]={weight:Number.isFinite(w)&&w>0?w:(cfg[code]?.weight||1),progress:Number.isFinite(p)?Math.max(0,Math.min(100,p)):(cfg[code]?.progress||100)}});
+    localStorage.setItem(BILAN_WEIGHT_KEY,JSON.stringify(cfg));try{if(typeof syncFirebaseApplicationConfigSoon==="function")syncFirebaseApplicationConfigSoon()}catch(e){};showSuccessMessage("Pondération des périodes enregistrée.");
+  };
+  window.renderBilanWeightSettings=function(){
+    const main=document.getElementById("main");if(!main||!document.getElementById("settings-save-btn")||document.getElementById("bilan-weight-settings"))return;
+    const cfg=getBilanWeighting(),wrap=document.createElement("div");wrap.id="bilan-weight-settings";wrap.className="settings-card settings-section";wrap.style.gridColumn="1/-1";
+    wrap.innerHTML=`<h3>📊 Pondération des périodes et progression du parcours</h3><p class="muted">Le <b>poids</b> donne davantage d’importance aux évaluations récentes dans le calcul consolidé d’une compétence. Le <b>coefficient d’avancement</b> relativise le niveau affiché : par exemple 70 % de maîtrise en P1 avec 50 % d’avancement s’affiche à 35 % de progression vers le niveau attendu.</p><div style="overflow:auto"><table class="bilan-table"><thead><tr><th>Période</th><th>Poids des évaluations</th><th>Avancement du parcours</th><th>Exemple si maîtrise = 70 %</th></tr></thead><tbody>${["P1","P2","P3","P4"].map(c=>`<tr><td><b>${c}</b></td><td><input id="bilan-weight-${c}" type="number" min="0.1" step="0.1" value="${cfg[c]?.weight??1}" style="max-width:110px"></td><td><input id="bilan-progress-${c}" type="number" min="0" max="100" step="1" value="${cfg[c]?.progress??100}" style="max-width:110px"> %</td><td>${Math.round(70*(Number(cfg[c]?.progress??100)/100))} %</td></tr>`).join("")}</tbody></table></div><button type="button" class="primary" onclick="saveBilanWeightingSettings()">💾 Enregistrer la pondération</button>`;
+    const grid=main.querySelector(".settings-grid")||main;grid.appendChild(wrap);
+  };
   window.bilansPage=function(){
     setActive("bilans");const periods=loadBilanPeriods(),studs=sortedStudents(),groups={};periods.forEach(p=>(groups[p.schoolYear]??=[]).push(p));const years=Object.keys(groups).sort((a,b)=>b.localeCompare(a));const defaultYear=getSchoolSettings().schoolYear||"2026-2027";
     document.getElementById("main").innerHTML=`<div class="bilan-page"><div class="page-header"><div><h1>Bilans</h1><p>Créer, enregistrer, rééditer et imprimer un bilan pour chaque élève à une date de clôture précise.</p></div><button class="secondary" onclick="go('home')">🏠 Accueil</button></div>
-      <div class="panel bilan-create-panel"><h2>📋 Créer / ouvrir un bilan élève</h2><p class="muted">Le bilan est un instantané des évaluations de l’élève jusqu’à la date de clôture de la période. Pour générer tous les bilans d’un seul coup, choisis <b>Toute la classe</b>.</p><div class="bilan-create-grid"><label>Période<select id="bilan-period-select"><option value="">Choisir…</option>${periodOptions(periods)}</select></label><label>Élève / classe<select id="bilan-student-select"><option value="">Choisir…</option>${studentOptions(studs)}</select></label><button class="primary" onclick="createOrOpenBilanRecord()">Créer / ouvrir le bilan</button></div></div>
+      <div class="panel bilan-create-panel"><h2>📋 Créer / ouvrir un bilan élève</h2><p class="muted">Le bilan est un instantané des évaluations de l’élève jusqu’à la date de clôture de la période. Pour générer tous les bilans d’un seul coup, choisis <b>Toute la classe</b>. Le nom du ou des professeurs n’est à saisir qu’une fois lors de la génération et sera repris sur tous les bilans créés.</p><div class="bilan-create-grid"><label>Période<select id="bilan-period-select"><option value="">Choisir…</option>${periodOptions(periods)}</select></label><label>Élève / classe<select id="bilan-student-select"><option value="">Choisir…</option>${studentOptions(studs)}</select></label><label>Professeur(s) évaluateur(s)<input id="bilan-teachers-input" type="text" placeholder="Ex. M. Dupont / Mme Martin"></label><button class="primary" onclick="createOrOpenBilanRecord()">Créer / ouvrir le bilan</button></div></div>
       <div class="panel"><h2>🕘 Historique des bilans enregistrés</h2>${historyHtml()}</div>
       <details class="panel" style="margin-top:16px"><summary><b>⚙️ Gérer les périodes et dates de clôture</b></summary><div class="bilan-help" style="margin-top:12px"><b>Références rétroactives :</b> P1 10/10/2025 · P2 05/12/2025 · P3 27/03/2026 · P4 12/06/2026. Pour les années suivantes, les périodes et dates restent modifiables.</div><div class="bilan-toolbar"><label>Année scolaire<input id="bilan-new-year" value="${esc(defaultYear)}"></label><label>Code / période<input id="bilan-new-code" placeholder="P1"></label><label>Libellé<input id="bilan-new-name" placeholder="Bilan période 1"></label><label>Date de clôture<input id="bilan-new-date" type="date"></label><button class="primary" onclick="addBilanPeriod()">＋ Créer</button></div>${years.map(y=>`<section class="bilan-year-block"><div class="bilan-year-head"><h3>Année scolaire ${esc(y)}</h3>${y==="2025-2026"?'<button class="secondary" onclick="resetRetroBilanPeriods()">↺ Rétablir P1 à P4</button>':''}</div><div class="bilan-grid">${groups[y].map(bilanPeriodCard).join("")}</div></section>`).join("")}</details></div>`;
   };
   window.createOrOpenBilanRecord=createOrOpen;window.openBilanRecord=openRecord;window.saveBilanRecord=saveRecord;window.refreshBilanSnapshot=refreshSnapshot;window.printBilanRecord=printRecord;window.deleteBilanRecord=deleteRecord;
 })();
 
+</script>
+<script>
+/* V11 — Calendrier pédagogique : vacances scolaires, PFMP et dates de bilan */
+(function(){
+ const KEY='evaluation_pedagogical_calendar_v11';
+ const DEFAULT={holidays:[
+  {id:'H_2025_OCT',name:'Vacances après période 1',start:'2025-10-11',end:'2025-10-26',schoolYear:'2025-2026'},
+  {id:'H_2025_SUM',name:'Vacances été austral',start:'2025-12-19',end:'2026-01-20',schoolYear:'2025-2026'},
+  {id:'H_2026_MAR',name:'Vacances après période 3',start:'2026-02-28',end:'2026-03-15',schoolYear:'2025-2026'},
+  {id:'H_2026_MAY',name:'Vacances de mai',start:'2026-05-02',end:'2026-05-17',schoolYear:'2025-2026'},
+  {id:'H_2026_JUL',name:'Vacances hiver austral',start:'2026-07-04',end:'2026-08-16',schoolYear:'2025-2026'}
+ ],pfmp:[]};
+ function esc11(s){return String(s??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]));}
+ function read(){try{const x=JSON.parse(localStorage.getItem(KEY)||'null');return x&&typeof x==='object'?{holidays:Array.isArray(x.holidays)?x.holidays:[],pfmp:Array.isArray(x.pfmp)?x.pfmp:[]}:JSON.parse(JSON.stringify(DEFAULT));}catch(e){return JSON.parse(JSON.stringify(DEFAULT));}}
+ function write(x){localStorage.setItem(KEY,JSON.stringify(x));try{if(typeof syncFirebaseApplicationConfigSoon==='function')syncFirebaseApplicationConfigSoon()}catch(e){}}
+ function activeClassName(){try{const id=getActiveClassId();const c=(classes||[]).find(x=>String(x.id)===String(id));return c?.name||''}catch(e){return ''}}
+ function activeClassId11(){try{return String(getActiveClassId()||'')}catch(e){return ''}}
+ function constraint(date,classId){if(!date)return null;const d=read();const h=d.holidays.find(x=>date>=x.start&&date<=x.end);if(h)return {type:'vacances',label:h.name};const p=d.pfmp.find(x=>date>=x.start&&date<=x.end&&(!x.classId||!classId||String(x.classId)===String(classId)));if(p)return {type:'pfmp',label:p.name||'PFMP'};return null}
+ function schoolYearForDate(date){const y=Number(String(date).slice(0,4)),m=Number(String(date).slice(5,7));return m>=8?`${y}-${y+1}`:`${y-1}-${y}`}
+ function dateStatusHtml(date){const c=constraint(date,activeClassId11());return c?`<span class="cal-warning">⚠ ${esc11(c.type==='vacances'?'Vacances scolaires':c.label)}</span>`:`<span class="cal-ok">✓ Jour hors contrainte enregistrée</span>`}
+ function addHoliday(){const name=document.getElementById('cal-h-name')?.value.trim(),start=document.getElementById('cal-h-start')?.value,end=document.getElementById('cal-h-end')?.value;if(!name||!start||!end||end<start){showWarningMessage('Renseigne un libellé et une période de vacances valide.');return}const d=read();d.holidays.push({id:'H_'+Date.now(),name,start,end,schoolYear:schoolYearForDate(start)});write(d);renderCalendarSettings()}
+ function addPfmp(){const name=document.getElementById('cal-p-name')?.value.trim()||'PFMP',start=document.getElementById('cal-p-start')?.value,end=document.getElementById('cal-p-end')?.value,classId=document.getElementById('cal-p-class')?.value||'';if(!start||!end||end<start){showWarningMessage('Renseigne une période de PFMP valide.');return}const d=read();d.pfmp.push({id:'P_'+Date.now(),name,start,end,classId,schoolYear:schoolYearForDate(start)});write(d);renderCalendarSettings()}
+ function del(type,id){const d=read();d[type]=d[type].filter(x=>String(x.id)!==String(id));write(d);renderCalendarSettings()}
+ function reset(){if(!confirm('Rétablir les vacances scolaires 2025-2026 proposées pour La Réunion ? Les PFMP saisies sont conservées.'))return;const d=read();d.holidays=JSON.parse(JSON.stringify(DEFAULT.holidays));write(d);renderCalendarSettings()}
+ function rows(type){const a=read()[type]||[];if(!a.length)return '<p class="muted">Aucune période enregistrée.</p>';return `<div class="cal-list">${a.slice().sort((x,y)=>x.start.localeCompare(y.start)).map(x=>`<div class="cal-row ${type}"><div><b>${esc11(x.name)}</b><small>${esc11(x.start)} → ${esc11(x.end)}${x.classId?` · classe ${esc11(((classes||[]).find(c=>String(c.id)===String(x.classId))||{}).name||x.classId)}`:''}</small></div><button class="secondary" onclick="deletePedCalendarItem('${type}','${esc11(x.id)}')">🗑️</button></div>`).join('')}</div>`}
+ function renderCalendarSettings(){const main=document.getElementById('main');if(!main||!document.getElementById('settings-save-btn'))return;let w=document.getElementById('ped-calendar-settings');if(!w){w=document.createElement('div');w.id='ped-calendar-settings';w.className='settings-card settings-section';w.style.gridColumn='1/-1';(main.querySelector('.settings-grid')||main).appendChild(w)}const classOpts=['<option value="">Toutes les classes</option>',...(classes||[]).filter(c=>!c.archived).map(c=>`<option value="${esc11(c.id)}">${esc11(c.name)}</option>`)];w.innerHTML=`<h3>📅 Calendrier scolaire / PFMP / Bilans</h3><p class="muted">Ces périodes servent de contraintes visuelles lors du choix des dates de bilan. Une date en vacances ou en PFMP reste sélectionnable, mais le logiciel affiche un avertissement.</p><div class="cal-settings-grid"><div><h4>Vacances scolaires</h4><div class="cal-form"><input id="cal-h-name" placeholder="Libellé"><input id="cal-h-start" type="date"><input id="cal-h-end" type="date"><button class="primary" onclick="addPedHoliday()">＋ Ajouter</button></div>${rows('holidays')}<button class="secondary" onclick="resetPedHolidays()">↺ Références Réunion 2025-2026</button></div><div><h4>PFMP</h4><div class="cal-form"><input id="cal-p-name" placeholder="Ex. PFMP 1"><select id="cal-p-class">${classOpts.join('')}</select><input id="cal-p-start" type="date"><input id="cal-p-end" type="date"><button class="primary" onclick="addPedPfmp()">＋ Ajouter</button></div>${rows('pfmp')}</div></div>`}
+ function monthHtml(year,month,targetId){const first=new Date(year,month-1,1),days=new Date(year,month,0).getDate(),offset=(first.getDay()+6)%7;let cells='';for(let i=0;i<offset;i++)cells+='<span class="cal-day empty"></span>';for(let day=1;day<=days;day++){const date=`${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`,c=constraint(date,activeClassId11()),cls=c?(c.type==='vacances'?'holiday':'pfmp'):'';cells+=`<button type="button" class="cal-day ${cls}" title="${c?esc11(c.label):''}" onclick="chooseBilanCalendarDate('${date}','${targetId}')">${day}</button>`}const names=['','Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];return `<div class="cal-month"><b>${names[month]} ${year}</b><div class="cal-week"><i>L</i><i>M</i><i>M</i><i>J</i><i>V</i><i>S</i><i>D</i>${cells}</div></div>`}
+ function calendarHtml(year,targetId){const start=8;let m='';for(let i=0;i<12;i++){const mm=((start-1+i)%12)+1,yy=year+(start-1+i>=12?1:0);m+=monthHtml(yy,mm,targetId)}return `<div class="ped-calendar"><div class="cal-legend"><span><i class="holiday"></i> Vacances</span><span><i class="pfmp"></i> PFMP classe active</span><span>Cliquer sur un jour pour choisir la date</span></div><div class="cal-months">${m}</div></div>`}
+ function choose(date,targetId){const el=document.getElementById(targetId);if(el){el.value=date;el.dispatchEvent(new Event('change',{bubbles:true}))}}
+ function yearFromSchool(s){const m=String(s||'').match(/(20\d{2})/);return m?Number(m[1]):new Date().getFullYear()}
+ const oldBilans=window.bilansPage;
+ window.bilansPage=function(){oldBilans();setTimeout(()=>{const details=[...document.querySelectorAll('.bilan-page details')].find(d=>d.textContent.includes('Gérer les périodes'));if(!details)return;const toolbar=details.querySelector('.bilan-toolbar');if(toolbar&&!document.getElementById('bilan-date-status')){const st=document.createElement('div');st.id='bilan-date-status';st.className='bilan-help';st.innerHTML='<b>Calendrier pédagogique :</b> les vacances scolaires et PFMP saisies dans Paramètres sont affichées ci-dessous. Les dates contraintes déclenchent un avertissement.';toolbar.after(st);const y=yearFromSchool(document.getElementById('bilan-new-year')?.value);st.insertAdjacentHTML('afterend',calendarHtml(y,'bilan-new-date'));const inp=document.getElementById('bilan-new-date');inp?.addEventListener('change',()=>{const c=constraint(inp.value,activeClassId11());if(c)showWarningMessage(`Attention : cette date se situe pendant ${c.type==='vacances'?'les vacances scolaires':c.label}. Tu peux la conserver si nécessaire.`)})}},0)};
+ const oldAdd=window.addBilanPeriod;
+ window.addBilanPeriod=function(){const d=document.getElementById('bilan-new-date')?.value,c=constraint(d,activeClassId11());if(c&&!confirm(`La date ${d} se situe pendant ${c.type==='vacances'?'les vacances scolaires':c.label}. Confirmer quand même cette date de bilan ?`))return;return oldAdd()};
+ const oldSave=window.saveBilanPeriod;
+ window.saveBilanPeriod=function(id){const q=String(id).replace(/[^A-Za-z0-9_-]/g,'_'),d=document.getElementById(`bilan-date-${q}`)?.value,c=constraint(d,activeClassId11());if(c&&!confirm(`La date ${d} se situe pendant ${c.type==='vacances'?'les vacances scolaires':c.label}. Confirmer quand même ?`))return;return oldSave(id)};
+ const oldRender=window.renderSettingsPage||renderSettingsPage;
+ window.renderSettingsPage=function(){const r=oldRender();setTimeout(renderCalendarSettings,0);return r};
+ window.renderPedagogicalCalendarSettings=renderCalendarSettings;window.addPedHoliday=addHoliday;window.addPedPfmp=addPfmp;window.deletePedCalendarItem=del;window.resetPedHolidays=reset;window.chooseBilanCalendarDate=choose;
+ try{const oldCfg=window.collectFirebaseApplicationConfig;if(typeof oldCfg==='function'){window.collectFirebaseApplicationConfig=function(){const c=oldCfg();c.pedagogicalCalendar=read();return c}}}catch(e){}
+ try{const oldApply=window.applyFirebaseApplicationConfig;if(typeof oldApply==='function'){window.applyFirebaseApplicationConfig=function(c){const r=oldApply(c);if(c&&c.pedagogicalCalendar)write(c.pedagogicalCalendar);return r}}}catch(e){}
+})();
+</script>
+<style id="v11-calendar-style">
+.cal-settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}.cal-form{display:grid;grid-template-columns:1.3fr 1fr 1fr auto;gap:8px;align-items:end}.cal-list{margin:10px 0}.cal-row{display:flex;justify-content:space-between;gap:10px;padding:8px 10px;border-radius:9px;margin:5px 0;background:#f8fafc;border-left:5px solid #94a3b8}.cal-row.holidays{border-left-color:#ef4444}.cal-row.pfmp{border-left-color:#f59e0b}.cal-row small{display:block;color:#64748b;margin-top:2px}.ped-calendar{margin:14px 0}.cal-legend{display:flex;gap:18px;flex-wrap:wrap;font-size:12px;color:#475569;margin-bottom:10px}.cal-legend i{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-2px}.cal-legend .holiday{background:#fecaca}.cal-legend .pfmp{background:#fde68a}.cal-months{display:grid;grid-template-columns:repeat(4,minmax(180px,1fr));gap:10px}.cal-month{border:1px solid #e2e8f0;border-radius:10px;padding:8px;background:white}.cal-week{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-top:6px}.cal-week i{font-style:normal;text-align:center;font-size:10px;color:#64748b}.cal-day{border:0;background:#f8fafc;border-radius:5px;padding:5px 2px;font-size:11px;cursor:pointer}.cal-day:hover{outline:2px solid #64748b}.cal-day.holiday{background:#fecaca}.cal-day.pfmp{background:#fde68a}.cal-day.empty{background:transparent}.cal-warning{color:#b45309;font-weight:700}.cal-ok{color:#15803d}@media(max-width:1000px){.cal-settings-grid{grid-template-columns:1fr}.cal-months{grid-template-columns:repeat(2,1fr)}}
+</style>
+
+
+<style id="v12-bilan-bulk-style">
+.bilan-bulk-toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0 14px;padding:10px 12px;border:1px solid #dbe4f0;border-radius:11px;background:#f8fafc}.bilan-bulk-toolbar .spacer{flex:1}.bilan-select-box{display:flex;align-items:center;justify-content:center;min-width:28px}.bilan-history-row.v12-selectable{display:grid;grid-template-columns:34px minmax(0,1fr) auto}.bilan-history-row.v12-selected{background:#eff6ff;border-radius:9px;padding-left:6px;padding-right:6px}.bilan-bulk-status{font-size:12px;color:#475569;font-weight:700}@media(max-width:850px){.bilan-history-row.v12-selectable{grid-template-columns:34px 1fr}.bilan-history-row.v12-selectable>div:last-child{grid-column:2}.bilan-bulk-toolbar .spacer{display:none}}
+</style>
+<script>
+/* V12 — Sélection multiple des bilans + export PDF vers dossier + suppression groupée */
+(function(){
+ const KEY='evaluation_bilan_records_v92';
+ function records(){try{const a=JSON.parse(localStorage.getItem(KEY)||'[]');return Array.isArray(a)?a:[]}catch(e){return[]}}
+ function write(a){localStorage.setItem(KEY,JSON.stringify(a));try{if(typeof syncFirebaseApplicationConfigSoon==='function')syncFirebaseApplicationConfigSoon()}catch(e){}}
+ function selectedIds(){return [...document.querySelectorAll('.v12-bilan-check:checked')].map(x=>x.value)}
+ function updateStatus(){const n=selectedIds().length,el=document.getElementById('v12-bilan-selected-count');if(el)el.textContent=n?`${n} bilan(s) sélectionné(s)`:'Aucun bilan sélectionné';document.querySelectorAll('.bilan-history-row.v12-selectable').forEach(r=>r.classList.toggle('v12-selected',!!r.querySelector('.v12-bilan-check:checked')))}
+ function toggleAll(flag){document.querySelectorAll('.v12-bilan-check').forEach(x=>x.checked=flag);updateStatus()}
+ function safeName(s){return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Za-z0-9._-]+/g,'_').replace(/^_+|_+$/g,'').slice(0,110)||'bilan'}
+ function frDate(v){if(!v)return '—';try{const p=String(v).slice(0,10).split('-');return p.length===3?`${p[2]}/${p[1]}/${p[0]}`:String(v)}catch(e){return String(v)}}
+ function pdfForRecord(r){
+   if(!window.jspdf?.jsPDF)throw new Error("Le module PDF n'est pas chargé. Ouvre l'application une fois avec Internet puis réessaie.");
+   const {jsPDF}=window.jspdf,doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});let y=15;
+   doc.setFont('helvetica','bold');doc.setFontSize(16);doc.text('Bilan de progression des compétences',15,y);y+=8;doc.setFontSize(10);doc.setFont('helvetica','normal');
+   [`Élève : ${r.studentName||''}`,`Classe : ${r.className||r.classId||''}`,`Période : ${r.periodCode||''} — ${r.periodName||''}`,`Date de clôture : ${frDate(r.closureDate)}`,`Date d'édition / signature : ${frDate(r.printDate)}`,`Professeur(s) évaluateur(s) : ${r.teacherNames||'—'}`].forEach(t=>{doc.text(t,15,y);y+=5});y+=2;
+   const snap=r.snapshot||{};doc.setFont('helvetica','bold');doc.text(`Positionnement global : ${snap.overallPct??0} %`,15,y);y+=7;
+   if(typeof doc.autoTable==='function'){
+     doc.autoTable({startY:y,head:[['Comp.','Compétence','Niveau','Progression']],body:(snap.competencies||[]).map(c=>[c.id||'',c.name||'',c.label||'Non observée',c.score===null||c.score===undefined?'—':`${Math.round(Number(c.pct)||0)} %`]),styles:{fontSize:8,cellPadding:2},headStyles:{fillColor:[37,99,235]}});y=doc.lastAutoTable.finalY+7;
+     doc.autoTable({startY:y,head:[['Date','Évaluation','SP','Note','Professeur']],body:(snap.evaluations||[]).map(e=>[frDate(e.date),e.title||'',e.situation||'',e.note===null||e.note===undefined?'—':`${String(Math.round(Number(e.note)*10)/10).replace('.',',')} / 20`,e.teacher||'']),styles:{fontSize:7.5,cellPadding:1.8},headStyles:{fillColor:[51,65,85]},columnStyles:{1:{cellWidth:65}}});y=doc.lastAutoTable.finalY+7;
+   }
+   if(y>255){doc.addPage();y=15}doc.setFont('helvetica','bold');doc.setFontSize(10);doc.text('Observation de période',15,y);y+=5;doc.setFont('helvetica','normal');doc.setFontSize(9);const obs=doc.splitTextToSize(String(r.observation||'Aucune observation.'),180);doc.text(obs,15,y);y+=obs.length*4.2+9;if(y>265){doc.addPage();y=15}doc.text('Signature de l’élève :',15,y);doc.text('Signature du/des professeur(s) :',110,y);return doc;
+ }
+ async function exportSelected(){
+   const ids=selectedIds();if(!ids.length){showWarningMessage('Sélectionne au moins un bilan à exporter.');return}const all=records(),rows=ids.map(id=>all.find(r=>String(r.id)===String(id))).filter(Boolean);if(!rows.length)return;
+   let dir=null;if(typeof window.showDirectoryPicker==='function'){try{dir=await window.showDirectoryPicker({mode:'readwrite'})}catch(e){if(e?.name==='AbortError')return;console.warn(e)}}
+   let done=0;for(const r of rows){const doc=pdfForRecord(r),filename=safeName(`Bilan_${r.periodCode||'periode'}_${r.studentName||'eleve'}_${r.schoolYear||''}`)+'.pdf';if(dir){const h=await dir.getFileHandle(filename,{create:true}),w=await h.createWritable();await w.write(doc.output('blob'));await w.close()}else{doc.save(filename);await new Promise(res=>setTimeout(res,180))}done++}
+   showSuccessMessage(`${done} bilan(s) PDF généré(s).${dir?' Ils ont été enregistrés dans le dossier choisi.':' Le navigateur les a placés dans son dossier de téléchargements.'}`,()=>window.bilansPage());
+ }
+ function deleteSelected(){const ids=selectedIds();if(!ids.length){showWarningMessage('Sélectionne au moins un bilan à supprimer.');return}if(!confirm(`Supprimer ${ids.length} bilan(s) de la liste ?\n\nLes évaluations de l’historique ne seront pas supprimées.`))return;const set=new Set(ids.map(String));write(records().filter(r=>!set.has(String(r.id))));showSuccessMessage(`${ids.length} bilan(s) supprimé(s). Les évaluations sont conservées.`,()=>window.bilansPage())}
+ function enhance(){const list=document.querySelector('.bilan-history-list');if(!list||list.dataset.v12==='1')return;list.dataset.v12='1';const bar=document.createElement('div');bar.className='bilan-bulk-toolbar no-print';bar.innerHTML=`<label style="display:flex;align-items:center;gap:6px;font-weight:700"><input type="checkbox" id="v12-bilan-all"> Tout sélectionner</label><span id="v12-bilan-selected-count" class="bilan-bulk-status">Aucun bilan sélectionné</span><span class="spacer"></span><button class="secondary" type="button" id="v12-export-pdf">📁 Générer les PDF dans un dossier</button><button class="secondary" type="button" id="v12-delete-selected">🗑️ Supprimer la sélection</button>`;list.before(bar);[...list.querySelectorAll('.bilan-history-row')].forEach(row=>{const open=row.querySelector('button[onclick*="openBilanRecord"]'),m=open?.getAttribute('onclick')?.match(/openBilanRecord\('([^']+)'\)/);if(!m)return;const id=m[1];row.classList.add('v12-selectable');const box=document.createElement('div');box.className='bilan-select-box';box.innerHTML=`<input class="v12-bilan-check" type="checkbox" value="${String(id).replace(/"/g,'&quot;')}" aria-label="Sélectionner ce bilan">`;row.insertBefore(box,row.firstChild);box.querySelector('input').addEventListener('change',updateStatus)});document.getElementById('v12-bilan-all')?.addEventListener('change',e=>toggleAll(e.target.checked));document.getElementById('v12-export-pdf')?.addEventListener('click',exportSelected);document.getElementById('v12-delete-selected')?.addEventListener('click',deleteSelected)}
+ const previous=window.bilansPage;window.bilansPage=function(){const r=previous.apply(this,arguments);setTimeout(enhance,40);return r};window.exportSelectedBilanPdfsV12=exportSelected;window.deleteSelectedBilansV12=deleteSelected;setTimeout(()=>{if(document.querySelector('.bilan-page'))enhance()},250);
+})();
 </script>
 </body>
 </html>

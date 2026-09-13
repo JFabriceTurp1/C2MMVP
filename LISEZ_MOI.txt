@@ -1,23 +1,35 @@
-Évaluation, charge atelier, RTA, génération TP — V7 BILANS CLASSE
+ÉVALUATION, CHARGE ATELIER, RTA, GÉNÉRATION TP — VERSION 10
 
-Corrections principales :
-- Correction de l'affichage de la classe dans les bilans : le nom réel de la classe est désormais résolu depuis la gestion des classes (ex. C2MMVP), au lieu d'afficher l'identifiant technique class_default.
-- Ajout de l'option « Toute la classe » dans le sélecteur Élève / classe du module Bilans.
-- La sélection « Toute la classe » crée en une seule opération les bilans de tous les élèves de la classe active pour la période choisie.
-- Les bilans déjà existants pour la même période ne sont pas dupliqués.
-- Les nouveaux bilans mémorisent aussi le nom de la classe au moment de leur création.
-- Firebase reste désactivé par défaut : son activation reste volontaire depuis Paramètres.
-- Pack PWA/Firebase complet conservé : service-worker.js, manifest.webmanifest, firebase.json, firestore.rules, firestore.indexes.json, .firebaserc et icônes.
+NOUVEAUTÉS
+- Pondération des évaluations selon la période : P1=1, P2=2, P3=3, P4=4 par défaut.
+- Coefficient d’avancement du parcours : P1=50 %, P2=65 %, P3=80 %, P4=100 % par défaut.
+- Les deux séries de valeurs sont modifiables dans Paramètres.
+- Le calcul consolidé d’une compétence donne davantage de poids aux évaluations récentes.
+- Les pourcentages et barre-graphes des bilans affichent une progression vers le niveau attendu, relativisée selon la période.
+- Exemple : 70 % de maîtrise en P1 avec 50 % d’avancement = 35 % affiché.
+- Les évaluations individuelles restent conservées sans modification ; seule leur agrégation et leur représentation de progression sont pondérées.
+- Les paramètres de pondération sont inclus dans la configuration synchronisable Firebase.
+- Firebase reste désactivé par défaut et doit être activé manuellement dans Paramètres.
+- Pack PWA/Firebase complet conservé.
 
-Dates rétroactives de référence :
-P1 : 10/10/2025
-P2 : 05/12/2025
-P3 : 27/03/2026
-P4 : 12/06/2026
+IMPORTANT
+Les bilans déjà enregistrés sont des instantanés. Pour appliquer la nouvelle pondération à un bilan existant, ouvrir le bilan puis cliquer sur « Actualiser avec les évaluations ».
 
+V11 — CALENDRIER PEDAGOGIQUE
+- Paramètres : gestion des vacances scolaires et des périodes de PFMP.
+- PFMP associables à une classe ou à toutes les classes.
+- Références vacances La Réunion 2025-2026 préchargées et modifiables.
+- Module Bilans : calendrier scolaire visible lors du choix d'une date de clôture.
+- Vacances en rouge clair, PFMP en jaune/orange.
+- Une date contrainte reste possible mais nécessite confirmation.
+- Les contraintes sont conservées localement et intégrées à la configuration Firebase lorsqu'elle est activée.
+- Firebase reste désactivé au démarrage et doit être activé manuellement dans Paramètres.
 
-V8 — BARGRAPHES DE NIVEAU DANS LES BILANS
-- Dans le bilan, chaque compétence affichée dans l’historique des évaluations possède désormais un petit barre-graphe gradué du rouge au vert.
-- La position et la couleur du repère dépendent du niveau atteint dans la compétence pour cette évaluation.
-- Le barre-graphe est visible à l’écran et conservé à l’impression.
-- Le tableau de positionnement par compétence utilise également la même échelle visuelle rouge → vert.
+VERSION 12 — BILANS MULTIPLES + PROTECTION HISTORIQUE
+- Sélection multiple dans l’historique des bilans générés.
+- Export de plusieurs bilans en PDF avec choix du dossier dans Edge/Chrome compatible (sinon téléchargements standards).
+- Suppression groupée des bilans sélectionnés, sans toucher aux évaluations.
+- Sécurisation Firebase : fusion non destructive des évaluations locales/importées et Firebase.
+- Une évaluation locale absente du cloud est conservée et remontée ; une évaluation cloud absente du poste est également conservée.
+- Protection des collisions d’identifiants lors d’une synchronisation.
+- Firebase reste désactivé au démarrage et doit être activé manuellement dans Paramètres.
