@@ -3046,7 +3046,7 @@ body{background:#f7f9fc;color:var(--text)}
         <div class="advanced-archive-action danger">
           <div>
             <strong>1. Sauvegarder puis supprimer toutes les listes d’élèves</strong>
-            <p>Génère d’abord une sauvegarde Excel et un rapport PDF contenant tous les élèves et leurs évaluations, toutes classes confondues. Après confirmation, les élèves et leurs évaluations sont supprimés du logiciel. Les classes, professeurs, référentiel et situations professionnelles sont conservés.</p>
+            <p>Génère d’abord une sauvegarde Excel et un rapport PDF contenant tous les élèves et leurs évaluations, toutes classes confondues. Après confirmation, les élèves, leurs évaluations et les séances Atelier du jour sont supprimés du logiciel et de Firebase. Les classes, professeurs, référentiel et situations professionnelles sont conservés.</p>
           </div>
           <button type="button" class="secondary settings-danger" onclick="backupAndDeleteAllStudentLists()">💾🗑️ Sauvegarder + supprimer toutes les listes</button>
         </div>
@@ -7870,8 +7870,9 @@ async function purgeAllStudentsAndEvaluationsExact(){
   selectedStudent=null;
   viewedEvaluation=null;
   draft=null;
+  try{localStorage.removeItem("evaluation_charge_atelier_v1");}catch(e){}
 
-  // Firebase: if connected, delete every remote student/evaluation document,
+  // Firebase: if connected, delete every remote student/evaluation/Atelier document,
   // including documents not present in the local cache.
   if(typeof window.firebasePurgeAllStudentsAndEvaluations==="function"){
     await window.firebasePurgeAllStudentsAndEvaluations();
@@ -11097,7 +11098,7 @@ function openAssistanceMail(){
     try{comps=JSON.parse(localStorage.getItem("evaluation_competencies_v74")||"[]")||[];}catch(e){}
     try{situations=JSON.parse(localStorage.getItem("evaluation_professional_situations_v81_5")||"[]")||[];}catch(e){}
     return {
-      version:"83.3.1",
+      version:"V15",
       adminCode:localStorage.getItem("evaluation_admin_code_v71")||"1234",
       schoolSettings:school,
       activeClassId:localStorage.getItem("evaluation_active_class_v77")||"",
@@ -11469,26 +11470,89 @@ function openAssistanceMail(){
 
   window.firebasePurgeAllStudentsAndEvaluations=async function(){
     if(!auth?.currentUser)return {connected:false};
-    setStatus("Purge Firebase centrale des élèves et évaluations…","warn");
+    setStatus("Purge Firebase centrale : élèves, évaluations et séances Atelier…","warn");
     const root=userRoot();
     const rootSnap=await root.get();
     const oldGeneration=Number(rootSnap.exists?(rootSnap.data()?.dataGeneration||0):0)||0;
-    const purgeCollection=async(name)=>{
-      const snap=await root.collection(name).get();
-      for(const d of snap.docs) await d.ref.delete();
-      const verify=await root.collection(name).get();
-      if(!verify.empty)throw new Error(`Firebase : ${verify.size} document(s) subsistent dans ${name}.`);
+
+    // V15 — purge exacte par lots. La suppression des élèves doit aussi supprimer
+    // toutes les évaluations et toutes les séances Atelier du jour, même si elles
+    // ne sont plus visibles dans le cache local du poste qui lance la commande.
+    const purgeCollection=async(baseRef,name)=>{
+      let total=0;
+      while(true){
+        const snap=await baseRef.collection(name).limit(350).get();
+        if(snap.empty)break;
+        const batch=firestore.batch();
+        snap.docs.forEach(d=>batch.delete(d.ref));
+        await batch.commit();
+        total+=snap.size;
+        if(snap.size<350)break;
+      }
+      const verify=await baseRef.collection(name).limit(1).get();
+      if(!verify.empty)throw new Error(`Firebase : des documents subsistent dans ${name}.`);
+      return total;
     };
-    await purgeCollection("evaluations");
-    await purgeCollection("students");
+
+    const deletedEvaluations=await purgeCollection(root,"evaluations");
+    const deletedStudents=await purgeCollection(root,"students");
+    const deletedAtelier=await purgeCollection(root,FIREBASE_ATELIER_COLLECTION);
+
+    // Nettoyage également de l'ancien espace users/{uid} du compte connecté,
+    // afin que d'anciennes données V13/V14 ne restent pas visibles ou ne soient
+    // remigrées par erreur lors d'un futur dépannage.
+    let legacyDeleted={students:0,evaluations:0,atelierSessions:0};
+    try{
+      const legacy=legacyUserRoot();
+      legacyDeleted.evaluations=await purgeCollection(legacy,"evaluations");
+      legacyDeleted.students=await purgeCollection(legacy,"students");
+      legacyDeleted.atelierSessions=await purgeCollection(legacy,FIREBASE_ATELIER_COLLECTION);
+    }catch(e){console.warn("Nettoyage ancien espace Firebase non bloquant :",e);}
+
+    // Supprimer toute opération locale différée susceptible de recréer des données.
     writePendingFirebaseOps([]);
-    await root.set({centralSyncInitialized:true,workspace:FIREBASE_SHARED_WORKSPACE_ID,dataGeneration:oldGeneration+1,lastResetAt:firebase.firestore.FieldValue.serverTimestamp(),lastResetBy:auth.currentUser.email||auth.currentUser.uid||'',updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
-    // Le poste qui demande la purge est lui aussi remis à zéro immédiatement.
+    localStorage.removeItem(FIREBASE_ATELIER_LOCAL_KEY);
+    try{localStorage.removeItem('evaluation_atelier_sync_pending_v90');}catch(e){}
+
+    await root.set({
+      centralSyncInitialized:true,
+      workspace:FIREBASE_SHARED_WORKSPACE_ID,
+      dataGeneration:oldGeneration+1,
+      lastResetAt:firebase.firestore.FieldValue.serverTimestamp(),
+      lastResetBy:auth.currentUser.email||auth.currentUser.uid||'',
+      lastResetCounts:{students:deletedStudents,evaluations:deletedEvaluations,atelierSessions:deletedAtelier},
+      updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+    },{merge:true});
+
+    // Le poste qui demande la purge est remis à zéro immédiatement.
     await clearStore('evaluations');
     await clearStore('students');
+    try{writeAtelierLocal({days:{},classDays:{}});}catch(e){}
     await loadData();
-    setStatus("✓ Base centrale Firebase : 0 élève, 0 évaluation","ok");
-    return {connected:true,students:0,evaluations:0,generation:oldGeneration+1};
+
+    // Contrôle final du cloud central : les trois collections doivent réellement être vides.
+    const [checkStudents,checkEvaluations,checkAtelier]=await Promise.all([
+      root.collection('students').limit(1).get(),
+      root.collection('evaluations').limit(1).get(),
+      root.collection(FIREBASE_ATELIER_COLLECTION).limit(1).get()
+    ]);
+    if(!checkStudents.empty||!checkEvaluations.empty||!checkAtelier.empty){
+      throw new Error('Contrôle final Firebase échoué : la purge centrale n’est pas complète.');
+    }
+
+    window.firebaseLastDiagnostic={
+      ...(window.firebaseLastDiagnostic||{}),
+      classes:(await root.collection('classes').get()).size,
+      students:0,
+      evaluations:0,
+      atelierSessions:0,
+      pendingOps:0,
+      workspace:FIREBASE_SHARED_WORKSPACE_ID,
+      email:auth.currentUser.email||'',
+      uid:auth.currentUser.uid||''
+    };
+    setStatus("✓ Base centrale Firebase : 0 élève, 0 évaluation, 0 séance Atelier","ok");
+    return {connected:true,students:0,evaluations:0,atelierSessions:0,generation:oldGeneration+1,legacyDeleted};
   };
 
   window.firebaseRestoreArchiveSnapshot=async function(snapshot){
