@@ -1,210 +1,34 @@
-ÉVALUATION, CHARGE ATELIER ET INTÉGRATION RTA — VERSION D'ESSAI
+ÉVALUATION, CHARGE ATELIER, RTA, GÉNÉRATION TP — VERSION 4
+=========================================================
 
-RTA 848 — RENAULT CLIO IV PHASE 2
-- Nouvelle voie d'évaluation / positionnement sur RTA.
-- Les 63 fiches d'activités existantes sont conservées sans modification.
-- Bibliothèque RTA 848 préchargée à partir du tableau de synthèse fourni.
-- 270 activités intégrées.
-- Champs conservés : chapitre, section/sous-section, page RTA, motorisation/version, activité,
-  type d'activité, compétences CAP, intitulés CAP, compétences Bac Pro, intitulés Bac Pro, base/remarque.
-- Recherche possible par activité, chapitre, moteur ou compétence.
-- L'évaluation conserve un instantané de l'activité RTA et de sa source dans l'historique.
-- Plusieurs bibliothèques RTA pourront coexister.
+Principales évolutions :
 
-CHANGEMENT DE MÉTHODE IMPORTANT
-L'extraction automatique directe du PDF RTA n'est plus utilisée pour créer la bibliothèque.
-La source de référence est une synthèse structurée et validée des activités et compétences.
-Le PDF reste la documentation technique source.
+1. MODULE BILANS — BILAN PAR ÉLÈVE
+- Choix d'une période de bilan puis d'un élève.
+- Création / réouverture d'un bilan individuel.
+- Le bilan est figé à la date de clôture de la période sélectionnée.
+- Périodes rétroactives 2025-2026 conservées :
+  P1 : 10/10/2025
+  P2 : 05/12/2025
+  P3 : 27/03/2026
+  P4 : 12/06/2026
+- Le bilan reprend un positionnement par compétence, les évaluations retenues et l'observation de période rétroactive disponible.
+- Date d'édition / signature modifiable manuellement.
+- Impression A4 dédiée.
+- Enregistrement des bilans dans l'historique avec possibilité de rouvrir / rééditer / imprimer.
+- Fonction "Actualiser avec les évaluations" volontaire : un bilan déjà enregistré reste un instantané tant qu'il n'est pas actualisé.
 
-SOURCE DE CETTE VERSION
-- RTA n°848 Renault Clio IV Phase 2.
-- Tableau Activites_RTA_848_competences_CAP_BacPro.xlsx.
-- Principe du tableau : une ligne = une activité réellement exploitable à partir d'une procédure,
-  d'un contrôle ou d'une fiche diagnostic de la RTA.
+2. FIREBASE — RÉACTIVATION CORRIGÉE
+- Le mode Firebase est maintenant réellement activable depuis Paramètres.
+- Les SDK Firebase nécessaires sont chargés lorsque la connexion Internet est disponible.
+- Au passage du mode local au mode Firebase, une synchronisation de remontée locale est demandée avant le rapatriement du cloud.
+- Les classes, élèves et évaluations locales sont envoyés vers Firebase lors de cette réactivation.
+- Les périodes de bilan, bilans élèves, synthèses enregistrées et observations rétroactives sont désormais inclus dans la configuration synchronisée.
+- Le drapeau de remontée locale n'est supprimé qu'après une synchronisation terminée avec succès.
 
-STATUT
-VERSION DE TEST À ESSAYER AVANT VALIDATION.
+IMPORTANT
+---------
+La vérification réalisée sur cette version est une vérification du code et de la logique de synchronisation.
+La connexion réelle au projet Firebase nécessite une connexion Internet et les identifiants Firebase du compte ; elle doit donc être testée sur le poste utilisateur avant utilisation en production.
 
-AUTRES CORRECTIONS CONSERVÉES
-- Évaluations du jour : une tâche évaluée officiellement disparaît de la liste à traiter.
-- Impossible de redonner la main après validation professeur.
-- Code administrateur et mode Firebase repliés par défaut.
-
-
-ÉVOLUTIONS TEST 2 — NAVIGATION RTA
-- Écran RTA entièrement réorganisé et plus lisible.
-- Choix préalable de l'intervention avant affichage des activités.
-- Filtres supplémentaires : énergie (Essence / Diesel), motorisation et recherche.
-- Activités classées par section dans des blocs repliés par défaut.
-- Bouton « Autre fiche / activité » : pour une évaluation RTA, retour direct au sélecteur RTA avec les filtres précédents.
-- Correction de la suppression d'une bibliothèque RTA : une RTA supprimée ne se recrée plus automatiquement.
-- Bouton de restauration de la RTA 848 conservé pour les tests.
-- Architecture multi-RTA conservée : d'autres véhicules/RTA pourront être importés ensuite.
-
-
-ÉVOLUTIONS TEST 3 — CORRECTIONS HISTORIQUE ET NOTES RTA
-- Historique > Modifier reconnaît désormais explicitement les évaluations RTA.
-- Une évaluation RTA se rouvre sur l'activité RTA exacte utilisée, et non sur un autre masque.
-- Le snapshot historique de l'activité est utilisé si la bibliothèque RTA a ensuite été archivée ou supprimée.
-- La note des fiches RTA est désormais normalisée sur 20 quel que soit le nombre de critères.
-  Exemple : une RTA à 5 critères (maximum brut 10 points) est automatiquement convertie sur 20.
-- Une note saisie manuellement (ex. 15/20) reste la note officielle affichée et enregistrée.
-- Si un critère est ensuite modifié manuellement, la note est recalculée proportionnellement sur 20.
-- Les messages et compteurs utilisent maintenant le nombre réel de critères, et non toujours « 10 critères ».
-- L'historique utilise sourceNote20 pour les évaluations RTA.
-- Les métadonnées RTA sont préservées lors d'une modification.
-
-
-ÉVOLUTIONS TEST 4 — CORRECTION BLOQUANTE ENREGISTREMENT
-- Correction de l'erreur « ReferenceError: Can't find variable: isRta ».
-- La variable isRta est maintenant initialisée au tout début de saveActivityEvaluation,
-  avant toute utilisation dans les chemins fiche classique, RTA, historique et atelier du jour.
-- Contrôle syntaxique JavaScript effectué après correction.
-- Cette version remplace la TEST 3 pour les essais d'enregistrement.
-
-
-ÉVOLUTIONS TEST 5 — CORRECTION DE PORTÉE isRta
-- La TEST 4 déclarait encore isRta à l'intérieur de la boucle des élèves.
-- Le message de fin d'enregistrement utilisait ensuite isRta hors de cette portée, provoquant :
-  « ReferenceError: isRta is not defined ».
-- isRta est maintenant déclaré UNE SEULE FOIS avant la boucle et avant le bloc try.
-- La variable reste donc disponible pour :
-  * la construction de l'évaluation ;
-  * les métadonnées RTA ;
-  * le message de succès ;
-  * les fiches classiques et RTA ;
-  * les évaluations individuelles et collectives.
-
-
-ÉVOLUTIONS TEST 6 — CORRECTION ROBUSTE ENREGISTREMENT / CACHE
-- Suppression de la variable locale « isRta » dans les chemins d'enregistrement.
-- Nouvelle fonction commune isRtaEvaluationContext(...) pour détecter les évaluations RTA.
-- saveActivityEvaluation utilise désormais « rtaMode », défini une fois et disponible pendant tout l'enregistrement.
-- editActivityEvaluation et « Autre fiche / activité » utilisent la même détection.
-- Vérification automatique : aucun identifiant local « isRta » ne subsiste.
-- Service worker renforcé :
-  * cache v6 ;
-  * suppression des anciens caches à l'activation ;
-  * prise de contrôle immédiate ;
-  * index.html chargé en priorité depuis le réseau avec cache désactivé.
-- Objectif : éviter qu'une ancienne version reste servie par GitHub Pages / iPad.
-
-
-ÉVOLUTIONS TEST 7 — HISTORIQUE / ATELIER DU JOUR / RTA / CHEF D’ÉQUIPE
-1. HISTORIQUE
-- Quand une évaluation marquée « À finaliser » est ouverte en modification, le drapeau est automatiquement désactivé.
-- Au retour dans l’historique, l’indicateur apparaît donc de nouveau en gris.
-
-2. ADMINISTRATION DES ACTIVITÉS DU JOUR
-- Correctif de mise en page pour éviter qu’un bouton soit masqué par la zone Import / Export JSON.
-- Ajout d’une zone « Activités issues d’une RTA ».
-- Choix de la bibliothèque RTA, du chapitre/intervention, de la motorisation et de l’activité.
-- L’activité RTA ajoutée peut être sélectionnée, recevoir un support et une capacité, puis être publiée pour la journée.
-- Les élèves peuvent se positionner dessus comme sur une activité classique.
-- L’évaluation professeur ouvre directement une fiche RTA avec les critères et compétences de la bibliothèque RTA.
-
-3. AUTO-ÉVALUATION
-- Le chef d’équipe est affiché en rouge.
-- Son nom comporte explicitement la mention « Chef d’équipe ».
-
-4. ÉVALUATIONS DU JOUR
-- Après l’auto-évaluation, l’état devient « À valider ».
-- Le professeur peut alors évaluer l’élève.
-- Le chef d’équipe suit désormais exactement ce même flux : auto-évaluation puis évaluation professeur.
-- Une grille dédiée au rôle de chef d’équipe est proposée au professeur.
-
-5. REDONNER LA MAIN
-- Correction du bug où l’élève pouvait disparaître de la liste Auto-évaluation.
-- « Redonner la main » restaure maintenant à la fois la tâche active ET l’affectation de l’élève.
-
-
-ÉVOLUTIONS TEST 8 — ADMINISTRATION DU JOUR
-- Le bloc « Fiches et activités d’évaluation » est renommé « 60 FICHES PRATIQUES ».
-- Correction de « Même travail / autre support » :
-  * les activités disponibles remontent désormais dans une liste de choix ;
-  * la liste regroupe les activités standards, les fiches pratiques, les situations professionnelles, les activités ponctuelles et les activités RTA ajoutées à la séance ;
-  * le professeur choisit directement le travail, renseigne le nouveau support et la capacité ;
-  * la publication supplémentaire est conservée lors de « Publier pour aujourd’hui ».
-
-
-ÉVOLUTIONS TEST 9 — VERSION D’ESSAI CALENDRIER
-- Ajout d’un calendrier dans Administration des activités du jour.
-- Possibilité de sélectionner une date future (par exemple lundi prochain).
-- Pour chaque date : choix de l’activité, du support et de la capacité.
-- Le calendrier accepte les activités habituelles et les activités RTA.
-- Le jour concerné, les activités planifiées sont chargées automatiquement dans l’Atelier du jour une seule fois.
-- Un bouton permet aussi de charger manuellement le planning lorsque la date choisie est aujourd’hui.
-- « Même travail / autre support » est corrigé : il ne propose que les travaux déjà présents dans l’Atelier du jour.
-- « Retour aux évaluations » devient « Retour Accueil ».
-
-Cette version est volontairement une version d’essai : le planning calendrier est mémorisé localement dans le navigateur. Après validation de l’ergonomie et du fonctionnement, la synchronisation Firebase pourra être ajoutée.
-
-
-ÉVOLUTIONS TEST 10 — CALENDRIER COMPACT + TABLEAUX FUTURS + CLASSES SÉPARÉES
-- Calendrier fortement réduit en hauteur pour garder les choix d’activités visibles.
-- Affichage du calendrier et du panneau de préparation côte à côte sur grand écran.
-- Depuis une date du calendrier, bouton « Ouvrir le tableau de cette date ».
-- Possibilité d’ouvrir un tableau futur et d’y placer les élèves avant le jour J.
-- Le tableau affiche clairement la date consultée et la classe active.
-- Bouton « Revenir à aujourd’hui » quand on consulte une date future.
-- Les activités planifiées pour une date peuvent être chargées directement dans le tableau correspondant.
-- Décloisonnement des classes : les données atelier sont désormais séparées par CLASSE + DATE.
-  Une activité/affectation préparée pour une classe n’est pas recopiée vers une autre classe.
-- Le planning calendrier est lui aussi séparé par classe.
-- L’ancien tableau non cloisonné est migré une seule fois vers la première classe utilisée afin d’éviter sa duplication dans les autres classes.
-- « Même travail / autre support » reste limité aux travaux du tableau correspondant à la classe et à la date affichées.
-- Le bouton « Retour Accueil » est conservé.
-
-Cette version reste une version d’essai fonctionnelle. La séparation classe/date est appliquée au stockage local et à la sauvegarde atelier Firebase par classe/date.
-
-
-ÉVOLUTIONS TEST 11 — DÉPLACEMENT DES ÉLÈVES
-- Correction du déplacement d’un élève déjà affecté.
-- Nouveau fonctionnement :
-  1. sélectionner la nouvelle activité ;
-  2. cliquer sur le nom de l’élève déjà positionné ;
-  3. l’élève est déplacé directement vers la nouvelle activité.
-- L’ancienne affectation et sa séquence en attente sont remplacées proprement.
-- Les contrôles de capacité restent actifs.
-- Le chef d’équipe reste protégé : il ne peut pas être déplacé comme un élève standard sans changement préalable de son rôle.
-- Si aucune autre activité n’est sélectionnée, un clic sur un élève déjà positionné conserve l’action de libération avec confirmation.
-- Les fonctions calendrier compact, tableaux futurs et séparation Classe + Date de la TEST 10 sont conservées.
-
-
-ÉVOLUTIONS TEST 12 — CORRECTION CHANGEMENT DE CLASSE
-- Correction du blocage empêchant de changer de classe.
-- Cause corrigée : la fonction générale de changement de classe appelait directement la variable interne « state » du module Atelier, ce qui provoquait une erreur JavaScript.
-- La fonction générale appelle désormais un point d’entrée sécurisé du module Atelier.
-- Le changement de classe fonctionne à nouveau depuis les différentes vues de l’application.
-- Le tableau Atelier est rafraîchi après changement de classe.
-- La séparation CLASSE + DATE reste conservée : changer de classe n’entraîne aucune recopie du tableau d’une autre classe.
-- La date future éventuellement consultée reste indépendante de la classe.
-- Les fonctions de la TEST 11, notamment le déplacement direct des élèves entre activités, sont conservées.
-- « Retour Accueil » est conservé.
-
-
-ÉVOLUTIONS TEST 13 — FILTRES RTA + MOTEUR DE RECHERCHE
-- Reprise complète du sélecteur des activités RTA dans Administration des activités du jour.
-- Filtre RTA / véhicule conservé.
-- Filtre Chapitre / intervention avec option « Tous les chapitres / interventions ».
-- Filtre Motorisation / version corrigé et rendu cumulatif.
-- Les filtres Chapitre + Motorisation peuvent maintenant être combinés.
-- Les choix encore valides sont conservés lors d'un changement de filtre.
-- Ajout d'un moteur de recherche instantané.
-- La recherche porte sur : numéro/ID, intitulé, section/sous-section, chapitre, motorisation/version, type et description quand ces données existent.
-- Recherche insensible aux majuscules et aux accents.
-- Ajout d'un compteur du nombre d'activités trouvées.
-- Ajout du bouton « Effacer les filtres ».
-- La liste des activités affiche aussi la motorisation/version pour faciliter le choix.
-- Les corrections précédentes (changement de classe, Classe + Date, calendrier, déplacement des élèves) sont conservées.
-
-
-ÉVOLUTIONS TEST 14 — MOTEUR DE RECHERCHE DANS « ÉVALUATION / POSITIONNEMENT SUR RTA »
-- Ajout d’un moteur de recherche clairement visible dans la page Évaluation / positionnement sur RTA.
-- Le moteur peut être utilisé immédiatement, même sans sélectionner d’abord une intervention.
-- Recherche instantanée et cumulable avec les filtres Intervention, Énergie et Motorisation.
-- Recherche élargie au numéro/ID, intitulé, chapitre, section/sous-section, motorisation/version, type d’activité, description et compétences CAP/Bac Pro.
-- Recherche insensible aux majuscules et accents via la normalisation RTA existante.
-- Ajout d’un bouton « Effacer » pour vider rapidement la recherche.
-- Les messages d’aide de la page ont été adaptés à cette nouvelle logique.
-- Toutes les corrections des TEST 12 et TEST 13 sont conservées.
+Le mode local reste le mode par défaut : Firebase ne s'active qu'après action volontaire depuis Paramètres.
