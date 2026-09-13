@@ -1,34 +1,32 @@
-ÉVALUATION, CHARGE ATELIER, RTA, GÉNÉRATION TP — VERSION 4
-=========================================================
+Évaluation, charge atelier, RTA, génération TP — V5
+CORRECTION SYNCHRONISATION FIREBASE
 
-Principales évolutions :
+Correction principale :
+- La synchronisation pouvait rester bloquée à 58 % sur « Synchronisation de l’Atelier du jour… ».
+- Les séances Atelier étaient envoyées une par une et une écriture Firestore en attente pouvait bloquer toute la synchronisation.
 
-1. MODULE BILANS — BILAN PAR ÉLÈVE
-- Choix d'une période de bilan puis d'un élève.
-- Création / réouverture d'un bilan individuel.
-- Le bilan est figé à la date de clôture de la période sélectionnée.
-- Périodes rétroactives 2025-2026 conservées :
-  P1 : 10/10/2025
-  P2 : 05/12/2025
-  P3 : 27/03/2026
-  P4 : 12/06/2026
-- Le bilan reprend un positionnement par compétence, les évaluations retenues et l'observation de période rétroactive disponible.
-- Date d'édition / signature modifiable manuellement.
-- Impression A4 dédiée.
-- Enregistrement des bilans dans l'historique avec possibilité de rouvrir / rééditer / imprimer.
-- Fonction "Actualiser avec les évaluations" volontaire : un bilan déjà enregistré reste un instantané tant qu'il n'est pas actualisé.
+V5 :
+- Synchronisation Atelier par lots (batch Firestore).
+- Temporisation de sécurité sur lecture / écriture Atelier.
+- Une anomalie Atelier ne bloque plus la synchronisation des classes, élèves, évaluations, paramètres et bilans.
+- Le diagnostic Firebase indique désormais si l’Atelier du jour doit être resynchronisé.
+- Les données locales Atelier sont conservées même si la synchronisation distante est différée.
 
-2. FIREBASE — RÉACTIVATION CORRIGÉE
-- Le mode Firebase est maintenant réellement activable depuis Paramètres.
-- Les SDK Firebase nécessaires sont chargés lorsque la connexion Internet est disponible.
-- Au passage du mode local au mode Firebase, une synchronisation de remontée locale est demandée avant le rapatriement du cloud.
-- Les classes, élèves et évaluations locales sont envoyés vers Firebase lors de cette réactivation.
-- Les périodes de bilan, bilans élèves, synthèses enregistrées et observations rétroactives sont désormais inclus dans la configuration synchronisée.
-- Le drapeau de remontée locale n'est supprimé qu'après une synchronisation terminée avec succès.
+Conseil de test :
+1. Ouvrir le logiciel avec Internet.
+2. Se connecter à Firebase.
+3. Cliquer sur Synchroniser.
+4. La barre doit dépasser « Atelier du jour » et atteindre 100 %.
+5. Cliquer sur ⓘ pour vérifier le nombre de classes, élèves et évaluations.
 
-IMPORTANT
----------
-La vérification réalisée sur cette version est une vérification du code et de la logique de synchronisation.
-La connexion réelle au projet Firebase nécessite une connexion Internet et les identifiants Firebase du compte ; elle doit donc être testée sur le poste utilisateur avant utilisation en production.
+Aucune suppression de donnée locale n’est effectuée par cette correction.
 
-Le mode local reste le mode par défaut : Firebase ne s'active qu'après action volontaire depuis Paramètres.
+============================================================
+V6 — PACK COMPLET FIREBASE / ACTIVATION MANUELLE
+============================================================
+- Réintégration de service-worker.js, manifest.webmanifest et icônes PWA.
+- Réintégration de firebase.json, .firebaserc, firestore.rules et firestore.indexes.json.
+- Firebase est DÉSACTIVÉ PAR DÉFAUT à l'ouverture de cette V6.
+- L'activation est volontairement manuelle depuis Paramètres.
+- Une ancienne activation Firebase mémorisée par une version précédente n'active pas automatiquement la V6.
+- Le fonctionnement Bilans + corrections de synchronisation de la V5 est conservé.

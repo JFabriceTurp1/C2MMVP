@@ -1,39 +1,21 @@
-const CACHE_NAME="evaluation-rta-test-848-v14";
-const ASSETS=[
-  "./",
-  "./index.html",
-  "./manifest.webmanifest",
-  "./logo-francois-de-mahy.png",
-  "./Fiches_Evaluations_63_Activites_CAP_BacPro_V4_CHARTE_DEFINITIVE.pdf"
-];
-
+const CACHE_NAME="competences-mv-v6-pack-complet-manuel";
+const APP_SHELL=["./","./index.html","./manifest.webmanifest","./logo-francois-de-mahy.png","./icons/icon-192.png","./icons/icon-512.png"];
 self.addEventListener("install",event=>{
-  self.skipWaiting();
-  event.waitUntil(caches.open(CACHE_NAME).then(cache=>cache.addAll(ASSETS)).catch(()=>null));
+  event.waitUntil(caches.open(CACHE_NAME).then(cache=>cache.addAll(APP_SHELL)).then(()=>self.skipWaiting()));
 });
-
 self.addEventListener("activate",event=>{
-  event.waitUntil(
-    caches.keys()
-      .then(keys=>Promise.all(keys.filter(k=>k!==CACHE_NAME).map(k=>caches.delete(k))))
-      .then(()=>self.clients.claim())
-  );
+  event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE_NAME).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));
 });
-
 self.addEventListener("fetch",event=>{
-  const req=event.request;
-  const url=new URL(req.url);
-  if(req.mode==="navigate" || url.pathname.endsWith("/index.html")){
-    event.respondWith(
-      fetch(req,{cache:"no-store"})
-        .then(resp=>{
-          const copy=resp.clone();
-          caches.open(CACHE_NAME).then(cache=>cache.put("./index.html",copy)).catch(()=>null);
-          return resp;
-        })
-        .catch(()=>caches.match("./index.html"))
-    );
+  const url=new URL(event.request.url);
+  if(event.request.method!=="GET" || /firebase|googleapis|gstatic|google\.com/.test(url.hostname)) return;
+  if(event.request.mode==="navigate"){
+    event.respondWith(fetch(event.request).then(response=>{
+      const copy=response.clone();
+      caches.open(CACHE_NAME).then(cache=>cache.put("./index.html",copy));
+      return response;
+    }).catch(()=>caches.match("./index.html")));
     return;
   }
-  event.respondWith(caches.match(req).then(cached=>cached||fetch(req)));
+  event.respondWith(caches.match(event.request).then(cached=>cached||fetch(event.request)));
 });

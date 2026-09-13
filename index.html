@@ -7167,7 +7167,7 @@ function makeSettingsRubricsCollapsible(){
   });
   root.dataset.rubricsCollapsedReady="1";
 }
-const FIREBASE_MODE_STORAGE_KEY="evaluation_firebase_enabled_vref2";
+const FIREBASE_MODE_STORAGE_KEY="evaluation_firebase_enabled_v6_manual";
 function isFirebaseModeEnabled(){return localStorage.getItem(FIREBASE_MODE_STORAGE_KEY)==="1";}
 function refreshFirebaseModeControl(){
   const enabled=isFirebaseModeEnabled();
@@ -11052,7 +11052,7 @@ function openAssistanceMail(){
 <script id="v81-firebase-test-runtime">
 (function(){
   // V RÉFÉRENTIEL 2 — Firebase activable depuis Paramètres.
-  const FIREBASE_ENABLED_FOR_THIS_BUILD=(typeof isFirebaseModeEnabled==="function" ? isFirebaseModeEnabled() : false); // V92 : Firebase activable depuis Paramètres
+  const FIREBASE_ENABLED_FOR_THIS_BUILD=(typeof isFirebaseModeEnabled==="function" ? isFirebaseModeEnabled() : false); // V6 : Firebase désactivé par défaut, activation manuelle depuis Paramètres
   if(FIREBASE_ENABLED_FOR_THIS_BUILD){
     document.body.classList.remove("firebase-disabled-mode");
     window.__FIREBASE_DISABLED_FOR_DEVELOPMENT=false;
@@ -11282,28 +11282,56 @@ function openAssistanceMail(){
     out.updatedAtClient=Math.max(Number(l.updatedAtClient||0),Number(r.updatedAtClient||0),Date.now());
     return out;
   }
+  function firebaseTimeout(promise,ms,label){
+    let timer=null;
+    const timeout=new Promise((_,reject)=>{
+      timer=setTimeout(()=>reject(new Error((label||"Opération Firebase")+" : délai dépassé. La synchronisation générale continue.")),ms);
+    });
+    return Promise.race([promise,timeout]).finally(()=>{if(timer)clearTimeout(timer);});
+  }
+
   async function synchronizeAtelierSessions(){
     const activeClassId=String(getActiveClassId()||"classe");
-    const remote=(await cloudDocs(FIREBASE_ATELIER_COLLECTION)).filter(x=>String(x.classId||"")===activeClassId);
+    // V90 : l'Atelier du jour ne doit jamais bloquer la synchronisation générale.
+    // Lecture distante bornée dans le temps.
+    const allRemote=await firebaseTimeout(cloudDocs(FIREBASE_ATELIER_COLLECTION),12000,"Lecture Atelier du jour");
+    const remote=allRemote.filter(x=>String(x.classId||"")===activeClassId);
     const local=readAtelierLocal();local.days=local.days||{};
     const remoteByDate=new Map(remote.map(x=>[String(x.date||""),x]));
-    const dates=new Set([...Object.keys(local.days),...remoteByDate.keys()]);
+    const dates=[...new Set([...Object.keys(local.days),...remoteByDate.keys()])]
+      .filter(date=>/^\d{4}-\d{2}-\d{2}$/.test(String(date||"")))
+      .sort();
+
+    // Préparer la fusion local/cloud avant les écritures.
+    const payloads=[];
     for(const date of dates){
-      if(!date)continue;
       const localSession=local.days[date]||{};
       const remoteSession=remoteByDate.get(date)?.session||{};
       const merged=mergeAtelierSessions(localSession,remoteSession);
       local.days[date]=merged;
-      await userRoot().collection(FIREBASE_ATELIER_COLLECTION).doc(atelierDocumentId(activeClassId,date)).set({
-        classId:activeClassId,
-        date,
-        session:JSON.parse(JSON.stringify(merged)),
-        updatedAt:firebase.firestore.FieldValue.serverTimestamp()
-      },{merge:false});
+      payloads.push({date,merged});
     }
     writeAtelierLocal(local);
+
+    // Écriture par lots : beaucoup plus rapide que N écritures séquentielles.
+    // 200 documents par lot pour rester très largement sous la limite Firestore.
+    for(let i=0;i<payloads.length;i+=200){
+      const chunk=payloads.slice(i,i+200);
+      const batch=firestore.batch();
+      for(const item of chunk){
+        batch.set(userRoot().collection(FIREBASE_ATELIER_COLLECTION).doc(atelierDocumentId(activeClassId,item.date)),{
+          classId:activeClassId,
+          date:item.date,
+          session:JSON.parse(JSON.stringify(item.merged)),
+          updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+        },{merge:false});
+      }
+      if(chunk.length){
+        await firebaseTimeout(batch.commit(),12000,"Envoi Atelier du jour");
+      }
+    }
     if(typeof window.refreshAtelierFromFirebase==="function")window.refreshAtelierFromFirebase();
-    return Object.keys(local.days).length;
+    return dates.length;
   }
   window.firebaseSaveAtelierSession=async function(session,classId,date){
     // La sauvegarde locale est déjà faite avant cet appel. Si Firebase est hors ligne,
@@ -11591,7 +11619,17 @@ window.firebaseSaveCurrentConfig=async()=>{await saveFullConfig(firebaseBuildApp
       }
 
       setSyncProgress(58,'Synchronisation de l’Atelier du jour…');
-      const atelierSessionsCount=await synchronizeAtelierSessions();
+      let atelierSessionsCount=0;
+      let atelierSyncWarning='';
+      try{
+        // V90 : cette étape est secondaire par rapport aux classes/élèves/évaluations.
+        // Si Firestore tarde ou refuse un document Atelier, on poursuit la synchronisation.
+        atelierSessionsCount=await firebaseTimeout(synchronizeAtelierSessions(),18000,"Synchronisation Atelier du jour");
+      }catch(e){
+        atelierSyncWarning=friendlyError(e);
+        console.warn('Atelier du jour non bloquant :',e);
+        setSyncProgress(64,'Atelier du jour différé — poursuite de la synchronisation…');
+      }
       setSyncProgress(66,'Synchronisation des paramètres…');
       let cfg=await cloudGetOne(FIREBASE_CONFIG_COLLECTION,FIREBASE_CONFIG_DOC);
       if(cfg){
@@ -11637,9 +11675,10 @@ window.firebaseSaveCurrentConfig=async()=>{await saveFullConfig(firebaseBuildApp
         evaluations:cloudEvaluations.length,
         teachers:teacherCount,
         configuration:!!cfg,
-        atelierSessions:atelierSessionsCount
+        atelierSessions:atelierSessionsCount,
+        atelierWarning:atelierSyncWarning||''
       };
-      const diagText=`Firebase : ${cloudClasses.length} classe(s), ${cloudStudents.length} élève(s), ${cloudEvaluations.length} évaluation(s), ${atelierSessionsCount} séance(s) atelier, ${teacherCount} professeur(s).`;
+      const diagText=`Firebase : ${cloudClasses.length} classe(s), ${cloudStudents.length} élève(s), ${cloudEvaluations.length} évaluation(s), ${atelierSessionsCount} séance(s) atelier, ${teacherCount} professeur(s).`+(atelierSyncWarning?' Atelier du jour à resynchroniser séparément.':'');
       setSyncProgress(90,diagText);
       cloudReady=true;
       await loadData();
