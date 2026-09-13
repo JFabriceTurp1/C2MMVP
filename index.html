@@ -8532,6 +8532,8 @@ function exportStudentDeletionPDF(studentsSnapshot, deletionDate){
 
 
 
+
+<!-- V16 : correction état Firebase 0 élève -> cache local réellement vide -->
 </body></html>`);
   w.document.close();
 }
@@ -11475,7 +11477,7 @@ function openAssistanceMail(){
     const rootSnap=await root.get();
     const oldGeneration=Number(rootSnap.exists?(rootSnap.data()?.dataGeneration||0):0)||0;
 
-    // V15 — purge exacte par lots. La suppression des élèves doit aussi supprimer
+    // V15/V16 — purge exacte par lots. La suppression des élèves doit aussi supprimer
     // toutes les évaluations et toutes les séances Atelier du jour, même si elles
     // ne sont plus visibles dans le cache local du poste qui lance la commande.
     const purgeCollection=async(baseRef,name)=>{
@@ -11804,6 +11806,15 @@ window.firebaseSaveCurrentConfig=async()=>{await saveFullConfig(firebaseBuildApp
         const first=cloudClasses.find(c=>!c.archived)||cloudClasses[0];
         if(first)localStorage.setItem(ACTIVE_CLASS_STORAGE_KEY,String(first.id));
       }
+      // V16 — Si Firebase contient volontairement 0 élève, conserver cet état vide localement.
+      // Sans ce marqueur, loadData() recréait les 10 élèves de démonstration dès que
+      // replaceLocalStudents([]) avait vidé IndexedDB, d'où un diagnostic Firebase à 0
+      // mais des élèves toujours visibles sur certains postes.
+      if(cloudStudents.length===0){
+        safeLocalSetItem(STUDENT_PURGE_MARKER_KEY,"1");
+      }else{
+        try{localStorage.removeItem(STUDENT_PURGE_MARKER_KEY);}catch(e){}
+      }
       await replaceLocalStudents(cloudStudents);
       await replaceLocalEvaluations(cloudEvaluations);
       setPendingStudentSyncIds([]);
@@ -12009,7 +12020,23 @@ window.firebaseSaveCurrentConfig=async()=>{await saveFullConfig(firebaseBuildApp
   function watchCollection(name,handler){
     let first=true;
     const unsub=userRoot().collection(name).onSnapshot(async snap=>{
-      if(first){first=false;return;}
+      if(first){
+        first=false;
+        // V16 — La collection élèves vide dans la base centrale est un état valide.
+        // On aligne immédiatement le cache local afin qu'un poste ancien ne conserve
+        // pas une liste résiduelle alors que Firebase annonce 0 élève.
+        if(name==='students' && snap.empty){
+          try{
+            realtimeApply=true;
+            safeLocalSetItem(STUDENT_PURGE_MARKER_KEY,"1");
+            setPendingStudentSyncIds([]);
+            await replaceLocalStudents([]);
+            allStudents=[]; students=[]; selectedStudent=null;
+            renderAfterRemoteChange();
+          }finally{realtimeApply=false;}
+        }
+        return;
+      }
       const changes=snap.docChanges();
       if(!changes.length)return;
       try{
@@ -13626,5 +13653,7 @@ const oldDraft=window.tpGenCurrentDraft;window.tpGenCurrentDraft=function(){cons
  const previous=window.bilansPage;window.bilansPage=function(){const r=previous.apply(this,arguments);setTimeout(enhance,40);return r};window.exportSelectedBilanPdfsV12=exportSelected;window.deleteSelectedBilansV12=deleteSelected;setTimeout(()=>{if(document.querySelector('.bilan-page'))enhance()},250);
 })();
 </script>
+
+<!-- V16 : correction état Firebase 0 élève -> cache local réellement vide -->
 </body>
 </html>

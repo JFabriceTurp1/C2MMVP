@@ -1,0 +1,9 @@
+ÉVALUATION / CHARGE ATELIER / RTA / GÉNÉRATION TP — V16
+
+Correction Firebase multiposte :
+- Lorsque Firebase contient 0 élève, le cache IndexedDB du poste est désormais réellement vidé.
+- Le marqueur « liste volontairement vide » est posé avant le rechargement afin d'empêcher la recréation automatique des élèves de démonstration.
+- Le premier instantané temps réel d'une collection élèves vide aligne également le poste local sur Firebase.
+- Si Firebase contient à nouveau des élèves, le marqueur de purge est retiré automatiquement.
+
+Cette correction répond au cas où l'indicateur Firebase affichait 0 élève mais où certains élèves restaient visibles sur un PC.
