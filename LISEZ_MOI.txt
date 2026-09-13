@@ -1,32 +1,23 @@
-Évaluation, charge atelier, RTA, génération TP — V5
-CORRECTION SYNCHRONISATION FIREBASE
+Évaluation, charge atelier, RTA, génération TP — V7 BILANS CLASSE
 
-Correction principale :
-- La synchronisation pouvait rester bloquée à 58 % sur « Synchronisation de l’Atelier du jour… ».
-- Les séances Atelier étaient envoyées une par une et une écriture Firestore en attente pouvait bloquer toute la synchronisation.
+Corrections principales :
+- Correction de l'affichage de la classe dans les bilans : le nom réel de la classe est désormais résolu depuis la gestion des classes (ex. C2MMVP), au lieu d'afficher l'identifiant technique class_default.
+- Ajout de l'option « Toute la classe » dans le sélecteur Élève / classe du module Bilans.
+- La sélection « Toute la classe » crée en une seule opération les bilans de tous les élèves de la classe active pour la période choisie.
+- Les bilans déjà existants pour la même période ne sont pas dupliqués.
+- Les nouveaux bilans mémorisent aussi le nom de la classe au moment de leur création.
+- Firebase reste désactivé par défaut : son activation reste volontaire depuis Paramètres.
+- Pack PWA/Firebase complet conservé : service-worker.js, manifest.webmanifest, firebase.json, firestore.rules, firestore.indexes.json, .firebaserc et icônes.
 
-V5 :
-- Synchronisation Atelier par lots (batch Firestore).
-- Temporisation de sécurité sur lecture / écriture Atelier.
-- Une anomalie Atelier ne bloque plus la synchronisation des classes, élèves, évaluations, paramètres et bilans.
-- Le diagnostic Firebase indique désormais si l’Atelier du jour doit être resynchronisé.
-- Les données locales Atelier sont conservées même si la synchronisation distante est différée.
+Dates rétroactives de référence :
+P1 : 10/10/2025
+P2 : 05/12/2025
+P3 : 27/03/2026
+P4 : 12/06/2026
 
-Conseil de test :
-1. Ouvrir le logiciel avec Internet.
-2. Se connecter à Firebase.
-3. Cliquer sur Synchroniser.
-4. La barre doit dépasser « Atelier du jour » et atteindre 100 %.
-5. Cliquer sur ⓘ pour vérifier le nombre de classes, élèves et évaluations.
 
-Aucune suppression de donnée locale n’est effectuée par cette correction.
-
-============================================================
-V6 — PACK COMPLET FIREBASE / ACTIVATION MANUELLE
-============================================================
-- Réintégration de service-worker.js, manifest.webmanifest et icônes PWA.
-- Réintégration de firebase.json, .firebaserc, firestore.rules et firestore.indexes.json.
-- Firebase est DÉSACTIVÉ PAR DÉFAUT à l'ouverture de cette V6.
-- L'activation est volontairement manuelle depuis Paramètres.
-- Une ancienne activation Firebase mémorisée par une version précédente n'active pas automatiquement la V6.
-- Le fonctionnement Bilans + corrections de synchronisation de la V5 est conservé.
+V8 — BARGRAPHES DE NIVEAU DANS LES BILANS
+- Dans le bilan, chaque compétence affichée dans l’historique des évaluations possède désormais un petit barre-graphe gradué du rouge au vert.
+- La position et la couleur du repère dépendent du niveau atteint dans la compétence pour cette évaluation.
+- Le barre-graphe est visible à l’écran et conservé à l’impression.
+- Le tableau de positionnement par compétence utilise également la même échelle visuelle rouge → vert.
