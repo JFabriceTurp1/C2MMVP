@@ -1,0 +1,13 @@
+VERSION 14 — FIREBASE CENTRAL MULTIPOSTE
+
+Corrections principales :
+- Une base Firebase centrale partagée est utilisée par tous les postes authentifiés : workspaces/evaluation-mv-main.
+- Migration automatique de l'ancien stockage users/{uid} vers l'espace partagé lors de la première ouverture si l'espace partagé est vide.
+- Lorsque Firebase est actif, la base centrale devient la référence : une collection distante vide remet bien les élèves/évaluations locaux à zéro.
+- Les anciennes données locales ne peuvent plus ressusciter automatiquement après une purge Firebase.
+- Les modifications réalisées hors connexion sont mises en file d'attente puis envoyées avant le prochain rapatriement central.
+- La purge des élèves/évaluations écrit un marqueur de réinitialisation dans Firebase afin que les autres postes adoptent aussi l'état vide.
+- Le diagnostic Firebase affiche l'espace central et le nombre d'opérations locales en attente.
+
+IMPORTANT :
+Au premier lancement de cette V14, connecter chaque poste à Firebase puis cliquer une fois sur Synchroniser. Les postes doivent ensuite afficher les mêmes nombres d'élèves et d'évaluations dans le diagnostic Firebase.

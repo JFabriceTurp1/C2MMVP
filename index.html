@@ -11211,10 +11211,80 @@ function openAssistanceMail(){
     if(code.includes('permission-denied')) return 'Accès refusé par les règles Firestore.';
     return (err&&err.message)?err.message:'Erreur Firebase.';
   }
-  function userRoot(){
+  // V14 — Base centrale multiposte : tous les postes authentifiés utilisent le même espace partagé.
+  // Les anciennes versions stockaient les données sous users/{uid}, ce qui pouvait isoler deux postes
+  // connectés avec des comptes Firebase différents. Le nouvel espace est commun à l'établissement.
+  const FIREBASE_SHARED_WORKSPACE_ID='evaluation-mv-main';
+  const FIREBASE_PENDING_OPS_KEY='evaluation_firebase_pending_ops_v14';
+  function legacyUserRoot(){
     const u=auth&&auth.currentUser;
     if(!u) throw new Error('Utilisateur Firebase non connecté.');
     return firestore.collection('users').doc(u.uid);
+  }
+  function userRoot(){
+    const u=auth&&auth.currentUser;
+    if(!u) throw new Error('Utilisateur Firebase non connecté.');
+    return firestore.collection('workspaces').doc(FIREBASE_SHARED_WORKSPACE_ID);
+  }
+  function readPendingFirebaseOps(){
+    try{const x=JSON.parse(localStorage.getItem(FIREBASE_PENDING_OPS_KEY)||'[]');return Array.isArray(x)?x:[]}catch(e){return []}
+  }
+  function writePendingFirebaseOps(list){
+    const clean=Array.isArray(list)?list:[];
+    if(clean.length)localStorage.setItem(FIREBASE_PENDING_OPS_KEY,JSON.stringify(clean));
+    else localStorage.removeItem(FIREBASE_PENDING_OPS_KEY);
+  }
+  function queuePendingFirebaseOp(store,id,action,data){
+    const key=String(store)+'|'+String(id);
+    const list=readPendingFirebaseOps().filter(x=>String(x.key)!==key);
+    list.push({key,store:String(store),id:String(id),action:String(action),data:data?JSON.parse(JSON.stringify(data)):null,queuedAt:Date.now()});
+    writePendingFirebaseOps(list);
+  }
+  async function flushPendingFirebaseOps(){
+    if(!auth?.currentUser)return {flushed:0,pending:readPendingFirebaseOps().length};
+    const list=readPendingFirebaseOps();
+    if(!list.length)return {flushed:0,pending:0};
+    const remaining=[];let flushed=0;
+    for(const op of list){
+      try{
+        const ref=userRoot().collection(op.store).doc(String(op.id));
+        if(op.action==='delete')await ref.delete();
+        else await ref.set(JSON.parse(JSON.stringify(op.data||{})),{merge:false});
+        flushed++;
+      }catch(e){remaining.push(op);console.warn('Opération Firebase différée :',op,e);}
+    }
+    writePendingFirebaseOps(remaining);
+    return {flushed,pending:remaining.length};
+  }
+  async function migrateLegacyFirebaseWorkspaceIfNeeded(){
+    if(!auth?.currentUser)return {migrated:false};
+    const shared=userRoot();
+    const meta=await shared.get();
+    const data=meta.exists?(meta.data()||{}):{};
+    if(data.centralSyncInitialized===true)return {migrated:false,already:true};
+    const names=['classes','students','evaluations','configuration','comptes','situationsProfessionnelles','atelierSessions'];
+    let sharedCount=0;
+    for(const n of names){const sn=await shared.collection(n).limit(1).get();if(!sn.empty){sharedCount++;break;}}
+    if(sharedCount){
+      await shared.set({centralSyncInitialized:true,workspace:FIREBASE_SHARED_WORKSPACE_ID,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
+      return {migrated:false,sharedExisting:true};
+    }
+    const legacy=legacyUserRoot();
+    let legacyCount=0;
+    const payload=[];
+    for(const n of names){
+      const snap=await legacy.collection(n).get();
+      for(const d of snap.docs){legacyCount++;payload.push({name:n,id:d.id,data:d.data()});}
+    }
+    if(legacyCount){
+      for(let i=0;i<payload.length;i+=300){
+        const batch=firestore.batch();
+        payload.slice(i,i+300).forEach(x=>batch.set(shared.collection(x.name).doc(String(x.id)),JSON.parse(JSON.stringify(x.data)),{merge:false}));
+        await batch.commit();
+      }
+    }
+    await shared.set({centralSyncInitialized:true,workspace:FIREBASE_SHARED_WORKSPACE_ID,migratedFromLegacyUid:auth.currentUser.uid||'',migratedCount:legacyCount,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
+    return {migrated:legacyCount>0,count:legacyCount};
   }
   async function cloudDocs(name){
     const snap=await userRoot().collection(name).get();
@@ -11399,17 +11469,26 @@ function openAssistanceMail(){
 
   window.firebasePurgeAllStudentsAndEvaluations=async function(){
     if(!auth?.currentUser)return {connected:false};
-    setStatus("Purge Firebase des élèves et évaluations…","warn");
+    setStatus("Purge Firebase centrale des élèves et évaluations…","warn");
+    const root=userRoot();
+    const rootSnap=await root.get();
+    const oldGeneration=Number(rootSnap.exists?(rootSnap.data()?.dataGeneration||0):0)||0;
     const purgeCollection=async(name)=>{
-      const snap=await userRoot().collection(name).get();
+      const snap=await root.collection(name).get();
       for(const d of snap.docs) await d.ref.delete();
-      const verify=await userRoot().collection(name).get();
+      const verify=await root.collection(name).get();
       if(!verify.empty)throw new Error(`Firebase : ${verify.size} document(s) subsistent dans ${name}.`);
     };
     await purgeCollection("evaluations");
     await purgeCollection("students");
-    setStatus("✓ Firebase : 0 élève, 0 évaluation","ok");
-    return {connected:true,students:0,evaluations:0};
+    writePendingFirebaseOps([]);
+    await root.set({centralSyncInitialized:true,workspace:FIREBASE_SHARED_WORKSPACE_ID,dataGeneration:oldGeneration+1,lastResetAt:firebase.firestore.FieldValue.serverTimestamp(),lastResetBy:auth.currentUser.email||auth.currentUser.uid||'',updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
+    // Le poste qui demande la purge est lui aussi remis à zéro immédiatement.
+    await clearStore('evaluations');
+    await clearStore('students');
+    await loadData();
+    setStatus("✓ Base centrale Firebase : 0 élève, 0 évaluation","ok");
+    return {connected:true,students:0,evaluations:0,generation:oldGeneration+1};
   };
 
   window.firebaseRestoreArchiveSnapshot=async function(snapshot){
@@ -11619,7 +11698,11 @@ window.firebaseSaveCurrentConfig=async()=>{await saveFullConfig(firebaseBuildApp
     setStatus('Synchronisation V86.5 : classes, élèves et évaluations…','warn');
     setSyncProgress(8,'Connexion au serveur Firebase V86.5…');
     try{
-      setSyncProgress(18,'Lecture des classes V86.5…');
+      setSyncProgress(12,'Ouverture de la base centrale multiposte…');
+      await migrateLegacyFirebaseWorkspaceIfNeeded();
+      setSyncProgress(15,'Envoi des modifications locales en attente…');
+      const pendingResult=await flushPendingFirebaseOps();
+      setSyncProgress(18,'Lecture des classes centrales…');
       let cloudClasses=await cloudDocs('classes');
       setSyncProgress(30,'Lecture des élèves V86.5…');
       let cloudStudents=await cloudDocs('students');
@@ -11648,41 +11731,19 @@ window.firebaseSaveCurrentConfig=async()=>{await saveFullConfig(firebaseBuildApp
         // L'utilisateur pourra envoyer volontairement les données depuis Paramètres.
       }
 
-      // Toujours appliquer ce qui existe dans Firebase, même si une des collections est vide.
-      if(cloudClasses.length){
-        saveClassesLocalOriginal(cloudClasses);
-        const currentActive=localStorage.getItem(ACTIVE_CLASS_STORAGE_KEY);
-        if(!cloudClasses.some(c=>String(c.id)===String(currentActive)&&!c.archived)){
-          const first=cloudClasses.find(c=>!c.archived)||cloudClasses[0];
-          if(first) localStorage.setItem(ACTIVE_CLASS_STORAGE_KEY,String(first.id));
-        }
+      // V14 — En mode Firebase, le cloud est la base centrale de référence.
+      // Le remplacement est volontairement EXACT, y compris lorsque la collection est vide :
+      // un poste ancien ne peut donc plus ressusciter des élèves/évaluations supprimés ailleurs.
+      saveClassesLocalOriginal(cloudClasses);
+      const currentActive=localStorage.getItem(ACTIVE_CLASS_STORAGE_KEY);
+      if(!cloudClasses.some(c=>String(c.id)===String(currentActive)&&!c.archived)){
+        const first=cloudClasses.find(c=>!c.archived)||cloudClasses[0];
+        if(first)localStorage.setItem(ACTIVE_CLASS_STORAGE_KEY,String(first.id));
       }
-
-      // Avant de laisser Firebase remplacer le cache local, garantir que les élèves
-      // récemment importés sur ce poste ont bien été écrits et vérifiés dans le cloud.
-      const pendingBeforeSync=getPendingStudentSyncIds();
-      if(pendingBeforeSync.length){
-        try{
-          await window.firebaseSyncPendingStudents();
-          cloudStudents=await cloudDocs('students');
-        }catch(e){
-          console.warn('Élèves importés en attente de Firebase :',e);
-        }
-      }
-      if(cloudStudents.length){
-        await replaceLocalStudents(cloudStudents);
-      }
-
-      // V12 : Firebase ne remplace plus destructivement l'historique local.
-      // Toute évaluation présente d'un seul côté est conservée et recopiée de l'autre côté.
-      if(cloudEvaluations.length || (await getAll('evaluations')).length){
-        const merged=await mergeEvaluationsWithoutLoss(cloudEvaluations,{pushLocal:true});
-        cloudEvaluations=await cloudDocs('evaluations');
-        if(!cloudEvaluations.length) cloudEvaluations=merged.rows;
-        if(!rootData.evaluationsInitialized){
-          await rootRef.set({evaluationsInitialized:true,evaluationsMigratedFromLocal:merged.added||0,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
-        }
-      }
+      await replaceLocalStudents(cloudStudents);
+      await replaceLocalEvaluations(cloudEvaluations);
+      setPendingStudentSyncIds([]);
+      await rootRef.set({centralSyncInitialized:true,workspace:FIREBASE_SHARED_WORKSPACE_ID,evaluationsInitialized:true,lastSyncAt:firebase.firestore.FieldValue.serverTimestamp(),lastSyncBy:auth.currentUser.email||auth.currentUser.uid||''},{merge:true});
 
       setSyncProgress(58,'Synchronisation de l’Atelier du jour…');
       let atelierSessionsCount=0;
@@ -11741,6 +11802,8 @@ window.firebaseSaveCurrentConfig=async()=>{await saveFullConfig(firebaseBuildApp
         evaluations:cloudEvaluations.length,
         teachers:teacherCount,
         configuration:!!cfg,
+        workspace:FIREBASE_SHARED_WORKSPACE_ID,
+        pendingOps:readPendingFirebaseOps().length,
         atelierSessions:atelierSessionsCount,
         atelierWarning:atelierSyncWarning||''
       };
@@ -11769,31 +11832,40 @@ window.firebaseSaveCurrentConfig=async()=>{await saveFullConfig(firebaseBuildApp
   const saveClassesOriginal=saveClassesLocalOriginal;
   window.saveClasses=function(list){
     saveClassesLocalOriginal(list);
-    if(cloudReady && auth && auth.currentUser && !realtimeApply){
-      Promise.all((list||[]).map(c=>cloudSet('classes',c.id,c))).catch(e=>setStatus('Classe non synchronisée : '+friendlyError(e),'bad'));
+    if(realtimeApply)return;
+    for(const c of (list||[])){
+      if(cloudReady && auth && auth.currentUser){
+        cloudSet('classes',c.id,c).catch(e=>{queuePendingFirebaseOp('classes',c.id,'put',c);setStatus('Classe en attente de synchronisation : '+friendlyError(e),'warn');});
+      }else if(isFirebaseModeEnabled()) queuePendingFirebaseOp('classes',c.id,'put',c);
     }
   };
   const originalPut=window.put;
   window.put=function(store,obj){
     if(store==='students' && obj) try{localStorage.removeItem(STUDENT_PURGE_MARKER_KEY);}catch(e){}
     const p=originalPut(store,obj);
-    if(store==='students' && !realtimeApply){
-      p.then(id=>cloudSet('students',obj.id||id,obj)).catch(e=>setStatus('Élève non synchronisé : '+friendlyError(e),'bad'));
-    }
-    if(store==='evaluations' && !realtimeApply){
+    if((store==='students'||store==='evaluations') && !realtimeApply){
       p.then(id=>{
         const finalId=(obj.id!==undefined && obj.id!==null)?obj.id:id;
         const payload={...obj,id:finalId};
-        return cloudSet('evaluations',finalId,payload);
-      }).catch(e=>setStatus('Évaluation non synchronisée : '+friendlyError(e),'bad'));
+        if(cloudReady && auth && auth.currentUser){
+          return cloudSet(store,finalId,payload).catch(e=>{queuePendingFirebaseOp(store,finalId,'put',payload);setStatus((store==='students'?'Élève':'Évaluation')+' en attente de synchronisation : '+friendlyError(e),'warn');});
+        }
+        if(isFirebaseModeEnabled())queuePendingFirebaseOp(store,finalId,'put',payload);
+      });
     }
     return p;
   };
   const originalDelete=window.deleteFromStore;
   window.deleteFromStore=function(store,key){
     const p=originalDelete(store,key);
-    if(store==='students' && !realtimeApply) p.then(()=>cloudDelete('students',key)).catch(e=>setStatus('Suppression élève non synchronisée : '+friendlyError(e),'bad'));
-    if(store==='evaluations' && !realtimeApply) p.then(()=>cloudDelete('evaluations',key)).catch(e=>setStatus('Suppression évaluation non synchronisée : '+friendlyError(e),'bad'));
+    if((store==='students'||store==='evaluations') && !realtimeApply){
+      p.then(()=>{
+        if(cloudReady && auth && auth.currentUser){
+          return cloudDelete(store,key).catch(e=>{queuePendingFirebaseOp(store,key,'delete',null);setStatus('Suppression en attente de synchronisation : '+friendlyError(e),'warn');});
+        }
+        if(isFirebaseModeEnabled())queuePendingFirebaseOp(store,key,'delete',null);
+      });
+    }
     return p;
   };
 
