@@ -36,3 +36,6 @@ VERSION 12 — BILANS MULTIPLES + PROTECTION HISTORIQUE
 
 V14 — Centralisation Firebase multiposte
 La synchronisation utilise désormais un espace partagé unique. Firebase est la référence lorsque le mode Firebase est actif. Les opérations locales hors connexion sont mises en attente et rejouées à la reconnexion ; une purge centrale vide réellement tous les postes à leur prochaine synchronisation.
+
+
+V17 : l'export PDF groupe des bilans reprend desormais exactement la fiche Bilan de competences en couleur avec curseurs, comme l'impression unitaire.

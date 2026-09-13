@@ -8534,6 +8534,7 @@ function exportStudentDeletionPDF(studentsSnapshot, deletionDate){
 
 
 <!-- V16 : correction état Firebase 0 élève -> cache local réellement vide -->
+<!-- V17 : export PDF groupé = même fiche couleur/curseurs que l'impression Bilan -->
 </body></html>`);
   w.document.close();
 }
@@ -13630,23 +13631,70 @@ const oldDraft=window.tpGenCurrentDraft;window.tpGenCurrentDraft=function(){cons
  function toggleAll(flag){document.querySelectorAll('.v12-bilan-check').forEach(x=>x.checked=flag);updateStatus()}
  function safeName(s){return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Za-z0-9._-]+/g,'_').replace(/^_+|_+$/g,'').slice(0,110)||'bilan'}
  function frDate(v){if(!v)return '—';try{const p=String(v).slice(0,10).split('-');return p.length===3?`${p[2]}/${p[1]}/${p[0]}`:String(v)}catch(e){return String(v)}}
- function pdfForRecord(r){
+ async function pdfForRecord(r){
    if(!window.jspdf?.jsPDF)throw new Error("Le module PDF n'est pas chargé. Ouvre l'application une fois avec Internet puis réessaie.");
-   const {jsPDF}=window.jspdf,doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});let y=15;
-   doc.setFont('helvetica','bold');doc.setFontSize(16);doc.text('Bilan de progression des compétences',15,y);y+=8;doc.setFontSize(10);doc.setFont('helvetica','normal');
-   [`Élève : ${r.studentName||''}`,`Classe : ${r.className||r.classId||''}`,`Période : ${r.periodCode||''} — ${r.periodName||''}`,`Date de clôture : ${frDate(r.closureDate)}`,`Date d'édition / signature : ${frDate(r.printDate)}`,`Professeur(s) évaluateur(s) : ${r.teacherNames||'—'}`].forEach(t=>{doc.text(t,15,y);y+=5});y+=2;
-   const snap=r.snapshot||{};doc.setFont('helvetica','bold');doc.text(`Positionnement global : ${snap.overallPct??0} %`,15,y);y+=7;
-   if(typeof doc.autoTable==='function'){
-     doc.autoTable({startY:y,head:[['Comp.','Compétence','Niveau','Progression']],body:(snap.competencies||[]).map(c=>[c.id||'',c.name||'',c.label||'Non observée',c.score===null||c.score===undefined?'—':`${Math.round(Number(c.pct)||0)} %`]),styles:{fontSize:8,cellPadding:2},headStyles:{fillColor:[37,99,235]}});y=doc.lastAutoTable.finalY+7;
-     doc.autoTable({startY:y,head:[['Date','Évaluation','SP','Note','Professeur']],body:(snap.evaluations||[]).map(e=>[frDate(e.date),e.title||'',e.situation||'',e.note===null||e.note===undefined?'—':`${String(Math.round(Number(e.note)*10)/10).replace('.',',')} / 20`,e.teacher||'']),styles:{fontSize:7.5,cellPadding:1.8},headStyles:{fillColor:[51,65,85]},columnStyles:{1:{cellWidth:65}}});y=doc.lastAutoTable.finalY+7;
+   if(!window.html2canvas)throw new Error("Le module de capture du bilan n'est pas chargé. Ouvre l'application une fois avec Internet puis réessaie.");
+   if(typeof window.openBilanRecord!=='function')throw new Error("Le module Bilans n'est pas disponible.");
+
+   // V17 : on utilise EXACTEMENT la fiche Bilan de compétences affichée/imprimée
+   // (curseurs, couleurs, tableaux, observation et signatures), au lieu de reconstruire
+   // un PDF simplifié différent de l'impression unitaire.
+   window.openBilanRecord(r.id);
+   await new Promise(res=>requestAnimationFrame(()=>requestAnimationFrame(()=>setTimeout(res,70))));
+   const source=document.querySelector('.bilan-record-page .bilan-sheet');
+   if(!source)throw new Error("Impossible de retrouver la fiche Bilan de compétences à exporter.");
+
+   const stage=document.createElement('div');
+   stage.className='v17-bilan-pdf-stage';
+   stage.style.cssText='position:fixed;left:-12000px;top:0;width:1060px;background:#fff;z-index:-9999;padding:0;margin:0;';
+   const clone=source.cloneNode(true);
+   clone.style.cssText+=';width:1060px;max-width:1060px;box-sizing:border-box;border:0;box-shadow:none;border-radius:0;padding:0;background:#fff;';
+   clone.querySelectorAll('.no-print').forEach(el=>el.remove());
+   clone.querySelectorAll('.print-only').forEach(el=>el.style.setProperty('display','block','important'));
+   clone.querySelectorAll('.bilan-progress,.bilan-eval-bar,.bilan-progress-marker,.bilan-eval-marker').forEach(el=>{
+     el.style.setProperty('-webkit-print-color-adjust','exact');
+     el.style.setProperty('print-color-adjust','exact');
+   });
+   // Mise en page identique à l'impression unitaire.
+   clone.querySelectorAll('.bilan-table').forEach(el=>el.style.fontSize='10px');
+   clone.querySelectorAll('h2').forEach(el=>{el.style.fontSize='15px';el.style.marginTop='14px'});
+   stage.appendChild(clone);document.body.appendChild(stage);
+
+   let canvas;
+   try{
+     canvas=await window.html2canvas(clone,{scale:2,useCORS:true,backgroundColor:'#ffffff',logging:false,windowWidth:1280,windowHeight:Math.max(900,clone.scrollHeight+80),scrollX:0,scrollY:0});
+   }finally{stage.remove()}
+
+   const {jsPDF}=window.jspdf;
+   const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4',compress:true});
+   const margin=9,pageW=210,pageH=297,usableW=pageW-margin*2,usableH=pageH-margin*2;
+   const slicePx=Math.max(1,Math.floor(canvas.width*(usableH/usableW)));
+   let srcY=0,page=0;
+   while(srcY<canvas.height){
+     const h=Math.min(slicePx,canvas.height-srcY);
+     const piece=document.createElement('canvas');piece.width=canvas.width;piece.height=h;
+     const ctx=piece.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,piece.width,piece.height);ctx.drawImage(canvas,0,srcY,canvas.width,h,0,0,canvas.width,h);
+     const img=piece.toDataURL('image/jpeg',0.96);
+     if(page>0)doc.addPage('a4','portrait');
+     const imgH=usableW*(h/canvas.width);
+     doc.addImage(img,'JPEG',margin,margin,usableW,imgH,undefined,'FAST');
+     srcY+=h;page++;
    }
-   if(y>255){doc.addPage();y=15}doc.setFont('helvetica','bold');doc.setFontSize(10);doc.text('Observation de période',15,y);y+=5;doc.setFont('helvetica','normal');doc.setFontSize(9);const obs=doc.splitTextToSize(String(r.observation||'Aucune observation.'),180);doc.text(obs,15,y);y+=obs.length*4.2+9;if(y>265){doc.addPage();y=15}doc.text('Signature de l’élève :',15,y);doc.text('Signature du/des professeur(s) :',110,y);return doc;
+   return doc;
  }
  async function exportSelected(){
    const ids=selectedIds();if(!ids.length){showWarningMessage('Sélectionne au moins un bilan à exporter.');return}const all=records(),rows=ids.map(id=>all.find(r=>String(r.id)===String(id))).filter(Boolean);if(!rows.length)return;
    let dir=null;if(typeof window.showDirectoryPicker==='function'){try{dir=await window.showDirectoryPicker({mode:'readwrite'})}catch(e){if(e?.name==='AbortError')return;console.warn(e)}}
-   let done=0;for(const r of rows){const doc=pdfForRecord(r),filename=safeName(`Bilan_${r.periodCode||'periode'}_${r.studentName||'eleve'}_${r.schoolYear||''}`)+'.pdf';if(dir){const h=await dir.getFileHandle(filename,{create:true}),w=await h.createWritable();await w.write(doc.output('blob'));await w.close()}else{doc.save(filename);await new Promise(res=>setTimeout(res,180))}done++}
-   showSuccessMessage(`${done} bilan(s) PDF généré(s).${dir?' Ils ont été enregistrés dans le dossier choisi.':' Le navigateur les a placés dans son dossier de téléchargements.'}`,()=>window.bilansPage());
+   const status=document.getElementById('v12-bilan-selected-count');
+   let done=0;
+   try{
+     for(const r of rows){
+       if(status)status.textContent=`Génération PDF ${done+1}/${rows.length} — ${r.studentName||'élève'}…`;
+       const doc=await pdfForRecord(r),filename=safeName(`Bilan_${r.periodCode||'periode'}_${r.studentName||'eleve'}_${r.schoolYear||''}`)+'.pdf';
+       if(dir){const h=await dir.getFileHandle(filename,{create:true}),w=await h.createWritable();await w.write(doc.output('blob'));await w.close()}else{doc.save(filename);await new Promise(res=>setTimeout(res,220))}done++;
+     }
+     showSuccessMessage(`${done} bilan(s) PDF généré(s) avec la même mise en page couleur que le bouton Imprimer.${dir?' Ils ont été enregistrés dans le dossier choisi.':' Le navigateur les a placés dans son dossier de téléchargements.'}`,()=>window.bilansPage());
+   }catch(e){console.error(e);showWarningMessage(`Génération interrompue après ${done} bilan(s) : ${e?.message||e}`);window.bilansPage()}
  }
  function deleteSelected(){const ids=selectedIds();if(!ids.length){showWarningMessage('Sélectionne au moins un bilan à supprimer.');return}if(!confirm(`Supprimer ${ids.length} bilan(s) de la liste ?\n\nLes évaluations de l’historique ne seront pas supprimées.`))return;const set=new Set(ids.map(String));write(records().filter(r=>!set.has(String(r.id))));showSuccessMessage(`${ids.length} bilan(s) supprimé(s). Les évaluations sont conservées.`,()=>window.bilansPage())}
  function enhance(){const list=document.querySelector('.bilan-history-list');if(!list||list.dataset.v12==='1')return;list.dataset.v12='1';const bar=document.createElement('div');bar.className='bilan-bulk-toolbar no-print';bar.innerHTML=`<label style="display:flex;align-items:center;gap:6px;font-weight:700"><input type="checkbox" id="v12-bilan-all"> Tout sélectionner</label><span id="v12-bilan-selected-count" class="bilan-bulk-status">Aucun bilan sélectionné</span><span class="spacer"></span><button class="secondary" type="button" id="v12-export-pdf">📁 Générer les PDF dans un dossier</button><button class="secondary" type="button" id="v12-delete-selected">🗑️ Supprimer la sélection</button>`;list.before(bar);[...list.querySelectorAll('.bilan-history-row')].forEach(row=>{const open=row.querySelector('button[onclick*="openBilanRecord"]'),m=open?.getAttribute('onclick')?.match(/openBilanRecord\('([^']+)'\)/);if(!m)return;const id=m[1];row.classList.add('v12-selectable');const box=document.createElement('div');box.className='bilan-select-box';box.innerHTML=`<input class="v12-bilan-check" type="checkbox" value="${String(id).replace(/"/g,'&quot;')}" aria-label="Sélectionner ce bilan">`;row.insertBefore(box,row.firstChild);box.querySelector('input').addEventListener('change',updateStatus)});document.getElementById('v12-bilan-all')?.addEventListener('change',e=>toggleAll(e.target.checked));document.getElementById('v12-export-pdf')?.addEventListener('click',exportSelected);document.getElementById('v12-delete-selected')?.addEventListener('click',deleteSelected)}
@@ -13655,5 +13703,6 @@ const oldDraft=window.tpGenCurrentDraft;window.tpGenCurrentDraft=function(){cons
 </script>
 
 <!-- V16 : correction état Firebase 0 élève -> cache local réellement vide -->
+<!-- V17 : export PDF groupé = même fiche couleur/curseurs que l'impression Bilan -->
 </body>
 </html>
