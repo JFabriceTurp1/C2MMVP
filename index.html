@@ -3785,16 +3785,14 @@ async function loadData(){
 }
 async function persistEvaluation(e,isEdit=false){
   await openDB();
-  if(isEdit){
-    await deleteFromStore("evaluations",e.id);
-    await put("evaluations",e);
-    return e.id;
+  if(isEdit){await deleteFromStore("evaluations",e.id);await put("evaluations",e);return e.id;}
+  // V18 : identifiant permanent unique entre tous les postes.
+  if(e.id===undefined||e.id===null||e.id===''){
+    const uuid=(globalThis.crypto&&typeof globalThis.crypto.randomUUID==='function')?globalThis.crypto.randomUUID():(`${Date.now()}_${Math.random().toString(36).slice(2)}_${Math.random().toString(36).slice(2)}`);
+    e.id='EVAL_'+uuid;
   }
-  const generatedId=await put("evaluations",e);
-  // IndexedDB autoIncrement generated the real identifier. Keep it in memory
-  // so "Visualiser / Modifier / Supprimer" target the correct pupil.
-  e.id=generatedId;
-  return generatedId;
+  await put("evaluations",e);
+  return e.id;
 }
 
 function isEvaluationArchived(e){return !!(e&&e.archived);}
@@ -5957,6 +5955,8 @@ async function createRetroExcelEvaluations(){
   const now=Date.now();
   const batches=new Map();
   let created=0,duplicates=0;
+  const createdEvaluations=[];
+  window.__evaluationImportLock=true;
   try{
     const existing=await getAll("evaluations");
     for(let i=0;i<valid.length;i++){
@@ -5978,15 +5978,24 @@ async function createRetroExcelEvaluations(){
         entryDate:new Date(now+i).toLocaleDateString("fr-FR"),retroExcelImported:true,
         retroImportFile:retroExcelImportState.fileName||"",sourceNote20:r.note
       };
-      await persistEvaluation(ev);existing.push(ev);created++;
+      await persistEvaluation(ev);existing.push(ev);createdEvaluations.push(JSON.parse(JSON.stringify(ev)));created++;
+    }
+    let firebaseCheck={requested:createdEvaluations.length,confirmed:0,skipped:true};
+    if(createdEvaluations.length&&typeof window.firebaseCommitEvaluationImport==='function'&&typeof isFirebaseModeEnabled==='function'&&isFirebaseModeEnabled()){
+      firebaseCheck=await window.firebaseCommitEvaluationImport(createdEvaluations);
+      if(!firebaseCheck.skipped&&firebaseCheck.confirmed!==firebaseCheck.requested)throw new Error(`Contrôle Firebase incomplet : ${firebaseCheck.confirmed}/${firebaseCheck.requested} évaluations confirmées.`);
     }
     const periodResult=storeImportedPeriodObservations(retroExcelImportState.periodAnalysis,retroExcelImportState.fileName||"");
+    window.__evaluationImportLock=false;
     await loadData();
-    showSuccessMessage(`${created} évaluation(s) rétroactive(s) créée(s)${duplicates?` · ${duplicates} doublon(s) ignoré(s)`:""}. ${periodResult.total} observation(s) de période enregistrée(s).`,()=>go("history"));
+    const localAfter=await getAll("evaluations");
+    const detail=firebaseCheck.skipped?" · Firebase non contrôlé (connexion indisponible)":` · Firebase confirmé ${firebaseCheck.confirmed}/${firebaseCheck.requested}`;
+    showSuccessMessage(`${created} évaluation(s) rétroactive(s) créée(s)${duplicates?` · ${duplicates} doublon(s) ignoré(s)`:""}${detail}. ${periodResult.total} observation(s) de période enregistrée(s). Total local : ${localAfter.length}.`,()=>go("history"));
   }catch(err){
+    window.__evaluationImportLock=false;
     await loadData().catch(()=>{});
-    showWarningMessage(`Import interrompu après ${created} création(s) : `+(err?.message||String(err)));
-  }
+    showWarningMessage(`Import interrompu après ${created} création(s). Les données déjà enregistrées localement sont conservées. `+(err?.message||String(err)));
+  }finally{window.__evaluationImportLock=false;}
 }
 
 function beginEvaluation(path){
@@ -11756,6 +11765,26 @@ window.firebaseSaveCurrentConfig=async()=>{await saveFullConfig(firebaseBuildApp
     await batch.commit();
     return await mergeEvaluationsWithoutLoss(cloudEvaluations,{pushLocal:true});
   }
+  // V18 — écriture contrôlée des imports puis relecture Firebase.
+  window.firebaseCommitEvaluationImport=async function(evaluations){
+    const rows=Array.isArray(evaluations)?evaluations.filter(Boolean):[];
+    if(!rows.length)return {requested:0,confirmed:0,skipped:false};
+    if(!auth||!auth.currentUser||!firestore)return {requested:rows.length,confirmed:0,skipped:true};
+    const root=userRoot(),chunkSize=300;
+    for(let i=0;i<rows.length;i+=chunkSize){const batch=firestore.batch();rows.slice(i,i+chunkSize).forEach(ev=>batch.set(root.collection('evaluations').doc(String(ev.id)),JSON.parse(JSON.stringify(ev)),{merge:true}));await firebaseTimeout(batch.commit(),20000,'Enregistrement des évaluations importées');}
+    let confirmed=0;
+    for(let i=0;i<rows.length;i+=10){const snaps=await firebaseTimeout(Promise.all(rows.slice(i,i+10).map(ev=>root.collection('evaluations').doc(String(ev.id)).get())),20000,'Contrôle des évaluations importées');confirmed+=snaps.filter(x=>x&&x.exists).length;}
+    return {requested:rows.length,confirmed,skipped:false};
+  };
+  async function firebaseDataIntegrityDiagnostic(){
+    await openDB();const local=await getAll('evaluations'),localStudents=await getAll('students');
+    const studentIds=new Set(localStudents.map(x=>String(x.id))),orphanLocal=local.filter(e=>!studentIds.has(String(e.studentId))).length;
+    let cloud=[];try{if(auth&&auth.currentUser)cloud=await cloudDocs('evaluations')}catch(e){}
+    const cloudIds=new Set(cloud.map(e=>String(e.id))),localIds=new Set(local.map(e=>String(e.id)));
+    return {local:local.length,cloud:cloud.length,students:localStudents.length,orphanLocal,onlyLocal:local.filter(e=>!cloudIds.has(String(e.id))).length,onlyCloud:cloud.filter(e=>!localIds.has(String(e.id))).length,pending:readPendingFirebaseOps().filter(x=>x.collection==='evaluations').length};
+  }
+  window.firebaseDataIntegrityDiagnostic=firebaseDataIntegrityDiagnostic;
+
   async function synchronizeCloud({forceUpload=false}={}){
     if(syncing || !auth.currentUser) return;
     const reconnectPushPending=localStorage.getItem("evaluation_firebase_reconnect_push_pending")==="1";
@@ -11979,6 +12008,7 @@ window.firebaseSaveCurrentConfig=async()=>{await saveFullConfig(firebaseBuildApp
     }else await originalPut('students',{id,...change.doc.data()});
   }
   async function applyRemoteEvaluation(change){
+    if(window.__evaluationImportLock){console.info('V18 : événement Firebase différé pendant import',change.doc.id);return;}
     const raw=change.doc.id;
     const id=/^\d+$/.test(raw)?Number(raw):raw;
     if(change.type==='removed') await originalDelete('evaluations',id);
@@ -12124,20 +12154,11 @@ function startRealtimeListeners(){
   }
   const miniInfo=document.getElementById('firebase-mini-info-btn');
   if(miniInfo){
-    miniInfo.addEventListener('click',()=>{
-      const d=window.firebaseLastDiagnostic;
-      if(!d){alert("Clique d'abord sur Synchroniser pour afficher le diagnostic Firebase.");return;}
-      alert(
-        "Compte Firebase : "+(d.email||"—")+
-        "\\nUID : "+(d.uid||"—")+
-        "\\n\\nClasses : "+d.classes+
-        "\\nÉlèves : "+d.students+
-        "\\nÉvaluations : "+d.evaluations+
-        "\\nSéances Atelier du jour : "+(d.atelierSessions||0)+
-        "\\nProfesseurs : "+d.teachers+
-        "\\nConfiguration : "+(d.configuration?"oui":"non")
-      );
-    });
+    miniInfo.addEventListener('click',async()=>{
+      const d=window.firebaseLastDiagnostic;if(!d){alert("Clique d'abord sur Synchroniser pour afficher le diagnostic Firebase.");return;}
+      let x=null;try{x=await firebaseDataIntegrityDiagnostic()}catch(e){}
+      alert("Compte Firebase : "+(d.email||"—")+"\nUID : "+(d.uid||"—")+"\n\nClasses Firebase : "+d.classes+"\nÉlèves Firebase : "+d.students+"\nÉvaluations Firebase : "+d.evaluations+(x?"\nÉvaluations locales : "+x.local+"\nOrphelines locales : "+x.orphanLocal+"\nUniquement locales : "+x.onlyLocal+"\nUniquement Firebase : "+x.onlyCloud+"\nOpérations évaluations en attente : "+x.pending:"")+"\nSéances Atelier du jour : "+(d.atelierSessions||0)+"\nProfesseurs : "+d.teachers+"\nConfiguration : "+(d.configuration?"oui":"non"));
+    });;
   }
 
   try{
@@ -13436,7 +13457,7 @@ const oldDraft=window.tpGenCurrentDraft;window.tpGenCurrentDraft=function(){cons
       });
       return {id:e.id,date:e.date||"",title:e.title||e.type||"Évaluation",note:(()=>{try{return evaluationScore20(e)}catch(err){return null}})(),situation:e.profSituation||"",support:e.activitySupport||e.supportActivite||"",teacher:e.teacherName||"",competencies:compLevels};
     });
-    return {startDate:start,endDate:end,overallPct:overall,avgNote,competencies:compRows,evaluations:evalRows,evaluationCount:evs.length};
+    return {startDate:start,endDate:end,overallPct:overall,avgNote,competencies:compRows,evaluations:evalRows,evaluationCount:evs.length,emptyReason:evs.length?'':'Aucune évaluation disponible pour cette période'};
   }
   function makeRecord(student,period,teacherNames=""){
     const snap=buildSnapshot(student,period);
