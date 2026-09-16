@@ -1,0 +1,6 @@
+V20 — base V19 HISTORIQUE ENREGISTRE
+- Paramètres : « Pondération des périodes et progression du parcours » replié par défaut.
+- Ajout de la pondération individuelle des 12 compétences Bac Pro MV 2025 (défaut C1=1, C2=2, C3=2), modifiable et utilisée dans la synthèse globale.
+- Générateur TP : interrupteurs ACTIF/MASQUÉ répercutés dans aperçu, fichier .tp, lecteur élève et PDF.
+- Contrôles / mesures : nombre de lignes et exemples transmis au lecteur élève et repris dans l'aperçu/PDF.
+- PDF : abandon des champs PDF remplissables ; bouton renommé « Générer PDF ».
