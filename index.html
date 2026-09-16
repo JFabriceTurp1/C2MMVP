@@ -13327,8 +13327,8 @@ window.tpGenTpCode=function(d){const n=(String(d.activityId||'').match(/(\d+)(?!
 function randCode(){if(crypto?.getRandomValues){const a=new Uint32Array(1);crypto.getRandomValues(a);return String(1000+a[0]%9000)}return String(Math.floor(1000+Math.random()*9000))}
 window.tpGenSetStudentCode=(id,v)=>{const o=readCodes(),x=String(v||'').replace(/\D/g,'').slice(0,4);if(x)o[String(id)]=x;else delete o[String(id)];writeCodes(o)};
 window.tpGenGenerateMissingCodes=function(all=false){const o=readCodes(),used=new Set(Object.values(o));for(const st of tpGenClassStudents()){const k=String(st.id);if(all||!o[k]){let c;do{c=randCode()}while(used.has(c));o[k]=c;used.add(c)}}writeCodes(o);tpGeneratorPage();showSuccessMessage?.(all?'Codes régénérés pour la classe.':'Codes manquants générés.')};
-window.tpGenDownloadCodesTxt=function(){const o=readCodes(),cls=activeClassName(),lines=["CODES D'ACCES TP ELEVES",`Classe : ${cls}`,`Date : ${new Date().toLocaleString('fr-FR')}`,'','DOCUMENT PROFESSEUR - NE PAS DISTRIBUER','',...tpGenClassStudents().map(st=>`${st.name} : ${o[String(st.id)]||'NON DEFINI'}`)];tpGenDownloadBlob(new Blob([lines.join('\r\n')],{type:'text/plain;charset=utf-8'}),`CODES_TP_${tpGenSafeFilePart(cls)}.txt`)};
-function codesPanel(){const o=readCodes(),open=!!tpGenState.codesOpen;return`<div class="tpgen-card"><div class="tpgen-actions"><button class="tpgen-btn secondary" onclick="tpGenToggleCodesPanel()">🔐 ${open?'Masquer les codes élèves':'Gérer les codes élèves'}</button><span class="muted">Codes individuels à 4 chiffres</span></div>${open?`<div class="tpgen-code-panel" style="margin-top:12px"><div class="tpgen-actions"><b style="margin-right:auto">Codes d'accès élèves — ${esc(activeClassName()||'classe')}</b><button class="tpgen-btn secondary" onclick="tpGenGenerateMissingCodes(false)">Générer les codes manquants</button><button class="tpgen-btn secondary" onclick="tpGenGenerateMissingCodes(true)">Régénérer toute la classe</button><button class="tpgen-btn dark" onclick="tpGenDownloadCodesTxt()">⬇ Fiche codes professeur</button></div><div class="muted" style="margin-top:6px">Les fichiers .tp ne contiennent jamais le code en clair.</div><div class="tpgen-code-grid">${tpGenClassStudents().map(st=>`<div class="tpgen-code-row"><span>${esc(st.name)}</span><input inputmode="numeric" maxlength="4" value="${esc(o[String(st.id)]||'')}" placeholder="0000" onchange="tpGenSetStudentCode('${esc(String(st.id))}',this.value)"></div>`).join('')}</div></div>`:''}</div>`}
+window.tpGenDownloadCodesTxt=function(){const o=readCodes(),cls=(window.tp46ContextClassName?.()||activeClassName()),lines=["CODES D'ACCES TP ELEVES",`Classe : ${cls}`,`Date : ${new Date().toLocaleString('fr-FR')}`,'','DOCUMENT PROFESSEUR - NE PAS DISTRIBUER','',...tpGenClassStudents().map(st=>`${st.name} : ${o[String(st.id)]||'NON DEFINI'}`)];tpGenDownloadBlob(new Blob([lines.join('\r\n')],{type:'text/plain;charset=utf-8'}),`CODES_TP_${tpGenSafeFilePart(cls)}.txt`)};
+function codesPanel(){const o=readCodes(),open=!!tpGenState.codesOpen;return`<div class="tpgen-card"><div class="tpgen-actions"><button class="tpgen-btn secondary" onclick="tpGenToggleCodesPanel()">🔐 ${open?'Masquer les codes élèves':'Gérer les codes élèves'}</button><span class="muted">Codes individuels à 4 chiffres</span></div>${open?`<div class="tpgen-code-panel" style="margin-top:12px"><div class="tpgen-actions"><b style="margin-right:auto">Codes d'accès élèves — ${esc((window.tp46ContextClassName?.()||activeClassName())||'classe')}</b><button class="tpgen-btn secondary" onclick="tpGenGenerateMissingCodes(false)">Générer les codes manquants</button><button class="tpgen-btn secondary" onclick="tpGenGenerateMissingCodes(true)">Régénérer toute la classe</button><button class="tpgen-btn dark" onclick="tpGenDownloadCodesTxt()">⬇ Fiche codes professeur</button></div><div class="muted" style="margin-top:6px">Les fichiers .tp ne contiennent jamais le code en clair.</div><div class="tpgen-code-grid">${tpGenClassStudents().map(st=>`<div class="tpgen-code-row"><span>${esc(st.name)}</span><input inputmode="numeric" maxlength="4" value="${esc(o[String(st.id)]||'')}" placeholder="0000" onchange="tpGenSetStudentCode('${esc(String(st.id))}',this.value)"></div>`).join('')}</div></div>`:''}</div>`}
 window.tpGenToggleCodesPanel=function(){state();tpGenState.codesOpen=!tpGenState.codesOpen;tpGeneratorPage()};
 window.tpGenSetMode=function(m){state();tpGenState.mode=m==='custom'?'custom':'base';tpGenState.currentDraftId='';tpGenState.currentSavedId='';tpGenState.savedLocked=false;if(m==='custom')tpGenState.selectedId='';tpGeneratorPage()};
 window.tpGenSetSupportType=v=>{state();tpGenState.supportType=['vehicle','model','other'].includes(v)?v:'vehicle';tpGeneratorPage()};
@@ -14045,7 +14045,7 @@ Nombre d’élèves : ${files.length}`});return {files,d:{...d,className}}};
 (function(){
   const normName=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/[^A-Z0-9]+/g,' ').trim();
   function classes(){try{return (getClasses?.()||[]).filter(c=>!c.archived)}catch(e){return[]}}
-  function selectedClass(){const cs=classes();let id=String(tpGenState.contextClassId||'');let c=cs.find(x=>String(x.id)===id);if(!c){id=String(getActiveClassId?.()||'');c=cs.find(x=>String(x.id)===id)||cs[0];if(c)tpGenState.contextClassId=String(c.id)}return c||null}
+  function selectedClass(){const cs=classes();let id=String(tpGenState.contextClassId||'');let c=cs.find(x=>String(x.id)===id);if(!c){id=String(getActiveClassId?.()||'');c=cs.find(x=>String(x.id)===id)||cs[0];if(c)tpGenState.contextClassId=String(c.id)}if(c)tpGenState.diffusionClassId=String(c.id);return c||null}
   window.tp42SetContextClass=function(id){tpGenState.contextClassId=String(id||'');tpGenState.diffusionClassId=String(id||'');tpGeneratorPage()};
   function addClassSelector(){
     const cards=[...document.querySelectorAll('.tpgen-card')];const ctx=cards.find(c=>c.textContent.includes('1. Contexte'));if(!ctx||ctx.querySelector('#tp42-class'))return;
@@ -14138,5 +14138,28 @@ Nombre d’élèves : ${files.length}`});return {files,d:{...d,className}}};
 })();
 </script>
 
+
+<style id="tp-v46-style">
+.tp46-class-sync{font-size:11px;color:#166534;font-weight:800;margin-left:8px}
+</style>
+<script id="tp-v46-unified-tp-class">
+/* V46 — une seule classe de TP pour contexte, codes, élèves et diffusion. */
+(function(){
+  function classes(){try{return (getClasses?.()||[]).filter(c=>!c.archived)}catch(e){return[]}}
+  function contextId(){const cs=classes();let id=String(tpGenState.contextClassId||'');if(!cs.some(c=>String(c.id)===id))id=String(getActiveClassId?.()||cs[0]?.id||'');if(id){tpGenState.contextClassId=id;tpGenState.diffusionClassId=id}return id}
+  function contextClass(){const id=contextId();return classes().find(c=>String(c.id)===id)||null}
+  function pool(){try{return (typeof allStudents!=='undefined'&&Array.isArray(allStudents))?allStudents:(Array.isArray(students)?students:[])}catch(e){return[]}}
+  function studentsForContext(){const id=contextId();return sortStudentsAlpha(pool().filter(st=>String(st.classId||'')===id))}
+  window.tp46ContextClassName=function(){return contextClass()?.name||activeClassName?.()||''};
+  window.tp46ContextClassId=contextId;
+  window.tpGenClassStudents=function(){return studentsForContext()};
+  const open=window.tpGenOpenClassExport;window.tpGenOpenClassExport=function(){tpGenState.diffusionClassId=contextId();return open?.apply(this,arguments)};
+  window.tp26ChangeClass=function(id){tpGenState.contextClassId=String(id||'');tpGenState.diffusionClassId=String(id||'');const main=document.getElementById('tp42-class');if(main)main.value=String(id||'');window.tp26RenderStudents?.()};
+  const oldToggle=window.tpGenToggleCodesPanel;window.tpGenToggleCodesPanel=function(){tpGenState.diffusionClassId=contextId();return oldToggle?.apply(this,arguments)};
+  const oldMissing=window.tpGenGenerateMissingCodes;window.tpGenGenerateMissingCodes=function(all=false){tpGenState.diffusionClassId=contextId();return oldMissing?.call(this,all)};
+  const page=window.tpGeneratorPage;window.tpGeneratorPage=function(){contextId();const r=page.apply(this,arguments);setTimeout(()=>{const sel=document.getElementById('tp42-class');if(sel&&sel.value!==contextId())sel.value=contextId()},80);return r};
+  contextId();
+})();
+</script>
 </body>
 </html>
