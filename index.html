@@ -8610,29 +8610,6 @@ function exportStudentDeletionPDF(studentsSnapshot, deletionDate){
 <!-- V16 : correction état Firebase 0 élève -> cache local réellement vide -->
 <!-- V17 : export PDF groupé = même fiche couleur/curseurs que l'impression Bilan -->
 
-<!-- V35 FIREBASE ON: diffusion scope corrigée + TP -->
-
-<script id="tpgen-v36-final-package-security">
-/* V36 — le fichier .tp élève est toujours individuel et protégé par le code à 4 chiffres. */
-(function(){
-  const previous=window.tpGenBuildStudentPackage;
-  if(typeof previous!=='function') return;
-  window.tpGenBuildStudentPackage=function(student,d){
-    const m=previous(student,d);
-    const codes=(typeof readCodes==='function'?readCodes():{});
-    const studentId=String(student?.id||m.studentId||'');
-    const personalCode=String(codes[studentId]||'').replace(/\D/g,'').slice(0,4);
-    if(!/^\d{4}$/.test(personalCode)) throw new Error("Code élève absent ou invalide (4 chiffres). Utilise « Gérer les codes élèves » avant la diffusion.");
-    const className=String(m.classe||d?.className||activeClassName?.()||'');
-    const tpCode=String(m.code||tpGenTpCode?.(d)||'');
-    const salt=[studentId,className,tpCode].join('|');
-    m.access={required:true,version:1,salt,hash:tpGenHashCode(salt+'|'+personalCode)};
-    m.schemaVersion='2.8';
-    m.meta=m.meta||{};m.meta.source='V36 Firebase actif — code individuel obligatoire';
-    return m;
-  };
-})();
-</script>
 
 </body></html>`);
   w.document.close();
@@ -14060,6 +14037,3 @@ Nombre d’élèves : ${files.length}`});return {files,d:{...d,className}}};
 
 </body>
 </html>
-
-
-<!-- V32 TEST : diffusion utilise le même enregistrement verrouillé que Mes TP enregistrés -->
