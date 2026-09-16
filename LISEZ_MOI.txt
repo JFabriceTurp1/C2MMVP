@@ -1,13 +1,11 @@
-VERSION 25 — CORRECTIONS CONSOLIDÉES
+Évaluation, charge atelier, RTA, génération TP — V37
 
-- Enregistrer le TP ouvre immédiatement « Mes TP enregistrés ».
-- Snapshot complet : support, véhicule/maquette/autre support, ressources, RTA, visibilité et tableau de contrôles conservés à la réouverture.
-- Partie 9 professeur = vue 4 colonnes identique à l’élève ; toute cellule préremplie par le professeur est verrouillée côté élève.
-- Diffusion : correction consolidée de l’erreur « resources is not defined » ; ZIP et dossier utilisent le même constructeur de fichiers .tp.
-- Manifeste décoché par défaut.
-- Classe sélectionnable dans la fenêtre de diffusion.
-- Cloisonnement renforcé sur la classe active avec garde de sécurité à l’ouverture d’une évaluation d’une autre classe.
-- Import JSON RTA : précontrôle structurel avant audit/intégration ; aucune RTA installée n’est modifiée si le JSON est invalide.
-- Plusieurs RTA restent compatibles ; aucune RTA n’est sélectionnée par défaut dans le générateur TP.
+Modification :
+- Ajout du niveau « Débutant » dans Génération TP > Contexte > Niveau.
+- Ajout de 5 activités de rentrée validées : Levage, Sécurité atelier, Outillage mobile, Identifier le véhicule, Tri sélectif.
+- Ces activités utilisent le même moteur de génération TP que la base enseignant.
+- Affichage CAP / Bac Pro pour le niveau Débutant.
+- La fiche de poste n’est pas intégrée à ce stade car elle était encore en standby dans la base source.
+- Firebase et le fonctionnement existant de la V36 sont conservés.
 
-Le lecteur élève n’est pas inclus dans ce ZIP professeur.
+Base de départ : V36 FIREBASE ACTIF CORRIGÉE DÉMARRAGE.
