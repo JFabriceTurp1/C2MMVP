@@ -1,7 +1,0 @@
-VERSION 4 — TEST CONSEILLÉ
-1. Ouvrir Bilans.
-2. Choisir une période P1/P2/P3/P4 et un élève.
-3. Créer le bilan, vérifier la date de clôture, modifier la date d'édition/signature, enregistrer puis imprimer.
-4. Revenir dans Bilans et vérifier que le bilan apparaît dans l'historique et peut être réédité.
-5. Tant que les tests sont en cours, rester en mode local.
-6. Pour tester Firebase : Paramètres > Mode développement local / Firebase > Activer Firebase, puis se connecter. Vérifier le nuage de synchronisation et lancer une synchronisation manuelle après la première remontée.
