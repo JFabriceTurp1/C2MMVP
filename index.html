@@ -14098,5 +14098,45 @@ Nombre d’élèves : ${files.length}`});return {files,d:{...d,className}}};
 })();
 </script>
 
+<style id="tp-v45-style">
+.tp45-code-ok{color:#166534;font-weight:800}.tp45-code-missing{color:#b42318;font-weight:800}
+</style>
+<script id="tp-v45-codes-debutant-fix">
+(function(){
+  const V45_STABLE='tp_v45_codes_by_student_v1';
+  const norm=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/[^A-Z0-9]+/g,' ').trim();
+  const valid=c=>/^\d{4}$/.test(String(c||'').replace(/\D/g,''));
+  const clean=c=>String(c||'').replace(/\D/g,'').slice(0,4);
+  function stableRead(){try{return JSON.parse(localStorage.getItem(V45_STABLE)||'{}')||{}}catch(e){return{}}}
+  function stableWrite(o){localStorage.setItem(V45_STABLE,JSON.stringify(o||{}))}
+  function allPool(){const out=[];try{if(typeof allStudents!=='undefined'&&Array.isArray(allStudents))out.push(...allStudents)}catch(e){}try{if(typeof students!=='undefined'&&Array.isArray(students))out.push(...students)}catch(e){}return out}
+  function classNameFor(st){try{const c=(getClasses?.()||[]).find(x=>String(x.id)===String(st?.classId||''));return c?.name||''}catch(e){return''}}
+  function skey(st){return norm(classNameFor(st))+'|'+norm(st?.name||[st?.lastName,st?.firstName].filter(Boolean).join(' '))}
+  function migrate(){const raw=(typeof readCodes==='function'?readCodes():{}),stable=stableRead();for(const st of allPool()){const c=clean(raw[String(st?.id||'')]);if(valid(c))stable[skey(st)]=c}stableWrite(stable);return stable}
+  window.tp45ResolveCode=function(st){const raw=(typeof readCodes==='function'?readCodes():{});let c=clean(raw[String(st?.id||'')]);if(valid(c))return c;const stable=migrate();c=clean(stable[skey(st)]);if(valid(c))return c;const target=norm(st?.name||'');for(const other of allPool()){if(norm(other?.name||'')===target){c=clean(raw[String(other?.id||'')]);if(valid(c)){stable[skey(st)]=c;stableWrite(stable);return c}}}return''};
+  // Synchronise le registre stable chaque fois qu'un code est saisi ou généré.
+  const oldSet=window.tpGenSetStudentCode;window.tpGenSetStudentCode=function(id,v){const r=oldSet?.apply(this,arguments);const st=allPool().find(x=>String(x.id)===String(id));const c=clean(v);if(st){const stable=stableRead();if(valid(c))stable[skey(st)]=c;else delete stable[skey(st)];stableWrite(stable)}return r};
+  const oldMissing=window.tpGenGenerateMissingCodes;window.tpGenGenerateMissingCodes=function(){const r=oldMissing?.apply(this,arguments);setTimeout(migrate,0);return r};
+  migrate();
+  // La fabrication du TP utilise désormais directement le code résolu, sans seconde recherche par identifiant.
+  const baseBuild=window.tpGenBuildStudentPackage;
+  window.tpGenBuildStudentPackage=function(st,d){
+    const code=tp45ResolveCode(st);if(!valid(code))throw new Error(`Code introuvable pour ${st?.name||'cet élève'}. Ouvre « Gérer les codes élèves » puis enregistre son code.`);
+    // Rend le code visible à toutes les anciennes couches de compatibilité pendant cet appel.
+    const sid=String(st?.id||''),raw=(typeof readCodes==='function'?readCodes():{}),had=Object.prototype.hasOwnProperty.call(raw,sid),before=raw[sid];
+    if(typeof writeCodes==='function'){raw[sid]=code;writeCodes(raw)}
+    let m;
+    try{m=baseBuild(st,d)}finally{if(typeof writeCodes==='function'&&!had){const x=readCodes();delete x[sid];writeCodes(x)}else if(typeof writeCodes==='function'&&had){const x=readCodes();x[sid]=before;writeCodes(x)}}
+    const studentId=String(st?.id||m?.studentId||''),className=String(m?.classe||d?.className||classNameFor(st)||''),tpCode=String(m?.code||tpGenTpCode?.(d)||''),salt=[studentId,className,tpCode].join('|');
+    m.access={required:true,version:1,salt,hash:tpGenHashCode(salt+'|'+code)};m.schemaVersion='2.9';m.meta=m.meta||{};m.meta.source='V45 — codes élèves stables + niveau Débutant';return m;
+  };
+  // Affichage réel de l'état des codes dans la fenêtre de diffusion.
+  const oldRender=window.tp26RenderStudents;window.tp26RenderStudents=function(){const box=document.getElementById('tpgen-class-students');if(!box)return oldRender?.apply(this,arguments);const list=tpGenClassStudents();box.innerHTML=list.map(st=>{const ok=valid(tp45ResolveCode(st));return `<label class="tpgen-student-choice"><input type="checkbox" value="${esc(String(st.id))}" checked onchange="tpGenClassUpdateCount()"><span>${esc(st.name)} <span class="${ok?'tp45-code-ok':'tp45-code-missing'}">${ok?'🔐':'⚠ code absent'}</span></span></label>`}).join('')||'<span class="muted">Aucun élève dans cette classe.</span>';tpGenClassUpdateCount()};
+  // Codes des TP Débutant : identifiants explicites, indépendants de la famille automatique.
+  const oldTpCode=window.tpGenTpCode;
+  window.tpGenTpCode=function(d){const id=String(d?.activityId||'').toUpperCase(),level=String(d?.level||d?.niveau||'').toUpperCase();if(id.startsWith('DEB-')||level==='DEBUTANT'||level==='DÉBUTANT'){const n=(id.match(/(\d+)(?!.*\d)/)||[])[1]||'000';const title=norm(d?.activity||d?.activite||'');let tag='TP';if(title.includes('LEVAGE'))tag='LEVAGE';else if(title.includes('SECURITE'))tag='SECURITE';else if(title.includes('OUTILLAGE'))tag='OUTILLAGE';else if(title.includes('IDENTIFIER')||title.includes('IDENTIFICATION'))tag='IDENTIFICATION';else if(title.includes('TRI')||title.includes('DECHET'))tag='TRI';else if(title.includes('FICHE DE POSTE'))tag='FICHE-POSTE';return `DEBUTANT-${tag}-${String(n).padStart(3,'0')}`}return oldTpCode(d)};
+})();
+</script>
+
 </body>
 </html>
