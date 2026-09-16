@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Évaluation, charge atelier, RTA, génération TP — Version 2 IMPORT BILANS</title>
+<title>Évaluation, charge atelier, RTA, génération TP — V19</title>
 <style>
 *{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f5f7fa;color:#172033}
 .app{display:flex;min-height:100vh}.side{width:235px;background:#172033;color:#fff;padding:22px 14px}.logo{font-size:19px;font-weight:700;padding:8px 10px 24px}
@@ -3767,7 +3767,11 @@ async function loadData(){
   if(migrated) stored=await getAll("students");
 
   allStudents=stored.map(s=>({...s,evaluations:[]}));
-  const evals=await getAll("evaluations");
+  let evals=await getAll("evaluations");
+  {
+    const changed=await migratePre14092026ToRecorded();
+    if(changed)evals=await getAll("evaluations");
+  }
   evals.forEach(e=>{
     const s=allStudents.find(x=>String(x.id)===String(e.studentId));
     if(s)s.evaluations.push({...e});
@@ -3796,8 +3800,35 @@ async function persistEvaluation(e,isEdit=false){
 }
 
 function isEvaluationArchived(e){return !!(e&&e.archived);}
+function isEvaluationRecorded(e){return !!(e&&e.recorded);}
 function visibleEvaluations(list){return (list||[]).filter(e=>!isEvaluationArchived(e));}
+function historyVisibleEvaluations(list){return visibleEvaluations(list||[]).filter(e=>!isEvaluationRecorded(e));}
+function recordedEvaluations(list){return visibleEvaluations(list||[]).filter(e=>isEvaluationRecorded(e));}
 function archivedEvaluations(list){return (list||[]).filter(e=>isEvaluationArchived(e));}
+
+function evaluationDateTimestamp(value){
+  if(!value)return 0;
+  const x=String(value).trim();
+  let m=x.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+  if(m)return new Date(+m[1],+m[2]-1,+m[3]).getTime();
+  m=x.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})/);
+  if(m)return new Date(+m[3],+m[2]-1,+m[1]).getTime();
+  const t=Date.parse(x);return Number.isNaN(t)?0:t;
+}
+
+async function migratePre14092026ToRecorded(){
+  if(window.__v19RecordedMigrationRunning)return false;
+  window.__v19RecordedMigrationRunning=true;
+  try{
+    const cutoff=new Date(2026,8,14).getTime();
+    const rows=await getAll("evaluations");
+    const targets=rows.filter(ev=>!ev.archived&&!ev.recorded&&evaluationDateTimestamp(ev.evaluationDate||ev.date)>0&&evaluationDateTimestamp(ev.evaluationDate||ev.date)<cutoff);
+    for(const ev of targets){
+      await put("evaluations",{...ev,recorded:true,recordedAt:Date.now(),recordedAutomaticallyV19:true});
+    }
+    return targets.length>0;
+  }finally{window.__v19RecordedMigrationRunning=false;}
+}
 
 /* Toutes les évaluations actives et notées participent aux moyennes.
    Les évaluations archivées sont systématiquement exclues. */
@@ -3938,6 +3969,40 @@ async function restoreEvaluation(evaluationId,studentIdHint){
     showSuccessMessage("Évaluation restaurée dans l’historique actif.",()=>go("archives"));
   }catch(err){showWarningMessage("Erreur lors de la restauration : "+(err?.message||String(err)));}
 }
+async function setEvaluationRecorded(ev,recorded){
+  if(!ev||ev.id===undefined||ev.id===null)throw new Error("Évaluation invalide.");
+  const updated={...ev,recorded:!!recorded};
+  if(recorded)updated.recordedAt=Date.now(); else{delete updated.recordedAt;delete updated.recordedAutomaticallyV19;}
+  await put("evaluations",updated);
+  return updated;
+}
+async function recordEvaluation(evaluationId,studentIdHint){
+  const found=findEvaluationOwner(String(evaluationId),studentIdHint);
+  if(!found.ev){showWarningMessage("Évaluation introuvable.");return;}
+  try{await setEvaluationRecorded(found.ev,true);await loadData();showSuccessMessage("Évaluation enregistrée.",()=>go("history"));}
+  catch(err){showWarningMessage("Erreur lors de l’enregistrement : "+(err?.message||String(err)));}
+}
+async function recordCollective(batchId){
+  const key=String(batchId),members=[];
+  allStudents.forEach(st=>(st.evaluations||[]).forEach(ev=>{if(ev&&!ev.archived&&!ev.recorded&&ev.batchId&&String(ev.batchId)===key)members.push(ev);}));
+  if(!members.length){showWarningMessage("Évaluation collective introuvable.");return;}
+  try{for(const ev of members)await setEvaluationRecorded(ev,true);await loadData();showSuccessMessage("Évaluation collective enregistrée.",()=>go("history"));}
+  catch(err){showWarningMessage("Erreur lors de l’enregistrement collectif : "+(err?.message||String(err)));}
+}
+async function restoreRecordedEvaluation(evaluationId,studentIdHint){
+  const found=findEvaluationOwner(String(evaluationId),studentIdHint);
+  if(!found.ev){showWarningMessage("Évaluation enregistrée introuvable.");return;}
+  try{await setEvaluationRecorded(found.ev,false);await loadData();showSuccessMessage("Évaluation restaurée dans l’historique actif.",()=>go("recorded"));}
+  catch(err){showWarningMessage("Erreur lors de la restauration : "+(err?.message||String(err)));}
+}
+async function restoreRecordedCollective(batchId){
+  const key=String(batchId),members=[];
+  allStudents.forEach(st=>(st.evaluations||[]).forEach(ev=>{if(ev&&!ev.archived&&ev.recorded&&ev.batchId&&String(ev.batchId)===key)members.push(ev);}));
+  if(!members.length){showWarningMessage("Évaluation collective enregistrée introuvable.");return;}
+  try{for(const ev of members)await setEvaluationRecorded(ev,false);await loadData();showSuccessMessage("Évaluation collective restaurée.",()=>go("recorded"));}
+  catch(err){showWarningMessage("Erreur lors de la restauration collective : "+(err?.message||String(err)));}
+}
+
 function resetAllData(){
   showDeleteConfirmation(
     "Supprimer toutes les évaluations fictives et revenir aux élèves de démonstration ?",
@@ -4032,7 +4097,7 @@ function render(){
  else if(page==="eval")evaluationPage();
  else if(page==="viewEval")viewEvaluationPage();
  else if(page==="comps")compsPage();
-  else if(page==="history")historyPage();else if(page==="bilans")bilansPage();else if(page==="archives")archivesPage();else if(page==="studentHistory")studentHistoryPage();
+  else if(page==="history")historyPage();else if(page==="bilans")bilansPage();else if(page==="recorded")recordedEvaluationsPage();else if(page==="archives")archivesPage();else if(page==="studentHistory")studentHistoryPage();
   else if(page==="settings")renderSettingsPage();
   else if(page==="referentiel-import-text")referentielImportTextPage();
   else if(page==="referentiel-import-review")renderReferentielImportReview();
@@ -10035,7 +10100,7 @@ function historyPage(){
 
   const all=[];
   historyStudents.forEach(st=>{
-    visibleEvaluations(st.evaluations||[]).forEach(ev=>{
+    historyVisibleEvaluations(st.evaluations||[]).forEach(ev=>{
       const item={...ev,studentName:st.name,studentId:st.id};
       if(historyMatchesEvaluation(item,historySearchTerm))all.push(item);
     });
@@ -10086,11 +10151,12 @@ function historyPage(){
         <td>${esc(e.date||"")}</td>
         <td><b>${esc(e.studentName||"")}</b></td>
         <td><span class="pill">Individuelle</span></td>
-        <td>${esc(e.title||"")}</td>
+        <td>${esc(e.title||"")}${evaluationSupportLabel(e)?`<div class="history-support">Support : ${esc(evaluationSupportLabel(e))}</div>`:""}${evaluationTeacherLabel(e)?`<div class="history-teacher">Professeur : ${esc(evaluationTeacherLabel(e))}</div>`:""}</td>
         <td>${evaluationDisplayComps(e).map(competenceLabel).join("<br>")||"—"}</td>
         <td><span class="score-badge ${scoreClass(evaluationScore20(e))}">${evaluationScoreLabel(e)}</span></td>
         <td><span class="actions-inline">
           <button class="finalize-pill ${e.needsFinalization?'active':''}" onclick="event.stopPropagation();toggleEvaluationFinalization('${String(e.id)}','${String(e.studentId)}')" title="Marquer cette évaluation à finaliser" aria-label="À finaliser">À finaliser</button>
+          <button class="secondary" onclick="event.stopPropagation();recordEvaluation('${String(e.id)}','${String(e.studentId)}')" title="Retirer de l’historique actif et classer dans Évaluations enregistrées">✓ Enregistrer</button>
           <button class="action-icon action-edit" onclick="event.stopPropagation();editEvaluation('${String(e.id)}','${String(e.studentId)}')" title="Modifier" aria-label="Modifier">✏️</button>
           <button class="action-icon action-delete" onclick="event.stopPropagation();deleteEvaluation('${String(e.id)}','${String(e.studentId)}')" title="Archiver" aria-label="Archiver">📦</button><button class="action-icon action-delete" onclick="event.stopPropagation();permanentlyDeleteEvaluation('${String(e.id)}','${String(e.studentId)}','history')" title="Supprimer définitivement" aria-label="Supprimer définitivement">🗑️</button>
         </span></td>
@@ -10100,13 +10166,14 @@ function historyPage(){
       const studentsCount=g.items.length;
       body+=`<tr class="click history-collective-row" onclick="toggleCollectiveRow('${esc(id)}')" style="cursor:pointer;background:#f8fafc" title="Cliquer pour déployer les élèves">
         <td>${esc(g.date||"")}</td>
-        <td><b>👥 Évaluation collective</b></td>
+        <td><b>👥 Évaluation collective</b><div class="history-support">${g.items.length===historyStudents.length&&historyStudents.length?"Toute la classe":g.items.slice().sort((a,b)=>String(a.studentName||"").localeCompare(String(b.studentName||""),"fr")).map(x=>esc(x.studentName||"")).join(", ")}</div></td>
         <td><span class="pill">Collective</span></td>
-        <td>${esc(g.title||"")}</td>
+        <td>${esc(g.title||"")}${evaluationSupportLabel(g.items[0])?`<div class="history-support">Support : ${esc(evaluationSupportLabel(g.items[0]))}</div>`:""}${evaluationTeacherLabel(g.items[0])?`<div class="history-teacher">Professeur : ${esc(evaluationTeacherLabel(g.items[0]))}</div>`:""}</td>
         <td>${(g.comps||[]).map(competenceLabel).join("<br>")||"—"}</td>
         <td><span class="pill">${studentsCount} élèves</span></td>
         <td><div class="action-buttons" style="display:flex;flex-wrap:nowrap;align-items:center;gap:6px;white-space:nowrap">
           <button class="reduce-icon" type="button" data-toggle="${esc(id)}" onclick="event.stopPropagation();toggleCollectiveRow('${esc(id)}')" title="Réduire" aria-label="Réduire" style="display:none">▲</button>
+          <button class="secondary" type="button" onclick="event.stopPropagation();recordCollective('${String(g.items[0].batchId)}')" title="Classer cette évaluation collective dans Évaluations enregistrées">✓ Enregistrer</button>
           <button class="finalize-pill ${g.items.some(x=>x.needsFinalization)?'active':''}" type="button" onclick="event.stopPropagation();toggleCollectiveFinalization('${String(g.items[0].batchId)}')" title="Marquer l'évaluation collective à finaliser">À finaliser</button>
           <button class="action-icon action-delete" type="button" onclick="event.stopPropagation();deleteCollective('${String(g.items[0].batchId)}')" title="Archiver toute l’évaluation collective" aria-label="Archiver toute l’évaluation collective">📦</button><button class="action-icon action-delete" type="button" onclick="event.stopPropagation();permanentlyDeleteCollective('${String(g.items[0].batchId)}','history')" title="Supprimer définitivement toute l’évaluation collective" aria-label="Supprimer définitivement toute l’évaluation collective">🗑️</button>
         </div></td>
@@ -10134,9 +10201,9 @@ function historyPage(){
     <div class="page-header">
       <div>
         <h1>Historique</h1>
-        <p class="sub">Évaluations actives de la classe <b>${esc(activeClassName())}</b>. Les évaluations archivées sont conservées mais exclues de tous les calculs de moyenne et de synthèse.</p>
+        <p class="sub">Évaluations actives de la classe <b>${esc(activeClassName())}</b>. Les évaluations enregistrées sont retirées de cette vue mais restent prises en compte dans les résultats et synthèses. Les évaluations archivées restent exclues des calculs.</p>
       </div>
-      <button class="secondary" onclick="go('home')">← Accueil</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="primary" onclick="go('recorded')">✓ Évaluations enregistrées</button><button class="secondary" onclick="go('home')">← Accueil</button></div>
     </div>
     <div class="panel">
       <div class="row">
@@ -10165,6 +10232,24 @@ function historyPage(){
     </div>`;
 }
 
+
+function recordedEvaluationsPage(){
+  setActive("history");
+  const activeId=String(getActiveClassId()||"");
+  const classStudents=(allStudents||[]).filter(st=>String(st.classId||"")===activeId);
+  const all=[];
+  classStudents.forEach(st=>recordedEvaluations(st.evaluations||[]).forEach(ev=>all.push({...ev,studentName:st.name,studentId:st.id})));
+  const groups=new Map();
+  all.forEach(e=>{const key=e.batchId?`batch-${String(e.batchId)}`:`single-${String(e.id)}`;if(!groups.has(key))groups.set(key,{key,collective:!!e.batchId,date:e.date,title:e.title,comps:e.comps||[],createdAt:e.createdAt||0,items:[]});groups.get(key).items.push(e);});
+  groups.forEach(g=>{if(g.items.length<=1)g.collective=false;});
+  const ordered=[...groups.values()].sort((a,b)=>evaluationDateTimestamp(b.date)-evaluationDateTimestamp(a.date)||(b.createdAt||0)-(a.createdAt||0));
+  let body="";
+  ordered.forEach(g=>{
+    if(!g.collective){const e=g.items[0];body+=`<tr class="history-individual-row" onclick="viewEvaluation('${String(e.id)}')" style="cursor:pointer"><td>${esc(e.date||"")}</td><td><b>${esc(e.studentName||"")}</b></td><td><span class="pill">Individuelle</span></td><td>${esc(e.title||"")}${evaluationSupportLabel(e)?`<div class="history-support">Support : ${esc(evaluationSupportLabel(e))}</div>`:""}${evaluationTeacherLabel(e)?`<div class="history-teacher">Professeur : ${esc(evaluationTeacherLabel(e))}</div>`:""}</td><td>${evaluationDisplayComps(e).map(competenceLabel).join("<br>")||"—"}</td><td><span class="score-badge ${scoreClass(evaluationScore20(e))}">${evaluationScoreLabel(e)}</span></td><td><button class="secondary" onclick="event.stopPropagation();restoreRecordedEvaluation('${String(e.id)}','${String(e.studentId)}')">↩ Restaurer</button></td></tr>`;}
+    else{const id="recorded-collective-"+String(g.key).replace(/[^a-zA-Z0-9_-]/g,"_");const names=g.items.length===classStudents.length&&classStudents.length?"Toute la classe":g.items.slice().sort((a,b)=>String(a.studentName||"").localeCompare(String(b.studentName||""),"fr")).map(x=>esc(x.studentName||"")).join(", ");body+=`<tr class="history-collective-row" onclick="toggleCollectiveRow('${esc(id)}')" style="cursor:pointer"><td>${esc(g.date||"")}</td><td><b>👥 Évaluation collective</b><div class="history-support">${names}</div></td><td><span class="pill">Collective</span></td><td>${esc(g.title||"")}${evaluationSupportLabel(g.items[0])?`<div class="history-support">Support : ${esc(evaluationSupportLabel(g.items[0]))}</div>`:""}${evaluationTeacherLabel(g.items[0])?`<div class="history-teacher">Professeur : ${esc(evaluationTeacherLabel(g.items[0]))}</div>`:""}</td><td>${(g.comps||[]).map(competenceLabel).join("<br>")||"—"}</td><td><span class="pill">${g.items.length} élèves</span></td><td><button class="secondary" onclick="event.stopPropagation();restoreRecordedCollective('${String(g.items[0].batchId)}')">↩ Restaurer le groupe</button></td></tr>`;g.items.slice().sort((a,b)=>String(a.studentName||"").localeCompare(String(b.studentName||""),"fr")).forEach(e=>{body+=`<tr data-collective="${esc(id)}" style="display:none;cursor:pointer" onclick="viewEvaluation('${String(e.id)}')"><td>${esc(e.date||"")}</td><td style="padding-left:28px">↳ ${esc(e.studentName||"")}</td><td><span class="pill">Élève</span></td><td>${esc(e.title||"")}</td><td>${evaluationDisplayComps(e).map(competenceLabel).join("<br>")||"—"}</td><td><span class="score-badge ${scoreClass(evaluationScore20(e))}">${evaluationScoreLabel(e)}</span></td><td><button class="secondary" onclick="event.stopPropagation();restoreRecordedEvaluation('${String(e.id)}','${String(e.studentId)}')">↩ Restaurer</button></td></tr>`;});}
+  });
+  document.getElementById("main").innerHTML=`<div class="page-header"><div><h1>Évaluations enregistrées</h1><p class="sub">Évaluations retirées de l’historique actif. Elles restent conservées et continuent à compter dans les résultats et synthèses.</p></div><button class="secondary" onclick="go('history')">← Historique</button></div><div class="panel"><div class="row"><h2>Évaluations enregistrées</h2><span class="pill">${ordered.length} dossier(s)</span></div>${ordered.length?`<div style="overflow-x:auto"><table class="evaluation-history-table"><tr class="evaluation-history-header"><th>Date</th><th>Élève / groupe</th><th>Type</th><th>Situation</th><th>Compétences</th><th>Note / groupe</th><th>Action</th></tr>${body}</table></div>`:'<p class="muted">Aucune évaluation enregistrée.</p>'}</div>`;
+}
 
 function archivesPage(){
   setActive("history");

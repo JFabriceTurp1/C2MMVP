@@ -1,4 +1,4 @@
-const CACHE_NAME="evaluation-v17-bilans-pdf-fidele";
+const CACHE_NAME="evaluation-v19-historique-enregistre";
 const APP_SHELL=["./","./index.html","./manifest.webmanifest","./logo-francois-de-mahy.png","./icons/icon-192.png","./icons/icon-512.png"];
 self.addEventListener("install",event=>{
   event.waitUntil(caches.open(CACHE_NAME).then(cache=>cache.addAll(APP_SHELL)).then(()=>self.skipWaiting()));
