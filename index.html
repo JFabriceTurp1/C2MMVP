@@ -14195,3 +14195,44 @@ Nombre d’élèves : ${files.length}`});return {files,d:{...d,className}}};
   const oldOpen=window.tpGenOpenClassExport;window.tpGenOpenClassExport=function(){const r=oldOpen?.apply(this,arguments);setTimeout(()=>window.tp26RenderStudents?.(),20);return r};
 })();
 </script>
+
+<!-- V48 — correction définitive lecture codes : accès direct au stockage utilisé par le panneau -->
+<style id="tp-v48-style">
+.tp48-code-ok{color:#166534;font-weight:800}.tp48-code-missing{color:#b42318;font-weight:800}
+.tp48-badge{font-size:11px;font-weight:800;background:#dcfce7;color:#166534;border:1px solid #86efac;border-radius:999px;padding:3px 7px;margin-left:6px}
+</style>
+<script id="tp-v48-direct-localstorage-codes">
+(function(){
+  const CODE_KEY='tp_generator_student_codes_v8';
+  const clean=v=>String(v==null?'':v).replace(/\D/g,'').slice(0,4);
+  const valid=v=>/^\d{4}$/.test(clean(v));
+  function codeMap(){try{return JSON.parse(localStorage.getItem(CODE_KEY)||'{}')||{}}catch(e){return{}}}
+  function codeFor(st){const m=codeMap();return clean(m[String(st?.id||'')]||'')}
+  window.tp48CodeForStudent=codeFor;
+
+  // La fenêtre de diffusion lit DIRECTEMENT la même clé localStorage que le panneau des codes.
+  window.tp26RenderStudents=function(){
+    const box=document.getElementById('tpgen-class-students');if(!box)return;
+    const list=window.tpGenClassStudents?.()||[];
+    box.innerHTML=list.map(st=>{const code=codeFor(st),ok=valid(code);return `<label class="tpgen-student-choice"><input type="checkbox" value="${esc(String(st.id))}" checked onchange="tpGenClassUpdateCount()"><span>${esc(st.name)} <span class="${ok?'tp48-code-ok':'tp48-code-missing'}">${ok?'🔐':'⚠ code absent'}</span></span></label>`}).join('')||'<span class="muted">Aucun élève dans cette classe.</span>';
+    window.tpGenClassUpdateCount?.();
+  };
+
+  // Construction du .tp avec le code lu directement dans cette même clé, sans passer par les anciennes couches V42/V45/V47.
+  window.tpGenBuildStudentPackage=function(st,d){
+    const personalCode=codeFor(st);
+    if(!valid(personalCode)) throw new Error(`Code introuvable pour ${st?.name||'cet élève'}.`);
+    const p=tpGenStudentParts(st),supp=d.support||{type:'vehicle'},studentId=String(st?.id||''),className=String(d.className||window.tp46ContextClassName?.()||activeClassName?.()||''),tpCode=String(tpGenTpCode(d)||''),salt=[studentId,className,tpCode].join('|');
+    const m={schemaVersion:'3.1',type:'tp-eleve',code:tpCode,titre:d.activity,diplome:'BAC PRO',specialite:'Maintenance des véhicules',anneeScolaire:d.schoolYear||tpGenSchoolYear(),classe:className,professeur:d.teacher||'',contexte:{ressentiClient:d.client||'',mission:d.mission||''},ressources:String(d.resources||'').split(/\n+/).filter(Boolean).concat(d.rta?[`RTA : ${d.rta.name}${d.rta.activityTitle?' — '+d.rta.activityTitle:''}`]:d.practicalSheet?[`Fiche pratique : ${d.practicalSheet.code} — ${d.practicalSheet.title}`]:[]),competences:tpGenCompetenceData(d.competencies),objectifs:String(d.criteria||'').split(/\n|;/).map(x=>x.trim()).filter(Boolean),donneesTechniquesAttendus:d.technicalData||'',risquesAttendus:d.risks||'',dechetsAttendus:d.environment||'',support:{type:supp.type||'vehicle',label:supp.label||'',reference:supp.reference||'',details:supp.details||''},vehicule:{...(d.vehicle||{})},eleve:{nom:p.last,prenom:p.first,date:''},reponses:{travailDemande:'',donneesTechniques:'',preparationRisques:'',controles:Array.from({length:4},()=>({controle:'',valeur:'',reference:'',conclusion:''})),dechets:Array.from({length:3},()=>({type:'',filiere:''})),bilanEleve:''},professeurZone:{appreciation:'',evaluation:[]},access:{required:true,version:1,salt,hash:tpGenHashCode(salt+'|'+personalCode)},meta:{activityId:d.activityId||'',planId:d.planId||'',family:d.family||'',duration:d.duration||'',generatedAt:new Date().toISOString(),source:'V48 — codes localStorage directs'}};
+    try{const t=(typeof getActiveTeacher==='function'?getActiveTeacher():null),tc=String(t?.code||'').trim();if(tc){const ts=['teacher',studentId,className,tpCode].join('|');m.teacherAccess={required:true,version:1,salt:ts,hash:tpGenHashCode(ts+'|'+tc)}}}catch(e){}
+    return m;
+  };
+
+  // Réaffiche immédiatement l'état réel des codes après ouverture de la fenêtre.
+  const previousOpen=window.tpGenOpenClassExport;
+  window.tpGenOpenClassExport=function(){const r=previousOpen?.apply(this,arguments);setTimeout(()=>window.tp26RenderStudents?.(),50);return r};
+
+  // Marqueur visuel pour confirmer que GitHub sert bien V48.
+  setTimeout(()=>{const h=[...document.querySelectorAll('h1')].find(x=>x.textContent.includes('Génération de TP'));if(h&&!h.querySelector('.tp48-badge')){const s=document.createElement('span');s.className='tp48-badge';s.textContent='V48';h.appendChild(s)}},500);
+})();
+</script>
