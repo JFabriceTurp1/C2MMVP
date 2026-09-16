@@ -1,6 +1,0 @@
-V21 — Correction transmission TP élève et palette de symboles
-- Le tableau Contrôles/Mesures est transmis avec le nombre exact de lignes et les exemples professeur.
-- Les blocs ACTIF/MASQUÉ sont transmis au lecteur élève.
-- Palette Ω Symboles / unités dans le générateur TP, incluant Ω et ∞.
-- Le PDF reste généré depuis l'affichage HTML (pas de PDF remplissable).
-- Base : V20 issue de la V19 HISTORIQUE_ENREGISTRE.
