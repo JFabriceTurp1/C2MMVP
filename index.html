@@ -8611,6 +8611,56 @@ function exportStudentDeletionPDF(studentsSnapshot, deletionDate){
 <!-- V17 : export PDF groupé = même fiche couleur/curseurs que l'impression Bilan -->
 
 
+
+<style id="tp-v42-style">
+.tp42-context-class{min-width:220px}.tp42-context-note{font-size:11px;color:#64748b;margin-top:4px}
+</style>
+<script id="tp-v42-class-reset-codes">
+(function(){
+  const normName=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/[^A-Z0-9]+/g,' ').trim();
+  function classes(){try{return (getClasses?.()||[]).filter(c=>!c.archived)}catch(e){return[]}}
+  function selectedClass(){const cs=classes();let id=String(tpGenState.contextClassId||'');let c=cs.find(x=>String(x.id)===id);if(!c){id=String(getActiveClassId?.()||'');c=cs.find(x=>String(x.id)===id)||cs[0];if(c)tpGenState.contextClassId=String(c.id)}return c||null}
+  window.tp42SetContextClass=function(id){tpGenState.contextClassId=String(id||'');tpGenState.diffusionClassId=String(id||'');tpGeneratorPage()};
+  function addClassSelector(){
+    const cards=[...document.querySelectorAll('.tpgen-card')];const ctx=cards.find(c=>c.textContent.includes('1. Contexte'));if(!ctx||ctx.querySelector('#tp42-class'))return;
+    const form=ctx.querySelector('.tpgen-form');if(!form)return;const c=selectedClass(),lab=document.createElement('label');lab.innerHTML=`Classe<select id="tp42-class" class="tp42-context-class" onchange="tp42SetContextClass(this.value)">${classes().map(x=>`<option value="${esc(String(x.id))}" ${c&&String(x.id)===String(c.id)?'selected':''}>${esc(x.name)}</option>`).join('')}</select><div class="tp42-context-note">Choix propre au TP : ne change pas la classe active du logiciel.</div>`;form.insertBefore(lab,form.firstChild);
+  }
+  const prevPage=window.tpGeneratorPage;window.tpGeneratorPage=function(){const r=prevPage.apply(this,arguments);setTimeout(addClassSelector,60);return r};
+  const prevDraft=window.tpGenCurrentDraft;window.tpGenCurrentDraft=function(){const d=prevDraft();if(!d)return d;const c=selectedClass();if(c){d.className=c.name;d.classId=String(c.id)}return d};
+  // Réinitialisation après enregistrement : on conserve classe/niveau/mode, mais on repart sur un TP vierge.
+  const prevSave=window.tpGenSaveFinal;window.tpGenSaveFinal=function(){
+    const keep={level:tpGenState.level,contextClassId:String(tpGenState.contextClassId||selectedClass()?.id||''),mode:tpGenState.mode};
+    const before=(typeof readSaved==='function'?readSaved().length:null);prevSave.apply(this,arguments);
+    setTimeout(()=>{
+      tpGenState.level=keep.level;tpGenState.contextClassId=keep.contextClassId;tpGenState.diffusionClassId=keep.contextClassId;tpGenState.mode=keep.mode;
+      tpGenState.selectedId='';tpGenState.currentDraftId='';tpGenState.currentSavedId='';tpGenState.savedLocked=false;tpGenState.family='';tpGenState.search='';tpGenState.clientIndex=0;tpGenState.rtaLibraryId='';tpGenState.rtaActivityId='';tpGenState.rtaSearch='';tpGenState.practicalCode='';tpGenState.practicalSearch='';tpGenState.supportType='vehicle';tpGenState.controlRows=[];tpGenState.pedVisibility={};
+      if(tpGenState.custom){const n=tpGenState.custom.number;tpGenState.custom={number:n||'',family:'Personnalisé',title:'',client:'',mission:'',resources:'',technicalData:'',risks:'',controls:'',environment:'',criteria:'',competencies:[]}}
+      try{window.tp33ClearSupportSession?.()}catch(e){}
+      tpGeneratorPage();
+    },120);
+  };
+  // Codes : résolution tolérante à un changement d'identifiant interne, en utilisant aussi le nom de l'élève.
+  window.tp42ResolveStudentCode=function(st){
+    const codes=(typeof readCodes==='function'?readCodes():{}),direct=String(codes[String(st?.id||'')]||'').replace(/\D/g,'').slice(0,4);if(/^\d{4}$/.test(direct))return direct;
+    const target=normName(st?.name||[st?.lastName,st?.firstName].filter(Boolean).join(' '));
+    const pool=(typeof allStudents!=='undefined'&&Array.isArray(allStudents))?allStudents:(typeof students!=='undefined'&&Array.isArray(students)?students:[]);
+    for(const other of pool){if(normName(other?.name||[other?.lastName,other?.firstName].filter(Boolean).join(' '))===target){const c=String(codes[String(other.id)]||'').replace(/\D/g,'').slice(0,4);if(/^\d{4}$/.test(c))return c}}
+    return '';
+  };
+  const prevBuild=window.tpGenBuildStudentPackage;window.tpGenBuildStudentPackage=function(st,d){
+    const code=tp42ResolveStudentCode(st);if(!code)throw new Error(`Code introuvable pour ${st?.name||'cet élève'}.`);
+    const m=prevBuild(st,d),studentId=String(st?.id||m.studentId||''),className=String(m.classe||d?.className||''),tpCode=String(m.code||tpGenTpCode?.(d)||''),salt=[studentId,className,tpCode].join('|');
+    m.access={required:true,version:1,salt,hash:tpGenHashCode(salt+'|'+code)};return m;
+  };
+  // Modal : ne bloque plus sur un message générique ; indique précisément les éventuels élèves concernés.
+  const prevOpen=window.tpGenOpenClassExport;window.tpGenOpenClassExport=function(){
+    const cid=String(tpGenState.contextClassId||selectedClass()?.id||'');if(cid)tpGenState.diffusionClassId=cid;
+    try{return prevOpen.apply(this,arguments)}catch(e){showWarningMessage?.(e?.message||String(e))}
+  };
+  setTimeout(addClassSelector,300);
+})();
+</script>
+
 </body></html>`);
   w.document.close();
 }
@@ -14032,6 +14082,56 @@ Nombre d’élèves : ${files.length}`});return {files,d:{...d,className}}};
     m.meta=m.meta||{};m.meta.source='V36 Firebase actif — code individuel obligatoire';
     return m;
   };
+})();
+</script>
+
+
+<style id="tp-v42-style">
+.tp42-context-class{min-width:220px}.tp42-context-note{font-size:11px;color:#64748b;margin-top:4px}
+</style>
+<script id="tp-v42-class-reset-codes">
+(function(){
+  const normName=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/[^A-Z0-9]+/g,' ').trim();
+  function classes(){try{return (getClasses?.()||[]).filter(c=>!c.archived)}catch(e){return[]}}
+  function selectedClass(){const cs=classes();let id=String(tpGenState.contextClassId||'');let c=cs.find(x=>String(x.id)===id);if(!c){id=String(getActiveClassId?.()||'');c=cs.find(x=>String(x.id)===id)||cs[0];if(c)tpGenState.contextClassId=String(c.id)}return c||null}
+  window.tp42SetContextClass=function(id){tpGenState.contextClassId=String(id||'');tpGenState.diffusionClassId=String(id||'');tpGeneratorPage()};
+  function addClassSelector(){
+    const cards=[...document.querySelectorAll('.tpgen-card')];const ctx=cards.find(c=>c.textContent.includes('1. Contexte'));if(!ctx||ctx.querySelector('#tp42-class'))return;
+    const form=ctx.querySelector('.tpgen-form');if(!form)return;const c=selectedClass(),lab=document.createElement('label');lab.innerHTML=`Classe<select id="tp42-class" class="tp42-context-class" onchange="tp42SetContextClass(this.value)">${classes().map(x=>`<option value="${esc(String(x.id))}" ${c&&String(x.id)===String(c.id)?'selected':''}>${esc(x.name)}</option>`).join('')}</select><div class="tp42-context-note">Choix propre au TP : ne change pas la classe active du logiciel.</div>`;form.insertBefore(lab,form.firstChild);
+  }
+  const prevPage=window.tpGeneratorPage;window.tpGeneratorPage=function(){const r=prevPage.apply(this,arguments);setTimeout(addClassSelector,60);return r};
+  const prevDraft=window.tpGenCurrentDraft;window.tpGenCurrentDraft=function(){const d=prevDraft();if(!d)return d;const c=selectedClass();if(c){d.className=c.name;d.classId=String(c.id)}return d};
+  // Réinitialisation après enregistrement : on conserve classe/niveau/mode, mais on repart sur un TP vierge.
+  const prevSave=window.tpGenSaveFinal;window.tpGenSaveFinal=function(){
+    const keep={level:tpGenState.level,contextClassId:String(tpGenState.contextClassId||selectedClass()?.id||''),mode:tpGenState.mode};
+    const before=(typeof readSaved==='function'?readSaved().length:null);prevSave.apply(this,arguments);
+    setTimeout(()=>{
+      tpGenState.level=keep.level;tpGenState.contextClassId=keep.contextClassId;tpGenState.diffusionClassId=keep.contextClassId;tpGenState.mode=keep.mode;
+      tpGenState.selectedId='';tpGenState.currentDraftId='';tpGenState.currentSavedId='';tpGenState.savedLocked=false;tpGenState.family='';tpGenState.search='';tpGenState.clientIndex=0;tpGenState.rtaLibraryId='';tpGenState.rtaActivityId='';tpGenState.rtaSearch='';tpGenState.practicalCode='';tpGenState.practicalSearch='';tpGenState.supportType='vehicle';tpGenState.controlRows=[];tpGenState.pedVisibility={};
+      if(tpGenState.custom){const n=tpGenState.custom.number;tpGenState.custom={number:n||'',family:'Personnalisé',title:'',client:'',mission:'',resources:'',technicalData:'',risks:'',controls:'',environment:'',criteria:'',competencies:[]}}
+      try{window.tp33ClearSupportSession?.()}catch(e){}
+      tpGeneratorPage();
+    },120);
+  };
+  // Codes : résolution tolérante à un changement d'identifiant interne, en utilisant aussi le nom de l'élève.
+  window.tp42ResolveStudentCode=function(st){
+    const codes=(typeof readCodes==='function'?readCodes():{}),direct=String(codes[String(st?.id||'')]||'').replace(/\D/g,'').slice(0,4);if(/^\d{4}$/.test(direct))return direct;
+    const target=normName(st?.name||[st?.lastName,st?.firstName].filter(Boolean).join(' '));
+    const pool=(typeof allStudents!=='undefined'&&Array.isArray(allStudents))?allStudents:(typeof students!=='undefined'&&Array.isArray(students)?students:[]);
+    for(const other of pool){if(normName(other?.name||[other?.lastName,other?.firstName].filter(Boolean).join(' '))===target){const c=String(codes[String(other.id)]||'').replace(/\D/g,'').slice(0,4);if(/^\d{4}$/.test(c))return c}}
+    return '';
+  };
+  const prevBuild=window.tpGenBuildStudentPackage;window.tpGenBuildStudentPackage=function(st,d){
+    const code=tp42ResolveStudentCode(st);if(!code)throw new Error(`Code introuvable pour ${st?.name||'cet élève'}.`);
+    const m=prevBuild(st,d),studentId=String(st?.id||m.studentId||''),className=String(m.classe||d?.className||''),tpCode=String(m.code||tpGenTpCode?.(d)||''),salt=[studentId,className,tpCode].join('|');
+    m.access={required:true,version:1,salt,hash:tpGenHashCode(salt+'|'+code)};return m;
+  };
+  // Modal : ne bloque plus sur un message générique ; indique précisément les éventuels élèves concernés.
+  const prevOpen=window.tpGenOpenClassExport;window.tpGenOpenClassExport=function(){
+    const cid=String(tpGenState.contextClassId||selectedClass()?.id||'');if(cid)tpGenState.diffusionClassId=cid;
+    try{return prevOpen.apply(this,arguments)}catch(e){showWarningMessage?.(e?.message||String(e))}
+  };
+  setTimeout(addClassSelector,300);
 })();
 </script>
 
