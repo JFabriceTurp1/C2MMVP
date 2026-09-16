@@ -10253,8 +10253,10 @@ function recordedEvaluationsPage(){
 
 function archivesPage(){
   setActive("history");
+  const activeArchiveClassId=String(getActiveClassId()||"");
+  const archiveStudents=(allStudents||[]).filter(st=>String(st.classId||"")===activeArchiveClassId);
   const all=[];
-  allStudents.forEach(st=>{
+  archiveStudents.forEach(st=>{
     archivedEvaluations(st.evaluations||[]).forEach(ev=>{
       all.push({...ev,studentName:st.name,studentId:st.id});
     });
@@ -13972,5 +13974,89 @@ const oldDraft=window.tpGenCurrentDraft;window.tpGenCurrentDraft=function(){cons
  // Ensure the palette exists immediately on generator pages; desktop CSS keeps it permanently visible.
  const oldPage=window.tpGeneratorPage;
  window.tpGeneratorPage=function(){const r=oldPage.apply(this,arguments);setTimeout(()=>{try{if(typeof ensure==='function')ensure();else if(typeof tpOpenSymbols==='function'){tpOpenSymbols();document.getElementById('tp-symbol-palette')?.classList.add('open')}}catch(e){}},0);return r};
+})();
+</script>
+
+
+<!-- V24 DEFINITIVE PATCH — placed LAST intentionally so no legacy patch can override it -->
+<style id="v24-definitive-style">
+.tp24-controls-editor table{width:100%;border-collapse:collapse;margin-top:10px}.tp24-controls-editor th,.tp24-controls-editor td{border:1px solid #cbd5e1;padding:5px;vertical-align:top}.tp24-controls-editor textarea{width:100%;min-height:58px;box-sizing:border-box;border:1px solid #e2e8f0;border-radius:6px;padding:7px;resize:none;overflow:hidden;font:inherit}.tp24-controls-editor .tp24-prof{background:#f8fafc}.tp24-lock-note{font-size:12px;color:#475569;margin-top:7px}.tp24-class-select{min-width:240px;padding:9px;border:1px solid #cbd5e1;border-radius:9px;background:white;font-weight:700}
+</style>
+<script id="v24-definitive-runtime">
+(function(){
+ const clone=x=>JSON.parse(JSON.stringify(x));
+ const nr=r=>({controle:String(r?.controle??r?.label??''),valeur:String(r?.valeur??r?.student??''),reference:String(r?.reference??r?.expected??''),conclusion:String(r?.conclusion??'')});
+ const grow=el=>{if(!el)return;el.style.height='auto';el.style.height=Math.max(58,el.scrollHeight+2)+'px'};
+ function supportSnapshot(){try{return clone(readSupport())}catch(e){return {type:tpGenState.supportType||'vehicle',vehicle:{}}}}
+
+ // Definitive complete snapshot used by draft/final save, preview, diffusion and PDF paths.
+ const beforeDraft=window.tpGenCurrentDraft;
+ window.tpGenCurrentDraft=function(){
+   try{if(typeof cache==='function')cache()}catch(e){}
+   const d=beforeDraft(); if(!d)return d;
+   const supp=supportSnapshot(); d.support=supp; d.vehicle=clone(supp.vehicle||d.vehicle||{});
+   d.controlsTable=(tpGenState.controlRows||[]).map(nr);
+   const v=tpGenState.pedVisibility||{};
+   d.pedagogicVisibility={mission:v.mission!==false,resources:v.resources!==false,technicalData:v.technicalData!==false,risks:v.risks!==false,controls:v.controls!==false,environment:v.environment!==false,criteria:v.criteria!==false};
+   return d;
+ };
+
+ // Definitive final save: save snapshot, close creation view and navigate immediately to Mes TP enregistrés.
+ window.tpGenSaveFinal=function(){
+   if(typeof state==='function')state();
+   if(tpGenState.savedLocked){showWarningMessage?.('TP verrouillé : déverrouille-le ou duplique-le.');return}
+   const d=window.tpGenCurrentDraft(); if(!d){showWarningMessage?.('Prépare d’abord un TP.');return}
+   const rows=readSaved(); let id=tpGenState.currentSavedId; const now=new Date().toISOString(); let found=false;
+   if(id){const i=rows.findIndex(x=>String(x.savedId)===String(id));if(i>=0){rows[i]={...rows[i],snapshot:clone(d),updatedAt:now};found=true}}
+   if(!found){id='tp_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,7);rows.unshift({savedId:id,status:'saved',locked:false,createdAt:now,updatedAt:now,snapshot:clone(d)})}
+   writeSaved(rows); tpGenState.currentSavedId=id; tpGenState.currentDraftId=null;
+   // no intermediate page remains open: destination is the saved-TP list.
+   if(typeof tpGenSavedPage==='function')tpGenSavedPage();
+ };
+
+ // Restore persisted support, visibility and exact 4-column controls before the generator is rebuilt.
+ const beforeLoad=window.tpGenLoadSnapshot;
+ window.tpGenLoadSnapshot=function(d,copy){
+   const s=d?.support||{},v=s.vehicle||d?.vehicle||{};
+   tpGenState.supportType=s.type||'vehicle';
+   tpGenState.supportDraft={type:s.type||'vehicle',marque:v.marque||'',modele:v.modele||'',immat:v.immatriculation||'',year:v.annee||'',motor:v.motorisation||'',km:v.kilometrage||'',name:s.label||'',system:s.supportSystem||'',ref:s.reference||'',details:s.supportDescription||s.details||''};
+   tpGenState.controlRows=(d?.controlsTable||[]).map(nr); tpGenState.pedVisibility={...(d?.pedagogicVisibility||{})};
+   return beforeLoad(d,copy);
+ };
+
+ // Same four-column view on professor side as student side.
+ const beforeEnh=window.tp83EnhanceGenerator||tp83EnhanceGenerator;
+ window.tp83EnhanceGenerator=tp83EnhanceGenerator=function(){
+   beforeEnh(); const old=document.querySelector('.tp83-controls-editor,.tp23-controls-editor'); if(!old)return;
+   let rows=(tpGenState.controlRows||[]).map(nr); if(!rows.length)rows=[nr({}),nr({}),nr({})]; tpGenState.controlRows=rows;
+   old.className='tp24-controls-editor';
+   old.innerHTML=`<div class="tpgen-actions"><b>Tableau transmis à l’élève</b><span>Nombre de lignes :</span><input type="number" min="1" max="20" value="${rows.length}" style="width:72px" onchange="tp24Rows(this.value)"></div><table><thead><tr><th>Contrôle / mesure</th><th>Valeur mesurée</th><th>Information / référence</th><th>Conclusion</th></tr></thead><tbody>${rows.map((r,i)=>`<tr>${['controle','valeur','reference','conclusion'].map(k=>`<td><textarea class="tp24-prof" data-tp24-row="${i}" data-tp24-key="${k}" oninput="tp24Edit(${i},'${k}',this.value);this.style.height='auto';this.style.height=this.scrollHeight+'px'">${esc(r[k])}</textarea></td>`).join('')}</tr>`).join('')}</tbody></table><div class="tp24-lock-note"><b>Règle :</b> toute cellule remplie ici par le professeur est affichée mais verrouillée dans le lecteur élève. Toute cellule laissée vide reste saisissable par l’élève.</div>`;
+   old.querySelectorAll('textarea').forEach(grow);
+ };
+ window.tp24Rows=function(n){n=Math.max(1,Math.min(20,parseInt(n)||1));let a=(tpGenState.controlRows||[]).map(nr);while(a.length<n)a.push(nr({}));a.length=n;tpGenState.controlRows=a;tpGeneratorPage()};
+ window.tp24Edit=function(i,k,v){let a=(tpGenState.controlRows||[]).map(nr);while(a.length<=i)a.push(nr({}));a[i][k]=v;tpGenState.controlRows=a};
+
+ // Definitive student package. No undefined resources variable; exact rows and professor locks are encoded.
+ window.tpGenBuildStudentPackage=function(st,d){
+   const p=tpGenStudentParts(st),codes=readCodes(),destClass=activeClassName(),code=codes[String(st.id)]||'',salt=[String(st.id),destClass,tpGenTpCode(d)].join('|');
+   const vis=d.pedagogicVisibility||{mission:true,resources:true,technicalData:true,risks:true,controls:true,environment:true,criteria:true};
+   const template=vis.controls?(d.controlsTable||[]).map(nr):[];
+   const answers=template.map(r=>({controle:r.controle,valeur:r.valeur,reference:r.reference,conclusion:r.conclusion}));
+   const res=vis.resources?String(d.resources||'').split(/\n+/).map(x=>x.trim()).filter(Boolean):[];
+   if(vis.resources&&d.rta)res.push(`RTA : ${d.rta.name||''}${d.rta.activityTitle?' — '+d.rta.activityTitle:''}`);
+   else if(vis.resources&&d.practicalSheet)res.push(`Fiche pratique : ${d.practicalSheet.code||''} — ${d.practicalSheet.title||''}`);
+   return {schemaVersion:'2.4',type:'tp-eleve',code:tpGenTpCode(d),titre:d.activity,diplome:'BAC PRO',specialite:'Maintenance des véhicules',anneeScolaire:d.schoolYear||tpGenSchoolYear(),classe:destClass,professeur:d.teacher||'',pedagogicVisibility:vis,contexte:{ressentiClient:d.client||'',mission:vis.mission?(d.mission||''):''},ressources:res,competences:tpGenCompetenceData(d.competencies),objectifs:vis.criteria?String(d.criteria||'').split(/\n|;/).map(x=>x.trim()).filter(Boolean):[],donneesTechniquesAttendus:vis.technicalData?(d.technicalData||''):'',risquesAttendus:vis.risks?(d.risks||''):'',dechetsAttendus:vis.environment?(d.environment||''):'',controlsTable:template,support:clone(d.support||{type:'vehicle'}),vehicule:clone(d.vehicle||{}),eleve:{nom:p.last,prenom:p.first,date:''},reponses:{travailDemande:'',donneesTechniques:'',preparationRisques:'',controles:answers,dechets:vis.environment?Array.from({length:3},()=>({type:'',filiere:''})):[],bilanEleve:''},professeurZone:{appreciation:'',evaluation:[]},access:{required:true,version:1,salt,hash:tpGenHashCode(salt+'|'+code)},meta:{activityId:d.activityId||'',planId:d.planId||'',family:d.family||'',duration:d.duration||'',generatedAt:new Date().toISOString(),source:'Évaluation, charge atelier, RTA, génération TP — V24'}};
+ };
+
+ // Diffusion: class selectable here; manifest remains OFF by default.
+ window.tp24ChangeClass=async function(id){if(!id)return;try{await setActiveClass(id);setTimeout(()=>window.tpGenOpenClassExport(),80)}catch(e){showWarningMessage?.('Impossible de charger cette classe : '+(e?.message||e))}};
+ window.tpGenOpenClassExport=function(){
+   const d=lockedSnapshot(); if(!d){showWarningMessage?.('Enregistre puis verrouille le TP avant diffusion.');return}
+   const list=tpGenClassStudents(),codes=readCodes(),classes=(typeof getClasses==='function'?getClasses():[]).filter(c=>!c.archived),aid=String(getActiveClassId?.()||'');
+   document.getElementById('tpgen-class-export-modal')?.remove();const w=document.createElement('div');w.id='tpgen-class-export-modal';w.className='tpgen-class-modal';
+   w.innerHTML=`<div class="tpgen-class-dialog"><div class="tpgen-class-head"><div><h2>📦 Diffuser le TP verrouillé</h2><div class="muted">${esc(tpGenTpCode(d))}</div></div><button class="tpgen-class-close" onclick="tpGenCloseClassExport()">×</button></div><div class="tpgen-class-grid"><div class="tpgen-class-box"><h3>1. Classe et élèves</h3><label><b>Classe à diffuser</b><br><select class="tp24-class-select" onchange="tp24ChangeClass(this.value)">${classes.map(c=>`<option value="${esc(String(c.id))}" ${String(c.id)===aid?'selected':''}>${esc(c.name)}</option>`).join('')}</select></label><div class="tpgen-actions" style="margin-top:12px"><button class="tpgen-btn secondary" onclick="tpGenClassToggleAll(true)">Tout sélectionner</button><button class="tpgen-btn secondary" onclick="tpGenClassToggleAll(false)">Tout désélectionner</button><span id="tpgen-class-count"></span></div><div id="tpgen-class-students" class="tpgen-student-grid">${list.map(st=>`<label class="tpgen-student-choice"><input type="checkbox" value="${esc(String(st.id))}" checked onchange="tpGenClassUpdateCount()"><span>${esc(st.name)} ${codes[String(st.id)]?'🔐':'⚠ code manquant'}</span></label>`).join('')}</div></div><div class="tpgen-class-box"><h3>2. Destination</h3><p>Chaque fichier .tp est individuel et protégé.</p><div class="tpgen-destination"><button class="tpgen-btn dark" onclick="tpGenChooseClassFolder()">📁 Choisir le dossier</button><span id="tpgen-folder-label">${tpGenClassExportDirHandle?'Dossier : '+esc(tpGenClassExportDirHandle.name):'Aucun dossier choisi'}</span></div><label style="display:block;margin-top:12px"><input id="tpgen-include-manifest" type="checkbox" style="width:auto"> Ajouter MANIFESTE_TP_CLASSE.txt</label></div></div><div class="tpgen-class-actions"><button class="tpgen-btn secondary" onclick="tpGenCloseClassExport()">Annuler</button><button class="tpgen-btn green" onclick="tpGenExportClassToFolder()">📁 Générer dans le dossier</button><button class="tpgen-btn purple" onclick="tpGenExportClassZip()">⬇️ Télécharger le ZIP</button></div></div>`;
+   document.body.appendChild(w);tpGenClassUpdateCount();
+ };
+ window.tpGenClassFiles=function(){const d=lockedSnapshot();if(!d)throw new Error('TP non verrouillé.');const ids=tpGenSelectedClassStudentIds(),map=new Map(tpGenClassStudents().map(st=>[String(st.id),st])),files=[],destClass=activeClassName();for(const id of ids){const st=map.get(String(id));if(!st)continue;if(!readCodes()[String(st.id)])throw new Error(`Code manquant pour ${st.name}`);const m=window.tpGenBuildStudentPackage(st,d),p=tpGenStudentParts(st),name=[tpGenTpCode(d),tpGenSafeFilePart(p.last),tpGenSafeFilePart(p.first),tpGenSafeFilePart(destClass)].filter(Boolean).join('_')+'.tp';files.push({name,text:JSON.stringify(m,null,2)})}if(document.getElementById('tpgen-include-manifest')?.checked)files.push({name:'MANIFESTE_TP_CLASSE.txt',text:[`Classe : ${destClass}`,`TP : ${tpGenTpCode(d)} — ${d.activity}`,`Nombre d'élèves : ${files.length}`,'',...files.map((f,i)=>`${i+1}. ${f.name}`),'','Lecteur requis : Lecteur_TP_Eleve.html'].join('\r\n')});return{files,d}};
 })();
 </script>
