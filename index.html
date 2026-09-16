@@ -14038,10 +14038,10 @@ Nombre d’élèves : ${files.length}`});return {files,d:{...d,className}}};
 </script>
 
 
-<style id="tp-v42-style">
+<style id="tp-v44-style">
 .tp42-context-class{min-width:220px}.tp42-context-note{font-size:11px;color:#64748b;margin-top:4px}
 </style>
-<script id="tp-v42-class-reset-codes">
+<script id="tp-v44-class-reset-codes">
 (function(){
   const normName=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/[^A-Z0-9]+/g,' ').trim();
   function classes(){try{return (getClasses?.()||[]).filter(c=>!c.archived)}catch(e){return[]}}
@@ -14069,12 +14069,23 @@ Nombre d’élèves : ${files.length}`});return {files,d:{...d,className}}};
   window.tp42ResolveStudentCode=function(st){
     const codes=(typeof readCodes==='function'?readCodes():{}),direct=String(codes[String(st?.id||'')]||'').replace(/\D/g,'').slice(0,4);if(/^\d{4}$/.test(direct))return direct;
     const target=normName(st?.name||[st?.lastName,st?.firstName].filter(Boolean).join(' '));
-    const pool=(typeof allStudents!=='undefined'&&Array.isArray(allStudents))?allStudents:(typeof students!=='undefined'&&Array.isArray(students)?students:[]);
+    const pool=[];
+    if(typeof allStudents!=='undefined'&&Array.isArray(allStudents))pool.push(...allStudents);
+    if(typeof students!=='undefined'&&Array.isArray(students))pool.push(...students);
     for(const other of pool){if(normName(other?.name||[other?.lastName,other?.firstName].filter(Boolean).join(' '))===target){const c=String(codes[String(other.id)]||'').replace(/\D/g,'').slice(0,4);if(/^\d{4}$/.test(c))return c}}
     return '';
   };
   const prevBuild=window.tpGenBuildStudentPackage;window.tpGenBuildStudentPackage=function(st,d){
     const code=tp42ResolveStudentCode(st);if(!code)throw new Error(`Code introuvable pour ${st?.name||'cet élève'}.`);
+    /* V44 : le générateur V36 relit le code par l'identifiant courant.
+       Si la liste de diffusion utilise un autre identifiant interne pour le même élève,
+       on crée l'alias local avant d'appeler le générateur sécurisé existant. */
+    const sid=String(st?.id||'');
+    if(sid&&typeof readCodes==='function'&&typeof writeCodes==='function'){
+      const map=readCodes();
+      const direct=String(map[sid]||'').replace(/\D/g,'').slice(0,4);
+      if(!/^\d{4}$/.test(direct)){map[sid]=code;writeCodes(map)}
+    }
     const m=prevBuild(st,d),studentId=String(st?.id||m.studentId||''),className=String(m.classe||d?.className||''),tpCode=String(m.code||tpGenTpCode?.(d)||''),salt=[studentId,className,tpCode].join('|');
     m.access={required:true,version:1,salt,hash:tpGenHashCode(salt+'|'+code)};return m;
   };
