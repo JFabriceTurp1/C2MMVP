@@ -1,0 +1,10 @@
+V23 — Diffusion / contrôles / persistance TP
+- Après Enregistrer le TP : ouverture automatique de Mes TP enregistrés.
+- Persistance renforcée du support lors de l'enregistrement/réouverture.
+- Diffusion : choix de la classe directement dans la fenêtre.
+- Manifeste décoché par défaut.
+- Correction de l'erreur « resources is not defined ».
+- Partie 9 professeur alignée sur la vue élève (4 colonnes).
+- Toute cellule préremplie par le professeur est verrouillée côté élève.
+- Nombre de lignes et contenus du tableau transmis dans le fichier .tp.
+- Palette Symboles / unités fixe conservée.

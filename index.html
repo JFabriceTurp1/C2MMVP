@@ -13839,6 +13839,62 @@ const oldDraft=window.tpGenCurrentDraft;window.tpGenCurrentDraft=function(){cons
 
 <!-- V16 : correction état Firebase 0 élève -> cache local réellement vide -->
 <!-- V17 : export PDF groupé = même fiche couleur/curseurs que l'impression Bilan -->
+
+<!-- V23 persistence / diffusion / controls parity patch -->
+<style id="v23-tp-style">
+.tp23-class-select{min-width:220px;padding:9px 10px;border:1px solid #cbd5e1;border-radius:9px;background:#fff;font-weight:700}
+.tp23-controls-editor table{width:100%;border-collapse:collapse;margin-top:8px}.tp23-controls-editor th,.tp23-controls-editor td{border:1px solid #cbd5e1;padding:5px;vertical-align:top}.tp23-controls-editor textarea{width:100%;min-height:52px;box-sizing:border-box;border:0;padding:7px;resize:vertical;font:inherit}.tp23-note{font-size:12px;color:#64748b;margin-top:6px}
+</style>
+<script id="v23-tp-runtime">
+(function(){
+ const normRow=r=>({controle:r?.controle??r?.label??'',valeur:r?.valeur??r?.student??'',reference:r?.reference??r?.expected??'',conclusion:r?.conclusion??''});
+ const cacheSupportNow=()=>{try{if(typeof cache==='function')cache()}catch(e){}};
+ // Snapshot = source unique: force complete support + exact controls just before every save.
+ const prevDraft=window.tpGenCurrentDraft;
+ window.tpGenCurrentDraft=function(){cacheSupportNow();const d=prevDraft();if(!d)return d;try{const s=readSupport();d.support=JSON.parse(JSON.stringify(s));d.vehicle=JSON.parse(JSON.stringify(s.vehicle||d.vehicle||{}))}catch(e){};d.controlsTable=(tpGenState.controlRows||[]).map(normRow);return d};
+ // After a successful final save, close editor and show saved TP list immediately.
+ window.tpGenSaveFinal=function(){
+   state();if(tpGenState.savedLocked){showWarningMessage?.('TP verrouillé : déverrouille-le ou duplique-le.');return}
+   const d=tpGenCurrentDraft();if(!d){showWarningMessage?.('Prépare d’abord un TP.');return}
+   let rows=readSaved(),id=tpGenState.currentSavedId,now=new Date().toISOString(),updated=false;
+   if(id){const i=rows.findIndex(x=>x.savedId===id);if(i>=0){rows[i]={...rows[i],snapshot:JSON.parse(JSON.stringify(d)),updatedAt:now};updated=true}}
+   if(!updated){id='tp_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,6);rows.unshift({savedId:id,status:'saved',locked:false,createdAt:now,updatedAt:now,snapshot:JSON.parse(JSON.stringify(d))})}
+   writeSaved(rows);tpGenState.currentSavedId=id;showSuccessMessage?.(updated?'TP enregistré mis à jour.':'TP abouti enregistré.');tpGenSavedPage();
+ };
+ // Restore every persisted field before/after generator redraw.
+ const prevLoad=window.tpGenLoadSnapshot;
+ window.tpGenLoadSnapshot=function(d,copy){
+   const s=d?.support||{},v=d?.vehicle||{};
+   tpGenState.supportType=s.type||'vehicle';
+   tpGenState.supportDraft={type:s.type||'vehicle',marque:v.marque||'',modele:v.modele||'',immat:v.immatriculation||'',year:v.annee||'',motor:v.motorisation||'',km:v.kilometrage||'',name:s.label||'',system:s.supportSystem||((s.type==='model')?(v.motorisation||''):''),ref:s.reference||'',details:s.supportDescription||s.details||''};
+   tpGenState.controlRows=(d.controlsTable||[]).map(normRow);
+   tpGenState.pedVisibility={...(d.pedagogicVisibility||{})};
+   return prevLoad(d,copy);
+ };
+ // Professor sees exactly the same 4-column structure as the student.
+ const oldEnh=tp83EnhanceGenerator;
+ tp83EnhanceGenerator=function(){oldEnh();const box=document.querySelector('.tp83-controls-editor');if(!box)return;let rows=(tpGenState.controlRows||[]).map(normRow);if(!rows.length)rows=[normRow({controle:'Contrôle 1'}),normRow({controle:'Contrôle 2'}),normRow({controle:'Contrôle 3'})];tpGenState.controlRows=rows;box.className='tp23-controls-editor';box.innerHTML=`<div class="tpgen-actions"><span>Nombre de lignes :</span><input type="number" min="1" max="12" value="${rows.length}" style="width:70px" onchange="tp23SetControlRows(this.value)"><span class="muted">Vue identique à celle de l’élève. Toute cellule préremplie par le professeur sera verrouillée côté élève.</span></div><table><thead><tr><th>Contrôle / mesure</th><th>Valeur mesurée</th><th>Information / référence</th><th>Conclusion</th></tr></thead><tbody>${rows.map((r,i)=>`<tr>${['controle','valeur','reference','conclusion'].map(k=>`<td><textarea oninput="tp23ControlEdit(${i},'${k}',this.value)">${esc(r[k]||'')}</textarea></td>`).join('')}</tr>`).join('')}</tbody></table><div class="tp23-note">Les cellules laissées vides sont destinées à la saisie de l’élève.</div>`};
+ window.tp23SetControlRows=function(n){n=Math.max(1,Math.min(12,parseInt(n)||1));let a=(tpGenState.controlRows||[]).map(normRow);while(a.length<n)a.push(normRow({controle:'Contrôle '+(a.length+1)}));a.length=n;tpGenState.controlRows=a;tpGeneratorPage()};
+ window.tp23ControlEdit=function(i,k,v){tpGenState.controlRows=tpGenState.controlRows||[];tpGenState.controlRows[i]=normRow(tpGenState.controlRows[i]);tpGenState.controlRows[i][k]=v};
+ // Class can be changed directly from diffusion modal. Reload current class data then reopen modal.
+ window.tp23ChangeExportClass=async function(id){if(!id)return;try{await setActiveClass(id);setTimeout(()=>tpGenOpenClassExport(),120)}catch(e){showWarningMessage?.('Impossible de charger cette classe : '+(e?.message||e))}};
+ window.tpGenOpenClassExport=function(){
+   const d=lockedSnapshot();if(!d){showWarningMessage?.('Enregistre puis verrouille le TP avant diffusion.');return}
+   const list=tpGenClassStudents(),codes=readCodes(),classesAvail=(typeof getClasses==='function'?getClasses():[]).filter(c=>!c.archived),activeId=typeof getActiveClassId==='function'?String(getActiveClassId()):'';
+   document.getElementById('tpgen-class-export-modal')?.remove();const w=document.createElement('div');w.id='tpgen-class-export-modal';w.className='tpgen-class-modal';
+   w.innerHTML=`<div class="tpgen-class-dialog"><div class="tpgen-class-head"><div><h2>📦 Diffuser le TP verrouillé</h2><div class="muted">${esc(tpGenTpCode(d))}</div></div><button class="tpgen-class-close" onclick="tpGenCloseClassExport()">×</button></div><div class="tpgen-class-grid"><div class="tpgen-class-box"><h3>1. Classe et élèves</h3><label style="display:block;margin-bottom:12px"><b>Classe à diffuser</b><br><select class="tp23-class-select" onchange="tp23ChangeExportClass(this.value)">${classesAvail.map(c=>`<option value="${esc(String(c.id))}" ${String(c.id)===activeId?'selected':''}>${esc(c.name)}</option>`).join('')}</select></label><div class="tpgen-actions"><button class="tpgen-btn secondary" onclick="tpGenClassToggleAll(true)">Tout sélectionner</button><button class="tpgen-btn secondary" onclick="tpGenClassToggleAll(false)">Tout désélectionner</button><span id="tpgen-class-count"></span></div><div id="tpgen-class-students" class="tpgen-student-grid">${list.map(st=>`<label class="tpgen-student-choice"><input type="checkbox" value="${esc(String(st.id))}" checked onchange="tpGenClassUpdateCount()"><span>${esc(st.name)} ${codes[String(st.id)]?'🔐':'⚠ code manquant'}</span></label>`).join('')}</div></div><div class="tpgen-class-box"><h3>2. Destination</h3><p>Chaque fichier .tp est individuel et protégé.</p><div class="tpgen-destination"><button class="tpgen-btn dark" onclick="tpGenChooseClassFolder()">📁 Choisir le dossier</button><span id="tpgen-folder-label">${tpGenClassExportDirHandle?'Dossier : '+esc(tpGenClassExportDirHandle.name):'Aucun dossier choisi'}</span></div><label style="display:block;margin-top:12px"><input id="tpgen-include-manifest" type="checkbox" style="width:auto"> Ajouter MANIFESTE_TP_CLASSE.txt</label></div></div><div class="tpgen-class-actions"><button class="tpgen-btn secondary" onclick="tpGenCloseClassExport()">Annuler</button><button class="tpgen-btn green" onclick="tpGenExportClassToFolder()">📁 Générer dans le dossier</button><button class="tpgen-btn purple" onclick="tpGenExportClassZip()">⬇️ Télécharger le ZIP</button></div></div>`;document.body.appendChild(w);tpGenClassUpdateCount();
+ };
+ // One robust package builder: no free variable "resources"; current selected class is the destination class.
+ window.tpGenBuildStudentPackage=function(st,d){
+   const p=tpGenStudentParts(st),supp=d.support||{type:'vehicle'},codes=readCodes(),c=codes[String(st.id)]||'',destClass=activeClassName(),salt=[String(st.id),destClass,tpGenTpCode(d)].join('|'),vis=d.pedagogicVisibility||{mission:true,resources:true,technicalData:true,risks:true,controls:true,environment:true,criteria:true};
+   const tpl=(vis.controls?(d.controlsTable||[]):[]).map(normRow);const controlAnswers=tpl.map(r=>({...r}));
+   const resourceList=vis.resources?String(d.resources||'').split(/\n+/).filter(Boolean).concat(d.rta?[`RTA : ${d.rta.name}${d.rta.activityTitle?' — '+d.rta.activityTitle:''}`]:d.practicalSheet?[`Fiche pratique : ${d.practicalSheet.code} — ${d.practicalSheet.title}`]:[]):[];
+   return{schemaVersion:'2.3',type:'tp-eleve',code:tpGenTpCode(d),titre:d.activity,diplome:'BAC PRO',specialite:'Maintenance des véhicules',anneeScolaire:d.schoolYear||tpGenSchoolYear(),classe:destClass,professeur:d.teacher||'',pedagogicVisibility:vis,contexte:{ressentiClient:d.client||'',mission:vis.mission?(d.mission||''):''},ressources:resourceList,competences:tpGenCompetenceData(d.competencies),objectifs:vis.criteria?String(d.criteria||'').split(/\n|;/).map(x=>x.trim()).filter(Boolean):[],donneesTechniquesAttendus:vis.technicalData?(d.technicalData||''):'',risquesAttendus:vis.risks?(d.risks||''):'',dechetsAttendus:vis.environment?(d.environment||''):'',controlsTable:tpl,support:{...supp},vehicule:{...(d.vehicle||{})},eleve:{nom:p.last,prenom:p.first,date:''},reponses:{travailDemande:'',donneesTechniques:'',preparationRisques:'',controles:controlAnswers,dechets:vis.environment?Array.from({length:3},()=>({type:'',filiere:''})):[],bilanEleve:''},professeurZone:{appreciation:'',evaluation:[]},access:{required:true,version:1,salt,hash:tpGenHashCode(salt+'|'+c)},meta:{activityId:d.activityId||'',planId:d.planId||'',family:d.family||'',duration:d.duration||'',generatedAt:new Date().toISOString(),source:'Évaluation, charge atelier, RTA, génération TP — V23'}};
+ };
+ window.tpGenClassFiles=function(){const d=lockedSnapshot();if(!d)throw new Error('TP non verrouillé.');const ids=tpGenSelectedClassStudentIds(),map=new Map(tpGenClassStudents().map(st=>[String(st.id),st])),files=[],destClass=activeClassName();for(const id of ids){const st=map.get(String(id));if(!st)continue;if(!readCodes()[String(st.id)])throw new Error(`Code manquant pour ${st.name}`);const m=tpGenBuildStudentPackage(st,d),p=tpGenStudentParts(st),name=[tpGenTpCode(d),tpGenSafeFilePart(p.last),tpGenSafeFilePart(p.first),tpGenSafeFilePart(destClass)].filter(Boolean).join('_')+'.tp';files.push({name,text:JSON.stringify(m,null,2)})}if(document.getElementById('tpgen-include-manifest')?.checked)files.push({name:'MANIFESTE_TP_CLASSE.txt',text:[`Classe : ${destClass}`,`TP : ${tpGenTpCode(d)} — ${d.activity}`,`Nombre d'élèves : ${files.length}`,'',...files.map((f,i)=>`${i+1}. ${f.name}`),'','Lecteur requis : Lecteur_TP_Eleve.html'].join('\r\n')});return{files,d}};
+})();
+</script>
+
 </body>
 </html>
 
@@ -13863,5 +13919,58 @@ const oldDraft=window.tpGenCurrentDraft;window.tpGenCurrentDraft=function(){cons
    const resources=vis.resources?String(d.resources||'').split(/\n+/).filter(Boolean).concat(d.rta?[`RTA : ${d.rta.name}${d.rta.activityTitle?' — '+d.rta.activityTitle:''}`]:d.practicalSheet?[`Fiche pratique : ${d.practicalSheet.code} — ${d.practicalSheet.title}`]:[]):[];
    return{schemaVersion:'2.1',type:'tp-eleve',code:tpGenTpCode(d),titre:d.activity,diplome:'BAC PRO',specialite:'Maintenance des véhicules',anneeScolaire:d.schoolYear||tpGenSchoolYear(),classe:d.className||activeClassName(),professeur:d.teacher||'',pedagogicVisibility:vis,contexte:{ressentiClient:d.client||'',mission:vis.mission?(d.mission||''):''},ressources,competences:tpGenCompetenceData(d.competencies),objectifs:vis.criteria?String(d.criteria||'').split(/\n|;/).map(x=>x.trim()).filter(Boolean):[],donneesTechniquesAttendus:vis.technicalData?(d.technicalData||''):'',risquesAttendus:vis.risks?(d.risks||''):'',dechetsAttendus:vis.environment?(d.environment||''):'',controlsTable:vis.controls?(d.controlsTable||[]):[],support:{type:supp.type||'vehicle',label:supp.label||'',reference:supp.reference||'',details:supp.details||''},vehicule:{...(d.vehicle||{})},eleve:{nom:p.last,prenom:p.first,date:''},reponses:{travailDemande:'',donneesTechniques:'',preparationRisques:'',controles:rows,dechets:vis.environment?Array.from({length:3},()=>({type:'',filiere:''})):[],bilanEleve:''},professeurZone:{appreciation:'',evaluation:[]},access:{required:true,version:1,salt,hash:tpGenHashCode(salt+'|'+c)},meta:{activityId:d.activityId||'',planId:d.planId||'',family:d.family||'',duration:d.duration||'',generatedAt:new Date().toISOString(),source:'Évaluation, charge atelier, RTA, génération TP — V21'}};
  };
+})();
+</script>
+<!-- V22 support persistence + always-visible symbols palette -->
+<style id="v22-support-symbols-style">
+@media (min-width:1100px){
+ #tp-symbol-palette.tp-symbol-palette{display:block!important;top:105px;bottom:auto;right:12px;width:210px;max-height:calc(100vh - 125px);overflow:auto;padding:10px;border-radius:12px}
+ #tp-symbol-palette .tp-symbol-head button{display:none}
+ #tp-symbol-palette .tp-symbol-grid{gap:5px}
+ #tp-symbol-palette .tp-symbol-grid button{min-width:38px;padding:6px 7px;font-size:13px}
+ .tpgen-shell{padding-right:225px}
+ .tp-symbol-btn{display:none!important}
+}
+@media (max-width:1099px){.tpgen-shell{padding-right:0}}
+@media print{#tp-symbol-palette{display:none!important}.tpgen-shell{padding-right:0!important}}
+</style>
+<script id="v22-support-symbols-script">
+(function(){
+ function esc2(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+ function cache(){
+   window.tpGenState=window.tpGenState||{};
+   const v=id=>document.getElementById(id)?.value??'';
+   const t=tpGenState.supportType||'vehicle';
+   tpGenState.supportDraft={type:t,marque:v('tpgen-marque'),modele:v('tpgen-modele'),immat:v('tpgen-immat'),year:v('tpgen-year'),motor:v('tpgen-motor'),km:v('tpgen-km'),name:v('tpgen-support-name'),system:v('tpgen-support-system'),ref:v('tpgen-support-ref'),details:v('tpgen-support-details')};
+ }
+ function draft(){return (window.tpGenState&&tpGenState.supportDraft)||{} }
+ // Rebuild support fields from the in-memory saved state so any rerender keeps the values.
+ window.supportUI=function(){
+   if(typeof state==='function')state();
+   const t=tpGenState.supportType||'vehicle',d=draft();
+   const val=(k)=>esc2(d[k]||'');
+   let f=t==='vehicle'
+    ?`<label>Marque<input id="tpgen-marque" value="${val('marque')}" placeholder="Ex. Renault"></label><label>Modèle<input id="tpgen-modele" value="${val('modele')}" placeholder="Ex. Clio IV"></label><label>Immatriculation<input id="tpgen-immat" value="${val('immat')}" placeholder="AA-123-BB"></label><label>Année<input id="tpgen-year" value="${val('year')}"></label><label>Motorisation<input id="tpgen-motor" value="${val('motor')}"></label><label>Kilométrage<input id="tpgen-km" value="${val('km')}"></label>`
+    :t==='model'
+    ?`<label>Nom de la maquette<input id="tpgen-support-name" value="${val('name')}"></label><label>Système représenté<input id="tpgen-support-system" value="${val('system')}"></label><label>Référence<input id="tpgen-support-ref" value="${val('ref')}"></label><label class="full">Précisions<textarea id="tpgen-support-details">${val('details')}</textarea></label>`
+    :`<label>Désignation du support<input id="tpgen-support-name" value="${val('name')}"></label><label>Référence<input id="tpgen-support-ref" value="${val('ref')}"></label><label class="full">Description<textarea id="tpgen-support-details">${val('details')}</textarea></label>`;
+   return `<div class="tpgen-support-tabs"><button class="${t==='vehicle'?'active':''}" onclick="tpGenSetSupportType('vehicle')">🚗 Véhicule</button><button class="${t==='model'?'active':''}" onclick="tpGenSetSupportType('model')">🧩 Maquette</button><button class="${t==='other'?'active':''}" onclick="tpGenSetSupportType('other')">🛠 Autre support</button></div><div class="tpgen-form">${f}</div>`;
+ };
+ const oldRead=window.readSupport;
+ window.readSupport=function(){cache();const d=draft(),t=d.type||tpGenState.supportType||'vehicle';if(t==='vehicle')return{type:'vehicle',label:[d.marque,d.modele].filter(Boolean).join(' '),reference:d.immat||'',details:d.motor||'',vehicle:{marque:d.marque||'',modele:d.modele||'',immatriculation:d.immat||'',annee:d.year||'',motorisation:d.motor||'',kilometrage:d.km||''}};if(t==='model')return{type:'model',label:d.name||'',reference:d.ref||'',details:[d.system,d.details].filter(Boolean).join(' — '),supportSystem:d.system||'',supportDescription:d.details||'',vehicle:{marque:'MAQUETTE',modele:d.name||'',immatriculation:d.ref||'',annee:'',motorisation:d.system||'',kilometrage:''}};return{type:'other',label:d.name||'',reference:d.ref||'',details:d.details||'',vehicle:{marque:'AUTRE SUPPORT',modele:d.name||'',immatriculation:d.ref||'',annee:'',motorisation:d.details||'',kilometrage:''}}};
+ const oldSet=window.tpGenSetSupportType;
+ window.tpGenSetSupportType=function(v){cache();tpGenState.supportType=['vehicle','model','other'].includes(v)?v:'vehicle';tpGenState.supportDraft=tpGenState.supportDraft||{};tpGenState.supportDraft.type=tpGenState.supportType;tpGeneratorPage()};
+ const oldDraft=window.tpGenCurrentDraft;
+ window.tpGenCurrentDraft=function(){cache();return oldDraft()};
+ const oldLoad=window.tpGenLoadSnapshot;
+ window.tpGenLoadSnapshot=function(d,copy){
+   const s=d?.support||{},v=d?.vehicle||{};
+   tpGenState.supportDraft={type:s.type||'vehicle',marque:v.marque||'',modele:v.modele||'',immat:v.immatriculation||'',year:v.annee||'',motor:v.motorisation||'',km:v.kilometrage||'',name:s.label||'',system:s.supportSystem||((s.type==='model')?(v.motorisation||''):''),ref:s.reference||'',details:s.supportDescription||s.details||''};
+   return oldLoad(d,copy);
+ };
+ document.addEventListener('input',e=>{if(/^tpgen-(marque|modele|immat|year|motor|km|support-name|support-system|support-ref|support-details)$/.test(e.target?.id||''))cache()},true);
+ // Ensure the palette exists immediately on generator pages; desktop CSS keeps it permanently visible.
+ const oldPage=window.tpGeneratorPage;
+ window.tpGeneratorPage=function(){const r=oldPage.apply(this,arguments);setTimeout(()=>{try{if(typeof ensure==='function')ensure();else if(typeof tpOpenSymbols==='function'){tpOpenSymbols();document.getElementById('tp-symbol-palette')?.classList.add('open')}}catch(e){}},0);return r};
 })();
 </script>
