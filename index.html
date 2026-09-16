@@ -14163,3 +14163,35 @@ Nombre d’élèves : ${files.length}`});return {files,d:{...d,className}}};
 </script>
 </body>
 </html>
+
+<!-- V47 — diffusion : source unique des codes + déverrouillage professeur sécurisé -->
+<style id="tp-v47-style">
+.tp47-code-ok{color:#166534;font-weight:800}.tp47-code-missing{color:#b42318;font-weight:800}
+</style>
+<script id="tp-v47-direct-code-source">
+(function(){
+  const clean=c=>String(c||'').replace(/\D/g,'').slice(0,4), valid=c=>/^\d{4}$/.test(clean(c));
+  window.tp47StudentCode=function(st){
+    try{const map=readCodes();return clean(map[String(st?.id||'')]||'')}catch(e){return''}
+  };
+  // La fenêtre de diffusion lit exactement la même table que le panneau « Gérer les codes élèves ».
+  window.tp26RenderStudents=function(){
+    const box=document.getElementById('tpgen-class-students');if(!box)return;
+    const list=tpGenClassStudents();
+    box.innerHTML=list.map(st=>{const ok=valid(tp47StudentCode(st));return `<label class="tpgen-student-choice"><input type="checkbox" value="${esc(String(st.id))}" checked onchange="tpGenClassUpdateCount()"><span>${esc(st.name)} <span class="${ok?'tp47-code-ok':'tp47-code-missing'}">${ok?'🔐':'⚠ code absent'}</span></span></label>`}).join('')||'<span class="muted">Aucun élève dans cette classe.</span>';
+    tpGenClassUpdateCount();
+  };
+  // Reconstruction directe du paquet élève : aucune seconde recherche par nom/classe/alias.
+  window.tpGenBuildStudentPackage=function(st,d){
+    const code=tp47StudentCode(st);
+    if(!valid(code))throw new Error(`Code introuvable pour ${st?.name||'cet élève'}. Le code affiché dans « Gérer les codes élèves » doit comporter 4 chiffres.`);
+    const p=tpGenStudentParts(st),supp=d.support||{type:'vehicle'},studentId=String(st?.id||''),className=String(d.className||window.tp46ContextClassName?.()||activeClassName?.()||''),tpCode=String(tpGenTpCode(d)||''),salt=[studentId,className,tpCode].join('|');
+    const m={schemaVersion:'3.0',type:'tp-eleve',code:tpCode,titre:d.activity,diplome:'BAC PRO',specialite:'Maintenance des véhicules',anneeScolaire:d.schoolYear||tpGenSchoolYear(),classe:className,professeur:d.teacher||'',contexte:{ressentiClient:d.client||'',mission:d.mission||''},ressources:String(d.resources||'').split(/\n+/).filter(Boolean).concat(d.rta?[`RTA : ${d.rta.name}${d.rta.activityTitle?' — '+d.rta.activityTitle:''}`]:d.practicalSheet?[`Fiche pratique : ${d.practicalSheet.code} — ${d.practicalSheet.title}`]:[]),competences:tpGenCompetenceData(d.competencies),objectifs:String(d.criteria||'').split(/\n|;/).map(x=>x.trim()).filter(Boolean),donneesTechniquesAttendus:d.technicalData||'',risquesAttendus:d.risks||'',dechetsAttendus:d.environment||'',support:{type:supp.type||'vehicle',label:supp.label||'',reference:supp.reference||'',details:supp.details||''},vehicule:{...(d.vehicle||{})},eleve:{nom:p.last,prenom:p.first,date:''},reponses:{travailDemande:'',donneesTechniques:'',preparationRisques:'',controles:Array.from({length:4},()=>({controle:'',valeur:'',reference:'',conclusion:''})),dechets:Array.from({length:3},()=>({type:'',filiere:''})),bilanEleve:''},professeurZone:{appreciation:'',evaluation:[]},access:{required:true,version:1,salt,hash:tpGenHashCode(salt+'|'+code)},meta:{activityId:d.activityId||'',planId:d.planId||'',family:d.family||'',duration:d.duration||'',generatedAt:new Date().toISOString(),source:'V47 — classe TP unifiée + codes diffusion directs'}};
+    // Code professeur : jamais stocké en clair dans le .tp ; seulement une empreinte salée.
+    try{const t=(typeof getActiveTeacher==='function'?getActiveTeacher():null),tc=String(t?.code||'').trim();if(tc){const ts=['teacher',studentId,className,tpCode].join('|');m.teacherAccess={required:true,version:1,salt:ts,hash:tpGenHashCode(ts+'|'+tc)}}}catch(e){}
+    return m;
+  };
+  // Force le rafraîchissement de l'état des cadenas à chaque ouverture de la diffusion.
+  const oldOpen=window.tpGenOpenClassExport;window.tpGenOpenClassExport=function(){const r=oldOpen?.apply(this,arguments);setTimeout(()=>window.tp26RenderStudents?.(),20);return r};
+})();
+</script>
