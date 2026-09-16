@@ -14236,3 +14236,29 @@ Nombre d’élèves : ${files.length}`});return {files,d:{...d,className}}};
   setTimeout(()=>{const h=[...document.querySelectorAll('h1')].find(x=>x.textContent.includes('Génération de TP'));if(h&&!h.querySelector('.tp48-badge')){const s=document.createElement('span');s.className='tp48-badge';s.textContent='V48';h.appendChild(s)}},500);
 })();
 </script>
+
+<!-- V49 - paquet eleve : controles/mesures et support complets -->
+<script id="tp-v49-student-package-data-fix">
+(function(){
+  const previousBuild=window.tpGenBuildStudentPackage;
+  if(typeof previousBuild!=='function') return;
+  function normRow(r){return {controle:String(r?.controle??r?.label??''),valeur:String(r?.valeur??r?.student??''),reference:String(r?.reference??r?.expected??''),conclusion:String(r?.conclusion??'')};}
+  window.tpGenBuildStudentPackage=function(student,d){
+    const m=previousBuild(student,d);
+    const rows=(Array.isArray(d?.controlsTable)?d.controlsTable:(window.tpGenState?.controlRows||[])).map(normRow);
+    m.controlsTable=rows.map(r=>({...r,locks:{controle:!!r.controle,valeur:!!r.valeur,reference:!!r.reference,conclusion:!!r.conclusion}}));
+    m.reponses=m.reponses||{};
+    m.reponses.controles=rows.map(r=>({...r}));
+    const sp=d?.support||{type:'vehicle',vehicle:d?.vehicle||{}};
+    m.support=JSON.parse(JSON.stringify(sp));
+    if((sp.type||'vehicle')==='vehicle'){
+      m.support.vehicle=JSON.parse(JSON.stringify(sp.vehicle||d?.vehicle||{}));
+      m.vehicule=JSON.parse(JSON.stringify(m.support.vehicle));
+    }else{
+      m.vehicule={};
+    }
+    m.meta=m.meta||{};m.meta.source='V49 — données élève contrôles/support corrigées';
+    return m;
+  };
+})();
+</script>
