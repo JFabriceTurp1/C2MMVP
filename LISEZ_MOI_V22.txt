@@ -1,6 +1,0 @@
-V22 — Support persistant + palette Symboles/Unités fixe
-- Les informations Support et ressources restent mémorisées lors des réaffichages, brouillons et TP enregistrés.
-- Réouverture d'un TP : restauration du type de support et de ses champs.
-- Palette Symboles / unités toujours visible à droite sur écran large pendant le défilement.
-- Sur écran étroit, fonctionnement compact conservé.
-- Base : V21.
