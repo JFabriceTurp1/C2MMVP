@@ -11899,17 +11899,27 @@ window.firebaseSaveCurrentConfig=async()=>{await saveFullConfig(firebaseBuildApp
     // Générateur TP : brouillons, TP enregistrés/verrouillés, codes et personnalisations.
     const tpRef=cfgRef.doc(FIREBASE_TPGEN_DOC),tpSnap=await tpRef.get(),remote=tpSnap.exists?(tpSnap.data()||{}):{};
     const localDrafts=v51Json('evaluation_tp_generator_drafts_v2',[]),localSaved=v51Json('tp_generator_saved_v8',[]);
+    // V53 — tombstones de suppression : un TP supprimé sur un poste ne doit jamais être
+    // ressuscité par une ancienne copie encore présente dans Firebase ou sur un autre poste.
+    const localDeletedSaved=v51Json('tp_generator_deleted_saved_v1',{});
+    const remoteDeletedSaved=(remote.deletedSaved&&typeof remote.deletedSaved==='object')?remote.deletedSaved:{};
+    const deletedSaved={...remoteDeletedSaved,...localDeletedSaved};
+    for(const [id,ts] of Object.entries(remoteDeletedSaved)){
+      const l=localDeletedSaved[id];
+      if(!l || v51Time({updatedAt:ts})>v51Time({updatedAt:l})) deletedSaved[id]=ts;
+    }
     const drafts=v51MergeRows(localDrafts,remote.drafts||[],['draftId','id']);
-    const saved=v51MergeRows(localSaved,remote.saved||[],['savedId','id']);
+    const saved=v51MergeRows(localSaved,remote.saved||[],['savedId','id']).filter(x=>!deletedSaved[String(x.savedId||x.id||'')]);
     const codes={...(remote.codes||{}),...v51Json('tp_generator_student_codes_v8',{})};
     const stableCodes={...(remote.stableCodes||{}),...v51Json('tp_v45_codes_by_student_v1',{})};
     const overrides={...(remote.overrides||{}),...v51Json('evaluation_tp_generator_catalog_overrides_v1',{})};
     safeLocalSetItem('evaluation_tp_generator_drafts_v2',JSON.stringify(drafts));
     safeLocalSetItem('tp_generator_saved_v8',JSON.stringify(saved));
+    safeLocalSetItem('tp_generator_deleted_saved_v1',JSON.stringify(deletedSaved));
     safeLocalSetItem('tp_generator_student_codes_v8',JSON.stringify(codes));
     safeLocalSetItem('tp_v45_codes_by_student_v1',JSON.stringify(stableCodes));
     safeLocalSetItem('evaluation_tp_generator_catalog_overrides_v1',JSON.stringify(overrides));
-    await tpRef.set({drafts,saved,codes,stableCodes,overrides,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:false});
+    await tpRef.set({drafts,saved,deletedSaved,codes,stableCodes,overrides,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:false});
 
     // RTA : bibliothèque dédiée, fusionnée par id. Elle reste aussi dans configuration/application
     // pour compatibilité avec les versions antérieures.
@@ -12069,7 +12079,7 @@ window.firebaseSaveCurrentConfig=async()=>{await saveFullConfig(firebaseBuildApp
       startRealtimeListeners();
       startAccountsRealtime();
       // V51 : filet de sécurité multiposte pour les modules encore basés sur localStorage.
-      if(!window.__v51ExtendedSyncTimer) window.__v51ExtendedSyncTimer=setInterval(()=>{const tpBusy=!!document.querySelector('.tpgen-page,.tpgen-saved-page,[id^="tpgen-"]');if(auth?.currentUser&&!syncing&&!tpBusy)synchronizeExtendedLocalData().catch(e=>console.warn('Sync périodique RTA/TP',e))},30000);
+      if(!window.__v51ExtendedSyncTimer) window.__v51ExtendedSyncTimer=setInterval(()=>{const tpBusy=!!document.querySelector('.tpgen-page,.tpgen-saved-page,.tpgen-manager-shell,.tpgen-shell,[id^="tpgen-"]');if(auth?.currentUser&&!syncing&&!tpBusy)synchronizeExtendedLocalData().catch(e=>console.warn('Sync périodique RTA/TP',e))},30000);
     }catch(err){
       console.error('Synchronisation Firebase V86.5 → V88',err);
       setStatus('Synchronisation : '+friendlyError(err),'bad');
@@ -13412,7 +13422,28 @@ function readSupport(){state();const t=tpGenState.supportType,v=id=>document.get
 window.tpGenCurrentDraft=function(){state();const a=tpGenSelected();if(!a)return null;const libs=tpGenRtaLibraries(),lib=libs.find(x=>String(x.id)===String(tpGenState.rtaLibraryId)),ra=lib?.activities?.find(x=>String(x.id)===String(tpGenState.rtaActivityId)),ps=TPGEN_SHEETS.find(x=>x.code===tpGenState.practicalCode)||null,s=readSupport();return{schema:'tp-generation-v8',createdAt:new Date().toISOString(),schoolYear:tpGenSchoolYear(),className:activeClassName?.()||'',teacher:getSchoolSettings?.().teacherName||'',level:a.niveau,activityId:a.activityId,planId:a.planId,family:a.famille,activity:a.activite,type:a.type,client:a.ressentis[tpGenState.clientIndex]||a.ressentis[0],mission:tpGenEditableValue('tpgen-mission',a.mission),duration:tpGenVehicleValue('tpgen-duration')||a.duree,support:s,vehicle:s.vehicle,rta:lib?{libraryId:lib.id,name:lib.name,reference:lib.reference||'',activityId:ra?.id||'',activityTitle:ra?.titre||ra?.activite||'',page:ra?.sourcePage||ra?.page||'',motorisation:ra?.sourceMotorisation||ra?.motorisation||''}:null,practicalSheet:(!lib&&ps)?ps:null,resources:tpGenEditableValue('tpgen-resources',a.ressources),technicalData:tpGenEditableValue('tpgen-data',a.donnees),risks:tpGenEditableValue('tpgen-risks',a.risques),controls:tpGenEditableValue('tpgen-controls',a.controles),environment:tpGenEditableValue('tpgen-env',a.environnement),criteria:tpGenEditableValue('tpgen-criteria',a.criteres),competencies:tpGenState.mode==='custom'?customSelected().competences:a.competences,generatorMode:tpGenState.mode,customNumber:tpGenState.custom?.number||'',customDefinition:tpGenState.mode==='custom'?JSON.parse(JSON.stringify(tpGenState.custom)):null}}
 window.tpGenSaveFinal=function(){state();if(tpGenState.savedLocked){showWarningMessage?.('TP verrouillé : déverrouille-le ou duplique-le.');return}const d=tpGenCurrentDraft();if(!d){showWarningMessage?.('Prépare d’abord un TP.');return}let rows=readSaved(),id=tpGenState.currentSavedId,now=new Date().toISOString();if(id){const i=rows.findIndex(x=>x.savedId===id);if(i>=0){rows[i]={...rows[i],snapshot:JSON.parse(JSON.stringify(d)),updatedAt:now};writeSaved(rows);showSuccessMessage?.('TP enregistré mis à jour.');tpGenSavedPage();return}}id='tp_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,6);rows.unshift({savedId:id,status:'saved',locked:false,createdAt:now,updatedAt:now,snapshot:JSON.parse(JSON.stringify(d))});writeSaved(rows);tpGenState.currentSavedId=id;showSuccessMessage?.('TP enregistré.');tpGenSavedPage()};
 window.tpGenSavedPage=function(){setActive('tpGenerator');const rows=readSaved();document.getElementById('main').innerHTML=`<header class="app-top-header"></header><div class="tpgen-manager-shell"><div class="tpgen-head"><div><h1>✅ Mes TP enregistrés</h1><p class="muted">Un TP verrouillé est prêt à être diffusé.</p></div><button class="tpgen-btn secondary" onclick="tpGeneratorPage()">← Retour</button></div><div class="tpgen-card">${rows.length?rows.map(x=>{const d=x.snapshot||{};return`<div class="tpgen-saved-card ${x.locked?'locked':''}"><b>${esc(tpGenTpCode(d))} — ${esc(d.activity||'TP')}</b><div class="muted">${esc(d.className||'')} • ${x.locked?'🔒 Verrouillé / prêt à diffuser':'📝 Enregistré / modifiable'}</div><div class="tpgen-actions" style="margin-top:8px"><button class="tpgen-btn primary" onclick="tpGenOpenSaved('${esc(x.savedId)}')">Ouvrir</button><button class="tpgen-btn ${x.locked?'secondary':'green'}" onclick="tpGenToggleSavedLock('${esc(x.savedId)}')">${x.locked?'🔓 Déverrouiller':'🔒 Verrouiller'}</button><button class="tpgen-btn secondary" onclick="tpGenDuplicateSaved('${esc(x.savedId)}')">Dupliquer</button>${x.locked?`<button class="tpgen-btn purple" onclick="tpGenDiffuseSaved('${esc(x.savedId)}')">📦 Diffuser à la classe</button>`:''}<button class="tpgen-btn danger" onclick="tpGenDeleteSaved('${esc(x.savedId)}')">Supprimer</button></div></div>`}).join(''):'<div class="muted">Aucun TP enregistré.</div>'}</div></div>`};
-window.tpGenToggleSavedLock=id=>{const r=readSaved(),x=r.find(a=>String(a.savedId||'')===String(id));if(!x)return;x.locked=!x.locked;x.status=x.locked?'locked':'saved';writeSaved(r);tpGenSavedPage()};window.tpGenDiffuseSaved=function(id){const sid=String(id||'');const x=readSaved().find(r=>String(r.savedId||'')===sid);if(!x){showWarningMessage?.('TP enregistré introuvable.');return}if(!x.locked){showWarningMessage?.('Verrouille le TP avant diffusion.');return}window.__tpDiffusionSavedId=sid;tpGenState.currentSavedId=sid;tpGenState.savedLocked=true;tpGenOpenClassExport()};window.tpGenDeleteSaved=id=>{if(confirm('Supprimer ce TP enregistré ?')){writeSaved(readSaved().filter(x=>String(x.savedId||'')!==String(id)));tpGenSavedPage()}};
+window.tpGenToggleSavedLock=id=>{const r=readSaved(),x=r.find(a=>String(a.savedId||'')===String(id));if(!x)return;x.locked=!x.locked;x.status=x.locked?'locked':'saved';writeSaved(r);tpGenSavedPage()};window.tpGenDiffuseSaved=function(id){const sid=String(id||'');const x=readSaved().find(r=>String(r.savedId||'')===sid);if(!x){showWarningMessage?.('TP enregistré introuvable.');return}if(!x.locked){showWarningMessage?.('Verrouille le TP avant diffusion.');return}window.__tpDiffusionSavedId=sid;tpGenState.currentSavedId=sid;tpGenState.savedLocked=true;tpGenOpenClassExport()};window.tpGenDeleteSaved=async function(id){
+  if(!confirm('Supprimer ce TP enregistré ?'))return;
+  const sid=String(id||'');
+  // Suppression locale immédiate + tombstone persistant.
+  writeSaved(readSaved().filter(x=>String(x.savedId||'')!==sid));
+  let tomb={};try{tomb=JSON.parse(localStorage.getItem('tp_generator_deleted_saved_v1')||'{}')||{}}catch(e){}
+  tomb[sid]=new Date().toISOString();
+  safeLocalSetItem('tp_generator_deleted_saved_v1',JSON.stringify(tomb));
+  tpGenSavedPage();
+  // Propagation ciblée à Firebase sans relancer/rendre l'écran Génération TP.
+  try{
+    if(auth?.currentUser&&firestore){
+      const ref=userRoot().collection(FIREBASE_CONFIG_COLLECTION).doc(FIREBASE_TPGEN_DOC);
+      const snap=await ref.get(),data=snap.exists?(snap.data()||{}):{};
+      const cloudSaved=Array.isArray(data.saved)?data.saved:[];
+      const cloudDeleted=(data.deletedSaved&&typeof data.deletedSaved==='object')?data.deletedSaved:{};
+      cloudDeleted[sid]=tomb[sid];
+      await ref.set({saved:cloudSaved.filter(x=>String(x.savedId||x.id||'')!==sid),deletedSaved:cloudDeleted,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
+      setStatus?.('✓ TP supprimé et synchronisé Firebase','ok');
+    }
+  }catch(e){console.warn('Suppression TP Firebase différée :',e);setStatus?.('TP supprimé localement — synchronisation Firebase différée','warn')}
+};
 window.tpGenLoadSnapshot=function(d,copy=false){state();tpGenState.mode=d.generatorMode||'base';tpGenState.level=d.level||'SECONDE';tpGenState.selectedId=tpGenState.mode==='base'?(d.activityId||''):'';tpGenState.rtaLibraryId=d.rta?.libraryId||'';tpGenState.rtaActivityId=d.rta?.activityId||'';tpGenState.practicalCode=d.practicalSheet?.code||'';tpGenState.supportType=d.support?.type||'vehicle';tpGenState.pedVisibility={...(d.pedagogicVisibility||{})};tpGenState.controlRows=(d.controlsTable||[]).map(r=>({controle:r.controle??r.label??'',valeur:r.valeur??r.student??'',reference:r.reference??r.expected??'',conclusion:r.conclusion??''}));tpGenState.custom=d.customDefinition?JSON.parse(JSON.stringify(d.customDefinition)):tpGenState.custom;if(copy){tpGenState.currentSavedId='';tpGenState.savedLocked=false}tpGeneratorPage();setTimeout(()=>{const set=(id,v)=>{const e=document.getElementById(id);if(e)e.value=v||''},v=d.vehicle||d.support?.vehicle||{},sp=d.support||{};set('tpgen-marque',v.marque);set('tpgen-modele',v.modele);set('tpgen-immat',v.immatriculation);set('tpgen-year',v.annee);set('tpgen-motor',v.motorisation);set('tpgen-km',v.kilometrage);set('tpgen-support-name',sp.label);set('tpgen-support-system',sp.system);set('tpgen-support-ref',sp.reference);set('tpgen-support-details',sp.details);set('tpgen-duration',d.duration);set('tpgen-mission',d.mission);set('tpgen-resources',d.resources);set('tpgen-data',d.technicalData);set('tpgen-risks',d.risks);set('tpgen-controls',d.controls);set('tpgen-env',d.environment);set('tpgen-criteria',d.criteria);tpGenRenderPracticalSheets?.();tpGenApplySavedLock?.()},80)};
 window.tpGenOpenSaved=id=>{const x=readSaved().find(r=>r.savedId===id);if(!x)return;tpGenState.currentSavedId=id;tpGenState.savedLocked=!!x.locked;tpGenLoadSnapshot(x.snapshot,false)};window.tpGenDuplicateSaved=id=>{const x=readSaved().find(r=>r.savedId===id);if(!x)return;tpGenState.currentSavedId='';tpGenState.savedLocked=false;tpGenLoadSnapshot(x.snapshot,true)};
 window.tpGenOpenDraft=id=>{const d=tpGenDrafts().find(x=>x.draftId===id);if(!d)return;tpGenState.currentDraftId=d.draftId;tpGenState.currentSavedId='';tpGenState.savedLocked=false;tpGenLoadSnapshot(d,false);tpGenState.currentDraftId=d.draftId};
@@ -14317,3 +14348,5 @@ Nombre d’élèves : ${files.length}`});return {files,d:{...d,className}}};
   setTimeout(()=>{const h=[...document.querySelectorAll('h1')].find(x=>x.textContent.includes('Génération de TP'));if(h&&!h.querySelector('.tp48-badge')){const s=document.createElement('span');s.className='tp48-badge';s.textContent='V48';h.appendChild(s)}},500);
 })();
 </script>
+
+<!-- V53 : stabilité TP enregistrés + tombstones Firebase anti-résurrection -->
