@@ -2799,7 +2799,7 @@ body{background:#f7f9fc;color:var(--text)}
 <!-- V88 — DONNÉES DE RÉFÉRENCE RÉINTÉGRÉES DEPUIS V86.5
      Jeux embarqués repris : référentiel compétences, élèves par défaut, seconde classe fictive, situations professionnelles.
      Les données dynamiques (classes/élèves/évaluations réellement saisies) restent chargées par IndexedDB/localStorage et Firebase. -->
-<div id="build-version" style="position:fixed;right:10px;bottom:8px;font-size:10px;opacity:.45;z-index:9999">V RÉFÉRENTIEL 2 — V1 · LOCAL · SP10 · PARAMÈTRES REPLIÉS</div>
+<div id="build-version" style="position:fixed;right:10px;bottom:8px;font-size:10px;opacity:.55;z-index:9999">V68 — RÉPARATION DÉMARRAGE · PACKAGE COMPLET</div>
 <div id="firebase-auth-overlay">
   <div class="firebase-login-card">
     <h2>☁️ Connexion Firebase — V88</h2>
@@ -8608,6 +8608,10 @@ function exportStudentDeletionPDF(studentsSnapshot, deletionDate){
 
 
 <!-- V64 — corrections PDF, états TP, recherche TP, sélection historique -->
+<!-- V65 : réparation Mes TP enregistrés (portée readSaved) -->
+
+
+
 </body></html>`);
   w.document.close();
 }
@@ -11925,7 +11929,18 @@ window.firebaseSaveCurrentConfig=async()=>{await saveFullConfig(firebaseBuildApp
     const mergedRta=v51MergeRows(currentRta,rta,['id','libraryId','name']);
     try{safeLocalSetItem(RTA_LIBRARY_KEY,JSON.stringify(mergedRta));safeLocalSetItem(RTA_LIBRARY_INIT_KEY,'1')}catch(e){}
     await rtaRef.set({items:mergedRta,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:false});
-    return {connected:true,drafts:drafts.length,saved:saved.length,rta:mergedRta.length};
+
+    // V68 — Portail correcteur multiposte : fusion locale/cloud sans perte.
+    const corrKey='tp_correction_local_v54', corrDeletedKey='tp_correction_deleted_v68';
+    const corrLocal=v51Json(corrKey,[]), corrDeleted=v51Json(corrDeletedKey,{});
+    const corrRef=cfgRef.doc('tpCorrections'), corrSnap=await corrRef.get(), corrRemote=corrSnap.exists?(corrSnap.data()||{}):{};
+    const corrRows=v51MergeRows(corrLocal,corrRemote.items||[],['id']);
+    const corrTombs={...(corrRemote.deleted||{}),...corrDeleted};
+    const corrLive=corrRows.filter(x=>!corrTombs[String(x.id||'')]);
+    safeLocalSetItem(corrKey,JSON.stringify(corrLive.slice(0,2000)));
+    safeLocalSetItem(corrDeletedKey,JSON.stringify(corrTombs));
+    await corrRef.set({items:corrLive,deleted:corrTombs,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:false});
+    return {connected:true,drafts:drafts.length,saved:saved.length,rta:mergedRta.length,corrections:corrLive.length};
   }
   window.firebaseSyncExtendedLocalData=synchronizeExtendedLocalData;
 
@@ -14352,6 +14367,9 @@ window.tpCorrectionValidate=async function(){
 })();
 </script>
 <!-- V64 — corrections PDF, états TP, recherche TP, sélection historique -->
+
+<style id="v68-ui-fixes">#firebase-panel button[aria-label*="Fermer"],#firebase-panel .close,#firebase-panel .modal-close,.firebase-close{min-width:40px!important;min-height:40px!important;font-size:24px!important;line-height:1!important}</style>
+<script id="v68-safe-hooks">(function(){function syncSoon(){clearTimeout(window.__v68CorrSync);window.__v68CorrSync=setTimeout(function(){try{const p=window.firebaseSyncExtendedLocalData?.();if(p&&p.catch)p.catch(()=>{});}catch(e){}},700)}function wrap(name){const f=window[name];if(typeof f!=='function'||f.__v68)return;const w=async function(){const r=await f.apply(this,arguments);syncSoon();return r};w.__v68=true;window[name]=w}['tpCorrectionImport','tpCorrectionDraftSave','tpCorrectionSetLevel','tpCorrectionAutoLevels','tp55Mark','tpCorrectionValidate'].forEach(wrap);setTimeout(function(){['tpCorrectionImport','tpCorrectionDraftSave','tpCorrectionSetLevel','tpCorrectionAutoLevels','tp55Mark','tpCorrectionValidate'].forEach(wrap)},1800);const clean=function(){document.querySelectorAll('.tpgen-local').forEach(function(el){const t=(el.textContent||'').toLowerCase();if(t.includes('v41')||t.includes('mode test local'))el.remove()})};setTimeout(clean,300);setTimeout(clean,1800)})();</script>
 </body>
 </html>
 
@@ -14547,7 +14565,7 @@ window.tpCorrectionValidate=async function(){
  // TP enregistrés : date création décroissante + recherche instantanée
  let tp64Search='';
  window.tp64SavedSearch=function(v){tp64Search=v||'';window.tpGenSavedPage()};
- window.tpGenSavedPage=function(){setActive('tpGenerator');const q=norm(tp64Search),rows=readSaved().slice().sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0)).filter(x=>{const d=x.snapshot||{};return !q||norm([tpGenTpCode(d),d.activity,d.className,d.family,d.level,d.diploma].join(' ')).includes(q)});document.getElementById('main').innerHTML=`<header class="app-top-header"></header><div class="tpgen-manager-shell"><div class="tpgen-head"><div><h1>✅ Mes TP enregistrés</h1><p class="muted">Classés du plus récent au plus ancien.</p></div><button class="tpgen-btn secondary" onclick="tpGeneratorPage()">← Retour</button></div><div class="tpgen-card"><input class="tp64-search" type="search" placeholder="Rechercher un TP, un code, une activité, une classe…" value="${esc(tp64Search)}" oninput="tp64SavedSearch(this.value)">${rows.length?rows.map(x=>{const d=x.snapshot||{},dt=x.createdAt?new Date(x.createdAt).toLocaleString('fr-FR'):'—';return`<div class="tpgen-saved-card ${x.locked?'locked':''}"><b>${esc(tpGenTpCode(d))} — ${esc(d.activity||'TP')}</b><div class="muted">${esc(d.className||'')} • ${x.locked?'🔒 Verrouillé / prêt à diffuser':'📝 Enregistré / modifiable'}</div><div class="tp64-date">Créé le ${esc(dt)}</div><div class="tpgen-actions" style="margin-top:8px"><button class="tpgen-btn primary" onclick="tpGenOpenSaved('${esc(x.savedId)}')">Ouvrir</button><button class="tpgen-btn ${x.locked?'secondary':'green'}" onclick="tpGenToggleSavedLock('${esc(x.savedId)}')">${x.locked?'🔓 Déverrouiller':'🔒 Verrouiller'}</button><button class="tpgen-btn secondary" onclick="tpGenDuplicateSaved('${esc(x.savedId)}')">Dupliquer</button>${x.locked?`<button class="tpgen-btn purple" onclick="tpGenDiffuseSaved('${esc(x.savedId)}')">📦 Diffuser à la classe</button>`:''}<button class="tpgen-btn danger" onclick="tpGenDeleteSaved('${esc(x.savedId)}')">Supprimer</button></div></div>`}).join(''):'<div class="muted">Aucun TP ne correspond à la recherche.</div>'}</div></div>`};
+ window.tpGenSavedPage=function(){setActive('tpGenerator');const q=norm(tp64Search),rows=(()=>{try{return JSON.parse(localStorage.getItem('tp_generator_saved_v8')||'[]')||[]}catch(e){return[]}})().slice().sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0)).filter(x=>{const d=x.snapshot||{};return !q||norm([tpGenTpCode(d),d.activity,d.className,d.family,d.level,d.diploma].join(' ')).includes(q)});document.getElementById('main').innerHTML=`<header class="app-top-header"></header><div class="tpgen-manager-shell"><div class="tpgen-head"><div><h1>✅ Mes TP enregistrés</h1><p class="muted">Classés du plus récent au plus ancien.</p></div><button class="tpgen-btn secondary" onclick="tpGeneratorPage()">← Retour</button></div><div class="tpgen-card"><input class="tp64-search" type="search" placeholder="Rechercher un TP, un code, une activité, une classe…" value="${esc(tp64Search)}" oninput="tp64SavedSearch(this.value)">${rows.length?rows.map(x=>{const d=x.snapshot||{},dt=x.createdAt?new Date(x.createdAt).toLocaleString('fr-FR'):'—';return`<div class="tpgen-saved-card ${x.locked?'locked':''}"><b>${esc(tpGenTpCode(d))} — ${esc(d.activity||'TP')}</b><div class="muted">${esc(d.className||'')} • ${x.locked?'🔒 Verrouillé / prêt à diffuser':'📝 Enregistré / modifiable'}</div><div class="tp64-date">Créé le ${esc(dt)}</div><div class="tpgen-actions" style="margin-top:8px"><button class="tpgen-btn primary" onclick="tpGenOpenSaved('${esc(x.savedId)}')">Ouvrir</button><button class="tpgen-btn ${x.locked?'secondary':'green'}" onclick="tpGenToggleSavedLock('${esc(x.savedId)}')">${x.locked?'🔓 Déverrouiller':'🔒 Verrouiller'}</button><button class="tpgen-btn secondary" onclick="tpGenDuplicateSaved('${esc(x.savedId)}')">Dupliquer</button>${x.locked?`<button class="tpgen-btn purple" onclick="tpGenDiffuseSaved('${esc(x.savedId)}')">📦 Diffuser à la classe</button>`:''}<button class="tpgen-btn danger" onclick="tpGenDeleteSaved('${esc(x.savedId)}')">Supprimer</button></div></div>`}).join(''):'<div class="muted">Aucun TP ne correspond à la recherche.</div>'}</div></div>`};
  // Auto-évaluation dans le PDF corrigé
  window.tp64SelfEvalPdfHtml=function(r,d){try{const db=JSON.parse(localStorage.getItem('atelier_du_jour_v16')||'{}'),cid=String(d.classId||getActiveClassId?.()||''),dates=db.classDays?.[cid]||{};let se=null;for(const day of Object.values(dates)){for(const [k,p] of Object.entries(day.pending||{})){const nm=norm(p.studentName),dn=norm([d.eleve?.nom,d.eleve?.prenom].filter(Boolean).join(' '));if(nm&&dn&&(nm===dn||nm.split(' ').every(z=>dn.includes(z)))){se=day.selfEvals?.[k]||p.selfEvaluation||se}}}if(!se)return '<p>Aucune auto-évaluation retrouvée.</p>';return `<table><tbody><tr><th>Note élève</th><td><b>${esc(se.note??'—')} / 20</b></td></tr><tr><th>Organisation</th><td>${esc(se.organisation??'—')} / 4</td></tr><tr><th>Résultats</th><td>${esc(se.resultats??'—')} / 4</td></tr><tr><th>Autonomie</th><td>${esc(se.confiance??se.autonomie??'—')} / 4</td></tr><tr><th>Commentaire élève</th><td>${esc(se.comment||'—')}</td></tr></tbody></table>`}catch(e){return '<p>Aucune auto-évaluation retrouvée.</p>'}};
  // Choix du fichier/dossier AVANT les opérations asynchrones de validation, pour conserver le geste utilisateur.
