@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Évaluation, charge atelier, RTA, génération TP — V19</title>
+<title>Évaluation, charge atelier, RTA, génération TP — V51 Firebase multiposte complet</title>
 <style>
 *{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f5f7fa;color:#172033}
 .app{display:flex;min-height:100vh}.side{width:235px;background:#172033;color:#fff;padding:22px 14px}.logo{font-size:19px;font-weight:700;padding:8px 10px 24px}
@@ -11473,47 +11473,49 @@ function openAssistanceMail(){
   }
 
   async function synchronizeAtelierSessions(){
-    const activeClassId=String(getActiveClassId()||"classe");
-    // V90 : l'Atelier du jour ne doit jamais bloquer la synchronisation générale.
-    // Lecture distante bornée dans le temps.
+    // V51 — Synchronisation multiposte non destructive de TOUTES les classes et dates.
+    // L'ancienne routine lisait encore d.days et seulement la classe active, alors que
+    // l'Atelier du jour utilise désormais d.classDays[classId][date].
     const allRemote=await firebaseTimeout(cloudDocs(FIREBASE_ATELIER_COLLECTION),12000,"Lecture Atelier du jour");
-    const remote=allRemote.filter(x=>String(x.classId||"")===activeClassId);
-    const local=readAtelierLocal();local.days=local.days||{};
-    const remoteByDate=new Map(remote.map(x=>[String(x.date||""),x]));
-    const dates=[...new Set([...Object.keys(local.days),...remoteByDate.keys()])]
-      .filter(date=>/^\d{4}-\d{2}-\d{2}$/.test(String(date||"")))
-      .sort();
-
-    // Préparer la fusion local/cloud avant les écritures.
+    const local=readAtelierLocal(); local.classDays=local.classDays||{};
+    const remoteMap=new Map();
+    for(const x of allRemote){
+      const cid=String(x.classId||''); const date=String(x.date||'');
+      if(cid && /^\d{4}-\d{2}-\d{2}$/.test(date)) remoteMap.set(cid+'|'+date,x);
+    }
+    const keys=new Set(remoteMap.keys());
+    for(const [cid,days] of Object.entries(local.classDays||{})){
+      for(const date of Object.keys(days||{})) if(/^\d{4}-\d{2}-\d{2}$/.test(date)) keys.add(String(cid)+'|'+date);
+    }
+    // Compatibilité : récupérer l'ancien d.days sans l'effacer, dans la classe active seulement.
+    const activeClassId=String(getActiveClassId()||'classe');
+    for(const date of Object.keys(local.days||{})){
+      if(/^\d{4}-\d{2}-\d{2}$/.test(date)){
+        local.classDays[activeClassId]=local.classDays[activeClassId]||{};
+        if(!local.classDays[activeClassId][date]) local.classDays[activeClassId][date]=JSON.parse(JSON.stringify(local.days[date]));
+        keys.add(activeClassId+'|'+date);
+      }
+    }
     const payloads=[];
-    for(const date of dates){
-      const localSession=local.days[date]||{};
-      const remoteSession=remoteByDate.get(date)?.session||{};
-      const merged=mergeAtelierSessions(localSession,remoteSession);
-      local.days[date]=merged;
-      payloads.push({date,merged});
+    for(const key of keys){
+      const cut=key.indexOf('|'),cid=key.slice(0,cut),date=key.slice(cut+1);
+      local.classDays[cid]=local.classDays[cid]||{};
+      const l=local.classDays[cid][date]||{};
+      const r=remoteMap.get(key)?.session||{};
+      const merged=mergeAtelierSessions(l,r);
+      local.classDays[cid][date]=merged;
+      payloads.push({cid,date,merged});
     }
     writeAtelierLocal(local);
-
-    // Écriture par lots : beaucoup plus rapide que N écritures séquentielles.
-    // 200 documents par lot pour rester très largement sous la limite Firestore.
     for(let i=0;i<payloads.length;i+=200){
-      const chunk=payloads.slice(i,i+200);
-      const batch=firestore.batch();
-      for(const item of chunk){
-        batch.set(userRoot().collection(FIREBASE_ATELIER_COLLECTION).doc(atelierDocumentId(activeClassId,item.date)),{
-          classId:activeClassId,
-          date:item.date,
-          session:JSON.parse(JSON.stringify(item.merged)),
-          updatedAt:firebase.firestore.FieldValue.serverTimestamp()
-        },{merge:false});
-      }
-      if(chunk.length){
-        await firebaseTimeout(batch.commit(),12000,"Envoi Atelier du jour");
-      }
+      const chunk=payloads.slice(i,i+200),batch=firestore.batch();
+      for(const item of chunk) batch.set(userRoot().collection(FIREBASE_ATELIER_COLLECTION).doc(atelierDocumentId(item.cid,item.date)),{
+        classId:item.cid,date:item.date,session:JSON.parse(JSON.stringify(item.merged)),updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+      },{merge:false});
+      if(chunk.length) await firebaseTimeout(batch.commit(),12000,"Envoi Atelier du jour");
     }
-    if(typeof window.refreshAtelierFromFirebase==="function")window.refreshAtelierFromFirebase();
-    return dates.length;
+    if(typeof window.refreshAtelierFromFirebase==='function')window.refreshAtelierFromFirebase();
+    return payloads.length;
   }
   window.firebaseSaveAtelierSession=async function(session,classId,date){
     // La sauvegarde locale est déjà faite avant cet appel. Si Firebase est hors ligne,
@@ -11876,6 +11878,52 @@ window.firebaseSaveCurrentConfig=async()=>{await saveFullConfig(firebaseBuildApp
   }
   window.firebaseDataIntegrityDiagnostic=firebaseDataIntegrityDiagnostic;
 
+  // V51 — Données ajoutées au fil des développements : RTA + générateur de TP.
+  // Fusion par identifiant : on construit l'union local/cloud avant toute écriture.
+  const FIREBASE_TPGEN_DOC='tpGenerator';
+  function v51Json(key,fallback){try{const x=JSON.parse(localStorage.getItem(key)||'');return x??fallback}catch(e){return fallback}}
+  function v51Time(x){const v=x?.updatedAt||x?.createdAt||x?.savedAt||0;const n=typeof v==='number'?v:Date.parse(v||'');return Number.isFinite(n)?n:0}
+  function v51MergeRows(localRows,remoteRows,idKeys){
+    const m=new Map();
+    for(const x of [...(remoteRows||[]),...(localRows||[])]){
+      if(!x||typeof x!=='object')continue;
+      let id='';for(const k of idKeys){if(x[k]!==undefined&&x[k]!==null&&String(x[k])){id=String(x[k]);break}}
+      if(!id)id='anon_'+JSON.stringify(x).slice(0,120);
+      const prev=m.get(id);if(!prev||v51Time(x)>=v51Time(prev))m.set(id,JSON.parse(JSON.stringify(x)));
+    }
+    return [...m.values()];
+  }
+  async function synchronizeExtendedLocalData(){
+    if(!auth?.currentUser)return {connected:false};
+    const cfgRef=userRoot().collection(FIREBASE_CONFIG_COLLECTION);
+    // Générateur TP : brouillons, TP enregistrés/verrouillés, codes et personnalisations.
+    const tpRef=cfgRef.doc(FIREBASE_TPGEN_DOC),tpSnap=await tpRef.get(),remote=tpSnap.exists?(tpSnap.data()||{}):{};
+    const localDrafts=v51Json('evaluation_tp_generator_drafts_v2',[]),localSaved=v51Json('tp_generator_saved_v8',[]);
+    const drafts=v51MergeRows(localDrafts,remote.drafts||[],['draftId','id']);
+    const saved=v51MergeRows(localSaved,remote.saved||[],['savedId','id']);
+    const codes={...(remote.codes||{}),...v51Json('tp_generator_student_codes_v8',{})};
+    const stableCodes={...(remote.stableCodes||{}),...v51Json('tp_v45_codes_by_student_v1',{})};
+    const overrides={...(remote.overrides||{}),...v51Json('evaluation_tp_generator_catalog_overrides_v1',{})};
+    safeLocalSetItem('evaluation_tp_generator_drafts_v2',JSON.stringify(drafts));
+    safeLocalSetItem('tp_generator_saved_v8',JSON.stringify(saved));
+    safeLocalSetItem('tp_generator_student_codes_v8',JSON.stringify(codes));
+    safeLocalSetItem('tp_v45_codes_by_student_v1',JSON.stringify(stableCodes));
+    safeLocalSetItem('evaluation_tp_generator_catalog_overrides_v1',JSON.stringify(overrides));
+    await tpRef.set({drafts,saved,codes,stableCodes,overrides,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:false});
+
+    // RTA : bibliothèque dédiée, fusionnée par id. Elle reste aussi dans configuration/application
+    // pour compatibilité avec les versions antérieures.
+    const rtaRef=cfgRef.doc('rtaLibraries'),rtaSnap=await rtaRef.get(),rtaRemote=rtaSnap.exists?(rtaSnap.data()?.items||[]):[];
+    const rta=v51MergeRows(v51Json('evaluation_rta_libraries_v1',[]),rtaRemote,['id','libraryId','name']);
+    // La clé exacte est fournie par RTA_LIBRARY_KEY ; utiliser le contenu courant si différent.
+    let currentRta=[];try{currentRta=getRtaLibraries?.()||[]}catch(e){}
+    const mergedRta=v51MergeRows(currentRta,rta,['id','libraryId','name']);
+    try{safeLocalSetItem(RTA_LIBRARY_KEY,JSON.stringify(mergedRta));safeLocalSetItem(RTA_LIBRARY_INIT_KEY,'1')}catch(e){}
+    await rtaRef.set({items:mergedRta,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:false});
+    return {connected:true,drafts:drafts.length,saved:saved.length,rta:mergedRta.length};
+  }
+  window.firebaseSyncExtendedLocalData=synchronizeExtendedLocalData;
+
   async function synchronizeCloud({forceUpload=false}={}){
     if(syncing || !auth.currentUser) return;
     const reconnectPushPending=localStorage.getItem("evaluation_firebase_reconnect_push_pending")==="1";
@@ -11953,12 +12001,18 @@ window.firebaseSaveCurrentConfig=async()=>{await saveFullConfig(firebaseBuildApp
         console.warn('Atelier du jour non bloquant :',e);
         setSyncProgress(64,'Atelier du jour différé — poursuite de la synchronisation…');
       }
-      setSyncProgress(66,'Synchronisation des paramètres…');
+      setSyncProgress(66,'Synchronisation RTA et générateur de TP…');
+      let extendedSync={};try{extendedSync=await synchronizeExtendedLocalData()}catch(e){console.warn('RTA / TP non bloquant :',e)}
+      setSyncProgress(72,'Synchronisation des paramètres…');
       let cfg=await cloudGetOne(FIREBASE_CONFIG_COLLECTION,FIREBASE_CONFIG_DOC);
       if(cfg){
         firebaseApplyApplicationConfig(cfg);
+        // V51 : la configuration historique peut contenir une ancienne copie RTA.
+        // On refait la fusion dédiée puis on sauvegarde l'union, jamais une copie locale seule.
+        try{extendedSync=await synchronizeExtendedLocalData();await saveFullConfig(firebaseBuildApplicationConfig())}catch(e){console.warn('Consolidation RTA / TP :',e)}
       }else{
-        // V89.1 : une simple récupération ne crée aucune configuration distante.
+        // Première initialisation : publier uniquement après fusion des données locales dédiées.
+        try{await saveFullConfig(firebaseBuildApplicationConfig())}catch(e){console.warn('Configuration initiale :',e)}
       }
 
       // Professeurs/comptes : priorité absolue à la collection V86.5 "comptes".
@@ -11998,6 +12052,7 @@ window.firebaseSaveCurrentConfig=async()=>{await saveFullConfig(firebaseBuildApp
         evaluations:cloudEvaluations.length,
         teachers:teacherCount,
         configuration:!!cfg,
+        tpDrafts:Number(extendedSync?.drafts||0),tpSaved:Number(extendedSync?.saved||0),rtaLibraries:Number(extendedSync?.rta||0),
         workspace:FIREBASE_SHARED_WORKSPACE_ID,
         pendingOps:readPendingFirebaseOps().length,
         atelierSessions:atelierSessionsCount,
@@ -12013,6 +12068,8 @@ window.firebaseSaveCurrentConfig=async()=>{await saveFullConfig(firebaseBuildApp
       if(reconnectPushPending)localStorage.removeItem("evaluation_firebase_reconnect_push_pending");
       startRealtimeListeners();
       startAccountsRealtime();
+      // V51 : filet de sécurité multiposte pour les modules encore basés sur localStorage.
+      if(!window.__v51ExtendedSyncTimer) window.__v51ExtendedSyncTimer=setInterval(()=>{if(auth?.currentUser&&!syncing)synchronizeExtendedLocalData().catch(e=>console.warn('Sync périodique RTA/TP',e))},30000);
     }catch(err){
       console.error('Synchronisation Firebase V86.5 → V88',err);
       setStatus('Synchronisation : '+friendlyError(err),'bad');
@@ -12131,13 +12188,13 @@ window.firebaseSaveCurrentConfig=async()=>{await saveFullConfig(firebaseBuildApp
   }
   async function applyRemoteAtelierSession(change){
     const item=change.doc.data()||{};
-    const activeClassId=String(getActiveClassId()||"classe");
-    if(String(item.classId||"")!==activeClassId)return;
-    const date=String(item.date||"");if(!date)return;
-    const local=readAtelierLocal();local.days=local.days||{};
-    local.classDays=local.classDays||{};local.classDays[activeClassId]=local.classDays[activeClassId]||{};if(change.type==='removed')delete local.classDays[activeClassId][date];else local.classDays[activeClassId][date]=JSON.parse(JSON.stringify(item.session||{}));
+    const classId=String(item.classId||"");
+    const date=String(item.date||"");if(!classId||!date)return;
+    const local=readAtelierLocal();local.classDays=local.classDays||{};local.classDays[classId]=local.classDays[classId]||{};
+    if(change.type==='removed') delete local.classDays[classId][date];
+    else local.classDays[classId][date]=mergeAtelierSessions(local.classDays[classId][date]||{},item.session||{});
     writeAtelierLocal(local);
-    if(typeof window.refreshAtelierFromFirebase==='function')window.refreshAtelierFromFirebase();
+    if(String(getActiveClassId()||'')===classId && typeof window.refreshAtelierFromFirebase==='function')window.refreshAtelierFromFirebase();
   }
   function watchCollection(name,handler){
     let first=true;
@@ -12248,7 +12305,7 @@ function startRealtimeListeners(){
     miniInfo.addEventListener('click',async()=>{
       const d=window.firebaseLastDiagnostic;if(!d){alert("Clique d'abord sur Synchroniser pour afficher le diagnostic Firebase.");return;}
       let x=null;try{x=await firebaseDataIntegrityDiagnostic()}catch(e){}
-      alert("Compte Firebase : "+(d.email||"—")+"\nUID : "+(d.uid||"—")+"\n\nClasses Firebase : "+d.classes+"\nÉlèves Firebase : "+d.students+"\nÉvaluations Firebase : "+d.evaluations+(x?"\nÉvaluations locales : "+x.local+"\nOrphelines locales : "+x.orphanLocal+"\nUniquement locales : "+x.onlyLocal+"\nUniquement Firebase : "+x.onlyCloud+"\nOpérations évaluations en attente : "+x.pending:"")+"\nSéances Atelier du jour : "+(d.atelierSessions||0)+"\nProfesseurs : "+d.teachers+"\nConfiguration : "+(d.configuration?"oui":"non"));
+      alert("Compte Firebase : "+(d.email||"—")+"\nUID : "+(d.uid||"—")+"\n\nClasses Firebase : "+d.classes+"\nÉlèves Firebase : "+d.students+"\nÉvaluations Firebase : "+d.evaluations+(x?"\nÉvaluations locales : "+x.local+"\nOrphelines locales : "+x.orphanLocal+"\nUniquement locales : "+x.onlyLocal+"\nUniquement Firebase : "+x.onlyCloud+"\nOpérations évaluations en attente : "+x.pending:"")+"\nSéances Atelier du jour : "+(d.atelierSessions||0)+"\nProfesseurs : "+d.teachers+"\nRTA synchronisées : "+(d.rtaLibraries||0)+"\nBrouillons TP : "+(d.tpDrafts||0)+"\nTP enregistrés : "+(d.tpSaved||0)+"\nConfiguration : "+(d.configuration?"oui":"non"));
     });;
   }
 
@@ -13281,7 +13338,7 @@ function tpGenManagementPage(){setActive('tpGenerator');const all=tpGenCatalog()
 function tpGenManagementForm(a){const r=a.ressentis||['','',''];return `<div class="tpgen-card"><div class="tpgen-meta"><span class="tpgen-pill">${esc(a.activityId)}</span><span class="tpgen-pill">${esc(a.planId)}</span></div><h2 style="margin-top:10px">Modifier l’activité</h2><div class="tpgen-form"><label>Statut<select id="tpm-status"><option ${a.statut==='Validé enseignant'?'selected':''}>Validé enseignant</option><option ${a.statut==='À valider enseignant'?'selected':''}>À valider enseignant</option><option ${a.statut==='À modifier'?'selected':''}>À modifier</option><option ${a.statut==='Archivé'?'selected':''}>Archivé</option></select></label><label>Niveau<input id="tpm-level" value="${esc(a.niveau)}"></label><label class="full">Intitulé<input id="tpm-title" value="${esc(a.activite)}"></label><label>Famille<input id="tpm-family" value="${esc(a.famille)}"></label><label>Type de TP<input id="tpm-type" value="${esc(a.type)}"></label><label>Durée<input id="tpm-duration" value="${esc(a.duree)}"></label><label>Séquence<input id="tpm-sequence" value="${esc(a.sequence)}"></label><label class="full">Ressenti client 1<textarea id="tpm-r1">${esc(r[0]||'')}</textarea></label><label class="full">Ressenti client 2<textarea id="tpm-r2">${esc(r[1]||'')}</textarea></label><label class="full">Ressenti client 3<textarea id="tpm-r3">${esc(r[2]||'')}</textarea></label><label class="full">Mission élève<textarea id="tpm-mission">${esc(a.mission)}</textarea></label><label class="full">Ressources<textarea id="tpm-resources">${esc(a.ressources)}</textarea></label><label class="full">Données techniques<textarea id="tpm-data">${esc(a.donnees)}</textarea></label><label class="full">Sécurité / risques<textarea id="tpm-risks">${esc(a.risques)}</textarea></label><label class="full">Contrôles attendus<textarea id="tpm-controls">${esc(a.controles)}</textarea></label><label class="full">Déchets / environnement<textarea id="tpm-env">${esc(a.environnement||'')}</textarea></label><label class="full">Critères observables<textarea id="tpm-criteria">${esc(a.criteres)}</textarea></label><label class="full">Compétences 2025<textarea id="tpm-comps">${esc(a.competences)}</textarea></label></div><div class="tpgen-actions" style="margin-top:12px"><button class="tpgen-btn secondary" onclick="tpGenManagementRestore('${a.activityId}')">Restaurer la base</button><button class="tpgen-btn green" onclick="tpGenManagementSave('${a.activityId}')">💾 Enregistrer les modifications</button></div></div>`}
 function tpGenManagementSave(id){try{const val=x=>document.getElementById(x)?.value??'';const o=tpGenOverrides();o[id]={statut:val('tpm-status'),niveau:val('tpm-level'),activite:val('tpm-title'),famille:val('tpm-family'),type:val('tpm-type'),duree:val('tpm-duration'),sequence:val('tpm-sequence'),ressentis:[val('tpm-r1'),val('tpm-r2'),val('tpm-r3')],mission:val('tpm-mission'),ressources:val('tpm-resources'),donnees:val('tpm-data'),risques:val('tpm-risks'),controles:val('tpm-controls'),environnement:val('tpm-env'),criteres:val('tpm-criteria'),competences:val('tpm-comps')};localStorage.setItem(TPGEN_OVERRIDE_KEY,JSON.stringify(o));const check=tpGenOverrides()[id];if(!check||check.activite!==o[id].activite||check.statut!==o[id].statut)throw new Error('La modification n’a pas pu être relue après enregistrement.');showSuccessMessage?.('Modifications enregistrées durablement sur cet appareil.');setTimeout(()=>tpGenManagementPage(),250)}catch(e){console.error(e);alert('Impossible d’enregistrer les modifications : '+(e?.message||e))}}
 function tpGenManagementRestore(id){if(!confirm('Restaurer cette activité telle qu’elle se trouve dans la base enseignant d’origine ?'))return;const o=tpGenOverrides();delete o[id];localStorage.setItem(TPGEN_OVERRIDE_KEY,JSON.stringify(o));tpGenManagementPage()}
-function tpGeneratorPage(){setActive('tpGenerator');const cls=typeof activeClassName==='function'?activeClassName():(getSchoolSettings?.().className||'');const teacher=getSchoolSettings?.().teacherName||'';const activeRef=typeof getActiveReferentialId==='function'?getActiveReferentialId():'';const isBac=String(activeRef).toLowerCase().includes('bac');const a=tpGenSelected();const families=tpGenUnique('famille',tpGenState.level);const libs=tpGenRtaLibraries();const validated=tpGenCatalog().filter(x=>x.statut==='Validé enseignant').length;document.getElementById('main').innerHTML=`<header class="app-top-header"></header><div class="tpgen-shell"><div class="tpgen-head"><div><h1>🧰 Génération de TP <span style="font-size:11px;font-weight:700;background:#dcfce7;color:#166534;border:1px solid #86efac;border-radius:999px;padding:3px 7px;vertical-align:middle">V41 • DÉBUTANT</span></h1><p class="muted">Création guidée depuis la base maître enseignant, avec ressources RTA ou fiches pratiques et compétences Bac Pro MV 2025.</p></div><div class="tpgen-top-actions"><button class="tpgen-btn secondary" onclick="tpGenManagementPage()">⚙️ Management du générateur TP</button><div class="tpgen-local">● MODE TEST LOCAL • Firebase désactivé</div></div></div><div class="tpgen-stepbar"><div class="tpgen-step"><b>1</b>Contexte</div><div class="tpgen-step"><b>2</b>Activité validée</div><div class="tpgen-step"><b>3</b>Ressenti client</div><div class="tpgen-step"><b>4</b>Véhicule / Ressource</div><div class="tpgen-step"><b>5</b>Aperçu TP</div></div>${!isBac?`<div class="tpgen-card" style="border-left:5px solid #d97706"><b>⚠ Base disponible dans cette version test : Bac Pro Maintenance des Véhicules 2025.</b></div>`:''}<div class="tpgen-grid"><div class="tpgen-editor"><div class="tpgen-card"><h2>1. Contexte</h2><div class="tpgen-meta"><span class="tpgen-pill">Classe : ${esc(cls||'—')}</span><span class="tpgen-pill">Professeur : ${esc(teacher||'—')}</span><span class="tpgen-pill">Année scolaire : ${tpGenSchoolYear()}</span><span class="tpgen-pill ok">${validated} activités validées enseignant</span></div><div class="tpgen-form" style="margin-top:12px"><label>Niveau<select onchange="tpGenSetLevel(this.value)"><option value="DEBUTANT" ${tpGenState.level==='DEBUTANT'?'selected':''}>Débutant</option><option value="SECONDE" ${tpGenState.level==='SECONDE'?'selected':''}>Seconde</option><option value="PREMIERE" ${tpGenState.level==='PREMIERE'?'selected':''}>Première</option><option value="TERMINALE" ${tpGenState.level==='TERMINALE'?'selected':''}>Terminale</option></select></label><label>Diplôme<input value="${tpGenState.level==='DEBUTANT'?'CAP / Bac Pro — Positionnement de rentrée':'Bac Pro Maintenance des Véhicules — Référentiel 2025'}" readonly></label></div></div><div class="tpgen-card"><h2>2. Activité issue de la base enseignant</h2><div class="tpgen-searchrow"><input id="tpgen-search" placeholder="Rechercher : vidange, freinage, diagnostic…" value="${esc(tpGenState.search)}" oninput="tpGenSetSearch(this.value)"><select onchange="tpGenSetFamily(this.value)"><option value="">Toutes les familles</option>${families.map(f=>`<option value="${esc(f)}" ${f===tpGenState.family?'selected':''}>${esc(f)}</option>`).join('')}</select><select disabled><option>Statut : Validé enseignant</option></select></div><div id="tpgen-count" class="tpgen-count"></div><div id="tpgen-activity-list" class="tpgen-list"></div></div></div><div>${a?`<div class="tpgen-card"><div class="tpgen-meta"><span class="tpgen-pill ok">✓ ${esc(a.statut)}</span><span class="tpgen-pill">${esc(a.sequence)}</span><span class="tpgen-pill">${esc(a.type)}</span><span class="tpgen-pill">${esc(a.duree)}</span></div><h2 style="margin-top:10px">${esc(a.activite)}</h2><div class="muted">Source plan : ${esc(a.source)} • ${esc(a.planId)} • ${esc(a.activityId)}</div></div><div class="tpgen-card"><h2>3. Ressenti client</h2><p class="muted">Clique directement sur la formulation souhaitée.</p><div class="tpgen-client">${a.ressentis.map((r,i)=>`<label class="${i===tpGenState.clientIndex?'selected':''}" onclick="tpGenSelectClient(${i})"><input type="radio" name="tpgen-client" ${i===tpGenState.clientIndex?'checked':''}><span><b>Proposition ${i+1}</b><br>${esc(r)}</span></label>`).join('')}</div></div><div class="tpgen-card"><h2>4. Véhicule support et ressource</h2><div class="tpgen-form"><label>Marque<input id="tpgen-marque" placeholder="Ex. Renault"></label><label>Modèle<input id="tpgen-modele" placeholder="Ex. Clio IV"></label><label>Immatriculation<input id="tpgen-immat" placeholder="AA-123-BB"></label><label>Année<input id="tpgen-year" placeholder="Ex. 2018"></label><label>Motorisation<input id="tpgen-motor" placeholder="Ex. 1.5 dCi K9K"></label><label>Kilométrage<input id="tpgen-km" placeholder="Ex. 86 500 km"></label><label>Durée<input id="tpgen-duration" value="${esc(a.duree)}"></label><label>Bibliothèque RTA<select onchange="tpGenSetRtaLibrary(this.value)"><option value="">— Sans RTA —</option>${libs.map(l=>`<option value="${esc(l.id)}" ${String(l.id)===String(tpGenState.rtaLibraryId)?'selected':''}>${esc(l.name)}</option>`).join('')}</select></label>${tpGenState.rtaLibraryId?`<label class="full">Recherche dans la RTA<input id="tpgen-rta-search" placeholder="Ex. vidange K9K, freinage, alternateur…" value="${esc(tpGenState.rtaSearch)}" oninput="tpGenSetRtaSearch(this.value)"></label><label class="full">Rubrique / activité RTA<select id="tpgen-rta-activity" onchange="tpGenSetRtaActivity(this.value)"></select><span id="tpgen-rta-count" class="tpgen-count"></span></label>`:''}</div><div id="tpgen-rta-info"></div>${!tpGenState.rtaLibraryId?`<div class="tpgen-resource-panel"><h3 style="margin:0 0 8px">📘 Ressource de remplacement — 63 fiches pratiques</h3><div class="muted" style="margin-bottom:8px">Si aucune RTA adaptée n’est disponible, sélectionne une fiche pratique comme ressource pédagogique.</div><div class="tpgen-resource-row"><label>Rechercher une fiche<input value="${esc(tpGenState.practicalSearch)}" placeholder="Ex. vidange, multimètre, freinage…" oninput="tpGenSetPracticalSearch(this.value)"></label><label>Fiche pratique<select id="tpgen-practical-sheet" onchange="tpGenSetPracticalSheet(this.value)"></select><span id="tpgen-practical-count" class="tpgen-count"></span></label></div><div id="tpgen-practical-info" class="tpgen-resource-info"></div></div>`:''}</div><div class="tpgen-card"><h2>5. Contenu pédagogique généré</h2><div class="tpgen-form"><label class="full">Mission élève<textarea id="tpgen-mission">${esc(a.mission)}</textarea></label><label class="full">Ressources à associer<textarea id="tpgen-resources">${esc(a.ressources)}</textarea></label><label class="full">Données techniques à rechercher<textarea id="tpgen-data">${esc(a.donnees)}</textarea></label><label class="full">Sécurité / risques<textarea id="tpgen-risks">${esc(a.risques)}</textarea></label><label class="full">Contrôles attendus<textarea id="tpgen-controls">${esc(a.controles)}</textarea></label><label class="full">Déchets / environnement<textarea id="tpgen-env">${esc(a.environnement||'')}</textarea></label><label class="full">Critères observables<textarea id="tpgen-criteria">${esc(a.criteres)}</textarea></label></div><h3 style="margin-top:14px">Compétences rattachées — Référentiel Bac Pro MV 2025</h3><div class="tpgen-comp-list">${tpGenCompetenceCards(a.competences)}</div></div><div class="tpgen-card"><div class="tpgen-actions"><button class="tpgen-btn secondary" onclick="tpGenReset()">Réinitialiser</button><button class="tpgen-btn green" onclick="tpGenSaveDraft('new')">💾 Enregistrer comme nouveau brouillon</button>${tpGenState.currentDraftId?`<button class="tpgen-btn secondary" onclick="tpGenSaveDraft('update')">↻ Mettre à jour ce brouillon</button>`:''}<button class="tpgen-btn primary" onclick="tpGenPreview()">👁️ Générer l’aperçu du TP</button><button class="tpgen-btn purple" onclick="tpGenOpenClassExport()">📦 Générer les TP de la classe</button></div></div><div class="tpgen-card"><h2>Derniers TP / Brouillons</h2><p class="muted">Les 3 derniers brouillons sont affichés ici. Utilise la vue dédiée pour gérer l’ensemble.</p><div id="tpgen-drafts" class="tpgen-drafts"></div></div>`:`<div class="tpgen-empty"><h3>Choisis une activité validée</h3><p>La partie droite affichera automatiquement le contexte pédagogique, les ressources et les compétences 2025.</p></div>`}</div></div><div id="tpgen-preview" class="tpgen-preview"></div></div>`;tpGenRenderActivityList();setTimeout(()=>{if(a){if(tpGenState.rtaLibraryId){tpGenRenderRtaActivities();tpGenRenderRtaActivityInfo()}else{tpGenRenderRtaActivityInfo();tpGenRenderPracticalSheets()}}tpGenRenderDrafts()},0)}
+function tpGeneratorPage(){setActive('tpGenerator');const cls=typeof activeClassName==='function'?activeClassName():(getSchoolSettings?.().className||'');const teacher=getSchoolSettings?.().teacherName||'';const activeRef=typeof getActiveReferentialId==='function'?getActiveReferentialId():'';const isBac=String(activeRef).toLowerCase().includes('bac');const a=tpGenSelected();const families=tpGenUnique('famille',tpGenState.level);const libs=tpGenRtaLibraries();const validated=tpGenCatalog().filter(x=>x.statut==='Validé enseignant').length;document.getElementById('main').innerHTML=`<header class="app-top-header"></header><div class="tpgen-shell"><div class="tpgen-head"><div><h1>🧰 Génération de TP <span style="font-size:11px;font-weight:700;background:#dcfce7;color:#166534;border:1px solid #86efac;border-radius:999px;padding:3px 7px;vertical-align:middle">V41 • DÉBUTANT</span></h1><p class="muted">Création guidée depuis la base maître enseignant, avec ressources RTA ou fiches pratiques et compétences Bac Pro MV 2025.</p></div><div class="tpgen-top-actions"><button class="tpgen-btn secondary" onclick="tpGenManagementPage()">⚙️ Management du générateur TP</button><div class="tpgen-local">☁ FIREBASE MULTIPOSTE • sauvegarde locale conservée</div></div></div><div class="tpgen-stepbar"><div class="tpgen-step"><b>1</b>Contexte</div><div class="tpgen-step"><b>2</b>Activité validée</div><div class="tpgen-step"><b>3</b>Ressenti client</div><div class="tpgen-step"><b>4</b>Véhicule / Ressource</div><div class="tpgen-step"><b>5</b>Aperçu TP</div></div>${!isBac?`<div class="tpgen-card" style="border-left:5px solid #d97706"><b>⚠ Base disponible dans cette version test : Bac Pro Maintenance des Véhicules 2025.</b></div>`:''}<div class="tpgen-grid"><div class="tpgen-editor"><div class="tpgen-card"><h2>1. Contexte</h2><div class="tpgen-meta"><span class="tpgen-pill">Classe : ${esc(cls||'—')}</span><span class="tpgen-pill">Professeur : ${esc(teacher||'—')}</span><span class="tpgen-pill">Année scolaire : ${tpGenSchoolYear()}</span><span class="tpgen-pill ok">${validated} activités validées enseignant</span></div><div class="tpgen-form" style="margin-top:12px"><label>Niveau<select onchange="tpGenSetLevel(this.value)"><option value="DEBUTANT" ${tpGenState.level==='DEBUTANT'?'selected':''}>Débutant</option><option value="SECONDE" ${tpGenState.level==='SECONDE'?'selected':''}>Seconde</option><option value="PREMIERE" ${tpGenState.level==='PREMIERE'?'selected':''}>Première</option><option value="TERMINALE" ${tpGenState.level==='TERMINALE'?'selected':''}>Terminale</option></select></label><label>Diplôme<input value="${tpGenState.level==='DEBUTANT'?'CAP / Bac Pro — Positionnement de rentrée':'Bac Pro Maintenance des Véhicules — Référentiel 2025'}" readonly></label></div></div><div class="tpgen-card"><h2>2. Activité issue de la base enseignant</h2><div class="tpgen-searchrow"><input id="tpgen-search" placeholder="Rechercher : vidange, freinage, diagnostic…" value="${esc(tpGenState.search)}" oninput="tpGenSetSearch(this.value)"><select onchange="tpGenSetFamily(this.value)"><option value="">Toutes les familles</option>${families.map(f=>`<option value="${esc(f)}" ${f===tpGenState.family?'selected':''}>${esc(f)}</option>`).join('')}</select><select disabled><option>Statut : Validé enseignant</option></select></div><div id="tpgen-count" class="tpgen-count"></div><div id="tpgen-activity-list" class="tpgen-list"></div></div></div><div>${a?`<div class="tpgen-card"><div class="tpgen-meta"><span class="tpgen-pill ok">✓ ${esc(a.statut)}</span><span class="tpgen-pill">${esc(a.sequence)}</span><span class="tpgen-pill">${esc(a.type)}</span><span class="tpgen-pill">${esc(a.duree)}</span></div><h2 style="margin-top:10px">${esc(a.activite)}</h2><div class="muted">Source plan : ${esc(a.source)} • ${esc(a.planId)} • ${esc(a.activityId)}</div></div><div class="tpgen-card"><h2>3. Ressenti client</h2><p class="muted">Clique directement sur la formulation souhaitée.</p><div class="tpgen-client">${a.ressentis.map((r,i)=>`<label class="${i===tpGenState.clientIndex?'selected':''}" onclick="tpGenSelectClient(${i})"><input type="radio" name="tpgen-client" ${i===tpGenState.clientIndex?'checked':''}><span><b>Proposition ${i+1}</b><br>${esc(r)}</span></label>`).join('')}</div></div><div class="tpgen-card"><h2>4. Véhicule support et ressource</h2><div class="tpgen-form"><label>Marque<input id="tpgen-marque" placeholder="Ex. Renault"></label><label>Modèle<input id="tpgen-modele" placeholder="Ex. Clio IV"></label><label>Immatriculation<input id="tpgen-immat" placeholder="AA-123-BB"></label><label>Année<input id="tpgen-year" placeholder="Ex. 2018"></label><label>Motorisation<input id="tpgen-motor" placeholder="Ex. 1.5 dCi K9K"></label><label>Kilométrage<input id="tpgen-km" placeholder="Ex. 86 500 km"></label><label>Durée<input id="tpgen-duration" value="${esc(a.duree)}"></label><label>Bibliothèque RTA<select onchange="tpGenSetRtaLibrary(this.value)"><option value="">— Sans RTA —</option>${libs.map(l=>`<option value="${esc(l.id)}" ${String(l.id)===String(tpGenState.rtaLibraryId)?'selected':''}>${esc(l.name)}</option>`).join('')}</select></label>${tpGenState.rtaLibraryId?`<label class="full">Recherche dans la RTA<input id="tpgen-rta-search" placeholder="Ex. vidange K9K, freinage, alternateur…" value="${esc(tpGenState.rtaSearch)}" oninput="tpGenSetRtaSearch(this.value)"></label><label class="full">Rubrique / activité RTA<select id="tpgen-rta-activity" onchange="tpGenSetRtaActivity(this.value)"></select><span id="tpgen-rta-count" class="tpgen-count"></span></label>`:''}</div><div id="tpgen-rta-info"></div>${!tpGenState.rtaLibraryId?`<div class="tpgen-resource-panel"><h3 style="margin:0 0 8px">📘 Ressource de remplacement — 63 fiches pratiques</h3><div class="muted" style="margin-bottom:8px">Si aucune RTA adaptée n’est disponible, sélectionne une fiche pratique comme ressource pédagogique.</div><div class="tpgen-resource-row"><label>Rechercher une fiche<input value="${esc(tpGenState.practicalSearch)}" placeholder="Ex. vidange, multimètre, freinage…" oninput="tpGenSetPracticalSearch(this.value)"></label><label>Fiche pratique<select id="tpgen-practical-sheet" onchange="tpGenSetPracticalSheet(this.value)"></select><span id="tpgen-practical-count" class="tpgen-count"></span></label></div><div id="tpgen-practical-info" class="tpgen-resource-info"></div></div>`:''}</div><div class="tpgen-card"><h2>5. Contenu pédagogique généré</h2><div class="tpgen-form"><label class="full">Mission élève<textarea id="tpgen-mission">${esc(a.mission)}</textarea></label><label class="full">Ressources à associer<textarea id="tpgen-resources">${esc(a.ressources)}</textarea></label><label class="full">Données techniques à rechercher<textarea id="tpgen-data">${esc(a.donnees)}</textarea></label><label class="full">Sécurité / risques<textarea id="tpgen-risks">${esc(a.risques)}</textarea></label><label class="full">Contrôles attendus<textarea id="tpgen-controls">${esc(a.controles)}</textarea></label><label class="full">Déchets / environnement<textarea id="tpgen-env">${esc(a.environnement||'')}</textarea></label><label class="full">Critères observables<textarea id="tpgen-criteria">${esc(a.criteres)}</textarea></label></div><h3 style="margin-top:14px">Compétences rattachées — Référentiel Bac Pro MV 2025</h3><div class="tpgen-comp-list">${tpGenCompetenceCards(a.competences)}</div></div><div class="tpgen-card"><div class="tpgen-actions"><button class="tpgen-btn secondary" onclick="tpGenReset()">Réinitialiser</button><button class="tpgen-btn green" onclick="tpGenSaveDraft('new')">💾 Enregistrer comme nouveau brouillon</button>${tpGenState.currentDraftId?`<button class="tpgen-btn secondary" onclick="tpGenSaveDraft('update')">↻ Mettre à jour ce brouillon</button>`:''}<button class="tpgen-btn primary" onclick="tpGenPreview()">👁️ Générer l’aperçu du TP</button><button class="tpgen-btn purple" onclick="tpGenOpenClassExport()">📦 Générer les TP de la classe</button></div></div><div class="tpgen-card"><h2>Derniers TP / Brouillons</h2><p class="muted">Les 3 derniers brouillons sont affichés ici. Utilise la vue dédiée pour gérer l’ensemble.</p><div id="tpgen-drafts" class="tpgen-drafts"></div></div>`:`<div class="tpgen-empty"><h3>Choisis une activité validée</h3><p>La partie droite affichera automatiquement le contexte pédagogique, les ressources et les compétences 2025.</p></div>`}</div></div><div id="tpgen-preview" class="tpgen-preview"></div></div>`;tpGenRenderActivityList();setTimeout(()=>{if(a){if(tpGenState.rtaLibraryId){tpGenRenderRtaActivities();tpGenRenderRtaActivityInfo()}else{tpGenRenderRtaActivityInfo();tpGenRenderPracticalSheets()}}tpGenRenderDrafts()},0)}
 
 
 /* ===== V7 — Export TP par classe ===== */
@@ -14161,6 +14218,17 @@ Nombre d’élèves : ${files.length}`});return {files,d:{...d,className}}};
   contextId();
 })();
 </script>
+
+<script id="v51-firebase-extended-hooks">
+(function(){
+  function syncSoon(){clearTimeout(window.__v51SyncSoon);window.__v51SyncSoon=setTimeout(()=>{try{window.firebaseSyncExtendedLocalData?.().catch(()=>{})}catch(e){}},700)}
+  function wrap(name){const f=window[name];if(typeof f!=='function'||f.__v51)return;const w=function(){const r=f.apply(this,arguments);syncSoon();return r};w.__v51=true;window[name]=w}
+  ['saveRtaLibraries','tpGenSaveDraft','tpGenSaveFinal','tpGenToggleSavedLock','tpGenDeleteSaved','tpGenDuplicateSaved','tpGenSetStudentCode','tpGenManagementSave','tpGenManagementRestore'].forEach(wrap);
+  // Les fonctions du générateur sont redéfinies par plusieurs couches : refaire le branchement après rendu.
+  setTimeout(()=>['tpGenSaveDraft','tpGenSaveFinal','tpGenToggleSavedLock','tpGenDeleteSaved','tpGenDuplicateSaved','tpGenSetStudentCode','tpGenManagementSave','tpGenManagementRestore'].forEach(wrap),1500);
+})();
+</script>
+
 </body>
 </html>
 
@@ -14234,31 +14302,5 @@ Nombre d’élèves : ${files.length}`});return {files,d:{...d,className}}};
 
   // Marqueur visuel pour confirmer que GitHub sert bien V48.
   setTimeout(()=>{const h=[...document.querySelectorAll('h1')].find(x=>x.textContent.includes('Génération de TP'));if(h&&!h.querySelector('.tp48-badge')){const s=document.createElement('span');s.className='tp48-badge';s.textContent='V48';h.appendChild(s)}},500);
-})();
-</script>
-
-<!-- V49 - paquet eleve : controles/mesures et support complets -->
-<script id="tp-v49-student-package-data-fix">
-(function(){
-  const previousBuild=window.tpGenBuildStudentPackage;
-  if(typeof previousBuild!=='function') return;
-  function normRow(r){return {controle:String(r?.controle??r?.label??''),valeur:String(r?.valeur??r?.student??''),reference:String(r?.reference??r?.expected??''),conclusion:String(r?.conclusion??'')};}
-  window.tpGenBuildStudentPackage=function(student,d){
-    const m=previousBuild(student,d);
-    const rows=(Array.isArray(d?.controlsTable)?d.controlsTable:(window.tpGenState?.controlRows||[])).map(normRow);
-    m.controlsTable=rows.map(r=>({...r,locks:{controle:!!r.controle,valeur:!!r.valeur,reference:!!r.reference,conclusion:!!r.conclusion}}));
-    m.reponses=m.reponses||{};
-    m.reponses.controles=rows.map(r=>({...r}));
-    const sp=d?.support||{type:'vehicle',vehicle:d?.vehicle||{}};
-    m.support=JSON.parse(JSON.stringify(sp));
-    if((sp.type||'vehicle')==='vehicle'){
-      m.support.vehicle=JSON.parse(JSON.stringify(sp.vehicle||d?.vehicle||{}));
-      m.vehicule=JSON.parse(JSON.stringify(m.support.vehicle));
-    }else{
-      m.vehicule={};
-    }
-    m.meta=m.meta||{};m.meta.source='V49 — données élève contrôles/support corrigées';
-    return m;
-  };
 })();
 </script>
