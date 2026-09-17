@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Évaluation, charge atelier, RTA, génération TP — V51 Firebase multiposte complet</title>
+<title>Évaluation, charge atelier, RTA, génération TP — V52 Firebase stable TP</title>
 <style>
 *{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f5f7fa;color:#172033}
 .app{display:flex;min-height:100vh}.side{width:235px;background:#172033;color:#fff;padding:22px 14px}.logo{font-size:19px;font-weight:700;padding:8px 10px 24px}
@@ -12069,7 +12069,7 @@ window.firebaseSaveCurrentConfig=async()=>{await saveFullConfig(firebaseBuildApp
       startRealtimeListeners();
       startAccountsRealtime();
       // V51 : filet de sécurité multiposte pour les modules encore basés sur localStorage.
-      if(!window.__v51ExtendedSyncTimer) window.__v51ExtendedSyncTimer=setInterval(()=>{if(auth?.currentUser&&!syncing)synchronizeExtendedLocalData().catch(e=>console.warn('Sync périodique RTA/TP',e))},30000);
+      if(!window.__v51ExtendedSyncTimer) window.__v51ExtendedSyncTimer=setInterval(()=>{const tpBusy=!!document.querySelector('.tpgen-page,.tpgen-saved-page,[id^="tpgen-"]');if(auth?.currentUser&&!syncing&&!tpBusy)synchronizeExtendedLocalData().catch(e=>console.warn('Sync périodique RTA/TP',e))},30000);
     }catch(err){
       console.error('Synchronisation Firebase V86.5 → V88',err);
       setStatus('Synchronisation : '+friendlyError(err),'bad');
@@ -12137,13 +12137,26 @@ window.firebaseSaveCurrentConfig=async()=>{await saveFullConfig(firebaseBuildApp
     clearTimeout(realtimeRenderTimer);
     realtimeRenderTimer=setTimeout(async()=>{
       try{
+        /* V52 — Ne jamais reconstruire l'écran pendant que l'utilisateur travaille
+           dans le générateur de TP ou la liste des TP enregistrés. loadData() appelle
+           render() et détruisait/recréait les menus à chaque événement Firebase. */
+        const tpScreen=!!(
+          document.getElementById('tpgen-root') ||
+          document.getElementById('tpgen-saved-root') ||
+          document.querySelector('.tpgen-page,.tpgen-saved-page,[id^="tpgen-"]')
+        );
+        if(tpScreen){
+          window.__v52TpRefreshPending=true;
+          setStatus('✓ Firebase synchronisé — écran TP conservé','ok');
+          return;
+        }
         await loadData();
         applySchoolSettings();
         setStatus('✓ Synchronisé en temps réel','ok');
       }catch(e){
         setStatus('Temps réel : '+friendlyError(e),'bad');
       }
-    },180);
+    },350);
   }
   async function applyRemoteStudent(change){
     const id=change.doc.id;
