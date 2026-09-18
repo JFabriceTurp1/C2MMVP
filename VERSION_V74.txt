@@ -1,8 +1,0 @@
-V74 Évaluation des compétences RTA TP gestion d’atelier et correction
-
-Rapprochement élève + code TP stable, normalisation des noms et secours non ambigu.
-Correspondance des activités de rentrée avec les codes TP du catalogue, dont DEBUTANT-TRI-005.
-Lecture des corrections validées et des évaluations enregistrées pour Évalué / Voir.
-Rafraîchissement de la vue lors des mises à jour Firebase.
-Collection Firebase tpCorrectionsV73 et clés de stockage conservées pour compatibilité multiposte.
-Cache PWA actualisé.
