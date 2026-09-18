@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>V83 Évaluation des compétences RTA TP gestion d’atelier et correction</title>
+<title>V84 Évaluation des compétences RTA TP gestion d’atelier et correction</title>
 <style>
 *{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f5f7fa;color:#172033}
 .app{display:flex;min-height:100vh}.side{width:235px;background:#172033;color:#fff;padding:22px 14px}.logo{font-size:19px;font-weight:700;padding:8px 10px 24px}
@@ -2810,7 +2810,7 @@ body{background:#f7f9fc;color:var(--text)}
 <!-- V88 — DONNÉES DE RÉFÉRENCE RÉINTÉGRÉES DEPUIS V86.5
      Jeux embarqués repris : référentiel compétences, élèves par défaut, seconde classe fictive, situations professionnelles.
      Les données dynamiques (classes/élèves/évaluations réellement saisies) restent chargées par IndexedDB/localStorage et Firebase. -->
-<div id="build-version" style="position:fixed;right:10px;bottom:8px;font-size:10px;opacity:.55;z-index:9999">V83 Évaluation des compétences RTA TP gestion d’atelier et correction</div>
+<div id="build-version" style="position:fixed;right:10px;bottom:8px;font-size:10px;opacity:.55;z-index:9999">V84 Évaluation des compétences RTA TP gestion d’atelier et correction</div>
 <div id="firebase-auth-overlay">
   <div class="firebase-login-card">
     <h2>☁️ Connexion Firebase — V88</h2>
@@ -13227,7 +13227,7 @@ window.atelierRemovePrepared=function(id){
  if(id.startsWith('TPDIFF-'))t.customActivities=(t.customActivities||[]).filter(x=>String(x.id)!==id);
  save(d);renderAdmin();
 };
-window.atelierRemovePreparedV83=function(encoded){
+window.atelierRemovePreparedV84=function(encoded){
  try{
   const id=decodeURIComponent(String(encoded||''));
   window.atelierRemovePrepared(id);
@@ -14729,7 +14729,7 @@ window.tpCorrectionValidate=async function(){
    const dash=document.querySelector('#at-main .at-admin-dashboard');if(!dash)return;
    let box=dash.querySelector(':scope > .v80-recap');if(!box){box=document.createElement('section');box.className='v80-recap';dash.appendChild(box)}
    const rows=typeof window.atelierPreparedSelection==='function'?window.atelierPreparedSelection():[];
-   box.innerHTML=`<div class="v80-recap-head"><h3>📋 Sélection pour la séance</h3><b>${rows.length} travail(aux) préparé(s)</b></div>${rows.length?rows.map(r=>`<div class="v80-recap-row"><div><span class="v80-recap-code">${esc(r.code||'')}</span>${r.code?' — ':''}${esc(r.title||'')}</div><div>${esc(r.support||'Support à renseigner')}</div><button type="button" class="at-btn at-light" onclick="event.preventDefault();event.stopPropagation();return atelierRemovePreparedV83('${encodeURIComponent(String(r.id||''))}')">Retirer</button></div>`).join(''):'<div class="v80-recap-empty">Aucun travail sélectionné pour le moment.</div>'}`;
+   box.innerHTML=`<div class="v80-recap-head"><h3>📋 Sélection pour la séance</h3><b>${rows.length} travail(aux) préparé(s)</b></div>${rows.length?rows.map(r=>`<div class="v80-recap-row"><div><span class="v80-recap-code">${esc(r.code||'')}</span>${r.code?' — ':''}${esc(r.title||'')}</div><div>${esc(r.support||'Support à renseigner')}</div><button type="button" class="at-btn at-light v84-remove-prepared" data-prepared-id="${esc(String(r.id||''))}">Retirer</button></div>`).join(''):'<div class="v80-recap-empty">Aucun travail sélectionné pour le moment.</div>'}`;
  }
  function enhance(){setTimeout(recap,0);setTimeout(recap,120)}
  const oldRender=window.renderAdmin;if(typeof oldRender==='function'&&!oldRender.__v80){const w=function(){const out=oldRender.apply(this,arguments);enhance();return out};w.__v80=true;window.renderAdmin=w}
@@ -15128,6 +15128,28 @@ window.tpCorrectionValidate=async function(){
  const obs=new MutationObserver(()=>{if(document.querySelector('#at-main .at-admin-dashboard'))setTimeout(enhance,0)});
  obs.observe(document.documentElement,{childList:true,subtree:true});
  setTimeout(enhance,300);
+})();
+</script>
+
+<!-- V84 — suppression robuste des travaux préparés -->
+<script id="v84-remove-prepared-fix">
+(function(){
+  if(window.__v84RemovePreparedInstalled)return;
+  window.__v84RemovePreparedInstalled=true;
+  document.addEventListener('click',function(ev){
+    const btn=ev.target&&ev.target.closest?ev.target.closest('.v84-remove-prepared'):null;
+    if(!btn)return;
+    ev.preventDefault();ev.stopPropagation();
+    const id=String(btn.getAttribute('data-prepared-id')||'');
+    if(!id)return;
+    try{
+      if(typeof window.atelierRemovePrepared!=='function')throw new Error('fonction de retrait indisponible');
+      window.atelierRemovePrepared(id);
+    }catch(err){
+      console.error('V84 retrait sélection séance',err);
+      alert('Impossible de retirer ce travail : '+(err?.message||err));
+    }
+  },true);
 })();
 </script>
 </body>
