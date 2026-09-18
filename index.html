@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>V74 Évaluation des compétences RTA TP gestion d’atelier et correction</title>
+<title>V75 Évaluation des compétences RTA TP gestion d’atelier et correction</title>
 <style>
 *{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f5f7fa;color:#172033}
 .app{display:flex;min-height:100vh}.side{width:235px;background:#172033;color:#fff;padding:22px 14px}.logo{font-size:19px;font-weight:700;padding:8px 10px 24px}
@@ -2810,7 +2810,7 @@ body{background:#f7f9fc;color:var(--text)}
 <!-- V88 — DONNÉES DE RÉFÉRENCE RÉINTÉGRÉES DEPUIS V86.5
      Jeux embarqués repris : référentiel compétences, élèves par défaut, seconde classe fictive, situations professionnelles.
      Les données dynamiques (classes/élèves/évaluations réellement saisies) restent chargées par IndexedDB/localStorage et Firebase. -->
-<div id="build-version" style="position:fixed;right:10px;bottom:8px;font-size:10px;opacity:.55;z-index:9999">V74 Évaluation des compétences RTA TP gestion d’atelier et correction</div>
+<div id="build-version" style="position:fixed;right:10px;bottom:8px;font-size:10px;opacity:.55;z-index:9999">V75 Évaluation des compétences RTA TP gestion d’atelier et correction</div>
 <div id="firebase-auth-overlay">
   <div class="firebase-login-card">
     <h2>☁️ Connexion Firebase — V88</h2>
@@ -13297,6 +13297,14 @@ function atCode74(value){
  const s=String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/[–—_]/g,'-');
  return (s.match(/\b(?:DEBUTANT|BACPRO|CAP)-[A-Z0-9-]+-\d{3}\b/)||[])[0]||'';
 }
+function atWords75(value){
+ const stop=new Set(['un','une','des','de','du','la','le','les','et','en','sur','selon','support','pour','dans','au','aux','d','l']);
+ return [...new Set(atNorm(value).split(' ').filter(w=>w.length>2&&!stop.has(w)))];
+}
+function atSimilarity75(a,b){
+ const A=atWords75(a),B=new Set(atWords75(b));
+ return A.filter(w=>B.has(w)).length;
+}
 function atTaskCode74(r){
  const act=activityById(r.activityId),t=today(database()),pub=publicationById(t,r.publicationId);
  for(const v of [r.tpCode,r.code,pub?.tpCode,pub?.code,act?.code,r.title]){const c=atCode74(v);if(c)return c}
@@ -13307,6 +13315,14 @@ function atTaskCode74(r){
  if(!entry){
   const aliases=catalog.filter(x=>atNorm(x.activite)===atNorm(r.title||act?.title));
   if(aliases.length===1)entry=aliases[0];
+ }
+ // V75 : certaines activités atelier historiques (ex. ACT-021 « REMPLACER ET RÉGLER DES BOUGIES »)
+ // pointent vers une activité du générateur portant un autre identifiant (ex. ACT_BPRO_005).
+ // On résout alors par les mots techniques communs, uniquement si le meilleur résultat est non ambigu.
+ if(!entry){
+  const label=r.title||act?.title||'';
+  const ranked=catalog.map(x=>({x,n:atSimilarity75(label,x.activite)})).filter(z=>z.n>=2).sort((a,b)=>b.n-a.n);
+  if(ranked.length&&(!ranked[1]||ranked[0].n>ranked[1].n))entry=ranked[0].x;
  }
  return entry&&typeof window.tpGenTpCode==='function'?atCode74(window.tpGenTpCode({...entry,activity:entry.activite,level:entry.niveau})):'';
 }
@@ -13340,9 +13356,16 @@ function atFindCorrection(r){
   if(code&&dc){if(code!==dc)return 0;rank+=40}
   else if(aid&&aid===String(r.activityId))rank+=30;
   else {
-   const dt=atNorm(d.titre||d.activity||ev?.title);
-   if(!title||title!==dt)return 0;
-   rank+=10;
+   const rawTitle=d.titre||d.activity||ev?.title||'';
+   const dt=atNorm(rawTitle);
+   if(title&&title===dt)rank+=10;
+   else {
+    // V75 : dernier filet de sécurité pour les anciennes activités dont l'identifiant a changé.
+    // Deux mots techniques communs + même élève/date sont exigés afin d'éviter une association hasardeuse.
+    const sim=atSimilarity75(r.title||act?.title,rawTitle);
+    if(sim<2)return 0;
+    rank+=8+sim;
+   }
   }
   if(pk&&key===pk)rank+=1000;
   else {
