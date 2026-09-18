@@ -11950,33 +11950,12 @@ window.firebaseSaveCurrentConfig=async()=>{await saveFullConfig(firebaseBuildApp
     try{safeLocalSetItem(RTA_LIBRARY_KEY,JSON.stringify(mergedRta));safeLocalSetItem(RTA_LIBRARY_INIT_KEY,'1')}catch(e){}
     await rtaRef.set({items:mergedRta,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:false});
 
-    // V70 — Portail correcteur multiposte : remise à zéro unique + suppressions persistantes.
-    // Le reset est porté par Firebase : le premier poste V70 vide l'ancienne file, les autres
-    // reconnaissent ensuite ce reset et ne peuvent pas ressusciter leurs anciennes copies locales.
-    const corrKey='tp_correction_local_v54', corrDeletedKey='tp_correction_deleted_v70', corrResetKey='tp_correction_reset_v70';
-    const corrRef=cfgRef.doc('tpCorrections'), corrSnap=await corrRef.get();
-    let corrRemote=corrSnap.exists?(corrSnap.data()||{}):{};
-    const RESET_VERSION='V70_RESET_1';
-    if(corrRemote.resetVersion!==RESET_VERSION){
-      safeLocalSetItem(corrKey,'[]');
-      safeLocalSetItem(corrDeletedKey,'{}');
-      safeLocalSetItem(corrResetKey,RESET_VERSION);
-      corrRemote={items:[],deleted:{},resetVersion:RESET_VERSION};
-      await corrRef.set({items:[],deleted:{},resetVersion:RESET_VERSION,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:false});
-    }else if(localStorage.getItem(corrResetKey)!==RESET_VERSION){
-      // Ce poste n'a pas encore pris en compte la remise à zéro centrale : on jette sa vieille file locale.
-      safeLocalSetItem(corrKey,'[]');
-      safeLocalSetItem(corrDeletedKey,'{}');
-      safeLocalSetItem(corrResetKey,RESET_VERSION);
-    }
-    const corrLocal=v51Json(corrKey,[]), corrDeleted=v51Json(corrDeletedKey,{});
-    const corrRows=v51MergeRows(corrLocal,corrRemote.items||[],['id']);
-    const corrTombs={...(corrRemote.deleted||{}),...corrDeleted};
-    const corrLive=corrRows.filter(x=>!corrTombs[String(x.id||'')]);
-    safeLocalSetItem(corrKey,JSON.stringify(corrLive.slice(0,2000)));
-    safeLocalSetItem(corrDeletedKey,JSON.stringify(corrTombs));
-    await corrRef.set({items:corrLive,deleted:corrTombs,resetVersion:RESET_VERSION,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:false});
-    return {connected:true,drafts:drafts.length,saved:saved.length,rta:mergedRta.length,corrections:corrLive.length};
+    // V73 — Les corrections TP ne sont plus renvoyées en bloc dans configuration/tpCorrections.
+    // Elles sont synchronisées événement par événement dans la collection tpCorrectionsV73
+    // par le module temps réel chargé en fin de page. Cela évite de retransmettre toute la file
+    // à chaque frappe/correction et supprime la limite pratique du document Firestore unique.
+    const corrLocalCount=v51Json('tp_correction_local_v54',[]).length;
+    return {connected:true,drafts:drafts.length,saved:saved.length,rta:mergedRta.length,corrections:corrLocalCount};
   }
   window.firebaseSyncExtendedLocalData=synchronizeExtendedLocalData;
 
@@ -14431,7 +14410,49 @@ window.tpCorrectionValidate=async function(){
    tombstone(ids);const set=new Set(ids.map(String));write(rows().filter(r=>!set.has(String(r.id))));syncSoon();window.tpCorrectionPage?.();
  };
 })();
-</script>\n</body>
+</script>\n
+<style id="v73-firebase-realtime-style">
+#firebase-activity-led.firebase-activity-led{width:12px!important;height:12px!important;min-width:12px!important;min-height:12px!important;max-width:12px!important;max-height:12px!important;border-radius:50%!important;aspect-ratio:1/1!important;flex:0 0 12px!important;padding:0!important}
+</style>
+<script id="v73-tp-corrections-realtime">
+(function(){
+ const KEY='tp_correction_local_v54', WORKSPACE='evaluation-mv-main', COLLECTION='tpCorrectionsV73';
+ const DEVICE_KEY='tp_v73_device_id';
+ const norm=v=>String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+ const rows=()=>{try{const x=JSON.parse(localStorage.getItem(KEY)||'[]');return Array.isArray(x)?x:[]}catch(e){return[]}};
+ const write=a=>localStorage.setItem(KEY,JSON.stringify((Array.isArray(a)?a:[]).slice(0,2000)));
+ function device(){let d=localStorage.getItem(DEVICE_KEY);if(!d){d='D'+Date.now().toString(36)+Math.random().toString(36).slice(2,8);localStorage.setItem(DEVICE_KEY,d)}return d}
+ function hash(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return (h>>>0).toString(36)}
+ function identity(r){const d=r?.data||{}, sid=String(d.studentId||d.eleve?.id||''), name=norm([d.eleve?.nom,d.eleve?.prenom].filter(Boolean).join(' ')||d.studentName||''), code=norm(d.code||''), title=norm(d.titre||''), rawDate=String(d.eleve?.date||d.date||d.meta?.generatedAt||r?.importedAt||'').slice(0,10);return [sid||name,code||title,rawDate].join('|')}
+ function key(r){return 'tp_'+hash(identity(r))}
+ function stamp(r){return Date.parse(r?.correctedAt||r?.updatedAt||r?.importedAt||r?.createdAt||0)||0}
+ function db(){try{return window.firebase?.firestore?.()}catch(e){return null}}
+ function authReady(){try{return !!window.firebase?.auth?.().currentUser}catch(e){return false}}
+ function col(){const f=db();return f?f.collection('workspaces').doc(WORKSPACE).collection(COLLECTION):null}
+ function led(active){const el=document.getElementById('firebase-activity-led');if(!el)return;el.style.opacity=active?'1':'.55';if(active){el.style.boxShadow='0 0 0 4px rgba(34,197,94,.15),0 0 9px rgba(34,197,94,.75)'}else el.style.boxShadow='none'}
+ async function pushRow(r){if(!r||!authReady())return;const c=col();if(!c)return;led(true);try{const k=key(r), payload=JSON.parse(JSON.stringify(r));payload.v73Key=k;payload.v73Identity=identity(r);payload.v73Device=device();payload.v73UpdatedAt=new Date().toISOString();await c.doc(k).set({record:payload,deleted:false,status:r.correctedAt?'corrected':'returned',correctedAt:r.correctedAt||null,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true})}finally{led(false)}}
+ async function tombstone(r){if(!r||!authReady())return;const c=col();if(!c)return;led(true);try{await c.doc(key(r)).set({deleted:true,status:'deleted',deletedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedAt:firebase.firestore.FieldValue.serverTimestamp(),v73Device:device()},{merge:true})}finally{led(false)}}
+ function refreshViews(){clearTimeout(window.__v73Refresh);window.__v73Refresh=setTimeout(async()=>{try{await window.loadData?.()}catch(e){}try{if(document.querySelector('.tpc-shell')&&typeof window.tpCorrectionPage==='function')window.tpCorrectionPage()}catch(e){}try{const btn=[...document.querySelectorAll('button')].find(b=>/Évaluation du jour/i.test(b.textContent||'')&&b.classList.contains('active'));if(btn)btn.click()}catch(e){}},120)}
+ function mergeRemote(snapshot){let local=rows(), changed=false;const byKey=new Map(local.map(r=>[key(r),r]));snapshot.docChanges().forEach(ch=>{const v=ch.doc.data()||{}, k=ch.doc.id, old=byKey.get(k);if(v.deleted){if(old){local=local.filter(r=>key(r)!==k);byKey.delete(k);changed=true}return}const rr=v.record;if(!rr)return;if(!old||stamp(rr)>=stamp(old)){if(old)local=local.map(r=>key(r)===k?rr:r);else local.push(rr);byKey.set(k,rr);changed=true}});if(changed){write(local);refreshViews()}}
+ async function migrateAndListen(){if(!authReady()||window.__v73Listening)return;window.__v73Listening=true;const c=col();if(!c)return;try{
+   // Migration unique : seulement les TP encore présents localement. Ensuite, chaque changement est unitaire.
+   const local=rows();for(let i=0;i<local.length;i+=400){const batch=db().batch();for(const r of local.slice(i,i+400)){const ref=c.doc(key(r));batch.set(ref,{record:{...JSON.parse(JSON.stringify(r)),v73Key:key(r),v73Identity:identity(r),v73Device:device(),v73UpdatedAt:new Date().toISOString()},deleted:false,status:r.correctedAt?'corrected':'returned',correctedAt:r.correctedAt||null,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true})}if(local.slice(i,i+400).length)await batch.commit()}
+   window.__v73Unsub=c.onSnapshot(mergeRemote,e=>{console.warn('V73 écoute corrections TP',e);window.__v73Listening=false});
+ }catch(e){console.warn('V73 initialisation corrections TP',e);window.__v73Listening=false}}
+ // Empêche une double validation sur deux postes : verrou Firestore court, puis état "corrected" partagé.
+ function installValidationGuard(){const old=window.tpCorrectionValidate;if(typeof old!=='function'||old.__v73)return;const w=async function(){const id=window.__tp55Current;const r=rows().find(x=>String(x.id)===String(id));if(!r)return old.apply(this,arguments);if(!authReady())return old.apply(this,arguments);const ref=col().doc(key(r)), me=device();try{await db().runTransaction(async tx=>{const s=await tx.get(ref),v=s.exists?(s.data()||{}):{},until=v.lockUntil?.toMillis?.()||0;if((v.status==='corrected'||v.correctedAt)&&!r.correctedAt)throw new Error('ALREADY_CORRECTED');if(v.status==='correcting'&&v.lockOwner!==me&&until>Date.now())throw new Error('LOCKED');tx.set(ref,{status:'correcting',lockOwner:me,lockUntil:firebase.firestore.Timestamp.fromMillis(Date.now()+120000),updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true})});}catch(e){if(e?.message==='ALREADY_CORRECTED'||e?.message==='LOCKED'){alert(e.message==='ALREADY_CORRECTED'?'Ce TP a déjà été corrigé sur un autre poste. Les données vont être actualisées.':'Ce TP est actuellement en cours de correction sur un autre poste.');try{const s=await ref.get();if(s.exists)mergeRemote({docChanges:()=>[{doc:s}]})}catch(_){}return}throw e}
+   try{const out=await old.apply(this,arguments);const nr=rows().find(x=>String(x.id)===String(id))||r;await pushRow(nr);return out}catch(e){try{await ref.set({status:'returned',lockOwner:null,lockUntil:null,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true})}catch(_){}throw e}};w.__v73=true;window.tpCorrectionValidate=w}
+ function installMutationHooks(){['tpCorrectionImport','tpCorrectionDraftSave','tpCorrectionSetLevel','tpCorrectionAutoLevels','tp55Mark'].forEach(name=>{const old=window[name];if(typeof old!=='function'||old.__v73)return;const w=async function(){const out=await old.apply(this,arguments);const id=window.__tp55Current, r=rows().find(x=>String(x.id)===String(id));if(r)pushRow(r).catch(()=>{});else if(name==='tpCorrectionImport')setTimeout(()=>rows().slice(-20).forEach(x=>pushRow(x).catch(()=>{})),50);return out};w.__v73=true;window[name]=w});
+   const del=window.tpCorrectionDelete;if(typeof del==='function'&&!del.__v73){const w=function(id){const r=rows().find(x=>String(x.id)===String(id)),out=del.apply(this,arguments);setTimeout(()=>{if(r&&!rows().some(x=>String(x.id)===String(id)))tombstone(r).catch(()=>{})},0);return out};w.__v73=true;window.tpCorrectionDelete=w}
+   const bulk=window.tp58DeleteSelected;if(typeof bulk==='function'&&!bulk.__v73){const w=function(){const before=rows();const out=bulk.apply(this,arguments);setTimeout(()=>{const after=new Set(rows().map(x=>String(x.id)));before.filter(x=>!after.has(String(x.id))).forEach(x=>tombstone(x).catch(()=>{}))},0);return out};w.__v73=true;window.tp58DeleteSelected=w}
+ }
+ function boot(){installMutationHooks();installValidationGuard();migrateAndListen();setTimeout(()=>{installMutationHooks();installValidationGuard()},1800)}
+ try{firebase.auth().onAuthStateChanged(u=>{if(u){window.__v73Listening=false;boot()}else{try{window.__v73Unsub?.()}catch(e){}window.__v73Listening=false}})}catch(e){setTimeout(boot,1200)}
+ window.tpV73SyncCorrectionsNow=async function(){await migrateAndListen();const local=rows();for(const r of local)await pushRow(r);return local.length};
+ setTimeout(boot,800);
+})();
+</script>
+</body>
 </html>
 
 <!-- V47 — diffusion : source unique des codes + déverrouillage professeur sécurisé -->
