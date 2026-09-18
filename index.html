@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>V84 Évaluation des compétences RTA TP gestion d’atelier et correction</title>
+<title>V86 Évaluation des compétences RTA TP gestion d’atelier et correction</title>
 <style>
 *{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f5f7fa;color:#172033}
 .app{display:flex;min-height:100vh}.side{width:235px;background:#172033;color:#fff;padding:22px 14px}.logo{font-size:19px;font-weight:700;padding:8px 10px 24px}
@@ -2810,7 +2810,7 @@ body{background:#f7f9fc;color:var(--text)}
 <!-- V88 — DONNÉES DE RÉFÉRENCE RÉINTÉGRÉES DEPUIS V86.5
      Jeux embarqués repris : référentiel compétences, élèves par défaut, seconde classe fictive, situations professionnelles.
      Les données dynamiques (classes/élèves/évaluations réellement saisies) restent chargées par IndexedDB/localStorage et Firebase. -->
-<div id="build-version" style="position:fixed;right:10px;bottom:8px;font-size:10px;opacity:.55;z-index:9999">V84 Évaluation des compétences RTA TP gestion d’atelier et correction</div>
+<div id="build-version" style="position:fixed;right:10px;bottom:8px;font-size:10px;opacity:.55;z-index:9999">V85 Évaluation des compétences RTA TP gestion d’atelier et correction</div>
 <div id="firebase-auth-overlay">
   <div class="firebase-login-card">
     <h2>☁️ Connexion Firebase — V88</h2>
@@ -11460,21 +11460,11 @@ function openAssistanceMail(){
     out.pending=mergeRecordMap(l.pending||{},r.pending||{});
     out.selfEvals=mergeRecordMap(l.selfEvals||{},r.selfEvals||{});
 
-    // Publications : union par identifiant.
-    const pubs=new Map();
-    for(const p of [...(r.published||[]),...(l.published||[])]){
-      const id=String(p?.publicationId||p?.instanceId||p?.activityId||"");
-      if(id)pubs.set(id,JSON.parse(JSON.stringify(p)));
-    }
-    out.published=[...pubs.values()];
-
-    // Activités personnalisées : union par id.
-    const customs=new Map();
-    for(const a of [...(r.customActivities||[]),...(l.customActivities||[])]){
-      const id=String(a?.id||"");
-      if(id)customs.set(id,JSON.parse(JSON.stringify(a)));
-    }
-    out.customActivities=[...customs.values()];
+    // V85 — Publications et activités personnalisées suivent STRICTEMENT la copie
+    // de séance la plus récente. Une union rendait toute suppression impossible :
+    // Firebase réinjectait immédiatement les travaux retirés.
+    out.published=JSON.parse(JSON.stringify(current.published||[]));
+    out.customActivities=JSON.parse(JSON.stringify(current.customActivities||[]));
 
     // Les états de séance (affectations/absences/tâche active) suivent la copie la plus récente.
     out.assignments=JSON.parse(JSON.stringify(current.assignments||{}));
@@ -11506,15 +11496,8 @@ function openAssistanceMail(){
     for(const [cid,days] of Object.entries(local.classDays||{})){
       for(const date of Object.keys(days||{})) if(/^\d{4}-\d{2}-\d{2}$/.test(date)) keys.add(String(cid)+'|'+date);
     }
-    // Compatibilité : récupérer l'ancien d.days sans l'effacer, dans la classe active seulement.
-    const activeClassId=String(getActiveClassId()||'classe');
-    for(const date of Object.keys(local.days||{})){
-      if(/^\d{4}-\d{2}-\d{2}$/.test(date)){
-        local.classDays[activeClassId]=local.classDays[activeClassId]||{};
-        if(!local.classDays[activeClassId][date]) local.classDays[activeClassId][date]=JSON.parse(JSON.stringify(local.days[date]));
-        keys.add(activeClassId+'|'+date);
-      }
-    }
+    // V86 : l'ancien stockage global local.days est volontairement ignoré.
+    // Le changement de classe ne peut donc plus recopier les travaux d'une autre classe.
     const payloads=[];
     for(const key of keys){
       const cut=key.indexOf('|'),cid=key.slice(0,cut),date=key.slice(cut+1);
@@ -12582,6 +12565,7 @@ window.resetAtelierSelectedActivity=function(){state.selectedActivity="";};
 function realDay(){const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
 function day(){return state.workDate||realDay()}
 function atelierClassId(){try{return String(getActiveClassId()||"classe")}catch(e){return "classe"}}
+window.atelierCurrentContext=function(){return {classId:atelierClassId(),date:day()}};
 function atelierSessionKey(date=day(),classId=atelierClassId()){return String(classId)+"__"+String(date)}
 function blankAtelierSession(){return {published:[],assignments:{},pending:{},selfEvals:{},customActivities:[],rtaActivities:[],absent:{},activeTask:{}}}
 function load(){try{return JSON.parse(localStorage.getItem(KEY)||"{}")||{}}catch(e){return {}}}
@@ -12589,13 +12573,9 @@ function ensureAtelierClassSession(d,date=day(),classId=atelierClassId()){
   d.classDays=d.classDays||{};
   d.classDays[classId]=d.classDays[classId]||{};
   if(!d.classDays[classId][date]){
-    // Migration unique de l'ancien tableau non cloisonné vers la première classe utilisée.
-    if(!d._classDaysMigrationDone && d.days?.[date]){
-      d.classDays[classId][date]=JSON.parse(JSON.stringify(d.days[date]));
-      d._classDaysMigrationDone={classId,date,at:new Date().toISOString()};
-    }else{
-      d.classDays[classId][date]=blankAtelierSession();
-    }
+    // V86 : cloisonnement strict. Aucun ancien tableau global d.days n’est recopié
+    // lors d’un changement de classe : chaque classe possède sa propre séance.
+    d.classDays[classId][date]=blankAtelierSession();
   }
   return d.classDays[classId][date];
 }
@@ -15150,6 +15130,66 @@ window.tpCorrectionValidate=async function(){
       alert('Impossible de retirer ce travail : '+(err?.message||err));
     }
   },true);
+})();
+</script>
+
+<!-- V85 — retrait persistant + cloisonnement séance classe/date -->
+<script id="v85-session-removal-fix">
+(function(){
+  // Le stockage Atelier est déjà cloisonné par classDays[classId][date].
+  // Ce wrapper force seulement un rafraîchissement immédiat après retrait ;
+  // la persistance est assurée par le merge V85 (copie la plus récente, sans union).
+  const prior=window.atelierRemovePrepared;
+  if(typeof prior==='function'&&!prior.__v85){
+    const wrapped=function(id){
+      const out=prior.call(this,id);
+      try{ window.renderAdmin?.(); }catch(_){}
+      return out;
+    };
+    wrapped.__v85=true;
+    window.atelierRemovePrepared=wrapped;
+  }
+})();
+</script>
+
+<!-- V86 — retrait individuel réel + cloisonnement strict classe/date -->
+<script id="v86-remove-and-class-isolation">
+(function(){
+ const KEY='atelier_du_jour_v16';
+ function ctx(){
+   try{const c=window.atelierCurrentContext?.();if(c?.classId&&c?.date)return c}catch(_){ }
+   const cid=String(window.getActiveClassId?.()||'classe');
+   const d=new Date(),date=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+   return {classId:cid,date};
+ }
+ function read(){try{return JSON.parse(localStorage.getItem(KEY)||'{}')||{}}catch(_){return {}}}
+ function write(db){localStorage.setItem(KEY,JSON.stringify(db||{}))}
+ window.atelierRemovePrepared=function(rawId){
+   const id=String(rawId||''); if(!id)return false;
+   const c=ctx(),db=read(); db.classDays=db.classDays||{}; db.classDays[c.classId]=db.classDays[c.classId]||{};
+   const t=db.classDays[c.classId][c.date]; if(!t)return false;
+   window.__atSelected=window.__atSelected||new Set(); window.__atSelected.delete(id);
+   const pubs=Array.isArray(t.published)?t.published:[];
+   const removedKeys=new Set(pubs.filter(p=>String(p.activityId||'')===id||String(p.publicationId||p.instanceId||'')===id).map(p=>String(p.publicationId||p.instanceId||p.activityId||'')));
+   t.published=pubs.filter(p=>String(p.activityId||'')!==id&&String(p.publicationId||p.instanceId||'')!==id);
+   t.customActivities=(Array.isArray(t.customActivities)?t.customActivities:[]).filter(a=>String(a.id||'')!==id);
+   t.rtaActivities=(Array.isArray(t.rtaActivities)?t.rtaActivities:[]).filter(a=>String(a.id||'')!==id);
+   // Nettoie uniquement les affectations liées au travail retiré.
+   for(const [sid,val] of Object.entries(t.assignments||{})){
+     if(String(val)===id||removedKeys.has(String(val))){delete t.assignments[sid];delete (t.activeTask||{})[sid]}
+   }
+   t.updatedAtClient=Date.now(); write(db);
+   // Envoi de LA séance de LA classe/date concernée, exactement comme Réinitialiser cette date.
+   try{window.firebaseSaveAtelierSession?.(t,c.classId,c.date).catch(e=>console.warn('V86 retrait Firebase différé',e))}catch(_){ }
+   try{window.renderAdmin?.()}catch(_){ }
+   return true;
+ };
+ // Un seul gestionnaire final pour les boutons du récapitulatif.
+ document.addEventListener('click',function(ev){
+   const b=ev.target?.closest?.('.v84-remove-prepared'); if(!b)return;
+   ev.preventDefault();ev.stopImmediatePropagation();
+   window.atelierRemovePrepared(String(b.dataset.preparedId||''));
+ },true);
 })();
 </script>
 </body>
