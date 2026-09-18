@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>V86 Évaluation des compétences RTA TP gestion d’atelier et correction</title>
+<title>V88 Évaluation des compétences RTA TP gestion d’atelier et correction</title>
 <style>
 *{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f5f7fa;color:#172033}
 .app{display:flex;min-height:100vh}.side{width:235px;background:#172033;color:#fff;padding:22px 14px}.logo{font-size:19px;font-weight:700;padding:8px 10px 24px}
@@ -8624,6 +8624,7 @@ function exportStudentDeletionPDF(studentsSnapshot, deletionDate){
 
 
 
+
 </body></html>`);
   w.document.close();
 }
@@ -12973,10 +12974,10 @@ function renderAtelierPlanningDay(iso){
   const entries=atPlanningEntries(atelierPlanningSelectedDate),acts=atPlanningActivities();
   return `<div class="at-planning-panel">
     <h3>Préparation du ${e(atDateLabel(atelierPlanningSelectedDate))}</h3>
-    <p><b>${e(classLabel())}</b> — prépare les activités, puis ouvre directement le tableau de cette date pour placer les élèves.</p>
-    <button type="button" class="at-btn at-primary" style="margin:0 0 9px 0" onclick="openAtelierDateBoard(\'${e(atelierPlanningSelectedDate)}\')">👁 Ouvrir le tableau de cette date</button>
+    <div class="v88-plan-meta"><b>${e(classLabel())}</b><button type="button" class="at-btn at-primary" onclick="openAtelierDateBoard(\'${e(atelierPlanningSelectedDate)}\')">👁 Ouvrir le tableau</button></div>
+    <input id="atPlanSearch" class="v88-plan-search" type="search" placeholder="🔎 Rechercher une activité : frein, vidange, RTA, EPI…" oninput="filterAtPlanActivities(this.value)">
     <div class="at-plan-row">
-      <select id="atPlanActivity"><option value="">Choisir une activité…</option>${acts.map(a=>`<option value="${e(a.id)}">${e((a.kind==="rta"?"RTA — ":"")+(a.code||a.id)+" — "+(a.title||""))}</option>`).join("")}</select>
+      <select id="atPlanActivity"><option value="">Choisir une activité…</option>${acts.map(a=>`<option value="${e(a.id)}" data-search="${e(((a.code||a.id)+' '+(a.title||'')+' '+(a.kind||'')).toLowerCase())}">${e((a.kind==="rta"?"RTA — ":"")+(a.code||a.id)+" — "+(a.title||""))}</option>`).join("")}</select>
       <input id="atPlanSupport" placeholder="Support prévu : véhicule / organe / maquette">
       <input id="atPlanCapacity" type="number" min="1" max="8" value="4">
       <button type="button" class="at-btn at-success" onclick="addAtelierPlanningEntry()">Ajouter</button>
@@ -13031,6 +13032,11 @@ window.returnAtelierToToday=function(){
 }
 window.selectAtelierPlanningDate=function(iso){atelierPlanningSelectedDate=iso;document.getElementById("atelier-calendar-host").innerHTML=calendarMonthHtml()}
 window.moveAtelierCalendarMonth=function(delta){const d=new Date(atelierCalendarMonthIso+"T12:00:00");d.setMonth(d.getMonth()+delta);atelierCalendarMonthIso=atIso(new Date(d.getFullYear(),d.getMonth(),1));document.getElementById("atelier-calendar-host").innerHTML=calendarMonthHtml()}
+window.filterAtPlanActivities=function(raw){
+ const q=String(raw||'').trim().toLowerCase(),sel=document.getElementById('atPlanActivity');if(!sel)return;
+ [...sel.options].forEach((o,i)=>{if(i===0){o.hidden=false;return}o.hidden=!!q&&!String(o.dataset.search||o.textContent||'').toLowerCase().includes(q)});
+ if(sel.selectedOptions[0]?.hidden)sel.value='';
+}
 window.addAtelierPlanningEntry=function(){
   const id=document.getElementById("atPlanActivity")?.value||"",support=(document.getElementById("atPlanSupport")?.value||"").trim(),capacity=Math.max(1,Math.min(8,Number(document.getElementById("atPlanCapacity")?.value)||4));
   if(!id){alert("Choisis une activité.");return}
@@ -13138,16 +13144,6 @@ function renderAdmin(){autoApplyTodayPlanning();if(!atelierPlanningSelectedDate)
        </div>
        <details class="at-group"><summary>${custom.length} activité(s) personnalisée(s)</summary>${customActivityRows(custom,selected)}</details>
      </section>
-
-     <section class="at-admin-zone tools">
-       <h3>⬜ Sauvegarde / restauration</h3>
-       <p>Outils techniques de la séance Atelier du jour.</p>
-       <div class="at-admin-actions">
-         <button class="at-btn at-light" onclick="exportAtelierData()">Exporter JSON</button>
-         <button class="at-btn at-light" onclick="document.getElementById('atImportFile').click()">Importer JSON</button>
-         <input id="atImportFile" type="file" accept=".json" hidden onchange="importAtelierData(this.files[0])">
-       </div>
-     </section>
    </div>
  </section>`;
  window.__atSelected=new Set([...selected.keys(),...(t.rtaActivities||[]),...(t.published||[]).map(p=>String(p.activityId))]);
@@ -13211,14 +13207,21 @@ window.atelierPreparedSelection=function(){
  return out;
 };
 window.atelierRemovePrepared=function(id){
- const d=database(),t=today(d);id=String(id||'');
+ const d=database(),t=today(d);id=String(id||'');if(!id)return false;
  window.__atSelected=window.__atSelected||new Set();
- window.__atSelected.delete(id);
- // Retire la sélection primaire et ses éventuels supports supplémentaires.
- t.published=(t.published||[]).filter(x=>String(x.activityId||'')!==id && String(publicationKey(x)||'')!==id);
+ const wasSelected=window.__atSelected.delete(id);
+ const beforePub=(t.published||[]).length,beforeCustom=(t.customActivities||[]).length,beforeRta=(t.rtaActivities||[]).length;
+ const removedKeys=new Set((t.published||[]).filter(x=>String(x.activityId||'')===id||String(publicationKey(x)||'')===id).map(x=>String(publicationKey(x)||'')));
+ t.published=(t.published||[]).filter(x=>String(x.activityId||'')!==id&&String(publicationKey(x)||'')!==id);
  if(id.startsWith('TPDIFF-'))t.customActivities=(t.customActivities||[]).filter(x=>String(x.id)!==id);
- save(d);renderAdmin();
+ t.rtaActivities=(t.rtaActivities||[]).filter(x=>String(x?.id??x)!==id);
+ for(const [sid,val] of Object.entries(t.assignments||{})){if(String(val)===id||removedKeys.has(String(val))){const k=activePendingKey(t,sid);if(k&&t.pending?.[k]?.status!=='validated'){delete t.pending[k];delete t.selfEvals[k]}delete t.assignments[sid];delete t.activeTask[sid]}}
+ const changed=wasSelected||beforePub!==(t.published||[]).length||beforeCustom!==(t.customActivities||[]).length||beforeRta!==(t.rtaActivities||[]).length;
+ if(changed)save(d);
+ return changed;
 };
+window.atelierPublishedForActiveSession=function(){const d=database(),t=today(d);return (t.published||[]).map(p=>({key:String(publicationKey(p)),activityId:String(p.activityId||''),code:p.code||activityById(p.activityId)?.code||'',title:p.title||activityById(p.activityId)?.title||p.activityId||'',support:p.support||'',capacity:p.capacity||4}))};
+window.atelierRemovePublishedV88=function(rawKey){const key=String(rawKey||'');if(!key)return false;const d=database(),t=today(d),pub=(t.published||[]).find(p=>String(publicationKey(p))===key);if(!pub)return false;const aid=String(pub.activityId||'');t.published=(t.published||[]).filter(p=>String(publicationKey(p))!==key);for(const [sid,val] of Object.entries(t.assignments||{})){if(String(val)===key){const k=activePendingKey(t,sid);if(k&&t.pending?.[k]?.status!=='validated'){delete t.pending[k];delete t.selfEvals[k]}delete t.assignments[sid];delete t.activeTask[sid]}}if(!(t.published||[]).some(p=>String(p.activityId)===aid)){window.__atSelected?.delete(aid);if(aid.startsWith('TPDIFF-'))t.customActivities=(t.customActivities||[]).filter(x=>String(x.id)!==aid);t.rtaActivities=(t.rtaActivities||[]).filter(x=>String(x?.id??x)!==aid)}save(d);return true};
 window.atelierRemovePreparedV84=function(encoded){
  try{
   const id=decodeURIComponent(String(encoded||''));
@@ -14637,7 +14640,9 @@ window.tpCorrectionValidate=async function(){
  };
  function addTpZone(dash){
    if(!dash||dash.querySelector('.tp-diffuses'))return;
-   const rows=readDiff();
+   const activeId=String(window.getActiveClassId?.()||'');
+   const activeName=String(window.classLabel?.()||'').trim().toLowerCase();
+   const rows=readDiff().filter(r=>{const rid=String(r.classId||'');const rn=String(r.className||'').trim().toLowerCase();return (rid&&activeId&&rid===activeId)||(!rid&&rn&&activeName&&rn===activeName)});
    const sec=document.createElement('section');sec.className='at-admin-zone tp-diffuses';
    sec.innerHTML=`<h3>📤 TP diffusés</h3><p>Proposer à la séance des TP déjà diffusés aux élèves afin de les affecter dans le tableau de charge.</p><div class="v77-tp-list">${rows.length?rows.map(r=>`<div class="at-catalog-row"><div><b>${esc(r.tpCode)} — ${esc(r.title)}</b><br><small>${esc(r.className)} • ${(r.students||[]).length} élève(s) • ${esc(r.diffusedAt?new Date(r.diffusedAt).toLocaleDateString('fr-FR'):'')}</small></div><button type="button" class="at-btn at-primary" onclick="tpV76AddDiffusionToDay('${esc(r.id)}')">＋ Ajouter au tableau</button></div>`).join(''):'<div class="at-empty">Aucun TP diffusé enregistré.</div>'}</div>`;
    const fiches=dash.querySelector('.at-admin-zone.fiches');(fiches||dash.lastElementChild)?.after(sec);
@@ -15119,154 +15124,44 @@ window.tpCorrectionValidate=async function(){
  }
  const prior=window.renderAdmin;
  if(typeof prior==='function'&&!prior.__v78){const w=function(){const out=prior.apply(this,arguments);setTimeout(enhance,0);setTimeout(enhance,80);return out};w.__v78=true;window.renderAdmin=w}
- const obs=new MutationObserver(()=>{if(document.querySelector('#at-main .at-admin-dashboard'))setTimeout(enhance,0)});
- obs.observe(document.documentElement,{childList:true,subtree:true});
+ // V88 : observateur global supprimé ; il provoquait des reconstructions et clignotements continus.
  setTimeout(enhance,300);
 })();
 </script>
 
 <!-- V84 — suppression robuste des travaux préparés -->
-<script id="v84-remove-prepared-fix">
-(function(){
-  if(window.__v84RemovePreparedInstalled)return;
-  window.__v84RemovePreparedInstalled=true;
-  document.addEventListener('click',function(ev){
-    const btn=ev.target&&ev.target.closest?ev.target.closest('.v84-remove-prepared'):null;
-    if(!btn)return;
-    ev.preventDefault();ev.stopPropagation();
-    const id=String(btn.getAttribute('data-prepared-id')||'');
-    if(!id)return;
-    try{
-      if(typeof window.atelierRemovePrepared!=='function')throw new Error('fonction de retrait indisponible');
-      window.atelierRemovePrepared(id);
-    }catch(err){
-      console.error('V84 retrait sélection séance',err);
-      alert('Impossible de retirer ce travail : '+(err?.message||err));
-    }
-  },true);
-})();
-</script>
-
 <!-- V85 — retrait persistant + cloisonnement séance classe/date -->
-<script id="v85-session-removal-fix">
-(function(){
-  // Le stockage Atelier est déjà cloisonné par classDays[classId][date].
-  // Ce wrapper force seulement un rafraîchissement immédiat après retrait ;
-  // la persistance est assurée par le merge V85 (copie la plus récente, sans union).
-  const prior=window.atelierRemovePrepared;
-  if(typeof prior==='function'&&!prior.__v85){
-    const wrapped=function(id){
-      const out=prior.call(this,id);
-      try{ window.renderAdmin?.(); }catch(_){}
-      return out;
-    };
-    wrapped.__v85=true;
-    window.atelierRemovePrepared=wrapped;
-  }
-})();
-</script>
-
 <!-- V86 — retrait individuel réel + cloisonnement strict classe/date -->
-<script id="v86-remove-and-class-isolation">
-(function(){
- const KEY='atelier_du_jour_v16';
- function ctx(){
-   try{const c=window.atelierCurrentContext?.();if(c?.classId&&c?.date)return c}catch(_){ }
-   const cid=String(window.getActiveClassId?.()||'classe');
-   const d=new Date(),date=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-   return {classId:cid,date};
- }
- function read(){try{return JSON.parse(localStorage.getItem(KEY)||'{}')||{}}catch(_){return {}}}
- function write(db){localStorage.setItem(KEY,JSON.stringify(db||{}))}
- window.atelierRemovePrepared=function(rawId){
-   const id=String(rawId||''); if(!id)return false;
-   const c=ctx(),db=read(); db.classDays=db.classDays||{}; db.classDays[c.classId]=db.classDays[c.classId]||{};
-   const t=db.classDays[c.classId][c.date]; if(!t)return false;
-   window.__atSelected=window.__atSelected||new Set(); window.__atSelected.delete(id);
-   const pubs=Array.isArray(t.published)?t.published:[];
-   const removedKeys=new Set(pubs.filter(p=>String(p.activityId||'')===id||String(p.publicationId||p.instanceId||'')===id).map(p=>String(p.publicationId||p.instanceId||p.activityId||'')));
-   t.published=pubs.filter(p=>String(p.activityId||'')!==id&&String(p.publicationId||p.instanceId||'')!==id);
-   t.customActivities=(Array.isArray(t.customActivities)?t.customActivities:[]).filter(a=>String(a.id||'')!==id);
-   t.rtaActivities=(Array.isArray(t.rtaActivities)?t.rtaActivities:[]).filter(a=>String(a.id||'')!==id);
-   // Nettoie uniquement les affectations liées au travail retiré.
-   for(const [sid,val] of Object.entries(t.assignments||{})){
-     if(String(val)===id||removedKeys.has(String(val))){delete t.assignments[sid];delete (t.activeTask||{})[sid]}
-   }
-   t.updatedAtClient=Date.now(); write(db);
-   // Envoi de LA séance de LA classe/date concernée, exactement comme Réinitialiser cette date.
-   try{window.firebaseSaveAtelierSession?.(t,c.classId,c.date).catch(e=>console.warn('V86 retrait Firebase différé',e))}catch(_){ }
-   try{window.renderAdmin?.()}catch(_){ }
-   return true;
- };
- // Un seul gestionnaire final pour les boutons du récapitulatif.
- document.addEventListener('click',function(ev){
-   const b=ev.target?.closest?.('.v84-remove-prepared'); if(!b)return;
-   ev.preventDefault();ev.stopImmediatePropagation();
-   window.atelierRemovePrepared(String(b.dataset.preparedId||''));
- },true);
-})();
-</script>
 \n\n<!-- V87 — retrait par clic sur la ligne + stabilité Administration du jour -->
-<style id="v87-admin-recap-style">
-#at-main .v80-recap-row.v87-removable{cursor:pointer;border-radius:8px;padding-left:8px;padding-right:8px;transition:background .12s ease}
-#at-main .v80-recap-row.v87-removable:hover{background:#eef6ff}
-#at-main .v80-recap-row.v87-removable::after{content:"Cliquer pour retirer";font-size:12px;font-weight:700;color:#64748b;white-space:nowrap}
-#at-main .v80-recap-row.v87-removable .v84-remove-prepared{display:none!important}
-@media(max-width:800px){#at-main .v80-recap-row.v87-removable::after{white-space:normal}}
+
+<style id="v88-admin-style">
+#at-main .at-planning-panel{max-height:260px;padding:9px 10px}
+#at-main .at-planning-panel h3{margin:0 0 6px;font-size:16px}
+#at-main .v88-plan-meta{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:7px}
+#at-main .v88-plan-search{width:100%;box-sizing:border-box;padding:9px 11px;border:1px solid #9fb3c8;border-radius:9px;margin-bottom:7px;background:#fff}
+#at-main .v88-published-manager{border:2px solid #78b89a;background:#f2fbf6;border-radius:12px;padding:11px 13px;margin:12px 0 4px}
+#at-main .v88-published-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+#at-main .v88-published-head h3{margin:0;color:#17653b}
+#at-main .v88-published-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(120px,.35fr) auto;gap:10px;align-items:center;padding:7px 0;border-top:1px solid #cce6d6}
+#at-main .v88-published-row:first-of-type{border-top:0}
+#at-main .v88-recap-row{cursor:pointer;border-radius:8px;padding-left:8px!important;padding-right:8px!important}
+#at-main .v88-recap-row:hover{background:#eef6ff}
+#at-main .v88-recap-row::after{content:'Cliquer pour retirer';font-size:12px;font-weight:700;color:#64748b}
+@media(max-width:800px){#at-main .v88-published-row{grid-template-columns:1fr}#at-main .v88-recap-row::after{display:none}}
 </style>
-<script id="v87-remove-row-and-stable-admin">
+<script id="v88-final-admin-fixes">
 (function(){
- const KEY='atelier_du_jour_v16';
  const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
- function context(){
-   try{const c=window.atelierCurrentContext?.();if(c?.classId&&c?.date)return {classId:String(c.classId),date:String(c.date)}}catch(_){ }
-   return {classId:String(window.getActiveClassId?.()||'classe'),date:new Date().toISOString().slice(0,10)};
- }
- function read(){try{return JSON.parse(localStorage.getItem(KEY)||'{}')||{}}catch(_){return {}}}
- function persist(db,t,c){
-   t.updatedAtClient=Date.now();
-   localStorage.setItem(KEY,JSON.stringify(db));
-   try{const p=window.firebaseSaveAtelierSession?.(t,c.classId,c.date);if(p?.catch)p.catch(e=>console.warn('V87 retrait Firebase différé',e))}catch(_){ }
- }
- function removeOne(rawId){
-   const id=String(rawId||''); if(!id)return false;
-   const c=context(),db=read(),t=db.classDays?.[c.classId]?.[c.date];
-   if(!t)return false;
-   window.__atSelected=window.__atSelected||new Set(); window.__atSelected.delete(id);
-   const pubs=Array.isArray(t.published)?t.published:[];
-   const removedKeys=new Set();
-   for(const p of pubs){if(String(p.activityId||'')===id||String(p.publicationId||p.instanceId||'')===id)removedKeys.add(String(p.publicationId||p.instanceId||p.activityId||''))}
-   t.published=pubs.filter(p=>String(p.activityId||'')!==id&&String(p.publicationId||p.instanceId||'')!==id);
-   t.customActivities=(Array.isArray(t.customActivities)?t.customActivities:[]).filter(a=>String(a?.id??a)!==id);
-   // Les RTA sont stockées sous forme de chaînes composites, pas d'objets {id}.
-   t.rtaActivities=(Array.isArray(t.rtaActivities)?t.rtaActivities:[]).filter(a=>String(a?.id??a)!==id);
-   for(const [sid,val] of Object.entries(t.assignments||{})){
-     if(String(val)===id||removedKeys.has(String(val))){delete t.assignments[sid];if(t.activeTask)delete t.activeTask[sid]}
-   }
-   persist(db,t,c);
-   return true;
- }
- window.atelierRemovePrepared=removeOne;
- function renderRecapV87(){
-   const dash=document.querySelector('#at-main .at-admin-dashboard');if(!dash)return;
-   let box=dash.querySelector(':scope > .v80-recap');if(!box){box=document.createElement('section');box.className='v80-recap';dash.appendChild(box)}
-   const rows=typeof window.atelierPreparedSelection==='function'?window.atelierPreparedSelection():[];
-   box.innerHTML=`<div class="v80-recap-head"><h3>📋 Sélection pour la séance</h3><b>${rows.length} travail(aux) préparé(s)</b></div>${rows.length?rows.map(r=>`<div class="v80-recap-row v87-removable" role="button" tabindex="0" data-prepared-id="${esc(String(r.id||''))}" title="Cliquer pour retirer ce travail de cette séance"><div><span class="v80-recap-code">${esc(r.code||'')}</span>${r.code?' — ':''}${esc(r.title||'')}</div><div>${esc(r.support||'Support à renseigner')}</div></div>`).join(''):'<div class="v80-recap-empty">Aucun travail sélectionné pour le moment.</div>'}`;
- }
- window.v80RenderRecap=renderRecapV87;
- function requestRemove(row){
-   const id=String(row?.dataset?.preparedId||'');if(!id)return;
-   const title=(row.querySelector('.v80-recap-code')?.parentElement?.textContent||id).trim();
-   const c=context();
-   if(!confirm(`Retirer « ${title} » de la séance du ${c.date.split('-').reverse().join('/')} pour cette classe ?`))return;
-   if(!removeOne(id)){alert('Ce travail n’a pas pu être retrouvé dans la séance active.');return}
-   renderRecapV87();
- }
- document.addEventListener('click',ev=>{const row=ev.target?.closest?.('.v80-recap-row.v87-removable');if(!row)return;ev.preventDefault();ev.stopImmediatePropagation();requestRemove(row)},true);
- document.addEventListener('keydown',ev=>{if(ev.key!=='Enter'&&ev.key!==' ')return;const row=ev.target?.closest?.('.v80-recap-row.v87-removable');if(!row)return;ev.preventDefault();requestRemove(row)},true);
- const prior=window.renderAdmin;
- if(typeof prior==='function'&&!prior.__v87){const wrapped=function(){const out=prior.apply(this,arguments);setTimeout(renderRecapV87,0);return out};wrapped.__v87=true;window.renderAdmin=wrapped}
- setTimeout(renderRecapV87,200);
+ function activeClass(){const id=String(window.getActiveClassId?.()||'');let name='';try{name=String((window.getClasses?.()||[]).find(c=>String(c.id)===id)?.name||'')}catch(_){}return {id,name:name.trim().toLowerCase()}}
+ function strictTpDiffusions(){let rows=[];try{const a=JSON.parse(localStorage.getItem('tp_generator_diffusions_v76')||'[]');rows=Array.isArray(a)?a:[]}catch(_){}const c=activeClass();return rows.filter(r=>{const rid=String(r.classId||''),rn=String(r.className||'').trim().toLowerCase();return (rid&&c.id&&rid===c.id)||(!rid&&rn&&c.name&&rn===c.name)})}
+ function refreshTpZone(){const sec=document.querySelector('#at-main .at-admin-zone.tp-diffuses');if(!sec)return;const rows=strictTpDiffusions();const list=sec.querySelector('.v77-tp-list,.v78-tp-list');if(!list)return;list.innerHTML=rows.length?rows.map(r=>`<div class="at-catalog-row"><div><b>${esc(r.tpCode)} — ${esc(r.title)}</b><br><small>${esc(r.className)} • ${(r.students||[]).length} élève(s) • ${esc(r.diffusedAt?new Date(r.diffusedAt).toLocaleDateString('fr-FR'):'')}</small></div><button type="button" class="at-btn at-primary" onclick="tpV76AddDiffusionToDay('${esc(r.id)}')">＋ Proposer à la séance</button></div>`).join(''):'<div class="at-empty">Aucun TP diffusé enregistré pour cette classe.</div>'}
+ function renderRecap(){const dash=document.querySelector('#at-main .at-admin-dashboard');if(!dash)return;let box=dash.querySelector(':scope > .v80-recap');if(!box){box=document.createElement('section');box.className='v80-recap';dash.appendChild(box)}const rows=typeof window.atelierPreparedSelection==='function'?window.atelierPreparedSelection():[];box.innerHTML=`<div class="v80-recap-head"><h3>📋 Sélection pour la séance</h3><b>${rows.length} travail(aux) préparé(s)</b></div>${rows.length?rows.map(r=>`<div class="v80-recap-row v88-recap-row" role="button" tabindex="0" data-prepared-id="${esc(String(r.id||''))}"><div><span class="v80-recap-code">${esc(r.code||'')}</span>${r.code?' — ':''}${esc(r.title||'')}</div><div>${esc(r.support||'Support à renseigner')}</div></div>`).join(''):'<div class="v80-recap-empty">Aucun travail sélectionné pour le moment.</div>'}` }
+ function renderPublished(){const main=document.querySelector('#at-main');const dash=main?.querySelector('.at-admin-dashboard');if(!main||!dash)return;let box=main.querySelector('.v88-published-manager');if(!box){box=document.createElement('section');box.className='v88-published-manager';dash.parentNode.insertBefore(box,dash)}const rows=window.atelierPublishedForActiveSession?.()||[];box.innerHTML=`<div class="v88-published-head"><h3>👁 Activités publiées — vue élève</h3><b>${rows.length} activité(s)</b></div>${rows.length?rows.map(r=>`<div class="v88-published-row"><div><b>${esc(r.code||'ACT')} — ${esc(r.title||'')}</b></div><div>${esc(r.support||'Support non renseigné')}</div><button type="button" class="at-btn at-danger v88-remove-published" data-pub-key="${esc(r.key)}">Retirer de la vue</button></div>`).join(''):'<div class="at-empty">Aucune activité publiée pour cette classe à cette date.</div>'}` }
+ function enhance(){refreshTpZone();renderPublished();renderRecap()}
+ window.v80RenderRecap=renderRecap;
+ document.addEventListener('click',function(ev){const row=ev.target?.closest?.('.v88-recap-row');if(row){ev.preventDefault();ev.stopImmediatePropagation();const id=String(row.dataset.preparedId||'');const title=(row.textContent||id).replace('Cliquer pour retirer','').trim();if(!confirm(`Retirer « ${title} » de la préparation de cette séance ?`))return;const ok=window.atelierRemovePrepared?.(id);if(!ok){alert('Ce travail n’a pas pu être retiré. Actualise la page puis réessaie.');return}enhance();return}const b=ev.target?.closest?.('.v88-remove-published');if(b){ev.preventDefault();ev.stopImmediatePropagation();const key=String(b.dataset.pubKey||'');if(!confirm('Retirer cette activité publiée du tableau du jour et de la vue élève ?'))return;const ok=window.atelierRemovePublishedV88?.(key);if(!ok){alert('Cette activité publiée n’a pas été retrouvée dans la séance active.');return}window.renderAdmin?.();}},true);
+ const old=window.renderAdmin;if(typeof old==='function'&&!old.__v88){const w=function(){const out=old.apply(this,arguments);setTimeout(enhance,0);return out};w.__v88=true;window.renderAdmin=w}
+ setTimeout(enhance,250);
 })();
 </script>
 

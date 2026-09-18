@@ -1,4 +1,4 @@
-const CACHE_NAME = 'eval-V87-retrait-ligne-admin-stable';
+const CACHE_NAME = 'eval-V88-admin-classe-retrait-publications-recherche';
 const APP_SHELL=["./manifest.webmanifest","./logo-francois-de-mahy.png","./icons/icon-192.png","./icons/icon-512.png"];
 self.addEventListener("install",event=>{
   event.waitUntil(caches.open(CACHE_NAME).then(cache=>cache.addAll(APP_SHELL)).then(()=>self.skipWaiting()));
