@@ -12168,6 +12168,12 @@ window.firebaseSaveCurrentConfig=async()=>{await saveFullConfig(firebaseBuildApp
           setStatus('✓ Firebase synchronisé — écran TP conservé','ok');
           return;
         }
+        const atelierAdminScreen=!!document.querySelector('#at-main .at-admin-dashboard');
+        if(atelierAdminScreen){
+          try{window.v80RenderRecap?.()}catch(_){ }
+          setStatus('✓ Firebase synchronisé — Administration du jour conservée','ok');
+          return;
+        }
         await loadData();
         window.refreshAtelierCorrections?.();
         applySchoolSettings();
@@ -12620,7 +12626,13 @@ function activePendingKey(t,studentId){const key=t?.activeTask?.[studentId];if(k
 function isAtAbsent(t,studentId){return !!t?.absent?.[studentId]}
 function makePendingKey(studentId){return 'T-'+String(studentId)+'-'+Date.now()+'-'+Math.random().toString(36).slice(2,8)}
 function nextTaskSequence(t,studentId){const seqs=pendingRecordsForStudent(t,studentId).map(r=>Number(r.sequence)||0);return Math.max(0,...seqs)+1}
-window.refreshAtelierFromFirebase=function(){if(!document.getElementById('atelier-app')?.classList.contains('hidden'))render()}
+window.refreshAtelierFromFirebase=function(){
+ const app=document.getElementById('atelier-app'); if(!app||app.classList.contains('hidden'))return;
+ // V87 : sur Administration du jour, les données sont déjà écrites en local par le listener Firebase.
+ // Ne pas reconstruire toute la page : cela provoquait le clignotement.
+ if(document.querySelector('#at-main .at-admin-dashboard')){try{window.v80RenderRecap?.()}catch(_){ } return;}
+ render();
+}
 function e(s){return String(s??"").replace(/[&<>\"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 function pupils(){try{return (students||[]).map(s=>({id:String(s.id),name:s.name||[s.lastName,s.firstName].filter(Boolean).join(" ")||String(s.id)}))}catch(err){return []}}
 function classLabel(){try{const id=getActiveClassId(),c=getClasses().find(x=>String(x.id)===String(id));return c?.name||"Classe active"}catch(err){return "Classe active"}}
@@ -14715,7 +14727,9 @@ window.tpCorrectionValidate=async function(){
  const oldRender=window.renderAdmin;if(typeof oldRender==='function'&&!oldRender.__v80){const w=function(){const out=oldRender.apply(this,arguments);enhance();return out};w.__v80=true;window.renderAdmin=w}
  const oldToggle=window.toggleAtCatalog;if(typeof oldToggle==='function'&&!oldToggle.__v80){const w=function(){const out=oldToggle.apply(this,arguments);enhance();return out};w.__v80=true;window.toggleAtCatalog=w}
  const oldPub=window.publishAtelierDay;if(typeof oldPub==='function'&&!oldPub.__v80){const w=function(){const out=oldPub.apply(this,arguments);enhance();return out};w.__v80=true;window.publishAtelierDay=w}
- const obs=new MutationObserver(()=>{if(document.querySelector('#at-main .at-admin-dashboard'))setTimeout(recap,30)});obs.observe(document.documentElement,{childList:true,subtree:true});
+ // V87 : suppression de l'observateur global V80. Il observait aussi les mutations produites par recap() lui-même,
+ // ce qui pouvait provoquer une boucle de rafraîchissements/clignotements sur Administration du jour.
+ window.v80RenderRecap=recap;
  setTimeout(recap,500);
 })();
 </script>
@@ -15192,5 +15206,69 @@ window.tpCorrectionValidate=async function(){
  },true);
 })();
 </script>
+\n\n<!-- V87 — retrait par clic sur la ligne + stabilité Administration du jour -->
+<style id="v87-admin-recap-style">
+#at-main .v80-recap-row.v87-removable{cursor:pointer;border-radius:8px;padding-left:8px;padding-right:8px;transition:background .12s ease}
+#at-main .v80-recap-row.v87-removable:hover{background:#eef6ff}
+#at-main .v80-recap-row.v87-removable::after{content:"Cliquer pour retirer";font-size:12px;font-weight:700;color:#64748b;white-space:nowrap}
+#at-main .v80-recap-row.v87-removable .v84-remove-prepared{display:none!important}
+@media(max-width:800px){#at-main .v80-recap-row.v87-removable::after{white-space:normal}}
+</style>
+<script id="v87-remove-row-and-stable-admin">
+(function(){
+ const KEY='atelier_du_jour_v16';
+ const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+ function context(){
+   try{const c=window.atelierCurrentContext?.();if(c?.classId&&c?.date)return {classId:String(c.classId),date:String(c.date)}}catch(_){ }
+   return {classId:String(window.getActiveClassId?.()||'classe'),date:new Date().toISOString().slice(0,10)};
+ }
+ function read(){try{return JSON.parse(localStorage.getItem(KEY)||'{}')||{}}catch(_){return {}}}
+ function persist(db,t,c){
+   t.updatedAtClient=Date.now();
+   localStorage.setItem(KEY,JSON.stringify(db));
+   try{const p=window.firebaseSaveAtelierSession?.(t,c.classId,c.date);if(p?.catch)p.catch(e=>console.warn('V87 retrait Firebase différé',e))}catch(_){ }
+ }
+ function removeOne(rawId){
+   const id=String(rawId||''); if(!id)return false;
+   const c=context(),db=read(),t=db.classDays?.[c.classId]?.[c.date];
+   if(!t)return false;
+   window.__atSelected=window.__atSelected||new Set(); window.__atSelected.delete(id);
+   const pubs=Array.isArray(t.published)?t.published:[];
+   const removedKeys=new Set();
+   for(const p of pubs){if(String(p.activityId||'')===id||String(p.publicationId||p.instanceId||'')===id)removedKeys.add(String(p.publicationId||p.instanceId||p.activityId||''))}
+   t.published=pubs.filter(p=>String(p.activityId||'')!==id&&String(p.publicationId||p.instanceId||'')!==id);
+   t.customActivities=(Array.isArray(t.customActivities)?t.customActivities:[]).filter(a=>String(a?.id??a)!==id);
+   // Les RTA sont stockées sous forme de chaînes composites, pas d'objets {id}.
+   t.rtaActivities=(Array.isArray(t.rtaActivities)?t.rtaActivities:[]).filter(a=>String(a?.id??a)!==id);
+   for(const [sid,val] of Object.entries(t.assignments||{})){
+     if(String(val)===id||removedKeys.has(String(val))){delete t.assignments[sid];if(t.activeTask)delete t.activeTask[sid]}
+   }
+   persist(db,t,c);
+   return true;
+ }
+ window.atelierRemovePrepared=removeOne;
+ function renderRecapV87(){
+   const dash=document.querySelector('#at-main .at-admin-dashboard');if(!dash)return;
+   let box=dash.querySelector(':scope > .v80-recap');if(!box){box=document.createElement('section');box.className='v80-recap';dash.appendChild(box)}
+   const rows=typeof window.atelierPreparedSelection==='function'?window.atelierPreparedSelection():[];
+   box.innerHTML=`<div class="v80-recap-head"><h3>📋 Sélection pour la séance</h3><b>${rows.length} travail(aux) préparé(s)</b></div>${rows.length?rows.map(r=>`<div class="v80-recap-row v87-removable" role="button" tabindex="0" data-prepared-id="${esc(String(r.id||''))}" title="Cliquer pour retirer ce travail de cette séance"><div><span class="v80-recap-code">${esc(r.code||'')}</span>${r.code?' — ':''}${esc(r.title||'')}</div><div>${esc(r.support||'Support à renseigner')}</div></div>`).join(''):'<div class="v80-recap-empty">Aucun travail sélectionné pour le moment.</div>'}`;
+ }
+ window.v80RenderRecap=renderRecapV87;
+ function requestRemove(row){
+   const id=String(row?.dataset?.preparedId||'');if(!id)return;
+   const title=(row.querySelector('.v80-recap-code')?.parentElement?.textContent||id).trim();
+   const c=context();
+   if(!confirm(`Retirer « ${title} » de la séance du ${c.date.split('-').reverse().join('/')} pour cette classe ?`))return;
+   if(!removeOne(id)){alert('Ce travail n’a pas pu être retrouvé dans la séance active.');return}
+   renderRecapV87();
+ }
+ document.addEventListener('click',ev=>{const row=ev.target?.closest?.('.v80-recap-row.v87-removable');if(!row)return;ev.preventDefault();ev.stopImmediatePropagation();requestRemove(row)},true);
+ document.addEventListener('keydown',ev=>{if(ev.key!=='Enter'&&ev.key!==' ')return;const row=ev.target?.closest?.('.v80-recap-row.v87-removable');if(!row)return;ev.preventDefault();requestRemove(row)},true);
+ const prior=window.renderAdmin;
+ if(typeof prior==='function'&&!prior.__v87){const wrapped=function(){const out=prior.apply(this,arguments);setTimeout(renderRecapV87,0);return out};wrapped.__v87=true;window.renderAdmin=wrapped}
+ setTimeout(renderRecapV87,200);
+})();
+</script>
+
 </body>
 </html>
