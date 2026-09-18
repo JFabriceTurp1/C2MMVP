@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>V82 Évaluation des compétences RTA TP gestion d’atelier et correction</title>
+<title>V83 Évaluation des compétences RTA TP gestion d’atelier et correction</title>
 <style>
 *{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f5f7fa;color:#172033}
 .app{display:flex;min-height:100vh}.side{width:235px;background:#172033;color:#fff;padding:22px 14px}.logo{font-size:19px;font-weight:700;padding:8px 10px 24px}
@@ -2810,7 +2810,7 @@ body{background:#f7f9fc;color:var(--text)}
 <!-- V88 — DONNÉES DE RÉFÉRENCE RÉINTÉGRÉES DEPUIS V86.5
      Jeux embarqués repris : référentiel compétences, élèves par défaut, seconde classe fictive, situations professionnelles.
      Les données dynamiques (classes/élèves/évaluations réellement saisies) restent chargées par IndexedDB/localStorage et Firebase. -->
-<div id="build-version" style="position:fixed;right:10px;bottom:8px;font-size:10px;opacity:.55;z-index:9999">V82 Évaluation des compétences RTA TP gestion d’atelier et correction</div>
+<div id="build-version" style="position:fixed;right:10px;bottom:8px;font-size:10px;opacity:.55;z-index:9999">V83 Évaluation des compétences RTA TP gestion d’atelier et correction</div>
 <div id="firebase-auth-overlay">
   <div class="firebase-login-card">
     <h2>☁️ Connexion Firebase — V88</h2>
@@ -13220,10 +13220,20 @@ window.atelierPreparedSelection=function(){
 };
 window.atelierRemovePrepared=function(id){
  const d=database(),t=today(d);id=String(id||'');
- window.__atSelected?.delete(id);
- t.published=(t.published||[]).filter(x=>String(x.activityId)!==id);
+ window.__atSelected=window.__atSelected||new Set();
+ window.__atSelected.delete(id);
+ // Retire la sélection primaire et ses éventuels supports supplémentaires.
+ t.published=(t.published||[]).filter(x=>String(x.activityId||'')!==id && String(publicationKey(x)||'')!==id);
  if(id.startsWith('TPDIFF-'))t.customActivities=(t.customActivities||[]).filter(x=>String(x.id)!==id);
  save(d);renderAdmin();
+};
+window.atelierRemovePreparedV83=function(encoded){
+ try{
+  const id=decodeURIComponent(String(encoded||''));
+  window.atelierRemovePrepared(id);
+  setTimeout(()=>{try{window.v80RenderRecap?.()}catch(_){ }},0);
+  return false;
+ }catch(err){console.error(err);alert('Impossible de retirer ce travail : '+(err?.message||err));return false}
 };
 window.resetAtelierDay=function(){if(!confirm("Effacer les publications, affectations, activités personnalisées et évaluations encore en attente aujourd’hui ?"))return;const d=database();d.classDays=d.classDays||{};d.classDays[atelierClassId()]=d.classDays[atelierClassId()]||{};d.classDays[atelierClassId()][day()]=blankAtelierSession();save(d);renderAdmin()}
 window.exportAtelierData=function(){const blob=new Blob([JSON.stringify(database(),null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='atelier_'+classLabel().replace(/[^a-z0-9]+/gi,'_')+'_'+day()+'.json';a.click();URL.revokeObjectURL(a.href)}
@@ -13422,6 +13432,30 @@ function atFindCorrection(r){
  return best.row;
 }
 
+window.openAtelierTeamLeaderEvaluation=function(taskKey){
+ try{
+  const d=database(),t=today(d),r=t.pending?.[String(taskKey)],self=t.selfEvals?.[String(taskKey)];
+  if(!r)throw new Error('Séquence chef d’équipe introuvable.');
+  if(String(r.activityId)!==TEAM_ID&&String(r.publicationId)!==TEAM_ID)throw new Error('Cette séquence n’est pas celle du chef d’équipe.');
+  if(!self?.locked){alert('Le chef d’équipe doit d’abord valider son auto-évaluation.');return}
+  const existing=atFindCorrection(r);
+  if(existing?.evaluationOnly){window.openAtelierSavedEvaluation(existing.savedEvaluationId);return}
+  document.getElementById('at-main').innerHTML=`<section class="at-panel at-auto-form"><div class="at-toolbar"><div><h2 class="at-team-leader-title">👨‍🔧 Évaluation du chef d’équipe — ${e(r.studentName)}</h2><div class="muted">Évaluation directe sans TP à rendre.</div></div><button type="button" class="at-btn at-light" onclick="renderPending()">← Retour</button></div><div class="at-notice"><b>Rôle :</b> Chef d’équipe<br><b>Support :</b> Gestion de l’atelier pédagogique</div><div style="margin-top:12px">${studentSelfEvalCard(self)}</div><label style="display:block;margin-top:14px"><b>Note professeur /20</b></label><input id="atLeaderTeacherNote" type="number" min="0" max="20" step="0.5" value="${e(self.note??'')}" style="width:100%;padding:10px;box-sizing:border-box;margin:6px 0 12px"><label><b>Appréciation professeur</b></label><textarea id="atLeaderTeacherComment" rows="4" style="width:100%;box-sizing:border-box;padding:10px;margin-top:6px" placeholder="Organisation de l’équipe, autonomie, communication, gestion de l’atelier…"></textarea><div class="at-admin-actions" style="margin-top:12px"><button type="button" class="at-btn at-success" onclick="saveAtelierTeamLeaderEvaluation('${e(encodeURIComponent(String(taskKey)))}')">✓ Valider l’évaluation</button></div></section>`;
+ }catch(err){console.error(err);alert('Impossible d’ouvrir l’évaluation du chef d’équipe : '+(err?.message||err))}
+};
+window.saveAtelierTeamLeaderEvaluation=async function(encoded){
+ try{
+  const taskKey=decodeURIComponent(String(encoded||'')),d=database(),t=today(d),r=t.pending?.[taskKey],self=t.selfEvals?.[taskKey];
+  if(!r||!self?.locked)throw new Error('Auto-évaluation du chef d’équipe introuvable ou non validée.');
+  const raw=String(document.getElementById('atLeaderTeacherNote')?.value??'').replace(',','.').trim(),note=Number(raw);
+  if(raw===''||!Number.isFinite(note)||note<0||note>20){alert('Saisis une note professeur comprise entre 0 et 20.');return}
+  const comment=(document.getElementById('atLeaderTeacherComment')?.value||'').trim();
+  const ev={id:'EVAL_CHEF_'+(crypto?.randomUUID?.()||Date.now()+'_'+Math.random().toString(36).slice(2)),studentId:r.studentId,date:new Date().toLocaleDateString('fr-FR'),title:'Chef d’équipe — Gestion de l’atelier pédagogique',place:'Lycée',type:'Chef d’équipe',comps:[],levels:{},obs:{},disabledCriteria:{},evaluationObservation:comment,activitySupport:'Gestion de l’atelier pédagogique',sourceNote20:note,noteDrivenEvaluation:true,noteDrivenRequested:note,noteDrivenExact:note,studentSelfEvaluation:{...self},atelierSource:true,atelierDay:day(),atelierPublicationId:TEAM_ID,atelierPendingKey:taskKey,createdAt:Date.now()};
+  await openDB();await persistEvaluation(ev,false);r.status='validated';r.validatedAt=new Date().toISOString();if(t.activeTask?.[r.studentId]===taskKey)delete t.activeTask[r.studentId];save(d);await loadData();
+  try{showSuccessMessage?.('Évaluation du chef d’équipe enregistrée.')}catch(_){ }
+  renderPending();
+ }catch(err){console.error(err);alert('Impossible d’enregistrer l’évaluation du chef d’équipe : '+(err?.message||err))}
+};
 function renderPending(){
  const d=database(),t=today(d); reconcileAtelierEvaluations(d,t);
  const rows=Object.entries(t.pending||{}).map(([key,r])=>({key,...r})).sort((a,b)=>String(a.createdAt||'').localeCompare(String(b.createdAt||'')));
@@ -13430,6 +13464,8 @@ function renderPending(){
    const leader=String(r.activityId)===TEAM_ID||String(r.publicationId)===TEAM_ID;
    let status='En attente du TP', cls='at-status-draft', action='<span class="at-status-draft">TP non disponible</span>';
    if(corr?.evaluationOnly){status='Évalué';cls='at-status-ready';action=`<button type="button" class="at-btn at-light" onclick="openAtelierSavedEvaluation('${e(corr.savedEvaluationId)}')">Voir</button>`}
+   else if(leader&&self?.locked){status='À évaluer';cls='at-status-validate';action=`<button type="button" class="at-btn at-success" onclick="openAtelierTeamLeaderEvaluation('${e(r.key)}')">Évaluer</button>`}
+   else if(leader){status='En attente auto-évaluation';cls='at-status-draft';action='<span class="at-status-draft">Auto-évaluation requise</span>'}
    else if(corr&&evaluated){status='Évalué';cls='at-status-ready';action=`<button type="button" class="at-btn at-light" onclick="openAtelierCorrection('${e(corr.id)}')">Voir</button>`}
    else if(corr){status='À corriger';cls='at-status-validate';action=`<button type="button" class="at-btn at-success" onclick="openAtelierCorrection('${e(corr.id)}')">Évaluer</button>`}
    else if(self){status='TP à importer';cls='at-status-validate'}
@@ -14693,7 +14729,7 @@ window.tpCorrectionValidate=async function(){
    const dash=document.querySelector('#at-main .at-admin-dashboard');if(!dash)return;
    let box=dash.querySelector(':scope > .v80-recap');if(!box){box=document.createElement('section');box.className='v80-recap';dash.appendChild(box)}
    const rows=typeof window.atelierPreparedSelection==='function'?window.atelierPreparedSelection():[];
-   box.innerHTML=`<div class="v80-recap-head"><h3>📋 Sélection pour la séance</h3><b>${rows.length} travail(aux) préparé(s)</b></div>${rows.length?rows.map(r=>`<div class="v80-recap-row"><div><span class="v80-recap-code">${esc(r.code||'')}</span>${r.code?' — ':''}${esc(r.title||'')}</div><div>${esc(r.support||'Support à renseigner')}</div><button type="button" class="at-btn at-light" onclick="atelierRemovePrepared('${esc(r.id)}')">Retirer</button></div>`).join(''):'<div class="v80-recap-empty">Aucun travail sélectionné pour le moment.</div>'}`;
+   box.innerHTML=`<div class="v80-recap-head"><h3>📋 Sélection pour la séance</h3><b>${rows.length} travail(aux) préparé(s)</b></div>${rows.length?rows.map(r=>`<div class="v80-recap-row"><div><span class="v80-recap-code">${esc(r.code||'')}</span>${r.code?' — ':''}${esc(r.title||'')}</div><div>${esc(r.support||'Support à renseigner')}</div><button type="button" class="at-btn at-light" onclick="event.preventDefault();event.stopPropagation();return atelierRemovePreparedV83('${encodeURIComponent(String(r.id||''))}')">Retirer</button></div>`).join(''):'<div class="v80-recap-empty">Aucun travail sélectionné pour le moment.</div>'}`;
  }
  function enhance(){setTimeout(recap,0);setTimeout(recap,120)}
  const oldRender=window.renderAdmin;if(typeof oldRender==='function'&&!oldRender.__v80){const w=function(){const out=oldRender.apply(this,arguments);enhance();return out};w.__v80=true;window.renderAdmin=w}
