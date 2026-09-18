@@ -1,3 +1,0 @@
-V75 Évaluation des compétences RTA TP gestion d’atelier et correction
-
-Correction ciblée de la liaison Évaluation du jour / Portail correcteur pour les activités historiques dont l’identifiant atelier diffère de l’identifiant du générateur TP, notamment ACT-021 / BACPRO-MOTEUR-006 (bougies).
