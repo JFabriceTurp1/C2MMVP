@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>V81 Évaluation des compétences RTA TP gestion d’atelier et correction</title>
+<title>V82 Évaluation des compétences RTA TP gestion d’atelier et correction</title>
 <style>
 *{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f5f7fa;color:#172033}
 .app{display:flex;min-height:100vh}.side{width:235px;background:#172033;color:#fff;padding:22px 14px}.logo{font-size:19px;font-weight:700;padding:8px 10px 24px}
@@ -2810,7 +2810,7 @@ body{background:#f7f9fc;color:var(--text)}
 <!-- V88 — DONNÉES DE RÉFÉRENCE RÉINTÉGRÉES DEPUIS V86.5
      Jeux embarqués repris : référentiel compétences, élèves par défaut, seconde classe fictive, situations professionnelles.
      Les données dynamiques (classes/élèves/évaluations réellement saisies) restent chargées par IndexedDB/localStorage et Firebase. -->
-<div id="build-version" style="position:fixed;right:10px;bottom:8px;font-size:10px;opacity:.55;z-index:9999">V81 Évaluation des compétences RTA TP gestion d’atelier et correction</div>
+<div id="build-version" style="position:fixed;right:10px;bottom:8px;font-size:10px;opacity:.55;z-index:9999">V82 Évaluation des compétences RTA TP gestion d’atelier et correction</div>
 <div id="firebase-auth-overlay">
   <div class="firebase-login-card">
     <h2>☁️ Connexion Firebase — V88</h2>
@@ -14729,8 +14729,7 @@ window.tpCorrectionValidate=async function(){
   };
 })();
 </script>
-</body>
-</html>
+
 
 <!-- V47 — diffusion : source unique des codes + déverrouillage professeur sécurisé -->
 <style id="tp-v47-style">
@@ -15010,7 +15009,21 @@ window.tpCorrectionValidate=async function(){
  function saveCaptured(rec){if(!rec||!rec.students?.length)return;const a=readDiff();const sig=[rec.tpCode,rec.classId,rec.studentIds.slice().sort().join(','),rec.diffusedAt.slice(0,16)].join('|');if(!a.some(x=>x.signature===sig)){rec.signature=sig;a.unshift(rec);writeDiff(a)}}
  ['tpGenExportClassToFolder','tpGenExportClassZip'].forEach(name=>{const old=window[name];if(typeof old!=='function'||old.__v76)return;const w=async function(){const rec=captureDiffusion();const out=await old.apply(this,arguments);saveCaptured(rec);return out};w.__v76=true;window[name]=w});
  window.tpV76DiffusionsPage=function(){setActive('tpGenerator');const rows=readDiff().sort((a,b)=>String(b.diffusedAt).localeCompare(String(a.diffusedAt)));document.getElementById('main').innerHTML=`<header class="app-top-header"></header><div class="tpgen-manager-shell"><div class="tpgen-head"><div><h1>📤 Mes TP diffusés</h1><p class="muted">Suivi par élève : diffusé → rendu → à corriger → corrigé.</p></div><button class="tpgen-btn secondary" onclick="tpGeneratorPage()">← Retour</button></div><div class="tpgen-card">${rows.length?rows.map(r=>`<div class="v76-diff-row"><div><b>${escv(r.tpCode)} — ${escv(r.title)}</b><div class="muted">${escv(r.className)} • diffusé le ${escv(new Date(r.diffusedAt).toLocaleString('fr-FR'))} • ${r.students?.length||0} élève(s)</div><div class="v76-diff-status">${(r.students||[]).map(st=>{const s=statusFor(r,st);return `<span class="v76-chip ${s==='Corrigé'?'done':s.includes('corriger')?'todo':''}">${escv(st.name)} : ${escv(s)}</span>`}).join('')}</div></div><button class="tpgen-btn primary" onclick="tpV76AddDiffusionToDay('${escv(r.id)}')">＋ Affecter au tableau du jour</button></div>`).join(''):'<div class="muted">Aucun TP diffusé enregistré sur ce poste pour le moment.</div>'}</div></div>`};
- window.tpV76AddDiffusionToDay=function(id){const r=readDiff().find(x=>String(x.id)===String(id));if(!r)return;try{const d=database(),t=today(d),aid='TPDIFF-'+String(r.id).replace(/[^a-zA-Z0-9_-]/g,'');t.customActivities=Array.isArray(t.customActivities)?t.customActivities:[];if(!t.customActivities.some(x=>String(x.id)===aid))t.customActivities.push({id:aid,code:r.tpCode||'TP',title:r.title||'TP diffusé',description:'TP déjà diffusé à la classe',defaultSupport:r.support||'TP diffusé',capacity:4,tpDiffusionId:r.id,tpCode:r.tpCode,createdAt:new Date().toISOString()});t.published=Array.isArray(t.published)?t.published:[];if(!t.published.some(x=>String(x.activityId)===aid))t.published.push({publicationId:aid,activityId:aid,code:r.tpCode,title:r.title,support:r.support||'TP diffusé',capacity:4,tpDiffusionId:r.id,publishedAt:new Date().toISOString()});save(d);showSuccessMessage?.('TP diffusé ajouté au tableau du jour. Tu peux maintenant affecter les élèves.');renderAdmin?.()}catch(e){console.error(e);alert('Impossible d’ajouter ce TP au tableau du jour : '+(e?.message||e))}};
+ window.tpV76AddDiffusionToDay=function(id){
+  const r=readDiff().find(x=>String(x.id)===String(id));
+  if(!r)return;
+  try{
+    const bridge=window.atelierAddTpDiffusionToDay;
+    if(typeof bridge!=='function') throw new Error('liaison Atelier indisponible');
+    const aid=bridge(r);
+    if(aid===false) throw new Error('ajout refusé par Atelier du jour');
+    try{ window.renderAdmin?.(); }catch(_e){}
+    return aid;
+  }catch(e){
+    console.error(e);
+    alert('Impossible d’ajouter ce TP au tableau du jour : '+(e?.message||e));
+  }
+};
  function addGeneratorButton(){const a=document.querySelector('.tpgen-top-actions');if(a&&!document.getElementById('v76-diff-btn')){const b=document.createElement('button');b.id='v76-diff-btn';b.className='tpgen-btn secondary';b.textContent='📤 Mes TP diffusés';b.onclick=window.tpV76DiffusionsPage;a.insertBefore(b,a.children[1]||null)}}
  const oldGen=window.tpGeneratorPage;if(typeof oldGen==='function'){window.tpGeneratorPage=function(){const out=oldGen.apply(this,arguments);setTimeout(addGeneratorButton,0);return out}}
  const oldSaved=window.tpGenSavedPage;if(typeof oldSaved==='function'){window.tpGenSavedPage=function(){const out=oldSaved.apply(this,arguments);setTimeout(()=>{const h=document.querySelector('.tpgen-head');if(h&&!document.getElementById('v76-saved-diff')){const b=document.createElement('button');b.id='v76-saved-diff';b.className='tpgen-btn secondary';b.textContent='📤 Mes TP diffusés';b.onclick=window.tpV76DiffusionsPage;h.appendChild(b)}},0);return out}}
@@ -15081,3 +15094,5 @@ window.tpCorrectionValidate=async function(){
  setTimeout(enhance,300);
 })();
 </script>
+</body>
+</html>
