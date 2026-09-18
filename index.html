@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>V88 Évaluation des compétences RTA TP gestion d’atelier et correction</title>
+<title>V89 Évaluation des compétences RTA TP gestion d’atelier et correction</title>
 <style>
 *{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f5f7fa;color:#172033}
 .app{display:flex;min-height:100vh}.side{width:235px;background:#172033;color:#fff;padding:22px 14px}.logo{font-size:19px;font-weight:700;padding:8px 10px 24px}
@@ -2813,7 +2813,7 @@ body{background:#f7f9fc;color:var(--text)}
 <div id="build-version" style="position:fixed;right:10px;bottom:8px;font-size:10px;opacity:.55;z-index:9999">V85 Évaluation des compétences RTA TP gestion d’atelier et correction</div>
 <div id="firebase-auth-overlay">
   <div class="firebase-login-card">
-    <h2>☁️ Connexion Firebase — V88</h2>
+    <h2>☁️ Connexion Firebase — V89</h2>
     <p>Cette version synchronise les classes, les élèves et désormais les évaluations avec Firebase. Le stockage local reste utilisé comme cache de sécurité pendant cette phase de validation.</p>
     <form id="firebase-login-form">
       <label for="firebase-email">Adresse e-mail</label>
@@ -15161,6 +15161,53 @@ window.tpCorrectionValidate=async function(){
  window.v80RenderRecap=renderRecap;
  document.addEventListener('click',function(ev){const row=ev.target?.closest?.('.v88-recap-row');if(row){ev.preventDefault();ev.stopImmediatePropagation();const id=String(row.dataset.preparedId||'');const title=(row.textContent||id).replace('Cliquer pour retirer','').trim();if(!confirm(`Retirer « ${title} » de la préparation de cette séance ?`))return;const ok=window.atelierRemovePrepared?.(id);if(!ok){alert('Ce travail n’a pas pu être retiré. Actualise la page puis réessaie.');return}enhance();return}const b=ev.target?.closest?.('.v88-remove-published');if(b){ev.preventDefault();ev.stopImmediatePropagation();const key=String(b.dataset.pubKey||'');if(!confirm('Retirer cette activité publiée du tableau du jour et de la vue élève ?'))return;const ok=window.atelierRemovePublishedV88?.(key);if(!ok){alert('Cette activité publiée n’a pas été retrouvée dans la séance active.');return}window.renderAdmin?.();}},true);
  const old=window.renderAdmin;if(typeof old==='function'&&!old.__v88){const w=function(){const out=old.apply(this,arguments);setTimeout(enhance,0);return out};w.__v88=true;window.renderAdmin=w}
+ setTimeout(enhance,250);
+})();
+</script>
+
+
+<!-- V89 — Administration du jour : audit avant publication, RTA avec support, TP diffusés par classe, cadres repliés -->
+<style id="v89-admin-style">
+#at-main .at-admin-dashboard{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+#at-main .at-admin-zone.v77-collapsible{min-width:0;overflow:hidden!important}
+#at-main .at-admin-zone.v77-collapsible>details.v77-zone-details{width:100%}
+#at-main .at-admin-zone.v77-collapsible>details.v77-zone-details:not([open])>.v77-zone-body{display:none!important}
+#at-main .at-admin-zone.v77-collapsible>details.v77-zone-details>summary{min-height:22px}
+#at-main .at-admin-zone.extras .at-custom-create{display:grid!important;grid-template-columns:minmax(210px,1.2fr) minmax(180px,1fr) 80px minmax(190px,.8fr)!important;gap:8px;width:100%;overflow:visible!important}
+#at-main .at-admin-zone.extras .at-custom-create>*{min-width:0!important;width:100%;box-sizing:border-box}
+#at-main .at-admin-zone.extras .at-custom-create button{white-space:normal;line-height:1.2;min-height:42px}
+#at-main .v89-rta-support{grid-column:1/-1;padding:10px 11px;border:2px solid #8b5cf6;border-radius:9px;background:#fff;box-sizing:border-box;width:100%}
+#at-main .v89-audit-btn{font-weight:900}
+#v89AuditBackdrop{position:fixed;inset:0;background:rgba(15,23,42,.58);z-index:100000;display:flex;align-items:center;justify-content:center;padding:20px}
+#v89AuditBox{width:min(920px,96vw);max-height:88vh;overflow:auto;background:white;border-radius:16px;box-shadow:0 24px 70px rgba(0,0,0,.28);padding:18px}
+#v89AuditBox h2{margin:0 0 4px;color:#0f4c81}#v89AuditBox .v89-sub{color:#64748b;margin-bottom:12px}
+.v89-audit-row{display:grid;grid-template-columns:120px minmax(0,1fr) minmax(160px,.5fr);gap:10px;padding:9px 6px;border-top:1px solid #dbe4ee;align-items:center}.v89-audit-row.bad{background:#fff5f5}.v89-audit-code{font-weight:900;color:#0f4c81}.v89-audit-support{font-weight:700}.v89-audit-support.bad{color:#b91c1c}
+.v89-audit-actions{display:flex;justify-content:flex-end;gap:9px;margin-top:14px;flex-wrap:wrap}
+#at-main .v89-published-manager{border:2px solid #3b82f6;background:#f5f9ff;border-radius:12px;padding:10px 12px;margin:10px 0}
+#at-main .v89-published-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(150px,.4fr) auto;gap:9px;align-items:center;padding:8px 0;border-top:1px solid #d7e5f5}
+@media(max-width:980px){#at-main .at-admin-dashboard{grid-template-columns:1fr}#at-main .at-admin-zone.extras .at-custom-create{grid-template-columns:1fr!important}.v89-audit-row,#at-main .v89-published-row{grid-template-columns:1fr}}
+</style>
+<script id="v89-admin-features">
+(function(){
+ const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+ function activeClass(){const id=String(window.getActiveClassId?.()||atelierClassId?.()||'');const name=String(window.classLabel?.()||'').trim().toLowerCase();return {id,name}}
+ function readDiff(){try{const a=JSON.parse(localStorage.getItem('tp_generator_diffusions_v76')||'[]');return Array.isArray(a)?a:[]}catch(_){return[]}}
+ function classDiffusions(){const c=activeClass();return readDiff().filter(r=>{const rid=String(r.classId||''),rn=String(r.className||'').trim().toLowerCase();return (rid&&c.id&&rid===c.id)||(!rid&&rn&&c.name&&rn===c.name)})}
+ function collapse(sec){if(!sec)return;let det=sec.querySelector(':scope > details.v77-zone-details');if(!det){const h=sec.querySelector(':scope > h3');if(!h)return;det=document.createElement('details');det.className='v77-zone-details';const sum=document.createElement('summary');sum.innerHTML=h.innerHTML;const body=document.createElement('div');body.className='v77-zone-body';[...sec.children].forEach(el=>{if(el!==h)body.appendChild(el)});det.append(sum,body);h.remove();sec.appendChild(det);sec.classList.add('v77-collapsible')}det.removeAttribute('open');det.querySelectorAll('details.at-group').forEach(x=>x.removeAttribute('open'))}
+ function tpZone(dash){let sec=dash.querySelector(':scope > .at-admin-zone.tp-diffuses');if(sec)sec.remove();sec=document.createElement('section');sec.className='at-admin-zone tp-diffuses';const rows=classDiffusions();sec.innerHTML=`<h3>📤 TP diffusés — ${esc(window.classLabel?.()||'classe active')}</h3><p>Créer/proposer une activité du jour à partir d’un TP déjà diffusé à cette classe.</p><div class="v89-tp-list">${rows.length?rows.map(r=>`<div class="at-catalog-row"><div><b>${esc(r.tpCode||'TP')} — ${esc(r.title||'')}</b><br><small>${esc(r.className||'')} • ${(r.students||[]).length} élève(s) • ${esc(r.diffusedAt?new Date(r.diffusedAt).toLocaleDateString('fr-FR'):'')}</small></div><button type="button" class="at-btn at-primary" onclick="tpV76AddDiffusionToDay('${esc(r.id)}')">＋ Créer / proposer l’activité</button></div>`).join(''):'<div class="at-empty">Aucun TP diffusé pour cette classe.</div>'}</div>`;const fiches=dash.querySelector(':scope > .at-admin-zone.fiches');(fiches||dash.lastElementChild)?.after(sec);collapse(sec)}
+ function rtaSupport(){const sec=document.querySelector('#at-main .at-admin-zone.rta');const body=sec?.querySelector('.v77-zone-body')||sec;if(!body||body.querySelector('#atRtaSupport'))return;const activity=body.querySelector('#atRtaActivity');if(!activity)return;const input=document.createElement('input');input.id='atRtaSupport';input.className='v89-rta-support';input.placeholder='Support obligatoire avant sélection : véhicule / organe / maquette';activity.parentNode.insertBefore(input,activity)}
+ function removeBackup(){document.querySelectorAll('#at-main .at-admin-zone.tools').forEach(sec=>{if(/sauvegarde|restauration/i.test(sec.textContent||''))sec.remove()})}
+ function publishedRows(){const d=database(),t=today(d),all=(t.published||[]);const keys=Array.isArray(t._v89PublishedKeys)?new Set(t._v89PublishedKeys.map(String)):null;return (keys?all.filter(p=>keys.has(String(publicationKey(p)))):all).map(p=>({key:String(publicationKey(p)),code:p.code||activityById(p.activityId)?.code||'ACT',title:p.title||activityById(p.activityId)?.title||p.activityId||'',support:p.support||''}))}
+ function publishedManager(){const panel=document.querySelector('#at-main .at-panel:nth-of-type(2)');const dash=panel?.querySelector('.at-admin-dashboard');if(!panel||!dash)return;document.querySelector('#at-main .v88-published-manager')?.remove();let box=panel.querySelector(':scope > .v89-published-manager');if(!box){box=document.createElement('section');box.className='v89-published-manager';dash.before(box)}const rows=publishedRows();box.innerHTML=`<div class="v88-published-head"><h3>👁 Activités publiées — ${esc(window.classLabel?.()||'classe active')} / ${esc(typeof atDateLabel==='function'?atDateLabel(day()):day())}</h3><b>${rows.length} activité(s)</b></div>${rows.length?rows.map(r=>`<div class="v89-published-row"><div><b>${esc(r.code)} — ${esc(r.title)}</b></div><div>${esc(r.support||'Support non renseigné')}</div><button type="button" class="at-btn at-danger v89-unpublish" data-key="${esc(r.key)}">Désactiver</button></div>`).join(''):'<div class="at-empty">Aucune activité publiée pour cette classe à cette date.</div>'}`}
+ function toolbar(){const actions=document.querySelector('#at-main .at-admin-top-actions');if(!actions)return;const pub=actions.querySelector('button[onclick*="publishAtelierDay"]');if(pub){pub.textContent='🔎 Vérifier avant publication';pub.setAttribute('onclick','v89OpenAudit()');pub.classList.add('v89-audit-btn')}}
+ function enhance(){const dash=document.querySelector('#at-main .at-admin-dashboard');if(!dash)return;removeBackup();tpZone(dash);dash.querySelectorAll(':scope > .at-admin-zone').forEach(collapse);rtaSupport();publishedManager();toolbar()}
+ const nativeAddRta=window.addRtaAtelierActivity;
+ if(typeof nativeAddRta==='function'&&!nativeAddRta.__v89){window.addRtaAtelierActivity=function(){const support=String(document.getElementById('atRtaSupport')?.value||'').trim();if(!support){alert('Renseigne d’abord le support de cette activité RTA.');document.getElementById('atRtaSupport')?.focus();return}const libId=document.getElementById('atRtaLibrary')?.value||'',activityId=document.getElementById('atRtaActivity')?.value||'';if(!libId||!activityId){alert('Choisis une RTA puis une activité.');return}const composite=atelierRtaCompositeId(libId,activityId);nativeAddRta.apply(this,arguments);const d=database(),t=today(d);const a=atResolvePlanningActivity?.(composite)||activityById(composite);t.published=t.published||[];let p=t.published.find(x=>String(x.activityId)===String(composite));if(!p){p={publicationId:String(composite),activityId:String(composite),code:a?.code||'RTA',title:a?.title||'Activité RTA',capacity:4,publishedAt:new Date().toISOString()};t.published.push(p)}p.support=support;save(d);window.renderAdmin?.()};window.addRtaAtelierActivity.__v89=true}
+ const nativePublish=window.publishAtelierDay;
+ window.v89OpenAudit=function(){const rows=window.atelierPreparedSelection?.()||[];if(!rows.length){alert('Aucun travail préparé pour cette séance.');return}document.getElementById('v89AuditBackdrop')?.remove();const bad=rows.filter(r=>!String(r.support||'').trim());const wrap=document.createElement('div');wrap.id='v89AuditBackdrop';wrap.innerHTML=`<div id="v89AuditBox"><h2>🔎 Vérification avant publication</h2><div class="v89-sub"><b>${esc(window.classLabel?.()||'')}</b> — ${esc(typeof atDateLabel==='function'?atDateLabel(day()):day())} · ${rows.length} travail(aux)</div>${rows.map(r=>`<div class="v89-audit-row ${!String(r.support||'').trim()?'bad':''}"><div class="v89-audit-code">${esc(r.code||r.id||'')}</div><div><b>${esc(r.title||'')}</b></div><div class="v89-audit-support ${!String(r.support||'').trim()?'bad':''}">${esc(r.support||'⚠ Support manquant')}</div></div>`).join('')}<div class="v89-audit-actions"><button class="at-btn at-light" onclick="document.getElementById('v89AuditBackdrop').remove()">← Retour / modifier</button><button class="at-btn at-success" ${bad.length?'disabled title="Renseigne tous les supports"':''} onclick="v89ConfirmPublish()">✓ Publier pour cette date</button></div></div>`;document.body.appendChild(wrap)};
+ window.v89ConfirmPublish=function(){document.getElementById('v89AuditBackdrop')?.remove();if(typeof nativePublish!=='function')return;nativePublish();const d=database(),t=today(d);t._v89PublishedKeys=(t.published||[]).map(p=>String(publicationKey(p)));t._v89PublishedAt=new Date().toISOString();save(d);setTimeout(()=>window.renderAdmin?.(),0)};
+ document.addEventListener('click',ev=>{const b=ev.target?.closest?.('.v89-unpublish');if(!b)return;ev.preventDefault();ev.stopImmediatePropagation();const key=String(b.dataset.key||'');if(!confirm('Désactiver uniquement cette activité pour cette journée ?'))return;const ok=window.atelierRemovePublishedV88?.(key);if(!ok){alert('Activité introuvable dans la séance active.');return}const d=database(),t=today(d);if(Array.isArray(t._v89PublishedKeys))t._v89PublishedKeys=t._v89PublishedKeys.filter(k=>String(k)!==key);save(d);window.renderAdmin?.()},true);
+ const old=window.renderAdmin;if(typeof old==='function'&&!old.__v89){const w=function(){const out=old.apply(this,arguments);setTimeout(enhance,0);return out};w.__v89=true;window.renderAdmin=w}
  setTimeout(enhance,250);
 })();
 </script>
