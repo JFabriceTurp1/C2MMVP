@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>V79 Évaluation des compétences RTA TP gestion d’atelier et correction</title>
+<title>V80 Évaluation des compétences RTA TP gestion d’atelier et correction</title>
 <style>
 *{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f5f7fa;color:#172033}
 .app{display:flex;min-height:100vh}.side{width:235px;background:#172033;color:#fff;padding:22px 14px}.logo{font-size:19px;font-weight:700;padding:8px 10px 24px}
@@ -2810,7 +2810,7 @@ body{background:#f7f9fc;color:var(--text)}
 <!-- V88 — DONNÉES DE RÉFÉRENCE RÉINTÉGRÉES DEPUIS V86.5
      Jeux embarqués repris : référentiel compétences, élèves par défaut, seconde classe fictive, situations professionnelles.
      Les données dynamiques (classes/élèves/évaluations réellement saisies) restent chargées par IndexedDB/localStorage et Firebase. -->
-<div id="build-version" style="position:fixed;right:10px;bottom:8px;font-size:10px;opacity:.55;z-index:9999">V79 Évaluation des compétences RTA TP gestion d’atelier et correction</div>
+<div id="build-version" style="position:fixed;right:10px;bottom:8px;font-size:10px;opacity:.55;z-index:9999">V80 Évaluation des compétences RTA TP gestion d’atelier et correction</div>
 <div id="firebase-auth-overlay">
   <div class="firebase-login-card">
     <h2>☁️ Connexion Firebase — V88</h2>
@@ -13212,6 +13212,19 @@ window.atelierAddTpDiffusionToDay=function(rec){
  try{showSuccessMessage?.('TP diffusé ajouté au tableau du jour. Tu peux maintenant affecter les élèves.')}catch(e){}
  return aid;
 };
+window.atelierPreparedSelection=function(){
+ const d=database(),t=today(d),ids=[...(window.__atSelected||new Set())],seen=new Set(),out=[];
+ ids.forEach(id=>{const a=activityById(id);if(!a||seen.has(String(id)))return;seen.add(String(id));const pub=(t.published||[]).find(x=>String(x.activityId)===String(id));out.push({id:String(id),code:a.code||pub?.code||'',title:a.title||pub?.title||String(id),support:(document.getElementById('support_'+id)?.value||pub?.support||a.defaultSupport||'').trim(),kind:a.kind||((a.tpDiffusionId||pub?.tpDiffusionId)?'tpdiff':'activité')})});
+ (t.published||[]).forEach(pub=>{const id=String(pub.activityId||'');if(!id||seen.has(id))return;const a=activityById(id);seen.add(id);out.push({id,code:pub.code||a?.code||'',title:pub.title||a?.title||id,support:pub.support||a?.defaultSupport||'',kind:(pub.tpDiffusionId||a?.tpDiffusionId)?'tpdiff':a?.kind||'activité'})});
+ return out;
+};
+window.atelierRemovePrepared=function(id){
+ const d=database(),t=today(d);id=String(id||'');
+ window.__atSelected?.delete(id);
+ t.published=(t.published||[]).filter(x=>String(x.activityId)!==id);
+ if(id.startsWith('TPDIFF-'))t.customActivities=(t.customActivities||[]).filter(x=>String(x.id)!==id);
+ save(d);renderAdmin();
+};
 window.resetAtelierDay=function(){if(!confirm("Effacer les publications, affectations, activités personnalisées et évaluations encore en attente aujourd’hui ?"))return;const d=database();d.classDays=d.classDays||{};d.classDays[atelierClassId()]=d.classDays[atelierClassId()]||{};d.classDays[atelierClassId()][day()]=blankAtelierSession();save(d);renderAdmin()}
 window.exportAtelierData=function(){const blob=new Blob([JSON.stringify(database(),null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='atelier_'+classLabel().replace(/[^a-z0-9]+/gi,'_')+'_'+day()+'.json';a.click();URL.revokeObjectURL(a.href)}
 window.importAtelierData=function(file){if(!file)return;const reader=new FileReader();reader.onload=()=>{try{const data=JSON.parse(reader.result);localStorage.setItem(KEY,JSON.stringify(data));renderAdmin();alert('Sauvegarde importée.')}catch(err){alert('Fichier JSON invalide.')}};reader.readAsText(file)}
@@ -14647,6 +14660,47 @@ window.tpCorrectionValidate=async function(){
       alert('Impossible d’ajouter ce TP au tableau du jour : '+(e?.message||e));
     }
   };
+})();
+</script>
+
+
+<!-- V80 — correctif final TP diffusés + récapitulatif avant publication -->
+<style id="v80-admin-style">
+#at-main .v80-recap{grid-column:1/-1;border:1px solid #93c5fd;background:#f8fbff;border-radius:12px;padding:12px 14px;margin-top:2px}
+#at-main .v80-recap-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+#at-main .v80-recap-head h3{margin:0;color:#0f3767}
+#at-main .v80-recap-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(120px,.35fr) auto;gap:10px;align-items:center;padding:8px 0;border-top:1px solid #dbeafe}
+#at-main .v80-recap-row:first-child{border-top:0}
+#at-main .v80-recap-code{font-weight:800;color:#123b6d}
+#at-main .v80-recap-empty{color:#64748b;padding:4px 0}
+@media(max-width:800px){#at-main .v80-recap-row{grid-template-columns:1fr}.v80-recap-row .at-btn{justify-self:start}}
+</style>
+<script id="v80-admin-features">
+(function(){
+ const DKEY='tp_generator_diffusions_v76';
+ const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+ const readDiff=()=>{try{const a=JSON.parse(localStorage.getItem(DKEY)||'[]');return Array.isArray(a)?a:[]}catch(e){return[]}};
+ // IMPORTANT : ce wrapper est volontairement le dernier. Il n'appelle jamais database()/today()/save(), privés à l'atelier.
+ window.tpV76AddDiffusionToDay=function(id){
+   const r=readDiff().find(x=>String(x.id)===String(id));
+   if(!r){alert('TP diffusé introuvable.');return}
+   try{
+     if(typeof window.atelierAddTpDiffusionToDay!=='function')throw new Error('liaison Atelier indisponible');
+     window.atelierAddTpDiffusionToDay(r);
+   }catch(e){console.error('V80 TP diffusé',e);alert('Impossible d’ajouter ce TP au tableau du jour : '+(e?.message||e))}
+ };
+ function recap(){
+   const dash=document.querySelector('#at-main .at-admin-dashboard');if(!dash)return;
+   let box=dash.querySelector(':scope > .v80-recap');if(!box){box=document.createElement('section');box.className='v80-recap';dash.appendChild(box)}
+   const rows=typeof window.atelierPreparedSelection==='function'?window.atelierPreparedSelection():[];
+   box.innerHTML=`<div class="v80-recap-head"><h3>📋 Sélection pour la séance</h3><b>${rows.length} travail(aux) préparé(s)</b></div>${rows.length?rows.map(r=>`<div class="v80-recap-row"><div><span class="v80-recap-code">${esc(r.code||'')}</span>${r.code?' — ':''}${esc(r.title||'')}</div><div>${esc(r.support||'Support à renseigner')}</div><button type="button" class="at-btn at-light" onclick="atelierRemovePrepared('${esc(r.id)}')">Retirer</button></div>`).join(''):'<div class="v80-recap-empty">Aucun travail sélectionné pour le moment.</div>'}`;
+ }
+ function enhance(){setTimeout(recap,0);setTimeout(recap,120)}
+ const oldRender=window.renderAdmin;if(typeof oldRender==='function'&&!oldRender.__v80){const w=function(){const out=oldRender.apply(this,arguments);enhance();return out};w.__v80=true;window.renderAdmin=w}
+ const oldToggle=window.toggleAtCatalog;if(typeof oldToggle==='function'&&!oldToggle.__v80){const w=function(){const out=oldToggle.apply(this,arguments);enhance();return out};w.__v80=true;window.toggleAtCatalog=w}
+ const oldPub=window.publishAtelierDay;if(typeof oldPub==='function'&&!oldPub.__v80){const w=function(){const out=oldPub.apply(this,arguments);enhance();return out};w.__v80=true;window.publishAtelierDay=w}
+ const obs=new MutationObserver(()=>{if(document.querySelector('#at-main .at-admin-dashboard'))setTimeout(recap,30)});obs.observe(document.documentElement,{childList:true,subtree:true});
+ setTimeout(recap,500);
 })();
 </script>
 </body>
