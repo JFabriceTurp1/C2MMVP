@@ -1,0 +1,7 @@
+V76 Évaluation des compétences RTA TP gestion d’atelier et correction
+
+- Administration du jour : groupes repliés par défaut.
+- Activité ponctuelle : cadrage responsive corrigé.
+- Générateur : Mes TP diffusés et suivi par élève.
+- Administration : catégorie TP déjà diffusés, ajout direct au tableau du jour.
+- Correction TP : la fiche reste ouverte pendant les coches/modifications et synchronisations Firebase.

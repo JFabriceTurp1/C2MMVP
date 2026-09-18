@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>V75 Évaluation des compétences RTA TP gestion d’atelier et correction</title>
+<title>V76 Évaluation des compétences RTA TP gestion d’atelier et correction</title>
 <style>
 *{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f5f7fa;color:#172033}
 .app{display:flex;min-height:100vh}.side{width:235px;background:#172033;color:#fff;padding:22px 14px}.logo{font-size:19px;font-weight:700;padding:8px 10px 24px}
@@ -2810,7 +2810,7 @@ body{background:#f7f9fc;color:var(--text)}
 <!-- V88 — DONNÉES DE RÉFÉRENCE RÉINTÉGRÉES DEPUIS V86.5
      Jeux embarqués repris : référentiel compétences, élèves par défaut, seconde classe fictive, situations professionnelles.
      Les données dynamiques (classes/élèves/évaluations réellement saisies) restent chargées par IndexedDB/localStorage et Firebase. -->
-<div id="build-version" style="position:fixed;right:10px;bottom:8px;font-size:10px;opacity:.55;z-index:9999">V75 Évaluation des compétences RTA TP gestion d’atelier et correction</div>
+<div id="build-version" style="position:fixed;right:10px;bottom:8px;font-size:10px;opacity:.55;z-index:9999">V76 Évaluation des compétences RTA TP gestion d’atelier et correction</div>
 <div id="firebase-auth-overlay">
   <div class="firebase-login-card">
     <h2>☁️ Connexion Firebase — V88</h2>
@@ -14808,5 +14808,42 @@ window.tpCorrectionValidate=async function(){
  const validateNow=window.tpCorrectionValidate;
  if(typeof validateNow==='function')window.tpCorrectionValidate=async function(){const saved=window.showSaveFilePicker;try{window.showSaveFilePicker=undefined;return await validateNow.apply(this,arguments)}finally{window.showSaveFilePicker=saved}};
  setTimeout(inject,500);
+})();
+</script>
+
+
+<!-- V76 — administration repliée, TP diffusés, correction TP stable -->
+<style id="v76-style">
+.at-custom-create{display:grid!important;grid-template-columns:minmax(180px,1.4fr) minmax(180px,1.4fr) minmax(160px,1fr) 90px auto!important;gap:8px!important;align-items:end!important;max-width:100%!important;box-sizing:border-box!important}
+.at-custom-create input,.at-custom-create button{min-width:0!important;max-width:100%!important;box-sizing:border-box!important}
+.at-admin-zone.tp-diffuses{border-color:#7dd3fc;background:#f0f9ff}
+.v76-diff-row{display:grid;grid-template-columns:minmax(220px,1fr) auto;gap:10px;align-items:center;padding:10px;border-top:1px solid #dbeafe}
+.v76-diff-status{display:flex;gap:6px;flex-wrap:wrap;margin-top:5px}.v76-chip{font-size:12px;padding:3px 7px;border-radius:999px;background:#e5e7eb}.v76-chip.done{background:#dcfce7;color:#166534}.v76-chip.todo{background:#fef3c7;color:#92400e}
+@media(max-width:950px){.at-custom-create{grid-template-columns:1fr 1fr!important}.at-custom-create button{width:100%}.v76-diff-row{grid-template-columns:1fr}}
+</style>
+<script id="v76-features">
+(function(){
+ const DKEY='tp_generator_diffusions_v76';
+ const norm=v=>String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+ const escv=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+ const readDiff=()=>{try{const a=JSON.parse(localStorage.getItem(DKEY)||'[]');return Array.isArray(a)?a:[]}catch(e){return[]}};
+ const writeDiff=a=>{localStorage.setItem(DKEY,JSON.stringify((a||[]).slice(0,1000)));try{window.firebaseSyncExtendedLocalData?.()}catch(e){}};
+ function corrRows(){try{const a=JSON.parse(localStorage.getItem('tp_correction_local_v54')||'[]');return Array.isArray(a)?a:[]}catch(e){return[]}}
+ function studentParts(st){const raw=String(st?.name||'').trim(),parts=raw.split(/\s+/);return {name:raw,id:String(st?.id||''),norm:norm(raw),last:norm(parts[0]||''),first:norm(parts.slice(1).join(' '))}}
+ function statusFor(diff,student){const code=norm(diff.tpCode),sp=studentParts(student);const r=corrRows().find(x=>{const d=x.data||{}, rn=norm([d.eleve?.nom,d.eleve?.prenom].filter(Boolean).join(' ')||d.studentName||''), sid=String(d.studentId||d.eleve?.id||'');return norm(d.code||'')===code && ((sp.id&&sid===sp.id)||rn===sp.norm)});return r?(r.correctedAt?'Corrigé':'Rendu / à corriger'):'Diffusé'}
+ function captureDiffusion(){const d=window.tpGenLockedSnapshot?.()||window.tpGenCurrentDraft?.();if(!d)return null;const ids=window.tpGenSelectedClassStudentIds?.()||[];const all=window.tpGenClassStudents?.()||[];const students=ids.map(id=>all.find(s=>String(s.id)===String(id))).filter(Boolean).map(s=>({id:String(s.id),name:s.name}));const code=window.tpGenTpCode?.(d)||d.code||'';return {id:'DIFF-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,6),tpCode:code,title:d.activity||d.title||'TP',activityId:d.activityId||'',classId:String(window.tpGenState?.diffusionClassId||window.tpGenState?.contextClassId||''),className:d.className||window.activeClassName?.()||'',support:d.support?.label||d.vehicle?.modele||'',students,studentIds:students.map(s=>s.id),diffusedAt:new Date().toISOString(),snapshot:JSON.parse(JSON.stringify(d))}}
+ function saveCaptured(rec){if(!rec||!rec.students?.length)return;const a=readDiff();const sig=[rec.tpCode,rec.classId,rec.studentIds.slice().sort().join(','),rec.diffusedAt.slice(0,16)].join('|');if(!a.some(x=>x.signature===sig)){rec.signature=sig;a.unshift(rec);writeDiff(a)}}
+ ['tpGenExportClassToFolder','tpGenExportClassZip'].forEach(name=>{const old=window[name];if(typeof old!=='function'||old.__v76)return;const w=async function(){const rec=captureDiffusion();const out=await old.apply(this,arguments);saveCaptured(rec);return out};w.__v76=true;window[name]=w});
+ window.tpV76DiffusionsPage=function(){setActive('tpGenerator');const rows=readDiff().sort((a,b)=>String(b.diffusedAt).localeCompare(String(a.diffusedAt)));document.getElementById('main').innerHTML=`<header class="app-top-header"></header><div class="tpgen-manager-shell"><div class="tpgen-head"><div><h1>📤 Mes TP diffusés</h1><p class="muted">Suivi par élève : diffusé → rendu → à corriger → corrigé.</p></div><button class="tpgen-btn secondary" onclick="tpGeneratorPage()">← Retour</button></div><div class="tpgen-card">${rows.length?rows.map(r=>`<div class="v76-diff-row"><div><b>${escv(r.tpCode)} — ${escv(r.title)}</b><div class="muted">${escv(r.className)} • diffusé le ${escv(new Date(r.diffusedAt).toLocaleString('fr-FR'))} • ${r.students?.length||0} élève(s)</div><div class="v76-diff-status">${(r.students||[]).map(st=>{const s=statusFor(r,st);return `<span class="v76-chip ${s==='Corrigé'?'done':s.includes('corriger')?'todo':''}">${escv(st.name)} : ${escv(s)}</span>`}).join('')}</div></div><button class="tpgen-btn primary" onclick="tpV76AddDiffusionToDay('${escv(r.id)}')">＋ Affecter au tableau du jour</button></div>`).join(''):'<div class="muted">Aucun TP diffusé enregistré sur ce poste pour le moment.</div>'}</div></div>`};
+ window.tpV76AddDiffusionToDay=function(id){const r=readDiff().find(x=>String(x.id)===String(id));if(!r)return;try{const d=database(),t=today(d),aid='TPDIFF-'+String(r.id).replace(/[^a-zA-Z0-9_-]/g,'');t.customActivities=Array.isArray(t.customActivities)?t.customActivities:[];if(!t.customActivities.some(x=>String(x.id)===aid))t.customActivities.push({id:aid,code:r.tpCode||'TP',title:r.title||'TP diffusé',description:'TP déjà diffusé à la classe',defaultSupport:r.support||'TP diffusé',capacity:4,tpDiffusionId:r.id,tpCode:r.tpCode,createdAt:new Date().toISOString()});t.published=Array.isArray(t.published)?t.published:[];if(!t.published.some(x=>String(x.activityId)===aid))t.published.push({publicationId:aid,activityId:aid,code:r.tpCode,title:r.title,support:r.support||'TP diffusé',capacity:4,tpDiffusionId:r.id,publishedAt:new Date().toISOString()});save(d);showSuccessMessage?.('TP diffusé ajouté au tableau du jour. Tu peux maintenant affecter les élèves.');renderAdmin?.()}catch(e){console.error(e);alert('Impossible d’ajouter ce TP au tableau du jour : '+(e?.message||e))}};
+ function addGeneratorButton(){const a=document.querySelector('.tpgen-top-actions');if(a&&!document.getElementById('v76-diff-btn')){const b=document.createElement('button');b.id='v76-diff-btn';b.className='tpgen-btn secondary';b.textContent='📤 Mes TP diffusés';b.onclick=window.tpV76DiffusionsPage;a.insertBefore(b,a.children[1]||null)}}
+ const oldGen=window.tpGeneratorPage;if(typeof oldGen==='function'){window.tpGeneratorPage=function(){const out=oldGen.apply(this,arguments);setTimeout(addGeneratorButton,0);return out}}
+ const oldSaved=window.tpGenSavedPage;if(typeof oldSaved==='function'){window.tpGenSavedPage=function(){const out=oldSaved.apply(this,arguments);setTimeout(()=>{const h=document.querySelector('.tpgen-head');if(h&&!document.getElementById('v76-saved-diff')){const b=document.createElement('button');b.id='v76-saved-diff';b.className='tpgen-btn secondary';b.textContent='📤 Mes TP diffusés';b.onclick=window.tpV76DiffusionsPage;h.appendChild(b)}},0);return out}}
+ function adminEnhance(){document.querySelectorAll('#at-main details.at-group').forEach(x=>x.removeAttribute('open'));const dash=document.querySelector('#at-main .at-admin-dashboard');if(!dash||dash.querySelector('.tp-diffuses'))return;const rows=readDiff().filter(r=>!r.classId||String(r.classId)===String(window.atelierClassId?.()||window.getActiveClassId?.()||''));const sec=document.createElement('section');sec.className='at-admin-zone tp-diffuses';sec.innerHTML=`<h3>📤 TP déjà diffusés</h3><p>Réutiliser un TP déjà envoyé aux élèves et l’ajouter au tableau de charge.</p><details class="at-group"><summary>${rows.length} diffusion(s) disponible(s)</summary>${rows.length?rows.map(r=>`<div class="at-catalog-row"><div><b>${escv(r.tpCode)} — ${escv(r.title)}</b><br><small>${escv(r.className)} • ${(r.students||[]).length} élève(s) • ${escv(new Date(r.diffusedAt).toLocaleDateString('fr-FR'))}</small></div><button type="button" class="at-btn at-primary" onclick="tpV76AddDiffusionToDay('${escv(r.id)}')">＋ Ajouter au tableau</button></div>`).join(''):'<div class="at-empty">Aucun TP diffusé enregistré.</div>'}</details>`;const fiches=dash.querySelector('.at-admin-zone.fiches');fiches?.after(sec);}
+ const oldAdmin=window.renderAdmin;if(typeof oldAdmin==='function'){window.renderAdmin=function(){const out=oldAdmin.apply(this,arguments);setTimeout(adminEnhance,0);return out}}
+ // Correction TP : une mise à jour Firebase ne doit jamais refermer la fiche en cours.
+ const oldPage=window.tpCorrectionPage;if(typeof oldPage==='function'&&!oldPage.__v76){const w=function(){if(document.querySelector('.tpc-editor')&&window.__tp55Current&&!window.__v76ForceTpList)return;window.__v76ForceTpList=false;return oldPage.apply(this,arguments)};w.__v76=true;window.tpCorrectionPage=w}
+ document.addEventListener('click',function(ev){const b=ev.target?.closest?.('button');if(b&&/Liste des TP/i.test(b.textContent||''))window.__v76ForceTpList=true},true);
+ setTimeout(()=>{addGeneratorButton();adminEnhance()},800);
 })();
 </script>
