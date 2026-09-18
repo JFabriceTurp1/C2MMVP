@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Évaluation, charge atelier, RTA, génération TP — V54 Correction TP</title>
+<title>V74 Évaluation des compétences RTA TP gestion d’atelier et correction</title>
 <style>
 *{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f5f7fa;color:#172033}
 .app{display:flex;min-height:100vh}.side{width:235px;background:#172033;color:#fff;padding:22px 14px}.logo{font-size:19px;font-weight:700;padding:8px 10px 24px}
@@ -2810,7 +2810,7 @@ body{background:#f7f9fc;color:var(--text)}
 <!-- V88 — DONNÉES DE RÉFÉRENCE RÉINTÉGRÉES DEPUIS V86.5
      Jeux embarqués repris : référentiel compétences, élèves par défaut, seconde classe fictive, situations professionnelles.
      Les données dynamiques (classes/élèves/évaluations réellement saisies) restent chargées par IndexedDB/localStorage et Firebase. -->
-<div id="build-version" style="position:fixed;right:10px;bottom:8px;font-size:10px;opacity:.55;z-index:9999">V70 — CORRECTION LISTE TP · ANTI-RÉAPPARITION FIREBASE</div>
+<div id="build-version" style="position:fixed;right:10px;bottom:8px;font-size:10px;opacity:.55;z-index:9999">V74 Évaluation des compétences RTA TP gestion d’atelier et correction</div>
 <div id="firebase-auth-overlay">
   <div class="firebase-login-card">
     <h2>☁️ Connexion Firebase — V88</h2>
@@ -12186,6 +12186,7 @@ window.firebaseSaveCurrentConfig=async()=>{await saveFullConfig(firebaseBuildApp
           return;
         }
         await loadData();
+        window.refreshAtelierCorrections?.();
         applySchoolSettings();
         setStatus('✓ Synchronisé en temps réel','ok');
       }catch(e){
@@ -13285,41 +13286,119 @@ window.completeAtelierEvaluation=function(studentId,sessionDay,pendingKey){
 function reconcileAtelierEvaluations(d,t){let changed=false;const pool=[...(Array.isArray(allStudents)?allStudents:[]),...(Array.isArray(students)?students:[])];for(const [key,r] of Object.entries(t.pending||{})){if(r.status==='validated')continue;const owner=pool.find(s=>String(s.id)===String(r.studentId)),activity=activityById(r.activityId);const done=(owner?.evaluations||[]).some(ev=>{if(!ev.atelierSource||String(ev.atelierDay||'')!==day()||String(ev.studentId)!==String(r.studentId))return false;if(ev.atelierPendingKey&&String(ev.atelierPendingKey)===String(key))return true;if(r.publicationId&&ev.atelierPublicationId&&String(ev.atelierPublicationId)!==String(r.publicationId))return false;if(activity?.kind==='rentree')return String(ev.rentreeThemeId||'')===String(activity.rentreeTheme?.id||'');if(activity?.kind==='activity')return String(ev.activityId||'')===String(activity.activity?.id||'');if(activity?.kind==='professional')return String(ev.profSituation||'')===String(activity.profCode||'');return String(ev.title||'')===String(r.title||'');});if(done){r.status='validated';r.validatedAt=r.validatedAt||new Date().toISOString();if(t.activeTask?.[r.studentId]===key)delete t.activeTask[r.studentId];changed=true;}}if(changed)save(d);}
 function atNorm(v){return String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim()}
 function atCorrectionRows(){try{return JSON.parse(localStorage.getItem('tp_correction_local_v54')||'[]')||[]}catch(e){return[]}}
-function atFindCorrection(r){
- const sn=atNorm(r.studentName||''), rid=String(r.activityId||''), act=activityById(r.activityId);
- const code=atNorm(act?.code||''), title=atNorm(r.title||act?.title||act?.name||'');
- const candidates=atCorrectionRows().filter(x=>{
-   const d=x.data||{}, en=atNorm([d.eleve?.nom,d.eleve?.prenom].filter(Boolean).join(' ')||d.studentName||'');
-   const dc=atNorm(d.code||''), dt=atNorm(d.titre||d.activity||''), mid=String(d.meta?.activityId||d.activityId||'');
-   const sameStudent=sn&&en&&(sn===en||sn.split(' ').every(p=>en.includes(p))||en.split(' ').every(p=>sn.includes(p)));
-   if(!sameStudent)return false;
-   if(rid&&mid&&rid===mid)return true;
-   if(code&&dc&&(dc===code||dc.includes(code)||code.includes(dc)))return true;
-   if(title&&dt&&(dt===title||dt.includes(title)||title.includes(dt)))return true;
-   const words=title.split(' ').filter(w=>w.length>=4);
-   return !!(words.length&&words.filter(w=>dt.includes(w)).length>=Math.min(2,words.length));
- });
- return candidates.sort((a,b)=>String(b.correctedAt||b.importedAt||b.updatedAt||'').localeCompare(String(a.correctedAt||a.importedAt||a.updatedAt||'')))[0]||null;
+// V74: one resolver, used directly by the atelier closure. No data migration or writes.
+function atDate74(value){
+ const s=String(value||'');
+ const fr=s.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+ if(fr)return `${fr[3]}-${fr[2]}-${fr[1]}`;
+ return (s.match(/^\d{4}-\d{2}-\d{2}/)||[])[0]||'';
 }
+function atCode74(value){
+ const s=String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/[–—_]/g,'-');
+ return (s.match(/\b(?:DEBUTANT|BACPRO|CAP)-[A-Z0-9-]+-\d{3}\b/)||[])[0]||'';
+}
+function atTaskCode74(r){
+ const act=activityById(r.activityId),t=today(database()),pub=publicationById(t,r.publicationId);
+ for(const v of [r.tpCode,r.code,pub?.tpCode,pub?.code,act?.code,r.title]){const c=atCode74(v);if(c)return c}
+ const catalog=window.TP_GENERATOR_CATALOG||[];
+ let entry=catalog.find(x=>String(x.activityId)===String(r.activityId));
+ // Rentrée and generator have distinct identifiers; the numbered curriculum is shared.
+ if(!entry&&act?.kind==='rentree')entry=catalog.find(x=>x.niveau==='DEBUTANT'&&x.activityId===`DEB-${String(act.rentreeTheme.theme).padStart(3,'0')}`);
+ if(!entry){
+  const aliases=catalog.filter(x=>atNorm(x.activite)===atNorm(r.title||act?.title));
+  if(aliases.length===1)entry=aliases[0];
+ }
+ return entry&&typeof window.tpGenTpCode==='function'?atCode74(window.tpGenTpCode({...entry,activity:entry.activite,level:entry.niveau})):'';
+}
+function atFindCorrection(r){
+ const pool=[...(typeof allStudents!=='undefined'?allStudents:[]),...(typeof students!=='undefined'?students:[])];
+ const people=[...new Map(pool.map(s=>[String(s.id),s])).values()];
+ const sid=String(r.studentId??''),owner=people.find(s=>String(s.id)===sid);
+ const nameKey=v=>atNorm(v).split(' ').filter(Boolean).sort().join(' ');
+ const target=nameKey(owner?.name||r.studentName);
+ const evals=people.flatMap(s=>(s.evaluations||[]).map(ev=>({...ev,studentId:ev.studentId??s.id})));
+ const byId=new Map(evals.map(ev=>[String(ev.id),ev]));
+ const code=atTaskCode74(r),act=activityById(r.activityId),title=atNorm(r.title||act?.title);
+ const date=atDate74(r.createdAt)||day(),key=String(r.key||r.pendingKey||'');
+ function score(d,ev){
+  const id=String(ev?.studentId??d.studentId??d.meta?.studentId??d.eleve?.id??'');
+  if(id&&sid&&id!==sid)return 0;
+  let rank=0;
+  if(id&&sid===id)rank=100;
+  else {
+   const n=nameKey([d.eleve?.nom,d.eleve?.prenom].filter(Boolean).join(' ')||d.eleve?.name||d.studentName);
+   if(!target||n!==target)return 0;
+   const matches=people.filter(s=>nameKey(s.name||[s.lastName,s.firstName].filter(Boolean).join(' '))===n);
+   if(matches.length!==1||String(matches[0].id)!==sid)return 0;
+   rank=50;
+  }
+  const pk=String(ev?.tpPendingKey||ev?.atelierPendingKey||d.meta?.pendingKey||'');
+  if(pk&&key&&pk!==key)return 0;
+  const when=atDate74(ev?.date||d.eleve?.date||d.date||d.meta?.submittedAt||d.meta?.savedAt);
+  if(when&&date&&when!==date)return 0;
+  const dc=atCode74(ev?.tpCode||d.code||ev?.title),aid=String(ev?.tpActivityId||d.meta?.activityId||d.activityId||'');
+  if(code&&dc){if(code!==dc)return 0;rank+=40}
+  else if(aid&&aid===String(r.activityId))rank+=30;
+  else {
+   const dt=atNorm(d.titre||d.activity||ev?.title);
+   if(!title||title!==dt)return 0;
+   rank+=10;
+  }
+  if(pk&&key===pk)rank+=1000;
+  else {
+   // Do not assign one correction to two repetitions of the same TP in a session.
+   const peers=Object.values(today(database()).pending||{}).filter(p=>String(p.studentId)===sid&&
+    (code?atTaskCode74(p)===code:String(p.activityId)===String(r.activityId)));
+   if(peers.length>1)return 0;
+  }
+  return rank+(when?5:0);
+ }
+ const candidates=[];
+ for(const row of atCorrectionRows()){
+  const ev=byId.get(String(row.savedEvaluationId));
+  const rank=score(row.data||{},ev);
+  if(rank)candidates.push({row,rank,done:!!(row.correctedAt||row.savedEvaluationId)});
+ }
+ for(const ev of evals){
+  if(!ev.tpCorrection)continue;
+  const rank=score({},ev);
+  if(rank)candidates.push({row:{id:ev.tpCorrectionId||'',savedEvaluationId:ev.id,evaluationOnly:true},rank,done:true});
+ }
+ candidates.sort((a,b)=>b.rank-a.rank||Number(b.done)-Number(a.done)||Number(a.row.evaluationOnly||false)-Number(b.row.evaluationOnly||false));
+ const best=candidates[0];
+ if(!best)return null;
+ // Multiple undated returns without an evaluation link are unsafe to disambiguate.
+ const tied=candidates.filter(x=>x.rank===best.rank&&x.done===best.done);
+ if(tied.some(x=>x.row.id!==best.row.id&&!(x.row.savedEvaluationId&&String(x.row.savedEvaluationId)===String(best.row.savedEvaluationId))&&
+  !atDate74(x.row.data?.eleve?.date||x.row.data?.date)))return null;
+ return best.row;
+}
+
 function renderPending(){
  const d=database(),t=today(d); reconcileAtelierEvaluations(d,t);
  const rows=Object.entries(t.pending||{}).map(([key,r])=>({key,...r})).sort((a,b)=>String(a.createdAt||'').localeCompare(String(b.createdAt||'')));
  document.getElementById('at-main').innerHTML=`<section class="at-panel"><div class="at-toolbar"><h2>Évaluations créées depuis l’atelier</h2><span class="at-pill">${rows.length} séquence(s) · suivi complet</span></div><div class="at-notice">Le bouton <b>Évaluer</b> ouvre directement le TP correspondant dans le Portail correcteur. Après validation professeur, l’état passe à <b>Évalué</b> et le bouton devient <b>Voir</b>.</div>${rows.length?`<table class="at-table"><thead><tr><th>Élève</th><th>Séq.</th><th>Activité</th><th>Support</th><th>Auto-éval.</th><th>État</th><th>Action</th></tr></thead><tbody>${rows.map(r=>{
-   const self=t.selfEvals?.[r.key]||r.selfEvaluation||null, corr=atFindCorrection(r), evaluated=!!corr?.correctedAt||r.status==='validated';
+   const self=t.selfEvals?.[r.key]||r.selfEvaluation||null, corr=atFindCorrection(r), evaluated=!!(corr?.correctedAt||corr?.savedEvaluationId)||r.status==='validated';
    const leader=String(r.activityId)===TEAM_ID||String(r.publicationId)===TEAM_ID;
    let status='En attente du TP', cls='at-status-draft', action='<span class="at-status-draft">TP non disponible</span>';
-   if(corr&&evaluated){status='Évalué';cls='at-status-ready';action=`<button type="button" class="at-btn at-light" onclick="openAtelierCorrection('${e(corr.id)}')">Voir</button>`}
+   if(corr?.evaluationOnly){status='Évalué';cls='at-status-ready';action=`<button type="button" class="at-btn at-light" onclick="openAtelierSavedEvaluation('${e(corr.savedEvaluationId)}')">Voir</button>`}
+   else if(corr&&evaluated){status='Évalué';cls='at-status-ready';action=`<button type="button" class="at-btn at-light" onclick="openAtelierCorrection('${e(corr.id)}')">Voir</button>`}
    else if(corr){status='À corriger';cls='at-status-validate';action=`<button type="button" class="at-btn at-success" onclick="openAtelierCorrection('${e(corr.id)}')">Évaluer</button>`}
    else if(self){status='TP à importer';cls='at-status-validate'}
    return `<tr><td class="${leader?'at-team-leader-title':''}">${e(r.studentName)}${leader?' — Chef d’équipe':''}</td><td>${e(r.sequence||1)}</td><td>${e(r.title)}</td><td>🚗 ${e(r.support||'Non renseigné')}</td><td>${self?`<b>${e(self.note)}/20</b> ${self.locked?'🔒':'✏️'}`:'Non renseignée'}</td><td class="${cls}">${status}</td><td>${action}</td></tr>`;
  }).join('')}</tbody></table>`:'<div class="at-empty">Aucune séquence enregistrée aujourd’hui.</div>'}</section>`;
 }
+window.openAtelierSavedEvaluation=function(id){window.closeAtelierUnified();viewEvaluation(id)};
+window.refreshAtelierCorrections=function(){
+ if(state.page==='pending'&&!document.getElementById('atelier-app')?.classList.contains('hidden'))renderPending();
+};
+window.addEventListener('storage',event=>{if(event.key==='tp_correction_local_v54')window.refreshAtelierCorrections()});
 window.openAtelierCorrection=function(id){
  try{window.closeAtelierUnified(); if(typeof window.tpCorrectionOpen==='function')window.tpCorrectionOpen(id); else {mainGo('correctionTp');setTimeout(()=>window.tpCorrectionOpen?.(id),50)}}catch(err){console.error(err);alert('Impossible d’ouvrir ce TP dans le Portail correcteur.')}
 }
 
 window.evaluateAtelierStudent=function(taskKey){
- try{const d=database(),t=today(d),r=t.pending?.[String(taskKey)];if(!r)throw new Error('Séquence introuvable.');const corr=atFindCorrection(r);if(!corr){alert("Le TP rendu n’a pas encore été importé dans le Portail correcteur.");return}window.openAtelierCorrection(corr.id)}catch(err){console.error(err);alert('Impossible d’ouvrir cette correction : '+(err?.message||err))}
+ try{const d=database(),t=today(d),r=t.pending?.[String(taskKey)];if(!r)throw new Error('Séquence introuvable.');const corr=atFindCorrection(r);if(corr?.evaluationOnly){window.openAtelierSavedEvaluation(corr.savedEvaluationId);return}if(!corr){alert("Le TP rendu n’a pas encore été importé dans le Portail correcteur.");return}window.openAtelierCorrection(corr.id)}catch(err){console.error(err);alert('Impossible d’ouvrir cette correction : '+(err?.message||err))}
 }
 
 document.getElementById('at-main').addEventListener('click',function(event){
@@ -14339,7 +14418,7 @@ window.tpCorrectionOpen=function(id){currentId=id;const r=read().find(x=>x.id===
 window.tpCorrectionDraftSave=function(){const rows=read(),r=rows.find(x=>x.id===currentId);if(!r)return;r.note=document.getElementById('tpc-note')?.value??r.note;r.appreciation=document.getElementById('tpc-app')?.value??r.appreciation;write(rows);const sh=document.getElementById('tpc-note-show');if(sh)sh.textContent=(r.note||'—')+' / 20'}
 window.tpCorrectionSetLevel=function(c,l){const rows=read(),r=rows.find(x=>x.id===currentId);if(!r)return;r.levels=r.levels||{};r.levels[c]=l;write(rows);tpCorrectionOpen(currentId)}
 window.tpCorrectionAutoLevels=function(v){tpCorrectionDraftSave();const n=Number(String(v).replace(',','.'));if(!Number.isFinite(n))return;const rows=read(),r=rows.find(x=>x.id===currentId);if(!r)return;const lv=levelForNote(Math.max(0,Math.min(20,n)));codes(r.data).forEach(c=>r.levels[c]=lv);write(rows);tpCorrectionOpen(currentId)}
-window.tpCorrectionValidate=async function(){tpCorrectionDraftSave();const rows=read(),r=rows.find(x=>x.id===currentId);if(!r)return;const n=Number(String(r.note).replace(',','.'));if(!Number.isFinite(n)||n<0||n>20){alert('Saisis une note comprise entre 0 et 20.');return}const cs=codes(r.data);if(cs.some(c=>!r.levels[c])){alert('Positionne toutes les compétences du TP.');return}const st=findStudent(r);if(!st){alert("L’élève n’a pas été reconnu dans la base. Vérifie le nom, la classe ou l’identifiant du fichier TP.");return}await openDB();if(r.savedEvaluationId){try{await deleteFromStore('evaluations',r.savedEvaluationId)}catch(e){}}const levels={},disabledCriteria={};cs.forEach(c=>{const comp=(window.competencies||[]).find(x=>x.id===c);const count=Math.max(1,comp?.criteria?.length||1);for(let i=0;i<count;i++)levels[c+'-'+i]=r.levels[c]});const ev={id:r.savedEvaluationId||('EVAL_TP_'+(crypto?.randomUUID?.()||Date.now()+'_'+Math.random().toString(36).slice(2))),studentId:st.id,date:frdate(dateKey(dateValue(r.data))),title:`${r.data.code||'TP'} — ${r.data.titre||'TP corrigé'}`,place:'Lycée',type:'TP',comps:cs,levels,obs:{},disabledCriteria,evaluationObservation:r.appreciation||'',activitySupport:r.data?.vehicule?.modele||r.data?.support?.label||'',sourceNote20:n,noteDrivenEvaluation:true,noteDrivenRequested:n,noteDrivenExact:n,tpCorrection:true,tpCode:r.data.code||'',tpImportedFile:r.fileName,createdAt:r.correctedAt?new Date(r.correctedAt).getTime():Date.now(),modifiedAt:r.correctedAt?Date.now():null};await persistEvaluation(ev,!!r.savedEvaluationId);r.savedEvaluationId=ev.id;r.correctedAt=new Date().toISOString();write(rows);await loadData();alert('Correction enregistrée. La note et les compétences sont maintenant intégrées au suivi de l’élève.');tpCorrectionOpen(currentId)}
+window.tpCorrectionValidate=async function(){tpCorrectionDraftSave();const rows=read(),r=rows.find(x=>x.id===currentId);if(!r)return;const n=Number(String(r.note).replace(',','.'));if(!Number.isFinite(n)||n<0||n>20){alert('Saisis une note comprise entre 0 et 20.');return}const cs=codes(r.data);if(cs.some(c=>!r.levels[c])){alert('Positionne toutes les compétences du TP.');return}const st=findStudent(r);if(!st){alert("L’élève n’a pas été reconnu dans la base. Vérifie le nom, la classe ou l’identifiant du fichier TP.");return}await openDB();if(r.savedEvaluationId){try{await deleteFromStore('evaluations',r.savedEvaluationId)}catch(e){}}const levels={},disabledCriteria={};cs.forEach(c=>{const comp=(window.competencies||[]).find(x=>x.id===c);const count=Math.max(1,comp?.criteria?.length||1);for(let i=0;i<count;i++)levels[c+'-'+i]=r.levels[c]});const ev={id:r.savedEvaluationId||('EVAL_TP_'+(crypto?.randomUUID?.()||Date.now()+'_'+Math.random().toString(36).slice(2))),studentId:st.id,date:frdate(dateKey(dateValue(r.data))),title:`${r.data.code||'TP'} — ${r.data.titre||'TP corrigé'}`,place:'Lycée',type:'TP',comps:cs,levels,obs:{},disabledCriteria,evaluationObservation:r.appreciation||'',activitySupport:r.data?.vehicule?.modele||r.data?.support?.label||'',sourceNote20:n,noteDrivenEvaluation:true,noteDrivenRequested:n,noteDrivenExact:n,tpCorrection:true,tpCode:r.data.code||'',tpActivityId:r.data.meta?.activityId||r.data.activityId||'',tpPendingKey:r.data.meta?.pendingKey||'',tpCorrectionId:r.id,tpImportedFile:r.fileName,createdAt:r.correctedAt?new Date(r.correctedAt).getTime():Date.now(),modifiedAt:r.correctedAt?Date.now():null};await persistEvaluation(ev,!!r.savedEvaluationId);r.savedEvaluationId=ev.id;r.correctedAt=new Date().toISOString();write(rows);await loadData();alert('Correction enregistrée. La note et les compétences sont maintenant intégrées au suivi de l’élève.');tpCorrectionOpen(currentId)}
 })();
 </script>
 
@@ -14381,7 +14460,7 @@ window.tpCorrectionValidate=async function(){
    const levels={},disabledCriteria={};
    cs.forEach(c=>{let comp=null;try{comp=(typeof competencies!=='undefined'?competencies:(window.competencies||[])).find(x=>x.id===c)}catch(e){}const count=Math.max(1,comp?.criteria?.length||1);for(let i=0;i<count;i++)levels[c+'-'+i]=r.levels[c]});
    const dk=dkey(r.data),parts=dk?dk.split('-'):[],dateFr=parts.length===3?`${parts[2]}/${parts[1]}/${parts[0]}`:new Date().toLocaleDateString('fr-FR');
-   const ev={id:r.savedEvaluationId||('EVAL_TP_'+(crypto?.randomUUID?.()||Date.now()+'_'+Math.random().toString(36).slice(2))),studentId:st.id,date:dateFr,title:`${r.data.code||'TP'} — ${r.data.titre||'TP corrigé'}`,place:'Lycée',type:'TP',comps:cs,levels,obs:{},disabledCriteria,evaluationObservation:r.appreciation||'',activitySupport:r.data?.vehicule?.modele||r.data?.support?.label||'',sourceNote20:n,noteDrivenEvaluation:true,noteDrivenRequested:n,noteDrivenExact:n,tpCorrection:true,tpCode:r.data.code||'',tpImportedFile:r.fileName,createdAt:r.correctedAt?new Date(r.correctedAt).getTime():Date.now(),modifiedAt:r.correctedAt?Date.now():null};
+   const ev={id:r.savedEvaluationId||('EVAL_TP_'+(crypto?.randomUUID?.()||Date.now()+'_'+Math.random().toString(36).slice(2))),studentId:st.id,date:dateFr,title:`${r.data.code||'TP'} — ${r.data.titre||'TP corrigé'}`,place:'Lycée',type:'TP',comps:cs,levels,obs:{},disabledCriteria,evaluationObservation:r.appreciation||'',activitySupport:r.data?.vehicule?.modele||r.data?.support?.label||'',sourceNote20:n,noteDrivenEvaluation:true,noteDrivenRequested:n,noteDrivenExact:n,tpCorrection:true,tpCode:r.data.code||'',tpActivityId:r.data.meta?.activityId||r.data.activityId||'',tpPendingKey:r.data.meta?.pendingKey||'',tpCorrectionId:r.id,tpImportedFile:r.fileName,createdAt:r.correctedAt?new Date(r.correctedAt).getTime():Date.now(),modifiedAt:r.correctedAt?Date.now():null};
    await persistEvaluation(ev,!!r.savedEvaluationId);r.savedEvaluationId=ev.id;r.correctedAt=new Date().toISOString();wr(rows);await loadData();alert('Correction enregistrée. La note et les compétences sont maintenant intégrées au suivi de l’élève.');window.tpCorrectionOpen(id);
  }catch(e){console.error('Validation correction TP',e);alert('La validation n’a pas pu être enregistrée : '+(e?.message||e));}
 };
@@ -14432,7 +14511,7 @@ window.tpCorrectionValidate=async function(){
  function led(active){const el=document.getElementById('firebase-activity-led');if(!el)return;el.style.opacity=active?'1':'.55';if(active){el.style.boxShadow='0 0 0 4px rgba(34,197,94,.15),0 0 9px rgba(34,197,94,.75)'}else el.style.boxShadow='none'}
  async function pushRow(r){if(!r||!authReady())return;const c=col();if(!c)return;led(true);try{const k=key(r), payload=JSON.parse(JSON.stringify(r));payload.v73Key=k;payload.v73Identity=identity(r);payload.v73Device=device();payload.v73UpdatedAt=new Date().toISOString();await c.doc(k).set({record:payload,deleted:false,status:r.correctedAt?'corrected':'returned',correctedAt:r.correctedAt||null,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true})}finally{led(false)}}
  async function tombstone(r){if(!r||!authReady())return;const c=col();if(!c)return;led(true);try{await c.doc(key(r)).set({deleted:true,status:'deleted',deletedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedAt:firebase.firestore.FieldValue.serverTimestamp(),v73Device:device()},{merge:true})}finally{led(false)}}
- function refreshViews(){clearTimeout(window.__v73Refresh);window.__v73Refresh=setTimeout(async()=>{try{await window.loadData?.()}catch(e){}try{if(document.querySelector('.tpc-shell')&&typeof window.tpCorrectionPage==='function')window.tpCorrectionPage()}catch(e){}try{const btn=[...document.querySelectorAll('button')].find(b=>/Évaluation du jour/i.test(b.textContent||'')&&b.classList.contains('active'));if(btn)btn.click()}catch(e){}},120)}
+ function refreshViews(){clearTimeout(window.__v73Refresh);window.__v73Refresh=setTimeout(async()=>{try{await window.loadData?.()}catch(e){}try{if(document.querySelector('.tpc-shell')&&typeof window.tpCorrectionPage==='function')window.tpCorrectionPage()}catch(e){}try{window.refreshAtelierCorrections?.()}catch(e){console.warn('V74 actualisation atelier',e)}},120)}
  function mergeRemote(snapshot){let local=rows(), changed=false;const byKey=new Map(local.map(r=>[key(r),r]));snapshot.docChanges().forEach(ch=>{const v=ch.doc.data()||{}, k=ch.doc.id, old=byKey.get(k);if(v.deleted){if(old){local=local.filter(r=>key(r)!==k);byKey.delete(k);changed=true}return}const rr=v.record;if(!rr)return;if(!old||stamp(rr)>=stamp(old)){if(old)local=local.map(r=>key(r)===k?rr:r);else local.push(rr);byKey.set(k,rr);changed=true}});if(changed){write(local);refreshViews()}}
  async function migrateAndListen(){if(!authReady()||window.__v73Listening)return;window.__v73Listening=true;const c=col();if(!c)return;try{
    // Migration unique : seulement les TP encore présents localement. Ensuite, chaque changement est unitaire.
@@ -14677,24 +14756,6 @@ window.tpCorrectionValidate=async function(){
 <script id="v71-dynamic-tp-folder">
 (function(){
  const norm=v=>String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
- // Évaluation du jour : priorité à l'identifiant d'activité embarqué dans le .tp, puis rapprochement élève + code/titre.
- try{
-  atFindCorrection=function(r){
-   const sn=norm(r.studentName||''), rid=String(r.activityId||''), act=activityById(r.activityId), code=norm(act?.code||''), title=norm(r.title||act?.title||act?.name||'');
-   const candidates=atCorrectionRows().filter(x=>{
-    const d=x.data||{}, en=norm([d.eleve?.nom,d.eleve?.prenom].filter(Boolean).join(' ')||d.studentName||''), dc=norm(d.code||''), dt=norm(d.titre||''), mid=String(d.meta?.activityId||d.activityId||'');
-    const student=sn&&en&&(sn===en||sn.split(' ').every(p=>en.includes(p))||en.split(' ').every(p=>sn.includes(p)));
-    if(!student)return false;
-    if(rid&&mid&&rid===mid)return true;
-    if(code&&dc&&(dc===code||dc.includes(code)||code.includes(dc)))return true;
-    if(title&&dt&&(dt.includes(title)||title.includes(dt)))return true;
-    // Dernier recours : pour un élève donné, accepter un TP dont le titre reprend des mots significatifs de l'activité.
-    const words=title.split(' ').filter(w=>w.length>=5);return words.length>=2&&words.filter(w=>dt.includes(w)).length>=Math.min(2,words.length);
-   });
-   return candidates.sort((a,b)=>String(b.correctedAt||b.importedAt||b.updatedAt||'').localeCompare(String(a.correctedAt||a.importedAt||a.updatedAt||'')))[0]||null;
-  };
- }catch(e){console.warn('V71 liaison Évaluation du jour',e)}
-
  // Dossier permanent des PDF corrigés : File System Access handle conservé dans IndexedDB (local au poste).
  const DB='evaluation_tp_pdf_folder_v71', STORE='handles', KEY='corrections'; let cached=null;
  function idb(){return new Promise((res,rej)=>{const q=indexedDB.open(DB,1);q.onupgradeneeded=()=>{if(!q.result.objectStoreNames.contains(STORE))q.result.createObjectStore(STORE)};q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error)})}
