@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>V78 Évaluation des compétences RTA TP gestion d’atelier et correction</title>
+<title>V79 Évaluation des compétences RTA TP gestion d’atelier et correction</title>
 <style>
 *{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f5f7fa;color:#172033}
 .app{display:flex;min-height:100vh}.side{width:235px;background:#172033;color:#fff;padding:22px 14px}.logo{font-size:19px;font-weight:700;padding:8px 10px 24px}
@@ -2810,7 +2810,7 @@ body{background:#f7f9fc;color:var(--text)}
 <!-- V88 — DONNÉES DE RÉFÉRENCE RÉINTÉGRÉES DEPUIS V86.5
      Jeux embarqués repris : référentiel compétences, élèves par défaut, seconde classe fictive, situations professionnelles.
      Les données dynamiques (classes/élèves/évaluations réellement saisies) restent chargées par IndexedDB/localStorage et Firebase. -->
-<div id="build-version" style="position:fixed;right:10px;bottom:8px;font-size:10px;opacity:.55;z-index:9999">V78 Évaluation des compétences RTA TP gestion d’atelier et correction</div>
+<div id="build-version" style="position:fixed;right:10px;bottom:8px;font-size:10px;opacity:.55;z-index:9999">V79 Évaluation des compétences RTA TP gestion d’atelier et correction</div>
 <div id="firebase-auth-overlay">
   <div class="firebase-login-card">
     <h2>☁️ Connexion Firebase — V88</h2>
@@ -14619,6 +14619,34 @@ window.tpCorrectionValidate=async function(){
  const prior=window.renderAdmin;
  if(typeof prior==='function'&&!prior.__v77){const w=function(){const out=prior.apply(this,arguments);setTimeout(enhance,0);return out};w.__v77=true;window.renderAdmin=w}
  setTimeout(enhance,500);
+})();
+</script>
+
+<!-- V79 — Correctif final TP diffusés -> Tableau du jour -->
+<script id="v79-tp-diffusion-atelier-fix">
+(function(){
+  const DKEY='tp_generator_diffusions_v76';
+  function readDiff(){
+    try{const a=JSON.parse(localStorage.getItem(DKEY)||'[]');return Array.isArray(a)?a:[]}
+    catch(e){return []}
+  }
+  // Cette définition est volontairement placée en dernier : une ancienne surcouche V76
+  // redéfinissait encore ce bouton avec database(), hors de sa portée lexicale.
+  window.tpV76AddDiffusionToDay=function(id){
+    const r=readDiff().find(x=>String(x.id)===String(id));
+    if(!r){alert('TP diffusé introuvable.');return}
+    try{
+      if(typeof window.atelierAddTpDiffusionToDay!=='function'){
+        throw new Error('liaison Atelier indisponible');
+      }
+      const aid=window.atelierAddTpDiffusionToDay(r);
+      try{window.firebaseSyncExtendedLocalData?.()}catch(e){}
+      return aid;
+    }catch(e){
+      console.error('V79 ajout TP diffusé au tableau du jour',e);
+      alert('Impossible d’ajouter ce TP au tableau du jour : '+(e?.message||e));
+    }
+  };
 })();
 </script>
 </body>
