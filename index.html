@@ -15212,5 +15212,47 @@ window.tpCorrectionValidate=async function(){
 })();
 </script>
 
+
+
+<!-- V90 — Correctifs Administration du jour : support RTA visible, TP diffusés accessibles, accordéons fermés -->
+<style id="v90-admin-fix-style">
+#at-main .at-admin-zone.v90-collapsible{padding:0!important;overflow:hidden!important;min-width:0}
+#at-main .at-admin-zone.v90-collapsible>details.v90-zone{width:100%;margin:0!important;border:0!important;background:transparent!important}
+#at-main .at-admin-zone.v90-collapsible>details.v90-zone>summary{list-style:none;cursor:pointer;padding:13px 14px;font-weight:900;display:flex;align-items:center;gap:8px;user-select:none}
+#at-main .at-admin-zone.v90-collapsible>details.v90-zone>summary::-webkit-details-marker{display:none}
+#at-main .at-admin-zone.v90-collapsible>details.v90-zone>summary:before{content:'▶';font-size:11px;flex:0 0 auto;transition:transform .15s ease}
+#at-main .at-admin-zone.v90-collapsible>details.v90-zone[open]>summary:before{transform:rotate(90deg)}
+#at-main .v90-zone-body{padding:0 14px 14px;min-width:0;box-sizing:border-box}
+#at-main .v90-zone-body>*{max-width:100%;box-sizing:border-box}
+#at-main #atRtaSupport{grid-column:1/-1!important;width:100%!important;display:block!important;margin:0!important;padding:12px 14px!important;border:2px solid #8b5cf6!important;border-radius:10px!important;background:#fff!important;font:inherit!important;box-sizing:border-box!important}
+#at-main .at-admin-zone.tp-diffuses .at-catalog-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center}
+@media(max-width:950px){#at-main .at-admin-zone.tp-diffuses .at-catalog-row{grid-template-columns:1fr}}
+</style>
+<script id="v90-admin-fixes">
+(function(){
+ const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+ function activeClass(){return {id:String(window.atelierClassId?.()||window.getActiveClassId?.()||''),name:String(window.classLabel?.()||'').trim().toLowerCase()}}
+ function readDiff(){try{const a=JSON.parse(localStorage.getItem('tp_generator_diffusions_v76')||'[]');return Array.isArray(a)?a:[]}catch(_){return[]}}
+ function classRows(){const c=activeClass();return readDiff().filter(r=>{const rid=String(r.classId||''),rn=String(r.className||'').trim().toLowerCase();if(rid&&c.id)return rid===c.id;return !!(rn&&c.name&&rn===c.name)})}
+ function unwrap(sec){
+   for(const sel of [':scope > details.v90-zone',':scope > details.v78-zone',':scope > details.v77-zone-details']){
+     const d=sec.querySelector(sel);if(!d)continue;
+     const sum=d.querySelector(':scope > summary'),body=d.querySelector(':scope > .v90-zone-body,:scope > .v78-zone-body,:scope > .v77-zone-body');
+     const h=document.createElement('h3');h.innerHTML=sum?.innerHTML||'';sec.insertBefore(h,d);
+     if(body)while(body.firstChild)sec.insertBefore(body.firstChild,d);d.remove();
+   }
+   sec.classList.remove('v90-collapsible','v78-collapsible','v77-collapsible');
+ }
+ function collapse(sec){if(!sec||sec.classList.contains('tools'))return;unwrap(sec);const h=sec.querySelector(':scope > h3');if(!h)return;const d=document.createElement('details');d.className='v90-zone';d.open=false;const sum=document.createElement('summary');sum.innerHTML=h.innerHTML;const body=document.createElement('div');body.className='v90-zone-body';[...sec.children].forEach(el=>{if(el!==h)body.appendChild(el)});d.append(sum,body);h.remove();sec.appendChild(d);sec.classList.add('v90-collapsible');body.querySelectorAll('details.at-group').forEach(x=>x.removeAttribute('open'))}
+ function installRtaSupport(dash){const sec=dash.querySelector(':scope > .at-admin-zone.rta');if(!sec)return;let host=sec.querySelector('.at-rta-create');if(!host)return;let input=host.querySelector('#atRtaSupport');if(!input){input=document.createElement('input');input.id='atRtaSupport';input.type='text';input.autocomplete='off';input.placeholder='Support obligatoire : véhicule / organe / maquette';const activity=host.querySelector('#atRtaActivity');if(activity)host.insertBefore(input,activity);else{const btn=host.querySelector('button[onclick*="addRtaAtelierActivity"]');btn?host.insertBefore(input,btn):host.appendChild(input)}}
+ }
+ function installTpZone(dash){dash.querySelectorAll(':scope > .at-admin-zone.tp-diffuses').forEach(x=>x.remove());const rows=classRows(),sec=document.createElement('section');sec.className='at-admin-zone tp-diffuses';sec.innerHTML=`<h3>📤 TP diffusés</h3><p>Créer une activité du planning de charge à partir d’un TP déjà diffusé à <b>${esc(window.classLabel?.()||'la classe active')}</b>.</p><div class="v90-tp-list">${rows.length?rows.map(r=>`<div class="at-catalog-row"><div><b>${esc(r.tpCode||'TP')} — ${esc(r.title||'')}</b><br><small>${esc(r.className||'')} • ${(r.students||[]).length} élève(s) • ${esc(r.diffusedAt?new Date(r.diffusedAt).toLocaleDateString('fr-FR'):'')}</small></div><button type="button" class="at-btn at-primary" data-v90-diffusion="${esc(r.id)}">＋ Créer / proposer l’activité</button></div>`).join(''):'<div class="at-empty">Aucun TP diffusé pour cette classe.</div>'}</div>`;const fiches=dash.querySelector(':scope > .at-admin-zone.fiches');fiches?fiches.after(sec):dash.appendChild(sec)}
+ function enhance(){const dash=document.querySelector('#at-main .at-admin-dashboard');if(!dash)return;installTpZone(dash);installRtaSupport(dash);dash.querySelectorAll(':scope > .at-admin-zone').forEach(collapse)}
+ document.addEventListener('click',ev=>{const b=ev.target?.closest?.('[data-v90-diffusion]');if(!b)return;ev.preventDefault();ev.stopImmediatePropagation();const id=String(b.dataset.v90Diffusion||'');const r=readDiff().find(x=>String(x.id)===id);if(!r){alert('TP diffusé introuvable pour cette classe.');return}if(typeof window.atelierAddTpDiffusionToDay!=='function'){alert('La liaison avec le tableau de charge est indisponible.');return}try{window.atelierAddTpDiffusionToDay(r)}catch(e){console.error(e);alert('Impossible de créer l’activité depuis ce TP : '+(e?.message||e))}},true);
+ const oldAdd=window.addRtaAtelierActivity;if(typeof oldAdd==='function'){window.addRtaAtelierActivity=function(){const input=document.getElementById('atRtaSupport'),support=String(input?.value||'').trim();if(!support){alert('Renseigne d’abord le support de cette activité RTA.');input?.focus();return}return oldAdd.apply(this,arguments)}}
+ const prior=window.renderAdmin;if(typeof prior==='function'&&!prior.__v90){const w=function(){const out=prior.apply(this,arguments);setTimeout(enhance,0);return out};w.__v90=true;window.renderAdmin=w}
+ setTimeout(enhance,250);
+})();
+</script>
 </body>
 </html>
