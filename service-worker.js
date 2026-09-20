@@ -1,4 +1,4 @@
-const CACHE_NAME = 'eval-V101-deplacement-activite-date';
+const CACHE_NAME = 'eval-V102-admin-date-synchronisee';
 const APP_SHELL=["./manifest.webmanifest","./logo-francois-de-mahy.png","./icons/icon-192.png","./icons/icon-512.png"];
 self.addEventListener("install",event=>{
   event.waitUntil(caches.open(CACHE_NAME).then(cache=>cache.addAll(APP_SHELL)).then(()=>self.skipWaiting()));
