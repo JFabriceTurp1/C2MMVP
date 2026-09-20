@@ -1,0 +1,7 @@
+V101 — Déplacement d’une activité publiée vers une autre date
+- Ajout du bouton « 📅 Déplacer » dans Activités publiées — vue élève.
+- Choix de la nouvelle date dans une fenêtre dédiée.
+- Déplacement strictement dans la même classe, sans écraser les activités déjà présentes à destination.
+- Conservation du support, capacité, affectations élèves et, si possible, chef d’équipe.
+- Copie des définitions locales nécessaires (activité ponctuelle / TP diffusé) et référence RTA.
+- Synchronisation Firebase des journées source et destination.

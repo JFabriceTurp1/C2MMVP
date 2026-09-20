@@ -2814,7 +2814,7 @@ body{background:#f7f9fc;color:var(--text)}
 <!-- V88 — DONNÉES DE RÉFÉRENCE RÉINTÉGRÉES DEPUIS V86.5
      Jeux embarqués repris : référentiel compétences, élèves par défaut, seconde classe fictive, situations professionnelles.
      Les données dynamiques (classes/élèves/évaluations réellement saisies) restent chargées par IndexedDB/localStorage et Firebase. -->
-<div id="build-version" style="position:fixed;right:10px;bottom:8px;font-size:10px;opacity:.55;z-index:9999">V99 Évaluation des compétences RTA TP gestion d’atelier et correction</div>
+<div id="build-version" style="position:fixed;right:10px;bottom:8px;font-size:10px;opacity:.55;z-index:9999">V101 Évaluation des compétences RTA TP gestion d’atelier et correction</div>
 <div id="firebase-auth-overlay">
   <div class="firebase-login-card">
     <h2>☁️ Connexion Firebase — V89</h2>
@@ -13161,7 +13161,7 @@ function v93AdminCounts(t){
  return {rentree:all.filter(a=>a.kind==='rentree'&&ids.has(String(a.id))).length,professional:all.filter(a=>a.kind==='professional'&&ids.has(String(a.id))).length,sheets:all.filter(a=>a.kind==='activity'&&ids.has(String(a.id))).length,rta:(t.rtaActivities||[]).length,tp:(t.customActivities||[]).filter(x=>x&&x.tpDiffusionId&&ids.has(String(x.id))).length,extras:pubs.filter(x=>publicationKey(x)!==String(x.activityId)).length,custom:all.filter(a=>a.kind==='custom'&&!a.tpDiffusionId&&ids.has(String(a.id))).length};
 }
 function v93CategoryCard(key,icon,title,count,desc){return `<button type="button" class="v93-cat-card" data-at-category="${e(key)}" onclick="window.v99OpenCategory('${e(key)}')"><h3>${icon} ${e(title)} <span class="v93-cat-count">${count}</span></h3><div class="muted">${e(desc)}</div></button>`}
-function v93PublishedHtml(t){const rows=(t.published||[]);if(!rows.length)return '<div class="at-empty">Aucune activité publiée pour cette classe et cette date.</div>';return rows.map(p=>{const a=activityById(p.activityId)||p,k=publicationKey(p);return `<div class="at-plan-item"><div><b>${e(a.code||p.code||'ACT')} — ${e(a.title||p.title||p.activityId)}</b><br><small>${e(p.support||'Support non renseigné')} · ${e(p.capacity||4)} place(s)</small></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="at-btn at-primary" onclick="openAtelierPublishedEditor('${e(encodeURIComponent(k))}')">Modifier</button><button class="at-btn at-danger" onclick="removeAtelierPublication('${e(encodeURIComponent(k))}')">Désactiver</button></div></div>`}).join('')}
+function v93PublishedHtml(t){const rows=(t.published||[]);if(!rows.length)return '<div class="at-empty">Aucune activité publiée pour cette classe et cette date.</div>';return rows.map(p=>{const a=activityById(p.activityId)||p,k=publicationKey(p);return `<div class="at-plan-item"><div><b>${e(a.code||p.code||'ACT')} — ${e(a.title||p.title||p.activityId)}</b><br><small>${e(p.support||'Support non renseigné')} · ${e(p.capacity||4)} place(s)</small></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="at-btn at-primary" onclick="openAtelierPublishedEditor('${e(encodeURIComponent(k))}')">Modifier</button><button class="at-btn at-light" onclick="openAtelierMovePublication('${e(encodeURIComponent(k))}')">📅 Déplacer</button><button class="at-btn at-danger" onclick="removeAtelierPublication('${e(encodeURIComponent(k))}')">Désactiver</button></div></div>`}).join('')}
 window.openAtelierPublishedEditor=function(encodedKey){
  const key=decodeURIComponent(String(encodedKey||'')),d=database(),t=today(d),p=(t.published||[]).find(x=>String(publicationKey(x))===key);if(!p)return alert('Activité publiée introuvable pour cette classe et cette date.');
  const a=activityById(p.activityId)||p,ps=pupils(),currentLeader=Object.entries(t.assignments||{}).find(([sid,v])=>String(v)===TEAM_ID)?.[0]||'';
@@ -13171,6 +13171,42 @@ window.openAtelierPublishedEditor=function(encodedKey){
 window.saveAtelierPublishedEditor=function(encodedKey){
  const key=decodeURIComponent(String(encodedKey||'')),d=database(),t=today(d),p=(t.published||[]).find(x=>String(publicationKey(x))===key);if(!p)return alert('Activité publiée introuvable.');const support=String(document.getElementById('atEditPubSupport')?.value||'').trim();if(!support)return alert('Le support / véhicule est obligatoire.');const capacity=Math.max(1,Math.min(8,Number(document.getElementById('atEditPubCapacity')?.value)||4));const selected=new Set([...document.querySelectorAll('.atEditPubStudent:checked')].map(x=>String(x.value))),leader=String(document.getElementById('atEditPubLeader')?.value||'');if(selected.size>capacity)return alert('Il y a '+selected.size+' élèves sélectionnés pour '+capacity+' place(s).');if(leader&&selected.has(leader))selected.delete(leader);
  p.support=support;p.capacity=capacity;p.classId=atelierClassId();p.modifiedAt=new Date().toISOString();t.assignments=t.assignments||{};Object.keys(t.assignments).forEach(sid=>{if(String(t.assignments[sid])===key&&!selected.has(String(sid)))delete t.assignments[sid];if(String(t.assignments[sid])===TEAM_ID&&String(sid)!==leader)delete t.assignments[sid]});selected.forEach(sid=>{if(String(t.assignments[sid]||'')!==TEAM_ID)t.assignments[sid]=key});if(leader)t.assignments[leader]=TEAM_ID;save(d);document.getElementById('atPublishedEditBackdrop')?.remove();showSuccessMessage?.('✓ Activité publiée modifiée pour cette classe et cette date.');renderAdmin();
+}
+
+/* V101 — déplacement sûr d'une activité publiée vers une autre date, dans la même classe. */
+window.openAtelierMovePublication=function(encodedKey){
+ const key=decodeURIComponent(String(encodedKey||'')),d=database(),sourceDate=day(),cid=String(atelierClassId()),source=ensureAtelierClassSession(d,sourceDate,cid),p=(source.published||[]).find(x=>String(publicationKey(x))===key);
+ if(!p)return alert('Activité publiée introuvable pour cette classe et cette date.');
+ const a=activityById(p.activityId)||p;
+ document.getElementById('atMovePubBackdrop')?.remove();
+ const wrap=document.createElement('div');wrap.id='atMovePubBackdrop';wrap.style.cssText='position:fixed;inset:0;background:#0f172a99;z-index:100000;display:flex;align-items:center;justify-content:center;padding:20px';
+ const tomorrow=new Date(sourceDate+'T12:00:00');tomorrow.setDate(tomorrow.getDate()+1);const suggested=atIso(tomorrow);
+ wrap.innerHTML=`<div style="width:min(560px,96vw);background:#fff;border-radius:18px;padding:20px;box-shadow:0 24px 70px #0005"><div class="at-toolbar"><div><h2>📅 Déplacer l’activité</h2><div class="muted">${e(a.code||p.code||'ACT')} — ${e(a.title||p.title||p.activityId)}</div></div><button class="at-btn at-light" onclick="document.getElementById('atMovePubBackdrop')?.remove()">✕</button></div><p style="margin-top:16px">Journée actuelle : <b>${e(atDateLabel(sourceDate))}</b><br>Classe : <b>${e(classLabel())}</b></p><label><b>Nouvelle date</b><input id="atMovePubDate" type="date" value="${e(suggested)}" style="width:100%;box-sizing:border-box;padding:11px;margin-top:6px"></label><div style="display:flex;justify-content:flex-end;gap:10px;margin-top:20px"><button class="at-btn at-light" onclick="document.getElementById('atMovePubBackdrop')?.remove()">Annuler</button><button class="at-btn at-primary" onclick="confirmAtelierMovePublication('${e(encodeURIComponent(key))}','${e(sourceDate)}')">📅 Déplacer</button></div></div>`;
+ document.body.appendChild(wrap);
+}
+window.confirmAtelierMovePublication=function(encodedKey,sourceDate){
+ const key=decodeURIComponent(String(encodedKey||'')),targetDate=String(document.getElementById('atMovePubDate')?.value||'').trim(),cid=String(atelierClassId());
+ if(!targetDate)return alert('Choisis la nouvelle date.');if(targetDate===String(sourceDate))return alert('Choisis une date différente de la journée actuelle.');
+ const d=database(),source=ensureAtelierClassSession(d,String(sourceDate),cid),idx=(source.published||[]).findIndex(x=>String(publicationKey(x))===key);if(idx<0)return alert('Activité introuvable dans la journée d’origine.');
+ const p=source.published[idx],a=activityById(p.activityId)||p;
+ if(!confirm('Déplacer « '+String(a.code||p.code||'ACT')+' — '+String(a.title||p.title||p.activityId)+' »\n\ndu '+atDateLabel(sourceDate)+' au '+atDateLabel(targetDate)+' ?'))return;
+ const target=ensureAtelierClassSession(d,targetDate,cid);target.published=Array.isArray(target.published)?target.published:[];target.assignments=target.assignments||{};target.customActivities=Array.isArray(target.customActivities)?target.customActivities:[];target.rtaActivities=Array.isArray(target.rtaActivities)?target.rtaActivities:[];
+ // Conserver l'identifiant de publication : les affectations élèves suivent exactement cette occurrence.
+ target.published.push({...p,classId:cid,plannedFor:targetDate,preparedFor:targetDate,movedFrom:String(sourceDate),movedAt:new Date().toISOString()});
+ // Copier, si nécessaire, la définition locale d'une activité ponctuelle/TP diffusé.
+ const custom=(source.customActivities||[]).find(x=>String(x.id)===String(p.activityId));if(custom&&!target.customActivities.some(x=>String(x.id)===String(custom.id)))target.customActivities.push({...custom,classId:cid});
+ if(String(p.activityId||'').startsWith('RTA::')&&!target.rtaActivities.some(x=>String(x?.id??x)===String(p.activityId)))target.rtaActivities.push(String(p.activityId));
+ const movedStudents=[];Object.keys(source.assignments||{}).forEach(sid=>{if(String(source.assignments[sid])===key){movedStudents.push(String(sid));delete source.assignments[sid]}});movedStudents.forEach(sid=>{if(!target.assignments[sid])target.assignments[sid]=key});
+ // Le chef d'équipe est une donnée de journée. On le reporte sur la destination sans écraser un chef déjà défini.
+ const leader=Object.entries(source.assignments||{}).find(([sid,v])=>String(v)===TEAM_ID)?.[0]||'';if(leader&&!Object.values(target.assignments).some(v=>String(v)===TEAM_ID))target.assignments[leader]=TEAM_ID;
+ source.published.splice(idx,1);
+ // Si la journée source ne contient plus aucune activité, retirer son chef d'équipe devenu sans objet.
+ if(!(source.published||[]).length&&leader&&String(source.assignments[leader])===TEAM_ID)delete source.assignments[leader];
+ source.updatedAtClient=Date.now();target.updatedAtClient=Date.now();localStorage.setItem(KEY,JSON.stringify(d));
+ if(typeof window.firebaseSaveAtelierSession==='function'){
+   Promise.all([window.firebaseSaveAtelierSession(source,cid,String(sourceDate)),window.firebaseSaveAtelierSession(target,cid,targetDate)]).catch(err=>console.warn('Déplacement atelier non synchronisé',err));
+ }
+ document.getElementById('atMovePubBackdrop')?.remove();showSuccessMessage?.('✓ Activité déplacée vers le '+atDateLabel(targetDate)+'.');renderAdmin();
 }
 
 function renderAdmin(){autoApplyTodayPlanning();if(!atelierPlanningSelectedDate)atelierPlanningSelectedDate=day();
@@ -13545,7 +13581,7 @@ document.getElementById('at-main').addEventListener('click',function(event){
 });
 if(state.studentView)setTimeout(()=>window.openAtelierUnified(),0);
 
-/* V100 — Administration du jour : réparation dans le moteur Atelier natif.
+/* V101 — Administration du jour : moteur Atelier natif + déplacement de date.
    Toutes ces fonctions vivent dans la même portée que database/today/activities/day. */
 function v99Session(){
   const d=database(), cid=String(atelierClassId()), iso=String(state.workDate||atelierPlanningSelectedDate||day());
