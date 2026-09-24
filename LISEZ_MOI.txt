@@ -1,13 +1,11 @@
-Version 107 — 24 septembre 2026
+Version 109 — 24 septembre 2026
 
-Déploiement GitHub : décompresser ce ZIP et remplacer les fichiers du dépôt par l'ensemble de son contenu, en conservant l'arborescence (index.html à la racine, dossier icons, lecteur TP, outils USB, manifest et fichiers Firebase). Le ZIP lui-même ne remplace pas la page du site.
+Déploiement GitHub : décompresser le ZIP et remplacer tous les fichiers et dossiers à la racine du dépôt. Le fichier principal est index.html.
 
-Corrections et ajouts :
-- Mes TP diffusés : recherche par mot après une courte pause ; les résultats non correspondants disparaissent réellement, sans perdre la saisie.
-- Diffusion : l'identifiant de la classe et le niveau du TP sont conservés. Une diffusion est enregistrée après un export réussi vers un dossier ou un ZIP.
-- Firebase : récupération et partage des diffusions entre les appareils connectés au même projet. Les diffusions plus anciennes uniquement enregistrées sur un poste sont transférées à la première ouverture de cette version sur ce poste connecté.
-- Atelier du jour > Synthèse TP : les élèves de la classe active et leurs TP diffusés, rendus et corrigés sont correctement rapprochés. Les TP rendus comptent sans pointage à l'atelier.
-- Avant de voir la synthèse : sélection de tous les TP, d'un niveau (Débutant, Seconde, Première, Terminale), ou de TP individuels. Les TP à faire sont mis en évidence.
-- Conservation des corrections de la V106, du bouton Réactiver pour les classes archivées et de l'évaluation du chef d'équipe sans TP.
-
-Attention : les anciennes diffusions exclusivement locales ne peuvent être importées depuis un autre poste tant que le poste d'origine n'a pas ouvert la V107 avec Firebase connecté.
+Portail correcteur / Copies rendues :
+- Barre unique avec trois boutons : Dossier des PDF, Importer un dossier, Importer des TP (plusieurs fichiers à la fois).
+- Affichage discret du dossier PDF mémorisé et du nombre de TP.
+- Filtres d'état sous forme de pastilles cliquables : Tous, À corriger, Corrigés, avec les effectifs.
+- Sélection groupée plus lisible : sélectionner les résultats visibles, effacer la sélection et supprimer la sélection.
+- Le choix du dossier PDF est retiré du haut de chaque fiche individuelle ; il reste accessible dans la barre de la liste.
+- Les autres filtres, la correction, la synchronisation et toutes les fonctions de la V108 sont conservés.

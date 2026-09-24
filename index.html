@@ -3810,7 +3810,8 @@ async function loadData(){
   }
   syncLegacyClassName();
   ready=true;
-  render();
+  // Pendant une correction, les données se rechargent sans remplacer la fiche ouverte.
+  if(!document.querySelector("#main .tpc-editor")) render();
 }
 async function persistEvaluation(e,isEdit=false){
   await openDB();
@@ -13615,7 +13616,7 @@ window.refreshAtelierCorrections=function(){
 };
 window.addEventListener('storage',event=>{if(event.key==='tp_correction_local_v54')window.refreshAtelierCorrections()});
 window.openAtelierCorrection=function(id){
- try{window.closeAtelierUnified(); if(typeof window.tpCorrectionOpen==='function')window.tpCorrectionOpen(id); else {mainGo('correctionTp');setTimeout(()=>window.tpCorrectionOpen?.(id),50)}}catch(err){console.error(err);alert('Impossible d’ouvrir ce TP dans le Portail correcteur.')}
+ try{window.closeAtelierUnified(); page='correctionTp'; if(typeof window.tpCorrectionOpen==='function')window.tpCorrectionOpen(id); else {mainGo('correctionTp');setTimeout(()=>window.tpCorrectionOpen?.(id),50)}}catch(err){console.error(err);alert('Impossible d’ouvrir ce TP dans le Portail correcteur.')}
 }
 
 window.evaluateAtelierStudent=function(taskKey){
@@ -14701,7 +14702,7 @@ function match(r){const d=r.data||{},id=sv(d.studentId||d?.meta?.studentId||d?.e
 function dkey(d){const v=d?.eleve?.date||d?.date||d?.meta?.submittedAt||d?.meta?.savedAt||d?.meta?.generatedAt||'';const z=new Date(v);if(!isNaN(z))return z.toISOString().slice(0,10);const m=String(v).match(/(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})/);return m?`${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`:''}
 function selfEval(r,st){if(!st)return null;try{const db=JSON.parse(localStorage.getItem(ATKEY)||'{}'),days=db.classDays||{},sid=String(st.id),targetDay=dkey(r.data),title=norm(r.data?.titre||r.data?.code);let found=[];for(const [cid,ds] of Object.entries(days))for(const [day,sess] of Object.entries(ds||{}))for(const se of Object.values(sess?.selfEvals||{})){if(String(se?.studentId)!==sid)continue;let score=0;if(day===targetDay)score+=10;const at=norm(se.activityTitle||se.activityId);if(title&&at&&(title.includes(at)||at.includes(title)))score+=5;found.push({se,score,day})}found.sort((a,b)=>b.score-a.score||String(b.se.savedAt||'').localeCompare(String(a.se.savedAt||'')));return found[0]?.se||null}catch(e){return null}}
 function mark(r,k){return r.marks?.[k]||''}
-window.tp55Mark=function(k,v){const rows=rd(),r=rows.find(x=>x.id===cur);if(!r)return;r.marks=r.marks||{};r.marks[k]=r.marks[k]===v?'':v;wr(rows);window.tpCorrectionOpen(cur)};
+window.tp55Mark=function(k,v){const rows=rd(),r=rows.find(x=>x.id===cur);if(!r)return;r.marks=r.marks||{};r.marks[k]=r.marks[k]===v?'':v;wr(rows);const bar=window.event?.target?.closest?.('.tpc-markbar');if(bar){bar.querySelectorAll('.tpc-markbtn').forEach(btn=>btn.classList.toggle('active',btn.classList.contains(r.marks[k]==='ok'?'ok':'bad')&&!!r.marks[k]));return}const y=window.scrollY;window.tpCorrectionOpen(cur);window.scrollTo(0,y)};
 function markbar(r,k){const v=mark(r,k);return `<div class="tpc-markbar"><span class="muted">Correction :</span><button class="tpc-markbtn ok ${v==='ok'?'active':''}" title="Correct" onclick="tp55Mark('${k}','ok')">✓</button><button class="tpc-markbtn bad ${v==='bad'?'active':''}" title="À corriger" onclick="tp55Mark('${k}','bad')">✕</button></div>`}
 function esc2(x){return typeof esc==='function'?esc(String(x??'')):String(x??'').replace(/[&<>]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]))}
 function comps(d){return (d.competences||d.competencies||[]).map(x=>typeof x==='string'?x:(x.code||x.id)).filter(Boolean)}
@@ -14774,8 +14775,8 @@ window.tpCorrectionValidate=async function(){
  function led(active){const el=document.getElementById('firebase-activity-led');if(!el)return;el.style.opacity=active?'1':'.55';if(active){el.style.boxShadow='0 0 0 4px rgba(34,197,94,.15),0 0 9px rgba(34,197,94,.75)'}else el.style.boxShadow='none'}
  async function pushRow(r){if(!r||!authReady())return;const c=col();if(!c)return;led(true);try{const k=key(r), payload=JSON.parse(JSON.stringify(r));payload.v73Key=k;payload.v73Identity=identity(r);payload.v73Device=device();payload.v73UpdatedAt=new Date().toISOString();await c.doc(k).set({record:payload,deleted:false,status:r.correctedAt?'corrected':'returned',correctedAt:r.correctedAt||null,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true})}finally{led(false)}}
  async function tombstone(r){if(!r||!authReady())return;const c=col();if(!c)return;led(true);try{await c.doc(key(r)).set({deleted:true,status:'deleted',deletedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedAt:firebase.firestore.FieldValue.serverTimestamp(),v73Device:device()},{merge:true})}finally{led(false)}}
- function refreshViews(){clearTimeout(window.__v73Refresh);window.__v73Refresh=setTimeout(async()=>{try{await window.loadData?.()}catch(e){}try{if(document.querySelector('.tpc-shell:not(:has(.tpc-editor))')&&typeof window.tpCorrectionPage==='function')window.tpCorrectionPage()}catch(e){}try{window.refreshAtelierCorrections?.()}catch(e){console.warn('V74 actualisation atelier',e)}},120)}
- function mergeRemote(snapshot){let local=rows(), changed=false;const byKey=new Map(local.map(r=>[key(r),r]));snapshot.docChanges().forEach(ch=>{const v=ch.doc.data()||{}, k=ch.doc.id, old=byKey.get(k);if(v.deleted){if(old){local=local.filter(r=>key(r)!==k);byKey.delete(k);changed=true}return}const rr=v.record;if(!rr)return;if(!old||stamp(rr)>=stamp(old)){if(old)local=local.map(r=>key(r)===k?rr:r);else local.push(rr);byKey.set(k,rr);changed=true}});if(changed){write(local);refreshViews()}}
+ function refreshViews(){clearTimeout(window.__v73Refresh);window.__v73Refresh=setTimeout(async()=>{if(document.querySelector('#main .tpc-editor'))return;try{await window.loadData?.()}catch(e){}try{if(document.querySelector('.tpc-shell:not(:has(.tpc-editor))')&&typeof window.tpCorrectionPage==='function')window.tpCorrectionPage()}catch(e){}try{window.refreshAtelierCorrections?.()}catch(e){console.warn('V74 actualisation atelier',e)}},120)}
+ function mergeRemote(snapshot){let local=rows(), changed=false;const byKey=new Map(local.map(r=>[key(r),r]));snapshot.docChanges().forEach(ch=>{const v=ch.doc.data()||{}, k=ch.doc.id, old=byKey.get(k);if(v.deleted){if(old){local=local.filter(r=>key(r)!==k);byKey.delete(k);changed=true}return}const rr=v.record;if(!rr)return;if(old&&document.querySelector('#main .tpc-editor')&&String(old.id)===String(window.__tp55Current))return;if(!old||stamp(rr)>=stamp(old)){if(old)local=local.map(r=>key(r)===k?rr:r);else local.push(rr);byKey.set(k,rr);changed=true}});if(changed){write(local);refreshViews()}}
  async function migrateAndListen(){if(!authReady()||window.__v73Listening)return;window.__v73Listening=true;const c=col();if(!c)return;try{
    // Migration unique : seulement les TP encore présents localement. Ensuite, chaque changement est unitaire.
    const local=rows();for(let i=0;i<local.length;i+=400){const batch=db().batch();for(const r of local.slice(i,i+400)){const ref=c.doc(key(r));batch.set(ref,{record:{...JSON.parse(JSON.stringify(r)),v73Key:key(r),v73Identity:identity(r),v73Device:device(),v73UpdatedAt:new Date().toISOString()},deleted:false,status:r.correctedAt?'corrected':'returned',correctedAt:r.correctedAt||null,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true})}if(local.slice(i,i+400).length)await batch.commit()}
@@ -15489,6 +15490,43 @@ window.tpCorrectionValidate=async function(){
  }
  window.tp107ShowSummary=function(){visibleSummary=true;showTable(catalog())};
  window.renderAtelierTpSummary=function(){chooser();start()};
+})();
+</script>
+<style id="v109-corrector-ui-style">
+.tpc-shell .tp71-folderbar{display:none!important}
+.tpc-shell .tpc-toolbar.tp109-actionbar{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:12px!important;flex-wrap:wrap!important;padding:12px 14px!important;border:1px solid #cddced!important;border-radius:14px!important;background:#f4f8fd!important;margin:0 0 16px!important}
+.tp109-buttons{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.tpc-shell .tp109-action{padding:9px 12px!important;border:1px solid #b8cbe2!important;border-radius:9px!important;background:#fff!important;color:#17365d!important;font-weight:800!important;cursor:pointer!important;min-height:38px!important}
+.tpc-shell .tp109-action:hover{background:#e6f2ff!important;border-color:#7ba8d8!important}
+.tpc-shell .tp109-action:focus-visible,.tp109-chip:focus-visible{outline:3px solid #528cc4;outline-offset:2px}
+.tp109-actionbar .tp109-folder-status{color:#52657b;font-size:12px;font-weight:700;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tpc-shell .tpc-filters{align-items:flex-end;margin:0 0 8px}
+.tpc-shell .tp109-states{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin:10px 0 12px}
+.tp109-states-label{color:#44566b;font-weight:800;margin-right:3px}
+.tpc-shell .tp109-chip{border:1px solid #cbd7e5!important;background:#fff!important;border-radius:999px!important;padding:8px 13px!important;min-height:35px!important;color:#334155!important;font-weight:800!important;cursor:pointer!important}
+.tpc-shell .tp109-chip.active{background:#174e82!important;border-color:#174e82!important;color:#fff!important;box-shadow:0 2px 8px #174e8233}
+.tpc-shell .tp109-chip[data-state="todo"].active{background:#a34b12!important;border-color:#a34b12!important}
+.tpc-shell .tp109-chip[data-state="done"].active{background:#16744b!important;border-color:#16744b!important}
+.tpc-shell #tpc-selectbar.tp109-selectbar{display:flex!important;align-items:center!important;gap:8px!important;flex-wrap:wrap!important;margin:4px 0 14px!important;padding:10px!important;border:1px solid #d5e0eb!important;border-radius:11px!important;background:#fafcff!important}
+.tp109-selectbar>label{position:absolute!important;width:1px!important;height:1px!important;overflow:hidden!important;clip-path:inset(50%)}
+.tpc-shell #tpc-selectbar .tp109-select-btn{border-radius:8px!important;background:#eaf2fb!important;color:#174e82!important;font-weight:850!important;padding:8px 11px!important;min-height:35px!important}
+.tpc-shell #tpc-selectbar .tp109-select-btn:hover{background:#d5e9ff!important}
+@media(max-width:700px){.tp109-buttons{width:100%}.tp109-buttons .tp109-action{flex:1 1 42%}.tp109-actionbar .tp109-folder-status{width:100%;max-width:none}}
+</style>
+<script id="v109-corrector-ui">
+(function(){
+ let filterState={cl:'',tp:'',name:'',status:''};
+ const rows=()=>{try{const a=JSON.parse(localStorage.getItem('tp_correction_local_v54')||'[]');return Array.isArray(a)?a:[]}catch(e){return[]}};
+ function capture(){const g=id=>document.getElementById(id)?.value; if(document.getElementById('tpc-f-status'))filterState={cl:g('tpc-f-class')||'',tp:g('tpc-f-tp')||'',name:g('tpc-f-name')||'',status:g('tpc-f-status')||''}}
+ function stateChips(){const sel=document.getElementById('tpc-f-status'),filters=document.querySelector('.tpc-filters');if(!sel||!filters)return;sel.closest('label').style.display='none';let bar=document.getElementById('tp109-states');if(!bar){bar=document.createElement('div');bar.id='tp109-states';bar.className='tp109-states';filters.after(bar)}const a=rows(),todo=a.filter(r=>!r.correctedAt).length,done=a.length-todo;bar.innerHTML=`<span class="tp109-states-label">État des TP</span><button type="button" class="tp109-chip" data-state="" aria-pressed="false">Tous <b>${a.length}</b></button><button type="button" class="tp109-chip" data-state="todo" aria-pressed="false">À corriger <b>${todo}</b></button><button type="button" class="tp109-chip" data-state="done" aria-pressed="false">Corrigés <b>${done}</b></button>`;bar.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{sel.value=b.dataset.state;filterState.status=sel.value;window.tpCorrectionFilter?.();updateChips()}));updateChips()}
+ function updateChips(){const v=document.getElementById('tpc-f-status')?.value||'';document.querySelectorAll('#tp109-states .tp109-chip').forEach(b=>{const on=b.dataset.state===v;b.classList.toggle('active',on);b.setAttribute('aria-pressed',String(on))})}
+ function actions(){const bar=document.querySelector('.tpc-shell .tpc-toolbar');if(!bar)return;bar.classList.add('tp109-actionbar');bar.innerHTML=`<div class="tp109-buttons"><button type="button" class="tp109-action" id="tp109-folder">📁 Dossier des PDF</button><button type="button" class="tp109-action" id="tp109-import-folder">📂 Importer un dossier</button><button type="button" class="tp109-action" id="tp109-import-files">📥 Importer des TP</button></div><span class="tp109-folder-status tp71-foldername">Dossier PDF : …</span><span class="pill">${rows().length} TP</span><input id="tp109-folder-input" type="file" webkitdirectory multiple hidden><input id="tp109-files-input" type="file" accept=".tp,.json,application/json" multiple hidden>`;
+ bar.querySelector('#tp109-folder').onclick=()=>window.tp71ChooseCorrectionFolder?.();bar.querySelector('#tp109-import-folder').onclick=()=>bar.querySelector('#tp109-folder-input').click();bar.querySelector('#tp109-import-files').onclick=()=>bar.querySelector('#tp109-files-input').click();for(const input of bar.querySelectorAll('input[type=file]'))input.onchange=async()=>{if(input.files?.length)await window.tpCorrectionImport?.(input.files);input.value=''};window.tp71UpdateFolderLabels?.();
+ }
+ function selectBar(){const b=document.getElementById('tpc-selectbar');if(!b)return;b.classList.add('tp109-selectbar');if(!b.querySelector('.tp109-select-btn')){const btn=document.createElement('button');btn.type='button';btn.className='tp109-select-btn';btn.textContent='☑ Sélectionner les résultats';btn.onclick=()=>{const master=document.getElementById('tpc-select-all');window.tp58ToggleAll?.(!master?.checked)};b.prepend(btn)}const clear=[...b.querySelectorAll('button')].find(x=>x.textContent.includes('Désélectionner'));if(clear)clear.textContent='Effacer la sélection'}
+ function enhance(){const shell=document.querySelector('.tpc-shell');if(!shell)return;if(shell.querySelector('.tpc-editor')){shell.querySelector('.tp71-folderbar')?.remove();return}const status=document.getElementById('tpc-f-status');if(!status)return;for(const [id,v] of [['tpc-f-class',filterState.cl],['tpc-f-tp',filterState.tp],['tpc-f-name',filterState.name],['tpc-f-status',filterState.status]]){const el=document.getElementById(id);if(!el)continue;if(el.tagName==='INPUT'||Array.from(el.options||[]).some(o=>o.value===v))el.value=v}actions();stateChips();selectBar();window.tpCorrectionFilter?.()}
+ const oldPage=window.tpCorrectionPage;window.tpCorrectionPage=function(){capture();const out=oldPage.apply(this,arguments);setTimeout(enhance,60);return out};
+ const oldOpen=window.tpCorrectionOpen;window.tpCorrectionOpen=function(){const out=oldOpen.apply(this,arguments);setTimeout(enhance,60);return out};
 })();
 </script>
 </body>
