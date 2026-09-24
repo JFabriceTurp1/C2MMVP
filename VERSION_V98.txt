@@ -1,6 +1,0 @@
-V98 — Réparation structurelle Administration du jour
-- Cartes de catégories : clic natif direct, sans intercepteur global.
-- Calendrier : la date sélectionnée devient le contexte de travail de l’Administration.
-- Charger dans le tableau : utilise la préparation de la classe + date sélectionnées et ouvre immédiatement l’audit.
-- Audit : lit exactement la même séance classe + date avant validation de publication.
-- Cloisonnement : aucune recopie depuis les anciennes journées globales ; filtrage par classId conservé.
