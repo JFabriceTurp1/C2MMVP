@@ -1,1 +1,0 @@
-V102 — Administration du jour synchronisée avec la date sélectionnée dans le planning.
