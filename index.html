@@ -5137,7 +5137,7 @@ function setRtaChoiceLibrary(id){rtaChoiceState={libraryId:id,search:"",interven
 function setRtaChoiceIntervention(v){rtaChoiceState.intervention=String(v||"");rtaChoiceState.energy="";rtaChoiceState.motor="";rtaChoicePage()}
 function setRtaChoiceEnergy(v){rtaChoiceState.energy=String(v||"");rtaChoiceState.motor="";rtaChoicePage()}
 function setRtaChoiceMotor(v){rtaChoiceState.motor=String(v||"");rtaChoicePage()}
-function setRtaChoiceSearch(v){rtaChoiceState.search=String(v||"");rtaChoicePage();requestAnimationFrame(()=>{const x=document.getElementById("rta-search");if(x){x.focus();x.setSelectionRange(x.value.length,x.value.length)}})}
+function setRtaChoiceSearch(v){rtaChoiceState.search=String(v||"");const tokens=rtaNorm(v).split(/\s+/).filter(Boolean),libs=getRtaLibraries().filter(x=>x.active!==false);const matching=libs.filter(lib=>tokens.some(t=>rtaNorm([lib.name,lib.reference,lib.vehicle,lib.vehicule].join(' ')).includes(t)));if(matching.length===1&&String(matching[0].id)!==String(rtaChoiceState.libraryId)){rtaChoiceState.libraryId=matching[0].id;rtaChoiceState.intervention='';rtaChoiceState.energy='';rtaChoiceState.motor=''}rtaChoicePage();requestAnimationFrame(()=>{const x=document.getElementById("rta-search");if(x){x.focus();x.setSelectionRange(x.value.length,x.value.length)}})}
 function startRtaActivity(libId,activityId){
   const lib=rtaLibraryById(libId),a=lib?.activities?.find(x=>String(x.id)===String(activityId));if(!lib||!a)return;
   if(!selectedStudent||!students.some(s=>String(s.id)===String(selectedStudent)))selectedStudent=sortStudentsAlpha(students)[0]?.id||null;
@@ -5175,13 +5175,13 @@ function rtaChoicePage(){
       if(rtaNorm(m)!=="toutes versions" && m!==rtaChoiceState.motor)return false;
     }
     if(!q)return true;
-    return rtaNorm([
+    return q.split(/\s+/).every(term=>rtaNorm([lib.name,lib.reference,lib.vehicle,lib.vehicule,
       a.id,a.numero,a.titre,a.activite,a.title,a.theme,a.chapitre,a.description,
       a.sourceSection,a.section,a.sousSection,a.sous_section,
       a.sourceMotorisation,a.motorisation,a.version,a.moteur,
       a.sourceTypeActivite,a.typeActivite,a.type,
       (a.competences_cap||[]).join(" "),(a.competences_bac_pro||[]).join(" ")
-    ].filter(Boolean).join(" ")).includes(q);
+    ].filter(Boolean).join(" ")).includes(term));
   });
   const grouped={};
   if(ready)filtered.forEach(a=>{const k=String(a.sourceSection||a.section||a.theme||"Autres").trim()||"Autres";(grouped[k]??=[]).push(a)});
@@ -5510,7 +5510,7 @@ function evaluationChoicePage(){
           <p>Choisir une revue technique automobile, puis une activité issue de cette RTA. Plusieurs bibliothèques RTA peuvent coexister.</p>
           <div class="eval-choice-action">Choisir une RTA →</div>
         </button>
-        ${isAdminTeacher()?`<button type="button" class="eval-choice-card retroactive" onclick="beginRetrospectiveEvaluation()">
+        ${isAdminTeacher()&&localStorage.getItem('tp110_show_retro_cards')!=='0'?`<button type="button" class="eval-choice-card retroactive" onclick="beginRetrospectiveEvaluation()">
           <div class="eval-choice-icon">🕘</div>
           <h2>Positionnement rétroactif</h2>
           <p>Reconstituer le niveau d’un élève à une date antérieure, par compétence(s) ou à partir d’une situation professionnelle.</p>
@@ -11244,6 +11244,7 @@ function openAssistanceMail(){
       professionalSituations:situations,
       managedEvaluationActivities:getManagedEvaluationActivities(),
       rtaLibraries:getRtaLibraries(),
+      showRetroCards:localStorage.getItem('tp110_show_retro_cards')!=='0',
       bilanPeriods:(()=>{try{return JSON.parse(localStorage.getItem("evaluation_bilan_periods_v91")||"[]")||[]}catch(e){return[]}})(),
       bilanRecords:(()=>{try{return JSON.parse(localStorage.getItem("evaluation_bilan_records_v92")||"[]")||[]}catch(e){return[]}})(),
       savedReports:(()=>{try{return JSON.parse(localStorage.getItem("evaluation_saved_reports_v90")||"[]")||[]}catch(e){return[]}})(),
@@ -11256,6 +11257,7 @@ function openAssistanceMail(){
 
   function firebaseApplyApplicationConfig(cfg){
     if(!cfg||typeof cfg!=="object")return;
+    if(typeof cfg.showRetroCards==='boolean')safeLocalSetItem('tp110_show_retro_cards',cfg.showRetroCards?'1':'0');
     if(typeof cfg.adminCode==="string"&&cfg.adminCode.length>=4){
       safeLocalSetItem("evaluation_admin_code_v71",cfg.adminCode);
     }
@@ -12812,7 +12814,7 @@ function atelierRtaFilteredActivities(lib,{chapter="",motor="",query=""}={}){
   return (lib?.activities||[]).filter(a=>a.active!==false)
     .filter(a=>!chapter||String(atelierRtaActivityChapter(a))===String(chapter))
     .filter(a=>!motor||String(atelierRtaActivityMotor(a))===String(motor))
-    .filter(a=>!q||atelierRtaActivitySearchText(a).includes(q))
+    .filter(a=>!q||q.split(/\s+/).every(term=>normalizeAtelierRtaText((lib?.name||'')+' '+(lib?.reference||'')+' '+atelierRtaActivitySearchText(a)).includes(term)))
     .sort((a,b)=>{
       const na=String(a.numero||a.id||""),nb=String(b.numero||b.id||"");
       return na.localeCompare(nb,"fr",{numeric:true});
@@ -12883,11 +12885,16 @@ window.refreshAtelierRtaSelectors=function(){
   refreshAtelierRtaActivitySelector("library");
 }
 window.refreshAtelierRtaActivitySelector=function(source){
+  const query=document.getElementById('atRtaSearch')?.value||'';
+  if(source==='search'&&query.trim()){
+    const terms=normalizeAtelierRtaText(query).split(/\s+/).filter(Boolean);
+    const matches=getRtaLibraries().filter(x=>x.active!==false&&terms.some(t=>normalizeAtelierRtaText([x.name,x.reference,x.vehicle,x.vehicule].join(' ')).includes(t)));
+    if(matches.length===1){const selector=document.getElementById('atRtaLibrary');if(selector&&String(selector.value)!==String(matches[0].id)){selector.value=matches[0].id;atelierRtaPopulateFilterOptions(matches[0],{preserveChapter:'',preserveMotor:''})}}
+  }
   const libId=document.getElementById('atRtaLibrary')?.value||'';
   const lib=rtaLibraryById(libId);if(!lib)return;
   let chapter=document.getElementById('atRtaChapter')?.value||'';
   let motor=document.getElementById('atRtaMotor')?.value||'';
-  const query=document.getElementById('atRtaSearch')?.value||'';
 
   // Les listes restent cohérentes entre elles sans effacer les choix encore valides.
   if(source==="chapter"){
@@ -13011,6 +13018,7 @@ function atPlanningActivities(){
       code:"RTA "+String(a.numero||a.id||""),
       title:a.titre||a.activite||"Activité RTA",
       kind:"rta",
+      libraryName:lib.name||lib.reference||'',
       activity:a
     }));
   });
@@ -13029,7 +13037,7 @@ function renderAtelierPlanningDay(iso){
     <input id="atPlanSearch" class="v88-plan-search" type="search" placeholder="🔎 Rechercher une activité : frein, vidange, RTA, EPI…" oninput="filterAtPlanActivities(this.value)">
     <div class="at-plan-row">
       <input id="atPlanSupport" placeholder="1. Support obligatoire : véhicule / organe / maquette">
-      <select id="atPlanActivity"><option value="">2. Choisir une activité…</option>${acts.map(a=>`<option value="${e(a.id)}" data-search="${e(((a.code||a.id)+' '+(a.title||'')+' '+(a.kind||'')).toLowerCase())}">${e((a.kind==="rta"?"RTA — ":"")+(a.code||a.id)+" — "+(a.title||""))}</option>`).join("")}</select>
+      <select id="atPlanActivity"><option value="">2. Choisir une activité…</option>${acts.map(a=>`<option value="${e(a.id)}">${e((a.kind==="rta"?"RTA "+(a.libraryName||'')+" — ":"")+(a.code||a.id)+" — "+(a.title||""))}</option>`).join("")}</select>
       <input id="atPlanCapacity" type="number" min="1" max="8" value="4">
       <button type="button" class="at-btn at-success" onclick="addAtelierPlanningEntry()">Ajouter</button>
     </div>
@@ -13092,9 +13100,10 @@ window.selectAtelierPlanningDate=function(iso){
 }
 window.moveAtelierCalendarMonth=function(delta){const d=new Date(atelierCalendarMonthIso+"T12:00:00");d.setMonth(d.getMonth()+delta);atelierCalendarMonthIso=atIso(new Date(d.getFullYear(),d.getMonth(),1));document.getElementById("atelier-calendar-host").innerHTML=calendarMonthHtml()}
 window.filterAtPlanActivities=function(raw){
- const q=String(raw||'').trim().toLowerCase(),sel=document.getElementById('atPlanActivity');if(!sel)return;
- [...sel.options].forEach((o,i)=>{if(i===0){o.hidden=false;return}o.hidden=!!q&&!String(o.dataset.search||o.textContent||'').toLowerCase().includes(q)});
- if(sel.selectedOptions[0]?.hidden)sel.value='';
+ const terms=normalizeAtelierRtaText(raw).split(/\s+/).filter(Boolean),sel=document.getElementById('atPlanActivity');if(!sel)return;
+ const previous=sel.value,items=atPlanningActivities().filter(a=>{const hay=normalizeAtelierRtaText([a.code,a.title,a.kind,a.libraryName,a.activity?.description,a.activity?.theme].join(' '));return terms.every(t=>hay.includes(t))});
+ sel.innerHTML='<option value="">2. Choisir une activité…</option>'+items.map(a=>`<option value="${e(a.id)}">${e((a.kind==='rta'?'RTA '+(a.libraryName||'')+' — ':'')+(a.code||a.id)+' — '+(a.title||''))}</option>`).join('');
+ if(items.some(a=>String(a.id)===String(previous)))sel.value=previous;
 }
 window.addAtelierPlanningEntry=function(){
   const id=document.getElementById("atPlanActivity")?.value||"",support=(document.getElementById("atPlanSupport")?.value||"").trim(),capacity=Math.max(1,Math.min(8,Number(document.getElementById("atPlanCapacity")?.value)||4));
@@ -14700,7 +14709,7 @@ function pool(){const a=[];let src=[];try{if(typeof allStudents!=='undefined'&&A
 function className(st){try{const c=(getClasses?.()||[]).find(x=>String(x.id)===String(st?.classId));return c?.name||''}catch(e){return''}}
 function match(r){const d=r.data||{},id=sv(d.studentId||d?.meta?.studentId||d?.eleve?.id);let st=pool().find(x=>sv(x.id)===id);if(st)return st;const target=norm(nm(d)),cl=norm(d.classe);let cand=pool().filter(x=>norm(x.name)===target);if(cl){const cc=cand.filter(x=>norm(className(x))===cl);if(cc.length===1)return cc[0]}if(cand.length===1)return cand[0];const words=target.split(' ').filter(Boolean).sort().join(' ');cand=pool().filter(x=>norm(x.name).split(' ').filter(Boolean).sort().join(' ')===words);if(cl){const cc=cand.filter(x=>norm(className(x))===cl);if(cc.length===1)return cc[0]}return cand.length===1?cand[0]:null}
 function dkey(d){const v=d?.eleve?.date||d?.date||d?.meta?.submittedAt||d?.meta?.savedAt||d?.meta?.generatedAt||'';const z=new Date(v);if(!isNaN(z))return z.toISOString().slice(0,10);const m=String(v).match(/(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})/);return m?`${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`:''}
-function selfEval(r,st){if(!st)return null;try{const db=JSON.parse(localStorage.getItem(ATKEY)||'{}'),days=db.classDays||{},sid=String(st.id),targetDay=dkey(r.data),title=norm(r.data?.titre||r.data?.code);let found=[];for(const [cid,ds] of Object.entries(days))for(const [day,sess] of Object.entries(ds||{}))for(const se of Object.values(sess?.selfEvals||{})){if(String(se?.studentId)!==sid)continue;let score=0;if(day===targetDay)score+=10;const at=norm(se.activityTitle||se.activityId);if(title&&at&&(title.includes(at)||at.includes(title)))score+=5;found.push({se,score,day})}found.sort((a,b)=>b.score-a.score||String(b.se.savedAt||'').localeCompare(String(a.se.savedAt||'')));return found[0]?.se||null}catch(e){return null}}
+function selfEval(r,st){const embedded=r.data?.reponses?.autoEvaluation||r.data?.autoEvaluation||r.data?.studentSelfEvaluation;if(embedded&&embedded.note!==undefined&&embedded.note!=='')return embedded;if(!st)return null;try{const db=JSON.parse(localStorage.getItem(ATKEY)||'{}'),days=db.classDays||{},sid=String(st.id),targetDay=dkey(r.data),title=norm(r.data?.titre||r.data?.code);let found=[];for(const [cid,ds] of Object.entries(days))for(const [day,sess] of Object.entries(ds||{})){for(const se of Object.values(sess?.selfEvals||{})){if(String(se?.studentId)!==sid)continue;let score=0;if(day===targetDay)score+=10;const at=norm(se.activityTitle||se.activityId);if(title&&at&&(title.includes(at)||at.includes(title)))score+=5;found.push({se,score,day})}}found.sort((a,b)=>b.score-a.score||String(b.se.savedAt||'').localeCompare(String(a.se.savedAt||'')));return found[0]?.se||null}catch(e){return null}}
 function mark(r,k){return r.marks?.[k]||''}
 window.tp55Mark=function(k,v){const rows=rd(),r=rows.find(x=>x.id===cur);if(!r)return;r.marks=r.marks||{};r.marks[k]=r.marks[k]===v?'':v;wr(rows);const bar=window.event?.target?.closest?.('.tpc-markbar');if(bar){bar.querySelectorAll('.tpc-markbtn').forEach(btn=>btn.classList.toggle('active',btn.classList.contains(r.marks[k]==='ok'?'ok':'bad')&&!!r.marks[k]));return}const y=window.scrollY;window.tpCorrectionOpen(cur);window.scrollTo(0,y)};
 function markbar(r,k){const v=mark(r,k);return `<div class="tpc-markbar"><span class="muted">Correction :</span><button class="tpc-markbtn ok ${v==='ok'?'active':''}" title="Correct" onclick="tp55Mark('${k}','ok')">✓</button><button class="tpc-markbtn bad ${v==='bad'?'active':''}" title="À corriger" onclick="tp55Mark('${k}','bad')">✕</button></div>`}
@@ -14827,7 +14836,7 @@ window.tpCorrectionValidate=async function(){
    if(!dash||dash.querySelector('.tp-diffuses'))return;
    const activeId=String(window.getActiveClassId?.()||'');
    const activeName=String(window.classLabel?.()||'').trim().toLowerCase();
-   const rows=readDiff().filter(r=>{const rid=String(r.classId||'');const rn=String(r.className||'').trim().toLowerCase();return (rid&&activeId&&rid===activeId)||(!rid&&rn&&activeName&&rn===activeName)});
+   const rows=readDiff().filter(r=>{if(r.archived)return false;const rid=String(r.classId||'');const rn=String(r.className||'').trim().toLowerCase();return (rid&&activeId&&rid===activeId)||(!rid&&rn&&activeName&&rn===activeName)});
    const sec=document.createElement('section');sec.className='at-admin-zone tp-diffuses';
    sec.innerHTML=`<h3>📤 TP diffusés</h3><p>Proposer à la séance des TP déjà diffusés aux élèves afin de les affecter dans le tableau de charge.</p><div class="v77-tp-list">${rows.length?rows.map(r=>`<div class="at-catalog-row"><div><b>${esc(r.tpCode)} — ${esc(r.title)}</b><br><small>${esc(r.className)} • ${(r.students||[]).length} élève(s) • ${esc(r.diffusedAt?new Date(r.diffusedAt).toLocaleDateString('fr-FR'):'')}</small></div><button type="button" class="at-btn at-primary" onclick="tpV76AddDiffusionToDay('${esc(r.id)}')">＋ Ajouter au tableau</button></div>`).join(''):'<div class="at-empty">Aucun TP diffusé enregistré.</div>'}</div>`;
    const fiches=dash.querySelector('.at-admin-zone.fiches');(fiches||dash.lastElementChild)?.after(sec);
@@ -15444,29 +15453,37 @@ window.tpCorrectionValidate=async function(){
 .tp107-table thead th:first-child{z-index:4}
 .tp107-done{background:#e6f7ed;color:#14643b;font-weight:750}.tp107-todo{background:#fff0e6;color:#9b3418;font-weight:750}.tp107-none{color:#64748b}
 .tp107-table small{display:block;font-size:11px;font-weight:400;margin-top:3px}
+.tp110-diff-view{display:flex;gap:7px;margin:12px 0}.tp110-diff-view button{border:1px solid #acc3dc;border-radius:999px;background:#fff;padding:8px 15px;cursor:pointer}.tp110-diff-view button.active{background:#174e82;color:#fff}.tp110-diff-actions{display:flex;gap:7px;flex-wrap:wrap}
+.tp110-chooser-search{width:100%;max-width:430px;margin:6px 0;padding:11px;border:1px solid #bacfe3;border-radius:10px}
+.tp107-choice[hidden]{display:none!important}
+@media(max-width:1050px){.tp107-wrap{max-height:none;overflow:visible;border:0}.tp107-table,.tp107-table tbody,.tp107-table tr,.tp107-table th,.tp107-table td{display:block;width:100%;min-width:0;box-sizing:border-box}.tp107-table thead{display:none}.tp107-table tr{border:1px solid #cbd9e8;border-radius:12px;overflow:hidden;margin-bottom:12px;box-shadow:0 2px 8px #15324d15}.tp107-table th:first-child{position:static;min-width:0;background:#eaf2fb;font-size:1.05rem}.tp107-table td{display:flex;align-items:center;justify-content:space-between;gap:12px}.tp107-table td::before{content:attr(data-tp);font-weight:800;color:#29445e;flex:1}.tp107-chooser{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}}
 </style>
 <script id="v107-diffusions-summary">
 (function(){
- const DKEY='tp_generator_diffusions_v76',CKEY='tp_correction_local_v54';
+ const DKEY='tp_generator_diffusions_v76',CKEY='tp_correction_local_v54',TKEY='tp110_diffusion_tombstones';
  const norm=v=>String(v??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('fr').replace(/[^a-z0-9]+/g,' ').trim();
  const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
  const read=k=>{try{const a=JSON.parse(localStorage.getItem(k)||'[]');return Array.isArray(a)?a:[]}catch(e){return[]}};
  const diff=()=>read(DKEY),corr=()=>read(CKEY);
+ const tomb=()=>{try{return JSON.parse(localStorage.getItem(TKEY)||'{}')||{}}catch(e){return{}}};
  const coll=()=>{try{return firebase.auth().currentUser?firebase.firestore().collection('workspaces').doc('evaluation-mv-main').collection('tpDiffusionsV106'):null}catch(e){return null}};
  let unsub=null,starting=false,started=false,refreshTimer=null,query='',visibleSummary=false,selected=null,selectionClass='';
  const id=r=>String(r?.id||'');
- function merge(remote){const m=new Map(diff().filter(r=>id(r)).map(r=>[id(r),r]));for(const r of remote)if(id(r))m.set(id(r),r);localStorage.setItem(DKEY,JSON.stringify([...m.values()].sort((a,b)=>String(b.diffusedAt||'').localeCompare(String(a.diffusedAt||'')))))}
+ function merge(remote){const deleted=tomb(),m=new Map(diff().filter(r=>id(r)&&!deleted[id(r)]).map(r=>[id(r),r]));for(const item of remote){const rid=String(item.id||item.record?.id||'');if(!rid)continue;if(item.deleted){deleted[rid]=item.deletedAt||Date.now();m.delete(rid)}else if(item.record&&!deleted[rid])m.set(rid,item.record)}localStorage.setItem(TKEY,JSON.stringify(deleted));localStorage.setItem(DKEY,JSON.stringify([...m.values()].sort((a,b)=>String(b.diffusedAt||'').localeCompare(String(a.diffusedAt||'')))))}
  function refresh(){clearTimeout(refreshTimer);refreshTimer=setTimeout(()=>{if(document.querySelector('.tp106-diff-search')&&!document.activeElement?.classList?.contains('tp106-diff-search'))window.tpV76DiffusionsPage?.();if(document.querySelector('#at-nav button.active')?.textContent?.includes('Synthèse TP'))window.renderAtelierTpSummary?.()},200)}
- async function uploadNew(local,known){const c=coll();if(!c)return;for(const r of local){if(!id(r)||known.has(id(r)))continue;await c.doc(id(r)).set({record:r,createdAt:firebase.firestore.FieldValue.serverTimestamp()});known.add(id(r))}}
- async function start(){if(starting||started||!coll())return;starting=true;try{const c=coll(),snap=await c.get(),remote=snap.docs.map(x=>x.data()?.record).filter(Boolean),known=new Set(remote.map(id)),local=diff();merge(remote);refresh();await uploadNew(local,known);unsub=c.onSnapshot(s=>{merge(s.docs.map(x=>x.data()?.record).filter(Boolean));refresh()},e=>console.warn('Écoute des diffusions TP',e));started=true}catch(e){console.warn('Synchronisation des diffusions TP',e)}finally{starting=false}}
- async function publish(){const c=coll();if(!c)return;try{const s=await c.get(),known=new Set(s.docs.map(x=>x.id));merge(s.docs.map(x=>x.data()?.record).filter(Boolean));await uploadNew(diff(),known);refresh()}catch(e){console.warn('Publication des diffusions TP',e)}}
- window.tp106SyncDiffusions=async()=>{if(!started)await start();const c=coll();if(c){try{const s=await c.get();merge(s.docs.map(x=>x.data()?.record).filter(Boolean));refresh()}catch(e){console.warn('Actualisation des TP diffusés',e)}}return diff().length};
+ async function uploadNew(local,known){const c=coll();if(!c)return;for(const r of local){if(!id(r)||known.has(id(r))||tomb()[id(r)])continue;await c.doc(id(r)).set({record:r,createdAt:firebase.firestore.FieldValue.serverTimestamp()});known.add(id(r))}}
+ const documents=s=>s.docs.map(x=>({id:x.id,...x.data()}));
+ async function start(){if(starting||started||!coll())return;starting=true;try{const c=coll(),snap=await c.get(),remote=documents(snap),known=new Set(remote.map(x=>x.id)),local=diff();merge(remote);refresh();await uploadNew(local,known);unsub=c.onSnapshot(s=>{merge(documents(s));refresh()},e=>console.warn('Écoute des diffusions TP',e));started=true}catch(e){console.warn('Synchronisation des diffusions TP',e)}finally{starting=false}}
+ async function publish(){const c=coll();if(!c)return;try{const s=await c.get(),known=new Set(s.docs.map(x=>x.id));merge(documents(s));await uploadNew(diff(),known);refresh()}catch(e){console.warn('Publication des diffusions TP',e)}}
+ window.tp106SyncDiffusions=async()=>{if(!started)await start();const c=coll();if(c){try{const s=await c.get();merge(documents(s));refresh()}catch(e){console.warn('Actualisation des TP diffusés',e)}}return diff().length};
+ window.tp110ArchiveDiffusion=async(rid,archive)=>{const rows=diff(),r=rows.find(x=>id(x)===rid);if(!r)return;r.archived=archive;r.archivedAt=archive?new Date().toISOString():'';localStorage.setItem(DKEY,JSON.stringify(rows));try{await coll()?.doc(rid).set({record:r,deleted:false,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true})}catch(e){console.warn('Archivage à synchroniser',e)}window.tpV76DiffusionsPage?.()};
+ window.tp110DeleteDiffusion=async rid=>{if(!confirm('Supprimer définitivement ce TP diffusé et son suivi de diffusion ? Les TP rendus et corrections sont conservés.'))return;const deleted=tomb();deleted[rid]=Date.now();localStorage.setItem(TKEY,JSON.stringify(deleted));localStorage.setItem(DKEY,JSON.stringify(diff().filter(r=>id(r)!==rid)));try{await coll()?.doc(rid).set({deleted:true,deletedAt:firebase.firestore.FieldValue.serverTimestamp(),record:null},{merge:true})}catch(e){console.warn('Suppression à synchroniser',e)}window.tpV76DiffusionsPage?.()};
  window.addEventListener('tp-diffusions-changed',()=>{if(!started)start().then(publish);else publish()});
- window.addEventListener('storage',e=>{if(e.key===DKEY||e.key===CKEY)refresh()});
+ window.addEventListener('storage',e=>{if(e.key===DKEY||e.key===CKEY||e.key===TKEY)refresh()});
  try{firebase.auth().onAuthStateChanged(u=>{if(unsub){unsub();unsub=null}started=false;if(u)start()})}catch(e){setTimeout(start,1000)}
  setTimeout(start,1000);
  const oldPage=window.tpV76DiffusionsPage;
- window.tpV76DiffusionsPage=function(){const out=oldPage.apply(this,arguments),card=document.querySelector('.tpgen-manager-shell .tpgen-card');if(!card)return out;const input=document.createElement('input');input.type='search';input.className='tp106-diff-search';input.placeholder='Rechercher un mot, un élève, une classe ou un code TP…';input.value=query;const hint=document.createElement('div');hint.className='muted';hint.style.marginBottom='12px';card.prepend(hint);card.prepend(input);const filter=()=>{const q=norm(query);let count=0;card.querySelectorAll('.v76-diff-row').forEach(el=>{const match=!q||norm(el.textContent).includes(q);el.hidden=!match;if(match)count++});hint.textContent=q?`${count} TP correspondant(s)`:'Tape un mot complet ; la liste se filtre après une courte pause.'};let timer;input.addEventListener('input',()=>{query=input.value;clearTimeout(timer);timer=setTimeout(filter,350)});input.addEventListener('blur',()=>{if(refreshTimer)refresh()});filter();start();return out};
+ window.tpV76DiffusionsPage=function(){const out=oldPage.apply(this,arguments),card=document.querySelector('.tpgen-manager-shell .tpgen-card');if(!card)return out;const ordered=diff().sort((a,b)=>String(b.diffusedAt).localeCompare(String(a.diffusedAt)));card.querySelectorAll('.v76-diff-row').forEach((el,i)=>{const r=ordered[i];if(!r)return;el.dataset.archived=String(!!r.archived);const actions=document.createElement('div');actions.className='tp110-diff-actions';const archive=document.createElement('button');archive.className='tpgen-btn secondary';archive.textContent=r.archived?'↩ Réactiver':'📦 Archiver';archive.onclick=()=>window.tp110ArchiveDiffusion(r.id,!r.archived);const remove=document.createElement('button');remove.className='tpgen-btn secondary';remove.textContent='🗑 Supprimer';remove.onclick=()=>window.tp110DeleteDiffusion(r.id);actions.append(archive,remove);el.append(actions)});const view=document.createElement('div');view.className='tp110-diff-view';view.innerHTML='<button type="button" data-archived="false">Actifs</button><button type="button" data-archived="true">Archivés</button>';view.querySelectorAll('button').forEach(b=>{b.classList.toggle('active',String(!!window.__tp110ShowArchived)===b.dataset.archived);b.onclick=()=>{window.__tp110ShowArchived=b.dataset.archived==='true';window.tpV76DiffusionsPage()}});card.prepend(view);const input=document.createElement('input');input.type='search';input.className='tp106-diff-search';input.placeholder='Rechercher un mot, un élève, une classe ou un code TP…';input.value=query;const hint=document.createElement('div');hint.className='muted';hint.style.marginBottom='12px';card.prepend(hint);card.prepend(input);const filter=()=>{const q=norm(query);let count=0;card.querySelectorAll('.v76-diff-row').forEach(el=>{const match=(!q||norm(el.textContent).includes(q))&&(el.dataset.archived===String(!!window.__tp110ShowArchived));el.hidden=!match;if(match)count++});hint.textContent=q?`${count} TP correspondant(s)`:`${count} TP ${window.__tp110ShowArchived?'archivé(s)':'actif(s)'} · saisis librement un mot pour filtrer.`};let timer;input.addEventListener('input',()=>{query=input.value;clearTimeout(timer);timer=setTimeout(filter,350)});filter();start();return out};
  const studentName=s=>s.name||[s.lastName,s.firstName].filter(Boolean).join(' ')||String(s.id);
  const corrData=r=>r.data||{};
  function personMatch(st,record){const d=corrData(record),i=d.identite||{},e=d.eleve||{},sid=String(d.studentId||d.meta?.studentId||e.id||i.id||''),name=norm([i.nom||e.nom,i.prenom||e.prenom].filter(Boolean).join(' ')||d.studentName);return sid?sid===String(st.id):!!name&&name===norm(studentName(st))}
@@ -15474,18 +15491,18 @@ window.tpCorrectionValidate=async function(){
  function belongs(d,cl,label){return String(d.classId||'')===cl||norm(d.classe||d.identite?.classe||d.className)===label}
  const key=d=>norm(d.tpCode||d.code||d.title||d.titre||d.tp?.id||d.tp?.titre);
  function catalog(){const cl=String(getActiveClassId()),label=norm(activeClassName()),people=(typeof students!=='undefined'&&Array.isArray(students)?students:[]).filter(s=>String(s.classId||cl)===cl).map(s=>({id:String(s.id),name:studentName(s)})).sort((a,b)=>a.name.localeCompare(b.name,'fr'));
- const ds=diff().filter(d=>belongs(d,cl,label)),cs=corr().filter(r=>people.some(s=>personMatch(s,r))||belongs(corrData(r),cl,label));
+ const ds=diff().filter(d=>!d.archived&&belongs(d,cl,label)),cs=corr().filter(r=>people.some(s=>personMatch(s,r))||belongs(corrData(r),cl,label));
  const by=new Map();for(const d of ds){const k=key(d);if(k&&!by.has(k))by.set(k,{key:k,code:d.tpCode||'',title:d.title||'',level:d.level||d.snapshot?.level||'',aliases:[k,norm(d.title)].filter(Boolean)})}
  for(const r of cs){const d=corrData(r),codes=tpCodes(d);if(!codes.length)continue;const existing=[...by.values()].find(c=>codes.some(x=>c.aliases.includes(x)));if(!existing){const k=codes[0];by.set(k,{key:k,code:d.code||d.tp?.id||'',title:d.titre||d.tp?.titre||'',level:d.niveau||d.level||'',aliases:codes})}}
  return {people,ds,cs,columns:[...by.values()]};}
  function groupOf(c){const l=norm(c.level);return l.includes('debut')?'Débutant':l.includes('seconde')?'Seconde':l.includes('premiere')?'Première':l.includes('terminal')?'Terminale':'Sans niveau'}
  function chooser(){const data=catalog(),cl=String(getActiveClassId());if(selectionClass!==cl){selected=null;selectionClass=cl;visibleSummary=false}const box=document.getElementById('at-main');if(!box)return;if(selected===null)selected=new Set(data.columns.map(c=>c.key));const counts={};data.columns.forEach(c=>counts[groupOf(c)]=(counts[groupOf(c)]||0)+1);
- box.innerHTML=`<section class="at-panel"><div class="at-toolbar"><div><h2>📊 Synthèse TP — ${esc(activeClassName())}</h2><p class="muted">Choisis les TP à présenter à la classe, puis affiche le tableau.</p></div><button class="at-btn at-light" type="button" onclick="tp106SyncDiffusions()">↻ Actualiser les TP</button></div><div class="tp107-toolbar"><button type="button" onclick="tp107ChooseGroup('all')">Tous les TP</button>${Object.keys(counts).map(g=>`<button type="button" data-tp107-group="${esc(g)}">${esc(g)} (${counts[g]})</button>`).join('')}<button type="button" onclick="tp107ChooseGroup('none')">Tout décocher</button></div><div class="tp107-chooser">${data.columns.map(c=>`<label class="tp107-choice"><input type="checkbox" data-tp107-key="${esc(c.key)}" ${selected.has(c.key)?'checked':''}><span><b>${esc(c.code||c.title||'TP')}</b> — ${esc(c.title)}<small>${esc(groupOf(c))}</small></span></label>`).join('')}</div><button type="button" class="at-btn at-primary" onclick="tp107ShowSummary()">Afficher la synthèse sélectionnée</button>${!data.columns.length?'<p class="at-empty">Aucun TP diffusé ou rendu retrouvé pour cette classe. Vérifie la connexion Firebase et ouvre cette version sur les postes qui contiennent les anciennes diffusions.</p>':''}<div id="tp107-result"></div></section>`;
- box.querySelectorAll('[data-tp107-key]').forEach(el=>el.addEventListener('change',()=>{el.checked?selected.add(el.dataset.tp107Key):selected.delete(el.dataset.tp107Key);visibleSummary=false;document.getElementById('tp107-result').innerHTML=''}));box.querySelectorAll('[data-tp107-group]').forEach(el=>el.addEventListener('click',()=>window.tp107ChooseGroup(el.dataset.tp107Group)));if(visibleSummary)showTable(data);
+ box.innerHTML=`<section class="at-panel"><div class="at-toolbar"><div><h2>📊 Synthèse TP — ${esc(activeClassName())}</h2><p class="muted">Choisis les TP à présenter à la classe, puis affiche le tableau.</p></div><button class="at-btn at-light" type="button" onclick="tp106SyncDiffusions()">↻ Actualiser les TP</button></div><div class="tp107-toolbar"><button type="button" onclick="tp107ChooseGroup('all')">Tous les TP</button>${Object.keys(counts).map(g=>`<button type="button" data-tp107-group="${esc(g)}">${esc(g)} (${counts[g]})</button>`).join('')}<button type="button" onclick="tp107ChooseGroup('none')">Tout décocher</button></div><input id="tp110-chooser-search" class="tp110-chooser-search" type="search" placeholder="Filtrer les TP à sélectionner…" aria-label="Filtrer les TP"><div class="tp107-chooser">${data.columns.map(c=>`<label class="tp107-choice"><input type="checkbox" data-tp107-key="${esc(c.key)}" ${selected.has(c.key)?'checked':''}><span><b>${esc(c.code||c.title||'TP')}</b> — ${esc(c.title)}<small>${esc(groupOf(c))}</small></span></label>`).join('')}</div><button type="button" class="at-btn at-primary" onclick="tp107ShowSummary()">Afficher la synthèse sélectionnée</button>${!data.columns.length?'<p class="at-empty">Aucun TP diffusé ou rendu retrouvé pour cette classe. Vérifie la connexion Firebase et ouvre cette version sur les postes qui contiennent les anciennes diffusions.</p>':''}<div id="tp107-result"></div></section>`;
+ box.querySelectorAll('[data-tp107-key]').forEach(el=>el.addEventListener('change',()=>{el.checked?selected.add(el.dataset.tp107Key):selected.delete(el.dataset.tp107Key);visibleSummary=false;document.getElementById('tp107-result').innerHTML=''}));box.querySelectorAll('[data-tp107-group]').forEach(el=>el.addEventListener('click',()=>window.tp107ChooseGroup(el.dataset.tp107Group)));box.querySelector('#tp110-chooser-search')?.addEventListener('input',e=>{const terms=norm(e.target.value).split(' ').filter(Boolean);box.querySelectorAll('.tp107-choice').forEach(x=>x.hidden=!terms.every(t=>norm(x.textContent).includes(t)))});if(visibleSummary)showTable(data);
  }
  window.tp107ChooseGroup=function(g){const cols=catalog().columns;if(g==='all')selected=new Set(cols.map(c=>c.key));else if(g==='none')selected=new Set();else selected=new Set(cols.filter(c=>groupOf(c)===g).map(c=>c.key));visibleSummary=false;chooser()};
  function showTable(data){const cols=data.columns.filter(c=>selected.has(c.key)),target=document.getElementById('tp107-result');if(!target)return;if(!cols.length){target.innerHTML='<p class="at-notice">Sélectionne au moins un TP.</p>';return}
- const body=data.people.map(s=>`<tr><th scope="row">${esc(s.name)}</th>${cols.map(col=>{const assigned=data.ds.filter(d=>col.aliases.includes(key(d))&&((d.students||[]).some(x=>String(x.id||'')===s.id||norm(x.name)===norm(s.name))||(d.studentIds||[]).some(x=>String(x)===s.id)));const returned=data.cs.filter(r=>personMatch(s,r)&&tpCodes(corrData(r)).some(x=>col.aliases.includes(x))).sort((a,b)=>String(b.correctedAt||b.importedAt||'').localeCompare(String(a.correctedAt||a.importedAt||'')))[0];return `<td class="${returned?'tp107-done':assigned.length?'tp107-todo':'tp107-none'}">${returned?(returned.correctedAt?'✓ Corrigé':'✓ Rendu'):assigned.length?'● À faire':'—'}</td>`}).join('')}</tr>`).join('');
+ const body=data.people.map(s=>`<tr><th scope="row">${esc(s.name)}</th>${cols.map(col=>{const assigned=data.ds.filter(d=>col.aliases.includes(key(d))&&((d.students||[]).some(x=>String(x.id||'')===s.id||norm(x.name)===norm(s.name))||(d.studentIds||[]).some(x=>String(x)===s.id)));const returned=data.cs.filter(r=>personMatch(s,r)&&tpCodes(corrData(r)).some(x=>col.aliases.includes(x))).sort((a,b)=>String(b.correctedAt||b.importedAt||'').localeCompare(String(a.correctedAt||a.importedAt||'')))[0];return `<td data-tp="${esc(col.code||col.title||'TP')}" class="${returned?'tp107-done':assigned.length?'tp107-todo':'tp107-none'}">${returned?(returned.correctedAt?'✓ Corrigé':'✓ Rendu'):assigned.length?'● À faire':'—'}</td>`}).join('')}</tr>`).join('');
  target.innerHTML=`<p class="at-notice">🟢 Rendu ou corrigé · 🟠 Diffusé et à faire · — Pas attribué</p><div class="tp107-wrap"><table class="tp107-table"><thead><tr><th>Élève</th>${cols.map(c=>`<th>${esc(c.code||'TP')}<small>${esc(c.title)}</small></th>`).join('')}</tr></thead><tbody>${body}</tbody></table></div>`;
  }
  window.tp107ShowSummary=function(){visibleSummary=true;showTable(catalog())};
@@ -15527,6 +15544,21 @@ window.tpCorrectionValidate=async function(){
  function enhance(){const shell=document.querySelector('.tpc-shell');if(!shell)return;if(shell.querySelector('.tpc-editor')){shell.querySelector('.tp71-folderbar')?.remove();return}const status=document.getElementById('tpc-f-status');if(!status)return;for(const [id,v] of [['tpc-f-class',filterState.cl],['tpc-f-tp',filterState.tp],['tpc-f-name',filterState.name],['tpc-f-status',filterState.status]]){const el=document.getElementById(id);if(!el)continue;if(el.tagName==='INPUT'||Array.from(el.options||[]).some(o=>o.value===v))el.value=v}actions();stateChips();selectBar();window.tpCorrectionFilter?.()}
  const oldPage=window.tpCorrectionPage;window.tpCorrectionPage=function(){capture();const out=oldPage.apply(this,arguments);setTimeout(enhance,60);return out};
  const oldOpen=window.tpCorrectionOpen;window.tpCorrectionOpen=function(){const out=oldOpen.apply(this,arguments);setTimeout(enhance,60);return out};
+})();
+</script>
+<style id="v110-settings-style">.tp110-retro-setting{margin:14px 18px;padding:14px 18px;border:1px solid #cad9e8;border-radius:12px;background:#f4f8fd}.tp110-retro-setting label{display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:750}.tp110-retro-setting p{margin:6px 0 0;color:#52657b}</style>
+<script id="v110-last-adjustments">
+(function(){
+ const oldSettings=window.renderSettingsPage;
+ window.renderSettingsPage=function(){const result=oldSettings.apply(this,arguments);if(typeof isAdminTeacher==='function'&&isAdminTeacher()){const main=document.getElementById('main');if(main){const box=document.createElement('section');box.className='tp110-retro-setting';box.innerHTML='<label><input type="checkbox" id="tp110-retro-toggle"> Afficher les deux cartes d’évaluation rétroactive</label><p>Visible uniquement par l’administrateur dans Nouvelle évaluation. Les enseignants ne voient jamais ces cartes. Cliquez sur Enregistrer dans les paramètres pour synchroniser ce choix entre postes.</p>';main.prepend(box);const toggle=box.querySelector('input');toggle.checked=localStorage.getItem('tp110_show_retro_cards')!=='0';toggle.onchange=()=>localStorage.setItem('tp110_show_retro_cards',toggle.checked?'1':'0')}}return result};
+ const oldAtelier=window.openAtelierCorrection;
+ if(typeof oldAtelier==='function')window.openAtelierCorrection=function(){window.__tp110CorrectionOrigin='atelier';return oldAtelier.apply(this,arguments)};
+ const oldOpen=window.tpCorrectionOpen;
+ window.tpCorrectionOpen=function(){const result=oldOpen.apply(this,arguments);if(window.__tp110CorrectionOrigin==='atelier')setTimeout(()=>{const b=document.querySelector('.tpc-shell .page-header button.secondary');if(b&&b.textContent.includes('Liste des TP')){b.textContent='← Évaluations du jour';b.onclick=()=>{window.__tp110CorrectionOrigin='';window.returnToAtelierPending?.()}}},90);return result};
+ const oldPage=window.tpCorrectionPage;
+ window.tpCorrectionPage=function(){window.__tp110CorrectionOrigin='';return oldPage.apply(this,arguments)};
+ const oldSelf=window.tp64SelfEvalPdfHtml;
+ window.tp64SelfEvalPdfHtml=function(r,d){const se=d?.reponses?.autoEvaluation||d?.autoEvaluation||d?.studentSelfEvaluation;if(!se)return oldSelf?.(r,d)||'<p>Aucune auto-évaluation.</p>';const safe=v=>String(v??'—').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));return `<table><tbody><tr><th>Note élève</th><td>${safe(se.note)} / 20</td></tr><tr><th>Organisation</th><td>${safe(se.organisation)} / 4</td></tr><tr><th>Résultats</th><td>${safe(se.resultats)} / 4</td></tr><tr><th>Autonomie</th><td>${safe(se.confiance??se.autonomie)} / 4</td></tr><tr><th>Commentaire élève</th><td>${safe(se.comment||'—')}</td></tr></tbody></table>`};
 })();
 </script>
 </body>

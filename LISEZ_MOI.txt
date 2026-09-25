@@ -1,11 +1,13 @@
-Version 109 — 24 septembre 2026
+VERSION 110 — 25 septembre 2026
 
-Déploiement GitHub : décompresser le ZIP et remplacer tous les fichiers et dossiers à la racine du dépôt. Le fichier principal est index.html.
+Déploiement GitHub : décompressez cette archive et remplacez les fichiers et dossiers à la racine du dépôt. Le point d'entrée est index.html. Conservez la configuration Firebase du dépôt et vérifiez la publication après mise à jour. Le changement de service worker renouvelle le cache de l'application ; rechargez les trois appareils après déploiement.
 
-Portail correcteur / Copies rendues :
-- Barre unique avec trois boutons : Dossier des PDF, Importer un dossier, Importer des TP (plusieurs fichiers à la fois).
-- Affichage discret du dossier PDF mémorisé et du nombre de TP.
-- Filtres d'état sous forme de pastilles cliquables : Tous, À corriger, Corrigés, avec les effectifs.
-- Sélection groupée plus lisible : sélectionner les résultats visibles, effacer la sélection et supprimer la sélection.
-- Le choix du dossier PDF est retiré du haut de chaque fiche individuelle ; il reste accessible dans la barre de la liste.
-- Les autres filtres, la correction, la synchronisation et toutes les fonctions de la V108 sont conservés.
+Nouveautés :
+- Atelier du jour : recherche des activités RTA par plusieurs mots (ex. « frein 206 »), correction sans retour intempestif à l'accueil et retour d'une fiche corrigée aux Évaluations du jour.
+- Synthèse TP : choix par groupe, filtre des TP à sélectionner et présentation adaptée aux tablettes ; états diffusé, rendu ou corrigé par élève.
+- TP diffusés : synchronisation Firebase entre postes, recherche après saisie libre, archivage/réactivation et suppression. Les corrections et fichiers rendus restent conservés lors d'une suppression de diffusion.
+- Lecteur_TP_Eleve_V29_AUTOEVALUATION.html : l'élève choisit Organisation, Résultats et Autonomie puis une note /20 avant de rendre son TP ; le commentaire est facultatif. L'auto-évaluation voyage dans le JSON rendu et figure dans le portail et le PDF de correction. Diffusez ce lecteur aux élèves à la place des lecteurs précédents.
+- Paramètres administrateur : interrupteur d'affichage des deux cartes rétroactives. Ces cartes n'apparaissent jamais dans le profil professeur.
+- Les améliorations de la V109 du portail correcteur et les autres modules sont conservés.
+
+La synchronisation nécessite une connexion Firebase active sur chaque poste. Les données historiques uniquement locales doivent avoir été ouvertes au moins une fois avec cette version sur le poste qui les détient pour remonter dans la liste commune.
