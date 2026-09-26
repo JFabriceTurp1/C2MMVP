@@ -15894,7 +15894,37 @@ window.tpCorrectionValidate=async function(){
  window.tpGenExportClassToFolder=async function(){try{if(!folderHandle){const ok=await window.tpGenChooseClassFolder();if(!ok)return false}const ctx=await buildFiles();let perm='granted';if(folderHandle.queryPermission)perm=await folderHandle.queryPermission({mode:'readwrite'});if(perm!=='granted'&&folderHandle.requestPermission)perm=await folderHandle.requestPermission({mode:'readwrite'});if(perm!=='granted')throw Error('Autorisation d’écriture refusée.');for(const f of ctx.files){const fh=await folderHandle.getFileHandle(f.name,{create:true}),w=await fh.createWritable();await w.write(new Blob([f.text],{type:f.name.endsWith('.tp')?'application/json;charset=utf-8':'text/plain;charset=utf-8'}));await w.close()}persist(ctx);const n=ctx.sts.length,name=folderHandle.name;window.tpGenCloseClassExport?.();window.showSuccessMessage?.(`${n} TP élève généré(s) dans « ${name} » et diffusion enregistrée dans Mes TP diffusés.`);return true}catch(e){console.error('V119 dossier',e);window.showWarningMessage?.('Génération impossible : '+(e?.message||e));return false}finally{window.__v117Project=null;window.__v116CurrentProject=null}};
  window.tpGenExportClassZip=async function(){try{const ctx=await buildFiles();const blob=window.tpGenBuildStoreZip(ctx.files);const name=[filePart(ctx.code),filePart(ctx.className),'TP_ELEVES'].filter(Boolean).join('_')+'.zip';window.tpGenDownloadBlob(blob,name);persist(ctx);window.tpGenCloseClassExport?.();window.showSuccessMessage?.(`${ctx.sts.length} TP élève correspondant(s) à « ${ctx.code} » regroupé(s) dans le ZIP et diffusion enregistrée.`);return true}catch(e){console.error('V119 ZIP',e);window.showWarningMessage?.('Génération ZIP impossible : '+(e?.message||e));return false}finally{window.__v117Project=null;window.__v116CurrentProject=null}};
  const oldDiffuse=window.tpGenDiffuseSaved;window.tpGenDiffuseSaved=function(id){folderHandle=null;window.__tpDiffusionSavedId=String(id||'');if(window.tpGenState)window.tpGenState.currentSavedId=String(id||'');return oldDiffuse?.apply(this,arguments)};
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V127 — Competences Rta Gestion atelier TP';document.title='V127 Competences Rta Gestion atelier TP';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V128 — Competences Rta Gestion atelier TP';document.title='V127 Competences Rta Gestion atelier TP';
  console.info('V127 actif : diffusion compacte, sans duplication du projet TP dans localStorage.');
 })();
 </script>
+
+<!-- V129 — Copies rendues : import robuste V128/V129 + IndexedDB anti-quota -->
+<script id="v129-copies-rendues-import">
+(function(){
+ const VERSION='V129', KEY='tp_correction_local_v54', DB='fdmahy_corrections_v129', STORE='copies';
+ const clone=o=>JSON.parse(JSON.stringify(o));
+ function openDb(){return new Promise((ok,no)=>{const r=indexedDB.open(DB,1);r.onupgradeneeded=()=>{const d=r.result;if(!d.objectStoreNames.contains(STORE))d.createObjectStore(STORE,{keyPath:'id'})};r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error)})}
+ async function putFull(row){const d=await openDb();await new Promise((ok,no)=>{const tx=d.transaction(STORE,'readwrite');tx.objectStore(STORE).put(clone(row));tx.oncomplete=ok;tx.onerror=()=>no(tx.error)});d.close()}
+ function read(){try{const a=JSON.parse(localStorage.getItem(KEY)||'[]');return Array.isArray(a)?a:[]}catch(_){return[]}}
+ function stripHeavy(v){if(Array.isArray(v))return v.map(stripHeavy);if(v&&typeof v==='object'){const o={};for(const [k,x] of Object.entries(v))o[k]=stripHeavy(x);return o}if(typeof v==='string'&&v.startsWith('data:image/')&&v.length>10000)return '[IMAGE_STOCKEE_INDEXEDDB]';return v}
+ function compactRow(row){const r=clone(row);r.data=stripHeavy(r.data);r.fullDataStored='indexeddb-v129';return r}
+ function valid(d){return !!(d&&typeof d==='object'&&(d.signature==='FDMAHY_TP_SYSTEM'||d.type==='tp-eleve'||d.tpProject||d.reponses||d.answers)&&((d.code||d.tp?.id||d.meta?.activityId)||(d.titre||d.tp?.titre)))}
+ function normalize(d){d=clone(d);d.eleve=d.eleve||{};d.identite={...(d.identite||{}),nom:d.identite?.nom||d.eleve.nom||'',prenom:d.identite?.prenom||d.eleve.prenom||'',classe:d.identite?.classe||d.classe||''};d.tp={...(d.tp||{}),id:d.tp?.id||d.code||d.meta?.activityId||'',titre:d.tp?.titre||d.titre||''};d.statut=String(d.statut||'RENDU').toUpperCase();return d}
+ function signature(d,f){return [d.studentId||'',d.identite?.nom||'',d.identite?.prenom||'',d.tp?.id||d.code||'',d.dates?.rendu||d.submission?.submittedAt||'',f.name].join('|')}
+ window.tpCorrectionImport=async function(files){
+   const fs=[...(files||[])].filter(f=>/\.(tp|json)$/i.test(f.name||''));if(!fs.length){alert('Aucun fichier TP compatible sélectionné.');return}
+   let rows=read(),ok=0,dup=0,bad=[];document.body.classList.add('tp129-importing');
+   try{
+    for(const f of fs){try{let d=normalize(JSON.parse(await f.text()));if(!valid(d))throw Error('format TP non reconnu');const sig=signature(d,f);if(rows.some(x=>x.signature===sig)){dup++;continue}const row={id:'TPC-V129-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2),signature:sig,fileName:f.name,importedAt:new Date().toISOString(),data:d,note:d.correction?.note??'',appreciation:d.correction?.appreciation||d.professeurZone?.appreciation||'',levels:d.correction?.competences||{},marks:{},savedEvaluationId:'',correctedAt:d.statut==='CORRIGE'?(d.dates?.correction||new Date().toISOString()):'',workflowState:d.statut==='CORRIGE'?'CORRIGE':'RECU'};await putFull(row);rows.unshift(compactRow(row));ok++}catch(e){console.error('V129 import',f.name,e);bad.push(f.name+' : '+(e?.message||e))}}
+    try{localStorage.setItem(KEY,JSON.stringify(rows.slice(0,500)))}catch(e){const tiny=rows.slice(0,500).map(r=>({...r,data:{code:r.data?.code||r.data?.tp?.id||'',titre:r.data?.titre||r.data?.tp?.titre||'',classe:r.data?.classe||r.data?.identite?.classe||'',eleve:r.data?.eleve||r.data?.identite||{},statut:r.data?.statut||'RENDU'},fullDataStored:'indexeddb-v129'}));localStorage.setItem(KEY,JSON.stringify(tiny))}
+   }finally{document.body.classList.remove('tp129-importing')}
+   alert(`${ok} TP rendu(s) importé(s) dans Copies rendues.${dup?'\n'+dup+' doublon(s) ignoré(s).':''}${bad.length?'\n\nFichiers refusés :\n'+bad.join('\n'):''}`);window.tpCorrectionPage?.();
+ };
+ function wire(){document.querySelectorAll('#tp109-folder-input,#tp109-files-input,.tpc-toolbar input[type=file]').forEach(input=>{input.onchange=async()=>{const f=input.files;if(f?.length)await window.tpCorrectionImport(f);input.value=''}})}
+ const oldPage=window.tpCorrectionPage;window.tpCorrectionPage=function(){const r=oldPage?.apply(this,arguments);setTimeout(wire,50);return r};setTimeout(wire,500);
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V129 — Competences Rta Gestion atelier TP';document.title='V129 Competences Rta Gestion atelier TP';
+ console.info('V129 — import Copies rendues V128/V129 actif avec stockage IndexedDB anti-quota.');
+})();
+</script>
+<style id="v129-import-style">body.tp129-importing:after{content:'Import des TP en cours…';position:fixed;inset:0;z-index:999999;background:#0f172acc;color:white;display:grid;place-items:center;font:900 24px Arial}</style>
