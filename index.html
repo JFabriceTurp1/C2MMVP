@@ -15795,6 +15795,83 @@ window.tpCorrectionValidate=async function(){
 })();
 </script>
 
+
+<!-- V132 — Firebase multiposte TP : projets/diffusions complets découpés, photothèque exclue -->
+<script id="v132-firebase-tp-multiposte">
+(function(){
+ const VERSION='V132', WS='evaluation-mv-main', SAVED='tp_generator_saved_v8', DIFF='tp_generator_diffusions_v76';
+ const CHUNK=380000; let busy=false, timer=0;
+ const auth=()=>window.firebase?.auth?.(); const fs=()=>window.firebase?.firestore?.();
+ const root=()=>fs()?.collection('workspaces').doc(WS);
+ const parse=k=>{try{const a=JSON.parse(localStorage.getItem(k)||'[]');return Array.isArray(a)?a:[]}catch(_){return[]}};
+ const stamp=x=>Date.parse(x?.updatedAt||x?.savedAt||x?.createdAt||x?.diffusedAt||0)||0;
+ function split(s){let a=[];for(let i=0;i<s.length;i+=CHUNK)a.push(s.slice(i,i+CHUNK));return a}
+ async function putChunked(kind,id,obj){const r=root();if(!r||!id)return;const text=JSON.stringify(obj), parts=split(text), ref=r.collection(kind).doc(String(id));
+   const old=await ref.collection('chunks').get();let batch=fs().batch();old.docs.forEach(d=>batch.delete(d.ref));await batch.commit();
+   await ref.set({id:String(id),parts:parts.length,bytes:text.length,updatedAt:firebase.firestore.FieldValue.serverTimestamp(),clientUpdatedAt:new Date().toISOString(),v:132},{merge:true});
+   for(let i=0;i<parts.length;i+=300){batch=fs().batch();parts.slice(i,i+300).forEach((x,j)=>batch.set(ref.collection('chunks').doc(String(i+j).padStart(5,'0')),{data:x}));await batch.commit()}
+ }
+ async function getChunked(kind,doc){const d=doc.data()||{},n=Number(d.parts||0);if(!n)return null;const q=await doc.ref.collection('chunks').orderBy(firebase.firestore.FieldPath.documentId()).get();try{return JSON.parse(q.docs.map(x=>x.data()?.data||'').join(''))}catch(e){console.warn('V132 reconstruction',kind,doc.id,e);return null}}
+ function idSaved(x){return String(x?.savedId||x?.id||'')}; function idDiff(x){return String(x?.id||'')}
+ async function syncKind(kind,key,idfn){const r=root();if(!r)return {up:0,down:0};const local=parse(key), lm=new Map(local.map(x=>[idfn(x),x]).filter(x=>x[0]));const snap=await r.collection(kind).get();let up=0,down=0;
+   for(const d of snap.docs){const remote=await getChunked(kind,d);if(!remote)continue;const id=idfn(remote)||d.id, old=lm.get(id);if(!old||stamp(remote)>stamp(old)){lm.set(id,remote);down++}}
+   for(const [id,x] of lm){const meta=snap.docs.find(d=>d.id===id)?.data()||{};const remoteTime=Date.parse(meta.clientUpdatedAt||0)||0;if(!remoteTime||stamp(x)>=remoteTime){await putChunked(kind,id,x);up++}}
+   try{localStorage.setItem(key,JSON.stringify([...lm.values()].sort((a,b)=>stamp(b)-stamp(a))))}catch(e){console.warn('V132 cache local allégé impossible',e)}
+   return {up,down,count:lm.size}
+ }
+ async function run(reason='manuel'){if(busy||!auth()?.currentUser||!root())return null;busy=true;try{const d=await syncKind('tpDiffusionsV132',DIFF,idDiff);window.dispatchEvent(new CustomEvent('tp-v133-synced',{detail:{diffusions:d,reason}}));try{window.tpV76DiffusionsPage?.()}catch(_){};console.info('V133 Firebase TP diffusés',d);return {diffusions:d}}catch(e){console.warn('V133 Firebase TP diffusés',e);return {error:String(e?.message||e)}}finally{busy=false}}
+ function soon(reason){clearTimeout(timer);timer=setTimeout(()=>run(reason),900)}
+ window.firebaseSyncTpMultiposteV132=run;
+ window.addEventListener('tp-diffusions-changed',()=>soon('diffusion'));
+ window.addEventListener('storage',e=>{if(e.key===DIFF)soon('storage')});
+ try{auth()?.onAuthStateChanged(u=>{if(u)setTimeout(()=>run('connexion'),500)})}catch(_){}
+ // Intercepter les sauvegardes TP pour publier sans attendre une synchro générale.
+ const oldSet=Storage.prototype.setItem; if(!window.__v132StorageHook){window.__v132StorageHook=true;Storage.prototype.setItem=function(k,v){const z=oldSet.apply(this,arguments);if(this===localStorage&&k===DIFF)soon(k);return z}}
+ // La photothèque n'est volontairement jamais incluse dans cette synchronisation.
+ setTimeout(()=>run('demarrage'),1600);
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V133 — Competences Rta Gestion atelier TP';document.title='V132 Competences Rta Gestion atelier TP';
+ console.info('V133 : Firebase limité aux TP diffusés. TP enregistrés et photothèque restent locaux.');
+})();
+</script>
+
+<!-- V133 — Poste maison : données de création locales + sauvegarde globale -->
+<script id="v133-home-backup">
+(function(){
+ const VERSION='V133', HOME='evaluation_home_workstation_v133', DB='evaluation_home_backup_v133', STORE='handles';
+ // Ce paquet est préparé pour le poste maison Windows de Fabrice. Le marqueur reste propre à ce navigateur.
+ if(/Windows/i.test(navigator.userAgent||'') && localStorage.getItem(HOME)===null) localStorage.setItem(HOME,'1');
+ const isHome=()=>localStorage.getItem(HOME)==='1';
+ function openDb(){return new Promise((res,rej)=>{const q=indexedDB.open(DB,1);q.onupgradeneeded=()=>{if(!q.result.objectStoreNames.contains(STORE))q.result.createObjectStore(STORE)};q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error)})}
+ async function hget(){try{const d=await openDb();return await new Promise((res,rej)=>{const t=d.transaction(STORE,'readonly').objectStore(STORE).get('backupFolder');t.onsuccess=()=>res(t.result||null);t.onerror=()=>rej(t.error)})}catch(_){return null}}
+ async function hset(v){const d=await openDb();return new Promise((res,rej)=>{const t=d.transaction(STORE,'readwrite').objectStore(STORE).put(v,'backupFolder');t.onsuccess=()=>res();t.onerror=()=>rej(t.error)})}
+ async function ensureFolder(){let h=await hget();if(h){try{if((await h.queryPermission({mode:'readwrite'}))==='granted')return h;if((await h.requestPermission({mode:'readwrite'}))==='granted')return h}catch(_){}}
+   if(!window.showDirectoryPicker)return null; h=await showDirectoryPicker({mode:'readwrite'});await hset(h);return h}
+ function req(r){return new Promise((res,rej)=>{r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
+ async function dumpDb(name){return new Promise((resolve)=>{let q;try{q=indexedDB.open(name)}catch(_){resolve(null);return}q.onerror=()=>resolve(null);q.onsuccess=async()=>{const db=q.result,out={name:name,version:db.version,stores:{}};try{for(const sn of Array.from(db.objectStoreNames)){const tx=db.transaction(sn,'readonly'),st=tx.objectStore(sn);let keys=[],vals=[];try{keys=await req(st.getAllKeys());vals=await req(st.getAll())}catch(e){out.stores[sn]={error:String(e)};continue}out.stores[sn]=keys.map((k,i)=>({key:k,value:vals[i]}))}}catch(e){out.error=String(e)}try{db.close()}catch(_){}resolve(out)}})}
+ async function snapshot(){const ls={};for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);try{ls[k]=localStorage.getItem(k)}catch(_){}}
+   const ss={};for(let i=0;i<sessionStorage.length;i++){const k=sessionStorage.key(i);try{ss[k]=sessionStorage.getItem(k)}catch(_){}}
+   let names=[];try{if(indexedDB.databases)names=(await indexedDB.databases()).map(x=>x.name).filter(Boolean)}catch(_){}
+   const dbs=[];for(const n of names){if(n===DB)continue;const d=await dumpDb(n);if(d)dbs.push(d)}
+   return {format:'evaluation.mv.global.backup.v1',appVersion:VERSION,createdAt:new Date().toISOString(),homeWorkstation:true,localStorage:ls,sessionStorage:ss,indexedDB:dbs,note:'TP enregistrés et photothèque : sauvegarde locale. TP diffusés : synchronisés Firebase.'}}
+ function fname(){const d=new Date(),z=n=>String(n).padStart(2,'0');return `SAUVEGARDE_GLOBALE_EVALUATION_${d.getFullYear()}-${z(d.getMonth()+1)}-${z(d.getDate())}_${z(d.getHours())}-${z(d.getMinutes())}.json`}
+ async function saveGlobal(opts={}){if(!isHome())return {skipped:true};const data=await snapshot(),text=JSON.stringify(data);let folder=null;
+   try{folder=await ensureFolder()}catch(e){if(opts.silent)return {error:String(e)} }
+   if(folder){const name=fname(),fh=await folder.getFileHandle(name,{create:true}),w=await fh.createWritable();await w.write(text);await w.close();localStorage.setItem('evaluation_last_global_backup_v133',JSON.stringify({at:data.createdAt,file:name,bytes:text.length}));return {ok:true,file:name,bytes:text.length}}
+   if(opts.silent)return {error:'Dossier de sauvegarde non autorisé'};
+   const blob=new Blob([text],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=fname();a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);localStorage.setItem('evaluation_last_global_backup_v133',JSON.stringify({at:data.createdAt,file:a.download,bytes:text.length,fallback:true}));return {ok:true,file:a.download,fallback:true}}
+ window.v133SaveGlobalBackup=saveGlobal;
+ window.v133SetHomeWorkstation=function(v=true){localStorage.setItem(HOME,v?'1':'0');return isHome()};
+ // Quitter professeur : sauvegarde complète d'abord sur le poste maison, puis déconnexion.
+ const oldLogout=window.logoutTeacher;
+ window.logoutTeacher=async function(){if(isHome()){try{const r=await saveGlobal();if(r?.ok&&window.showSuccessMessage)showSuccessMessage('Sauvegarde globale créée : '+r.file)}catch(e){alert('Sauvegarde globale impossible : '+(e?.message||e)+'\nLe logiciel reste ouvert.');return}}return oldLogout?.apply(this,arguments)};
+ // Une sauvegarde légère de sécurité est aussi mémorisée lors d'une fermeture brutale; aucun dialogue n'est déclenché.
+ window.addEventListener('pagehide',()=>{if(!isHome())return;try{const light={at:new Date().toISOString(),version:VERSION,localStorage:Object.fromEntries(Array.from({length:localStorage.length},(_,i)=>{const k=localStorage.key(i);return[k,localStorage.getItem(k)]}))};localStorage.setItem('evaluation_emergency_backup_v133',JSON.stringify(light))}catch(_){}});
+ // Outil volontaire : efface les anciennes copies cloud des TP ENREGISTRÉS V132, jamais les diffusions.
+ window.v133CleanSavedTpCloud=async function(){if(!confirm('Supprimer de Firebase les anciennes copies des TP enregistrés ?\nLes TP diffusés ne seront pas touchés.'))return false;const fs=window.firebase?.firestore?.();if(!fs)throw new Error('Firebase indisponible');const col=fs.collection('workspaces').doc('evaluation-mv-main').collection('tpProjectsV132'),snap=await col.get();for(const d of snap.docs){const c=await d.ref.collection('chunks').get();for(let i=0;i<c.docs.length;i+=300){const b=fs.batch();c.docs.slice(i,i+300).forEach(x=>b.delete(x.ref));await b.commit()}await d.ref.delete()}alert(snap.size+' TP enregistrés supprimés de Firebase. Les versions locales sont conservées.');return true};
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V133 — Competences Rta Gestion atelier TP';document.title='V133 Competences Rta Gestion atelier TP';
+ console.info('V133 poste maison:',isHome()?'actif':'inactif','— TP enregistrés locaux, diffusions Firebase.');
+})();
+</script>
 </body>
 </html>
 
