@@ -8648,6 +8648,8 @@ function exportStudentDeletionPDF(studentsSnapshot, deletionDate){
 <!-- BUILD V93 — Administration ergonomie + RTA natif -->
 
 
+
+
 </body></html>`);
   w.document.close();
 }
@@ -15768,6 +15770,31 @@ window.tpCorrectionValidate=async function(){
 })();
 </script>
 
+
+
+<style id="v130-corrector-faithful-style">
+.v130-copy{background:#fff;border:1px solid #cbd9e7;border-radius:14px;padding:22px;max-width:920px;margin:auto;color:#173e60}.v130-copy .tphead{display:flex;justify-content:space-between;border-bottom:4px solid #1769aa;padding-bottom:12px}.v130-copy .code{background:#123b68;color:#fff;padding:8px 12px;border-radius:7px;font-weight:900}.v130-copy .brief{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:14px 0}.v130-copy .brief section{background:#edf6fc;border-left:4px solid #1c75b8;padding:10px}.v130-copy .brief h3{margin:0 0 5px;font-size:12px;text-transform:uppercase;color:#1769aa}.v130-copy .section{font-size:18px;border-bottom:2px solid #d5e1ec;padding-bottom:5px;margin:22px 0 10px}.v130-copy .q,.v130-copy .blk{border:1px solid #c8d7e5;border-radius:8px;padding:12px;margin:10px 0}.v130-copy .qtitle{font-weight:800}.v130-copy .meta{font-size:11px;color:#64748b}.v130-copy .answer{background:#f8fafc;border:1px solid #d5e1ec;border-radius:6px;padding:9px;margin-top:8px;white-space:pre-wrap}.v130-copy .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:9px}.v130-copy .matchcard{border:1px solid #cbd9e7;border-radius:7px;padding:8px;text-align:center}.v130-copy .matchcard img{width:100%;height:120px;object-fit:contain}.v130-copy .studentlabel{margin-top:7px;padding:7px;border-radius:5px;font-weight:800}.v130-copy .ok{background:#dcfce7;color:#166534}.v130-copy .bad{background:#fee2e2;color:#991b1b}.v130-copy .empty{background:#f1f5f9;color:#64748b}.v130-copy .stage{position:relative;max-width:600px;margin:10px auto}.v130-copy .stage>img{width:100%;display:block}.v130-copy .pin{position:absolute;transform:translate(-50%,-50%);border-radius:50%;min-width:32px;height:32px;padding:4px;background:#176a9e;color:#fff;border:2px solid #fff;font-weight:900}.v130-copy .pin.expected{background:transparent;border:2px dashed #16a34a;color:#166534}.v130-autobar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:8px 0}.v130-chip{padding:5px 9px;border-radius:999px;font-size:12px;font-weight:800}.v130-chip.ok{background:#dcfce7;color:#166534}.v130-chip.bad{background:#fee2e2;color:#991b1b}.v130-chip.manual{background:#e2e8f0;color:#334155}
+</style>
+<script id="v130-corrector-faithful-runtime">
+(function(){
+ const KEY='tp_correction_local_v54'; const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+ const rows=()=>{try{return JSON.parse(localStorage.getItem(KEY)||'[]')||[]}catch(e){return[]}};
+ const save=a=>localStorage.setItem(KEY,JSON.stringify(a));
+ function project(d){let p=d?.tpProject||d?.sourceProject||d?.project||d?.projet;return p?.schema==='evaluation.tp.v1'&&p.data?p.data:p}
+ function answers(d){return d?.reponses?.v117||d?.reponses?.v115||{}}
+ function obj(p,f){const m={question:'questions',image:'imageBlocks',match:'matchBlocks',text:'textBlocks',table:'tableBlocks',placement:'placementBlocks'};return (p?.[m[f.type]]||[]).find(x=>String(x.id)===String(f.id))}
+ function image(x){return x?.data||x?.image||x?.src||''}
+ function autoMatch(x,a){let good=0,total=(x.targets||[]).length,answered=0;for(let i=0;i<total;i++){let t=x.targets[i],tid=String(t.id||i),v=a?.[tid];if(v){answered++;if(String(v).split('@')[0]===String(t.correctId||''))good++}}return {good,total,answered,status:answered===0?'empty':good===total?'ok':'bad'}}
+ function autoPlacement(x,a){let good=0,total=(x.tokens||[]).filter(t=>Number.isFinite(t.x)&&Number.isFinite(t.y)).length,answered=0;for(const t of (x.tokens||[])){if(!Number.isFinite(t.x)||!Number.isFinite(t.y))continue;let v=a?.[t.id];if(v&&Number.isFinite(+v.x)&&Number.isFinite(+v.y)){answered++;let dist=Math.hypot(+v.x-t.x,+v.y-t.y);if(dist<=10)good++}}return {good,total,answered,status:answered===0?'empty':good===total?'ok':'bad'}}
+ function badge(s){return s.status==='ok'?`<span class="v130-chip ok">✓ Automatique : ${s.good}/${s.total}</span>`:s.status==='bad'?`<span class="v130-chip bad">✕ Automatique : ${s.good}/${s.total}</span>`:`<span class="v130-chip manual">— Non répondu</span>`}
+ function block(p,f,a){let x=obj(p,f);if(!x)return'';let av=a[x.id];if(f.type==='text')return `<section class="blk"><h3>${esc(x.title||'')}</h3><p>${esc(x.text||'')}</p></section>`;if(f.type==='image')return `<section class="blk"><h3>${esc(x.title||'')}</h3><p>${esc(x.text||'')}</p><div class="grid">${(x.images||[]).map(im=>`<img style="max-width:100%;max-height:260px;object-fit:contain" src="${image(im)}">`).join('')}</div></section>`;if(f.type==='table')return `<section class="blk"><h3>${esc(x.title||'Tableau')}</h3><table class="tpc-measures"><tbody>${Array.from({length:x.rows||0},(_,r)=>`<tr>${Array.from({length:x.cols||0},(_,c)=>{let cell=x.cells?.[r]?.[c]||{},v=cell.student?av?.[r]?.[c]:cell.text;return `<td>${esc(v||'')}</td>`}).join('')}</tr>`).join('')}</tbody></table></section>`;if(f.type==='match'){let toks=[];(x.labels||[]).forEach(l=>{for(let i=0;i<Math.max(1,+l.count||1);i++)toks.push({id:l.id+'@'+i,label:l.name})});let s=autoMatch(x,av||{});return `<section class="blk"><h3>${esc(x.title||'Association')}</h3><p>${esc(x.text||'')}</p><div class="v130-autobar">${badge(s)}</div><div class="grid">${(x.targets||[]).map((t,i)=>{let tid=String(t.id||i),v=av?.[tid],label=toks.find(z=>z.id===v)?.label||'Non répondu',ok=v&&String(v).split('@')[0]===String(t.correctId||''),cl=!v?'empty':ok?'ok':'bad';return `<div class="matchcard"><img src="${image(t)}"><div class="studentlabel ${cl}">${esc(label)} ${v?(ok?'✓':'✕'):''}</div></div>`}).join('')}</div></section>`}if(f.type==='placement'){let s=autoPlacement(x,av||{});return `<section class="blk"><h3>${esc(x.title||'Placement sur image')}</h3><p>${esc(x.text||'')}</p><div class="v130-autobar">${badge(s)}</div><div class="stage"><img src="${image(x.image)}">${(x.tokens||[]).filter(t=>av?.[t.id]).map(t=>`<span class="pin" style="left:${+av[t.id].x||0}%;top:${+av[t.id].y||0}%">${esc(t.label)}</span>`).join('')}</div></section>`}return''}
+ function renderCopy(r){const d=r.data||{},p=project(d);if(!p)return'';const a=answers(d),flow=Array.isArray(p.flow)?p.flow:(p.questions||[]).map(q=>({type:'question',id:q.id}));let html='',sec='',n=0;for(const f of flow){if(f.type!=='question'){let x=obj(p,f);if(x?.parentQuestionId)continue;html+=block(p,f,a);continue}let q=obj(p,f);if(!q||q.excluded)continue;if((q.section||'Activité')!==sec){sec=q.section||'Activité';html+=`<h2 class="section">${esc(sec)}</h2>`}let val=a[q.id];html+=`<section class="q"><div class="qtitle">${++n}. ${esc(q.text||'')}</div><div class="meta">${esc(q.competence||'')}${q.criterionId?' · '+esc(q.criterionId):''}</div>${(q.images||[]).map(im=>`<img style="max-width:100%;max-height:280px;object-fit:contain;margin-top:8px" src="${image(im)}">`).join('')}${q.answerType==='none'?'':`<div class="answer">${esc(val||'—')}</div>`}${flow.filter(z=>z.type!=='question'&&obj(p,z)?.parentQuestionId===q.id).map(z=>block(p,z,a)).join('')}</section>`}return `<div class="v130-copy"><div class="tphead"><div><small>BAC PRO MAINTENANCE DES VÉHICULES · COPIE ÉLÈVE</small><h1>${esc(p.publicTitle||p.title||d.titre||'TP')}</h1><div>Durée : ${esc(p.duration||'—')}</div></div><span class="code">${esc(p.publicId||p.id||d.code||'TP')}</span></div><div class="brief"><section><h3>Situation professionnelle</h3>${esc(p.intro||'')}</section><section><h3>Objectifs</h3>${esc(p.objectives||'')}</section><section><h3>Support</h3>${esc(p.support||'')}</section><section><h3>Ressources et matériels</h3>${esc(p.resources||'')}</section></div>${html}</div>`}
+ function applyAuto(r){const p=project(r.data),a=answers(r.data);if(!p)return; r.marks=r.marks||{};for(const x of (p.matchBlocks||[])){let s=autoMatch(x,a[x.id]||{});r.marks['auto_'+x.id]=s.status==='ok'?'ok':s.status==='bad'?'bad':''}for(const x of (p.placementBlocks||[])){let s=autoPlacement(x,a[x.id]||{});r.marks['auto_'+x.id]=s.status==='ok'?'ok':s.status==='bad'?'bad':''}}
+ const oldOpen=window.tpCorrectionOpen;window.tpCorrectionOpen=function(id){const list=rows(),r=list.find(x=>String(x.id)===String(id));if(!r||!project(r.data))return oldOpen?.apply(this,arguments);applyAuto(r);save(list);oldOpen?.apply(this,arguments);setTimeout(()=>{const ed=document.querySelector('.tpc-editor');if(!ed)return;const left=ed.firstElementChild;if(left){left.innerHTML=renderCopy(r);left.insertAdjacentHTML('afterbegin','<div class="tpc-card"><b>V130 — Vue fidèle de la copie élève.</b> Les associations et placements disposant d’un corrigé dans l’éditeur sont pré-corrigés automatiquement. Les réponses rédactionnelles restent à apprécier par le professeur.</div>')}},0)};
+ console.info('V130 — portail correcteur fidèle + pré-correction automatique actif');
+})();
+</script>
+
 </body>
 </html>
 
@@ -15899,10 +15926,10 @@ window.tpCorrectionValidate=async function(){
 })();
 </script>
 
-<!-- V129 — Copies rendues : import robuste V128/V129 + IndexedDB anti-quota -->
+<!-- V130 — Copies rendues : import robuste V128/V130 + IndexedDB anti-quota -->
 <script id="v129-copies-rendues-import">
 (function(){
- const VERSION='V129', KEY='tp_correction_local_v54', DB='fdmahy_corrections_v129', STORE='copies';
+ const VERSION='V130', KEY='tp_correction_local_v54', DB='fdmahy_corrections_v129', STORE='copies';
  const clone=o=>JSON.parse(JSON.stringify(o));
  function openDb(){return new Promise((ok,no)=>{const r=indexedDB.open(DB,1);r.onupgradeneeded=()=>{const d=r.result;if(!d.objectStoreNames.contains(STORE))d.createObjectStore(STORE,{keyPath:'id'})};r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error)})}
  async function putFull(row){const d=await openDb();await new Promise((ok,no)=>{const tx=d.transaction(STORE,'readwrite');tx.objectStore(STORE).put(clone(row));tx.oncomplete=ok;tx.onerror=()=>no(tx.error)});d.close()}
@@ -15916,15 +15943,15 @@ window.tpCorrectionValidate=async function(){
    const fs=[...(files||[])].filter(f=>/\.(tp|json)$/i.test(f.name||''));if(!fs.length){alert('Aucun fichier TP compatible sélectionné.');return}
    let rows=read(),ok=0,dup=0,bad=[];document.body.classList.add('tp129-importing');
    try{
-    for(const f of fs){try{let d=normalize(JSON.parse(await f.text()));if(!valid(d))throw Error('format TP non reconnu');const sig=signature(d,f);if(rows.some(x=>x.signature===sig)){dup++;continue}const row={id:'TPC-V129-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2),signature:sig,fileName:f.name,importedAt:new Date().toISOString(),data:d,note:d.correction?.note??'',appreciation:d.correction?.appreciation||d.professeurZone?.appreciation||'',levels:d.correction?.competences||{},marks:{},savedEvaluationId:'',correctedAt:d.statut==='CORRIGE'?(d.dates?.correction||new Date().toISOString()):'',workflowState:d.statut==='CORRIGE'?'CORRIGE':'RECU'};await putFull(row);rows.unshift(compactRow(row));ok++}catch(e){console.error('V129 import',f.name,e);bad.push(f.name+' : '+(e?.message||e))}}
+    for(const f of fs){try{let d=normalize(JSON.parse(await f.text()));if(!valid(d))throw Error('format TP non reconnu');const sig=signature(d,f);if(rows.some(x=>x.signature===sig)){dup++;continue}const row={id:'TPC-V130-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2),signature:sig,fileName:f.name,importedAt:new Date().toISOString(),data:d,note:d.correction?.note??'',appreciation:d.correction?.appreciation||d.professeurZone?.appreciation||'',levels:d.correction?.competences||{},marks:{},savedEvaluationId:'',correctedAt:d.statut==='CORRIGE'?(d.dates?.correction||new Date().toISOString()):'',workflowState:d.statut==='CORRIGE'?'CORRIGE':'RECU'};await putFull(row);rows.unshift(compactRow(row));ok++}catch(e){console.error('V130 import',f.name,e);bad.push(f.name+' : '+(e?.message||e))}}
     try{localStorage.setItem(KEY,JSON.stringify(rows.slice(0,500)))}catch(e){const tiny=rows.slice(0,500).map(r=>({...r,data:{code:r.data?.code||r.data?.tp?.id||'',titre:r.data?.titre||r.data?.tp?.titre||'',classe:r.data?.classe||r.data?.identite?.classe||'',eleve:r.data?.eleve||r.data?.identite||{},statut:r.data?.statut||'RENDU'},fullDataStored:'indexeddb-v129'}));localStorage.setItem(KEY,JSON.stringify(tiny))}
    }finally{document.body.classList.remove('tp129-importing')}
    alert(`${ok} TP rendu(s) importé(s) dans Copies rendues.${dup?'\n'+dup+' doublon(s) ignoré(s).':''}${bad.length?'\n\nFichiers refusés :\n'+bad.join('\n'):''}`);window.tpCorrectionPage?.();
  };
  function wire(){document.querySelectorAll('#tp109-folder-input,#tp109-files-input,.tpc-toolbar input[type=file]').forEach(input=>{input.onchange=async()=>{const f=input.files;if(f?.length)await window.tpCorrectionImport(f);input.value=''}})}
  const oldPage=window.tpCorrectionPage;window.tpCorrectionPage=function(){const r=oldPage?.apply(this,arguments);setTimeout(wire,50);return r};setTimeout(wire,500);
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V129 — Competences Rta Gestion atelier TP';document.title='V129 Competences Rta Gestion atelier TP';
- console.info('V129 — import Copies rendues V128/V129 actif avec stockage IndexedDB anti-quota.');
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V130 — Competences Rta Gestion atelier TP';document.title='V130 Competences Rta Gestion atelier TP';
+ console.info('V130 — import Copies rendues V128/V130 actif avec stockage IndexedDB anti-quota.');
 })();
 </script>
 <style id="v129-import-style">body.tp129-importing:after{content:'Import des TP en cours…';position:fixed;inset:0;z-index:999999;background:#0f172acc;color:white;display:grid;place-items:center;font:900 24px Arial}</style>
