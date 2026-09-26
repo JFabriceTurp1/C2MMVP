@@ -8648,7 +8648,52 @@ function exportStudentDeletionPDF(studentsSnapshot, deletionDate){
 <!-- BUILD V93 — Administration ergonomie + RTA natif -->
 
 
-</body></html>`);
+\n<!-- V120 — diffusion projet validé + portail correcteur stabilisé -->
+<script id="v120-runtime">
+(function(){
+ const VERSION='V120',DB='fdmahy_tp_storage_v113',STORE='tp_projects',DKEY='tp_generator_diffusions_v76';
+ const clone=o=>JSON.parse(JSON.stringify(o||{}));
+ function savedRows(){try{return JSON.parse(localStorage.getItem('tp_generator_saved_v8')||'[]')||[]}catch(_){return[]}}
+ function activeSaved(){const id=String(window.__tpDiffusionSavedId||window.tpGenState?.currentSavedId||'');return savedRows().find(x=>String(x.savedId)===id)||null}
+ function unwrap(z){if(z?.schema==='evaluation.tp.v1'&&z.data){const p=clone(z.data);p.__pictograms=clone(z.pictograms||[]);return p}if(z?.data?.publicId){const p=clone(z.data);p.__pictograms=clone(z.pictograms||[]);return p}if(z?.publicId)return clone(z);return null}
+ function pid(p){return String(p?.publicId||p?.id||'').trim()}
+ async function exactProject(){
+   const x=activeSaved(); if(!x)return null; const sid=String(x.savedId), expected=String(x.snapshot?.importedPublicId||x.snapshot?.activityId||'').trim();
+   const db=await new Promise((ok,no)=>{const r=indexedDB.open(DB,1);r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error)});
+   try{
+     let direct=await new Promise((ok,no)=>{const q=db.transaction(STORE).objectStore(STORE).get(sid);q.onsuccess=()=>ok(q.result?.rawProject||null);q.onerror=()=>no(q.error)}),p=unwrap(direct);
+     if(p && (!expected || pid(p)===expected))return p;
+     const all=await new Promise((ok,no)=>{const q=db.transaction(STORE).objectStore(STORE).getAll();q.onsuccess=()=>ok(q.result||[]);q.onerror=()=>no(q.error)});
+     const hit=all.map(v=>({v,p:unwrap(v.rawProject)})).find(o=>o.p&&pid(o.p)===expected);
+     if(hit){ try{const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).put({savedId:sid,rawProject:hit.v.rawProject,updatedAt:new Date().toISOString()})}catch(_){} return hit.p }
+     if(p)throw new Error(`Projet incohérent : le TP sélectionné est « ${expected||'inconnu'} » mais le projet stocké est « ${pid(p)||'inconnu'} ».`);
+     throw new Error('Projet complet du TP introuvable. Réimporte ce TP depuis l’éditeur avant de le diffuser.');
+   }finally{db.close()}
+ }
+ // Source stricte utilisée par V119 : on remplace sa résolution par un contexte vérifié avant chaque export.
+ const oldFolder=window.tpGenExportClassToFolder,oldZip=window.tpGenExportClassZip;
+ async function arm(){const p=await exactProject(),x=activeSaved(),expected=String(x?.snapshot?.importedPublicId||x?.snapshot?.activityId||'').trim();if(expected&&pid(p)!==expected)throw Error('Le projet chargé ne correspond pas au TP sélectionné.');window.__v120ExactProject=p;window.__v117Project=p;window.__v116CurrentProject=p;return p}
+ // V119 reconstruit encore son projet en interne. On corrige temporairement l’enregistrement IndexedDB associé au savedId avant son exécution.
+ async function repairStore(){const p=await arm(),x=activeSaved();if(!x)return p;const db=await new Promise((ok,no)=>{const r=indexedDB.open(DB,1);r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error)});try{await new Promise((ok,no)=>{const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).put({savedId:String(x.savedId),rawProject:{schema:'evaluation.tp.v1',data:clone(p),pictograms:clone(p.__pictograms||[])},updatedAt:new Date().toISOString()});tx.oncomplete=ok;tx.onerror=()=>no(tx.error)})}finally{db.close()}return p}
+ if(typeof oldFolder==='function')window.tpGenExportClassToFolder=async function(){try{await repairStore();return await oldFolder.apply(this,arguments)}catch(e){console.error('V120 diffusion dossier',e);window.showWarningMessage?.('Diffusion impossible : '+(e?.message||e));return false}finally{window.__v120ExactProject=null}};
+ if(typeof oldZip==='function')window.tpGenExportClassZip=async function(){try{await repairStore();return await oldZip.apply(this,arguments)}catch(e){console.error('V120 diffusion ZIP',e);window.showWarningMessage?.('ZIP impossible : '+(e?.message||e));return false}finally{window.__v120ExactProject=null}};
+ // Correcteur : import en une seule transaction locale. Pas de synchronisation Firebase pendant l’import,
+ // afin d’éviter les reconstructions successives de l’écran. La synchro reprendra aux actions suivantes.
+ function corrRows(){try{return JSON.parse(localStorage.getItem('tp_corrections_v55')||'[]')||[]}catch(_){return[]}}
+ function corrKey(){for(const k of ['tp_corrections_v55','tp_corrections_v54','tp_corrections_v53'])if(localStorage.getItem(k)!=null)return k;return 'tp_corrections_v55'}
+ const priorImport=window.tpCorrectionImport;
+ window.tpCorrectionImport=async function(files){
+   const fs=[...(files||[])]; if(!fs.length)return; const key=corrKey(); let rows;try{rows=JSON.parse(localStorage.getItem(key)||'[]')||[]}catch(_){rows=[]}
+   let ok=0,dup=0,bad=[];
+   for(const f of fs){try{let d=JSON.parse(await f.text());let p=null;if(d?.schema==='evaluation.tp.v1'&&d.data)p=d.data;else if(d?.publicId&&d?.questions)p=d; if(p){const sig='V120-PROJET|'+(p.publicId||p.id)+'|'+f.name;if(rows.some(x=>x.signature===sig)){dup++;continue}rows.unshift({id:'TPC-V120-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2),signature:sig,fileName:f.name,importedAt:new Date().toISOString(),data:{type:'tp-v120-test',code:p.publicId||p.id,titre:p.publicTitle||p.title,classe:'TEST',eleve:{nom:'COPIE',prenom:'TEST'},tpProject:p,reponses:{}},note:'',appreciation:'',levels:{},marks:{},savedEvaluationId:'',correctedAt:'',workflowState:'A_CORRIGER'});ok++;continue}
+     if(!d||(!d.type&&!d.reponses&&!d.tpProject))throw Error('format non reconnu');const nm=[d.eleve?.nom,d.eleve?.prenom].filter(Boolean).join(' '),sig=[d.signature,d.studentId||'',nm,d.code||d.tp?.id||'',d.submission?.submittedAt||d.dates?.rendu||'',JSON.stringify(d.reponses||{})].join('|');if(rows.some(x=>x.signature===sig)){dup++;continue}rows.unshift({id:'TPC-V120-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2),signature:sig,fileName:f.name,importedAt:new Date().toISOString(),data:d,note:d.correction?.note??'',appreciation:d.correction?.appreciation||d.professeurZone?.appreciation||'',levels:d.correction?.competences||{},marks:{},savedEvaluationId:'',correctedAt:d.statut==='CORRIGE'?(d.dates?.correction||new Date().toISOString()):'',workflowState:d.statut==='CORRIGE'?'CORRIGE':'A_CORRIGER'});ok++}catch(e){console.warn('V120 import correcteur',f.name,e);bad.push(f.name)}}
+   localStorage.setItem(key,JSON.stringify(rows));window.__v120CorrectorImporting=true;try{window.tpCorrectionPage?.()}finally{setTimeout(()=>window.__v120CorrectorImporting=false,800)}
+   setTimeout(()=>alert(`${ok} TP importé(s) • ${dup} doublon(s) ignoré(s).${bad.length?'\\nFichiers refusés : '+bad.join(', '):''}`),20);
+ };
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V121 — Competences Rta Gestion atelier TP';document.title='V121 Competences Rta Gestion atelier TP';
+ console.info('V120 actif : projet de diffusion vérifié, lecteur/code aligné, correcteur import stable.');
+})();
+</script>\n</body></html>`);
   w.document.close();
 }
 
@@ -15767,7 +15812,52 @@ window.tpCorrectionValidate=async function(){
 })();
 </script>
 
-</body>
+\n<!-- V120 — diffusion projet validé + portail correcteur stabilisé -->
+<script id="v120-runtime">
+(function(){
+ const VERSION='V120',DB='fdmahy_tp_storage_v113',STORE='tp_projects',DKEY='tp_generator_diffusions_v76';
+ const clone=o=>JSON.parse(JSON.stringify(o||{}));
+ function savedRows(){try{return JSON.parse(localStorage.getItem('tp_generator_saved_v8')||'[]')||[]}catch(_){return[]}}
+ function activeSaved(){const id=String(window.__tpDiffusionSavedId||window.tpGenState?.currentSavedId||'');return savedRows().find(x=>String(x.savedId)===id)||null}
+ function unwrap(z){if(z?.schema==='evaluation.tp.v1'&&z.data){const p=clone(z.data);p.__pictograms=clone(z.pictograms||[]);return p}if(z?.data?.publicId){const p=clone(z.data);p.__pictograms=clone(z.pictograms||[]);return p}if(z?.publicId)return clone(z);return null}
+ function pid(p){return String(p?.publicId||p?.id||'').trim()}
+ async function exactProject(){
+   const x=activeSaved(); if(!x)return null; const sid=String(x.savedId), expected=String(x.snapshot?.importedPublicId||x.snapshot?.activityId||'').trim();
+   const db=await new Promise((ok,no)=>{const r=indexedDB.open(DB,1);r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error)});
+   try{
+     let direct=await new Promise((ok,no)=>{const q=db.transaction(STORE).objectStore(STORE).get(sid);q.onsuccess=()=>ok(q.result?.rawProject||null);q.onerror=()=>no(q.error)}),p=unwrap(direct);
+     if(p && (!expected || pid(p)===expected))return p;
+     const all=await new Promise((ok,no)=>{const q=db.transaction(STORE).objectStore(STORE).getAll();q.onsuccess=()=>ok(q.result||[]);q.onerror=()=>no(q.error)});
+     const hit=all.map(v=>({v,p:unwrap(v.rawProject)})).find(o=>o.p&&pid(o.p)===expected);
+     if(hit){ try{const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).put({savedId:sid,rawProject:hit.v.rawProject,updatedAt:new Date().toISOString()})}catch(_){} return hit.p }
+     if(p)throw new Error(`Projet incohérent : le TP sélectionné est « ${expected||'inconnu'} » mais le projet stocké est « ${pid(p)||'inconnu'} ».`);
+     throw new Error('Projet complet du TP introuvable. Réimporte ce TP depuis l’éditeur avant de le diffuser.');
+   }finally{db.close()}
+ }
+ // Source stricte utilisée par V119 : on remplace sa résolution par un contexte vérifié avant chaque export.
+ const oldFolder=window.tpGenExportClassToFolder,oldZip=window.tpGenExportClassZip;
+ async function arm(){const p=await exactProject(),x=activeSaved(),expected=String(x?.snapshot?.importedPublicId||x?.snapshot?.activityId||'').trim();if(expected&&pid(p)!==expected)throw Error('Le projet chargé ne correspond pas au TP sélectionné.');window.__v120ExactProject=p;window.__v117Project=p;window.__v116CurrentProject=p;return p}
+ // V119 reconstruit encore son projet en interne. On corrige temporairement l’enregistrement IndexedDB associé au savedId avant son exécution.
+ async function repairStore(){const p=await arm(),x=activeSaved();if(!x)return p;const db=await new Promise((ok,no)=>{const r=indexedDB.open(DB,1);r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error)});try{await new Promise((ok,no)=>{const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).put({savedId:String(x.savedId),rawProject:{schema:'evaluation.tp.v1',data:clone(p),pictograms:clone(p.__pictograms||[])},updatedAt:new Date().toISOString()});tx.oncomplete=ok;tx.onerror=()=>no(tx.error)})}finally{db.close()}return p}
+ if(typeof oldFolder==='function')window.tpGenExportClassToFolder=async function(){try{await repairStore();return await oldFolder.apply(this,arguments)}catch(e){console.error('V120 diffusion dossier',e);window.showWarningMessage?.('Diffusion impossible : '+(e?.message||e));return false}finally{window.__v120ExactProject=null}};
+ if(typeof oldZip==='function')window.tpGenExportClassZip=async function(){try{await repairStore();return await oldZip.apply(this,arguments)}catch(e){console.error('V120 diffusion ZIP',e);window.showWarningMessage?.('ZIP impossible : '+(e?.message||e));return false}finally{window.__v120ExactProject=null}};
+ // Correcteur : import en une seule transaction locale. Pas de synchronisation Firebase pendant l’import,
+ // afin d’éviter les reconstructions successives de l’écran. La synchro reprendra aux actions suivantes.
+ function corrRows(){try{return JSON.parse(localStorage.getItem('tp_corrections_v55')||'[]')||[]}catch(_){return[]}}
+ function corrKey(){for(const k of ['tp_corrections_v55','tp_corrections_v54','tp_corrections_v53'])if(localStorage.getItem(k)!=null)return k;return 'tp_corrections_v55'}
+ const priorImport=window.tpCorrectionImport;
+ window.tpCorrectionImport=async function(files){
+   const fs=[...(files||[])]; if(!fs.length)return; const key=corrKey(); let rows;try{rows=JSON.parse(localStorage.getItem(key)||'[]')||[]}catch(_){rows=[]}
+   let ok=0,dup=0,bad=[];
+   for(const f of fs){try{let d=JSON.parse(await f.text());let p=null;if(d?.schema==='evaluation.tp.v1'&&d.data)p=d.data;else if(d?.publicId&&d?.questions)p=d; if(p){const sig='V120-PROJET|'+(p.publicId||p.id)+'|'+f.name;if(rows.some(x=>x.signature===sig)){dup++;continue}rows.unshift({id:'TPC-V120-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2),signature:sig,fileName:f.name,importedAt:new Date().toISOString(),data:{type:'tp-v120-test',code:p.publicId||p.id,titre:p.publicTitle||p.title,classe:'TEST',eleve:{nom:'COPIE',prenom:'TEST'},tpProject:p,reponses:{}},note:'',appreciation:'',levels:{},marks:{},savedEvaluationId:'',correctedAt:'',workflowState:'A_CORRIGER'});ok++;continue}
+     if(!d||(!d.type&&!d.reponses&&!d.tpProject))throw Error('format non reconnu');const nm=[d.eleve?.nom,d.eleve?.prenom].filter(Boolean).join(' '),sig=[d.signature,d.studentId||'',nm,d.code||d.tp?.id||'',d.submission?.submittedAt||d.dates?.rendu||'',JSON.stringify(d.reponses||{})].join('|');if(rows.some(x=>x.signature===sig)){dup++;continue}rows.unshift({id:'TPC-V120-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2),signature:sig,fileName:f.name,importedAt:new Date().toISOString(),data:d,note:d.correction?.note??'',appreciation:d.correction?.appreciation||d.professeurZone?.appreciation||'',levels:d.correction?.competences||{},marks:{},savedEvaluationId:'',correctedAt:d.statut==='CORRIGE'?(d.dates?.correction||new Date().toISOString()):'',workflowState:d.statut==='CORRIGE'?'CORRIGE':'A_CORRIGER'});ok++}catch(e){console.warn('V120 import correcteur',f.name,e);bad.push(f.name)}}
+   localStorage.setItem(key,JSON.stringify(rows));window.__v120CorrectorImporting=true;try{window.tpCorrectionPage?.()}finally{setTimeout(()=>window.__v120CorrectorImporting=false,800)}
+   setTimeout(()=>alert(`${ok} TP importé(s) • ${dup} doublon(s) ignoré(s).${bad.length?'\\nFichiers refusés : '+bad.join(', '):''}`),20);
+ };
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V121 — Competences Rta Gestion atelier TP';document.title='V121 Competences Rta Gestion atelier TP';
+ console.info('V120 actif : projet de diffusion vérifié, lecteur/code aligné, correcteur import stable.');
+})();
+</script>\n</body>
 </html>
 
 <!-- V116 — TP projet unifié : diffusion fiable, aperçu et passerelle lecteur -->
@@ -15891,7 +15981,29 @@ window.tpCorrectionValidate=async function(){
  window.tpGenExportClassToFolder=async function(){try{if(!folderHandle){const ok=await window.tpGenChooseClassFolder();if(!ok)return false}const ctx=await buildFiles();let perm='granted';if(folderHandle.queryPermission)perm=await folderHandle.queryPermission({mode:'readwrite'});if(perm!=='granted'&&folderHandle.requestPermission)perm=await folderHandle.requestPermission({mode:'readwrite'});if(perm!=='granted')throw Error('Autorisation d’écriture refusée.');for(const f of ctx.files){const fh=await folderHandle.getFileHandle(f.name,{create:true}),w=await fh.createWritable();await w.write(new Blob([f.text],{type:f.name.endsWith('.tp')?'application/json;charset=utf-8':'text/plain;charset=utf-8'}));await w.close()}persist(ctx);const n=ctx.sts.length,name=folderHandle.name;window.tpGenCloseClassExport?.();window.showSuccessMessage?.(`${n} TP élève généré(s) dans « ${name} » et diffusion enregistrée dans Mes TP diffusés.`);return true}catch(e){console.error('V119 dossier',e);window.showWarningMessage?.('Génération impossible : '+(e?.message||e));return false}finally{window.__v117Project=null;window.__v116CurrentProject=null}};
  window.tpGenExportClassZip=async function(){try{const ctx=await buildFiles();const blob=window.tpGenBuildStoreZip(ctx.files);const name=[filePart(ctx.code),filePart(ctx.className),'TP_ELEVES'].filter(Boolean).join('_')+'.zip';window.tpGenDownloadBlob(blob,name);persist(ctx);window.tpGenCloseClassExport?.();window.showSuccessMessage?.(`${ctx.sts.length} TP élève correspondant(s) à « ${ctx.code} » regroupé(s) dans le ZIP et diffusion enregistrée.`);return true}catch(e){console.error('V119 ZIP',e);window.showWarningMessage?.('Génération ZIP impossible : '+(e?.message||e));return false}finally{window.__v117Project=null;window.__v116CurrentProject=null}};
  const oldDiffuse=window.tpGenDiffuseSaved;window.tpGenDiffuseSaved=function(id){folderHandle=null;window.__tpDiffusionSavedId=String(id||'');if(window.tpGenState)window.tpGenState.currentSavedId=String(id||'');return oldDiffuse?.apply(this,arguments)};
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V119 — Competences Rta Gestion atelier TP';document.title='V119 Competences Rta Gestion atelier TP';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V121 — Competences Rta Gestion atelier TP';document.title='V121 Competences Rta Gestion atelier TP';
  console.info('V119 actif : diffusion liée strictement au TP sélectionné, dossier choisi une seule fois.');
+})();
+</script>
+
+<!-- V121 — code obligatoire dans chaque diffusion + correcteur sans clignotement -->
+<style id="v121-corrector-stability-style">
+#v121-corrector-freeze{position:fixed;inset:0;z-index:2147483000;background:rgba(244,248,252,.96);display:none;align-items:center;justify-content:center;color:#174e82;font:800 18px system-ui,sans-serif}#v121-corrector-freeze>div{background:white;border:1px solid #cbdbe8;border-radius:16px;padding:22px 28px;box-shadow:0 16px 45px rgba(20,55,85,.15)}
+</style><div id="v121-corrector-freeze"><div>📥 Import des TP en cours…</div></div>
+<script id="v121-runtime">
+(function(){
+ const VERSION='V121';
+ function hash(s){try{return typeof tpGenHashCode==='function'?tpGenHashCode(s):(()=>{let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return (h>>>0).toString(16).padStart(8,'0')})()}catch(_){return''}}
+ function codeFor(st){let c='';try{c=typeof window.tp45ResolveCode==='function'?window.tp45ResolveCode(st):''}catch(_){}if(!/^\d{4}$/.test(String(c||''))){try{const a=typeof readCodes==='function'?readCodes():{};c=String(a[String(st?.id||'')]||'').replace(/\D/g,'').slice(0,4)}catch(_){}}return /^\d{4}$/.test(String(c||''))?String(c):''}
+ const oldBuild=window.tpGenBuildStudentPackage;
+ if(typeof oldBuild==='function')window.tpGenBuildStudentPackage=function(st,d){const m=oldBuild.apply(this,arguments),c=codeFor(st);if(!c)throw Error(`Aucun code élève à 4 chiffres n’est défini pour ${st?.name||'cet élève'}. Utilise « Gérer les codes élèves » avant la diffusion.`);const salt=[String(st?.id||''),String(m.classe||d?.className||''),String(m.code||'')].join('|');m.access={required:true,version:2,salt,hash:hash(salt+'|'+c)};m.meta=m.meta||{};m.meta.readerRequired='V121';m.meta.accessRequired=true;m.type='tp-eleve-v121';return m};
+ // Fige visuellement le portail pendant l'import et bloque ses reconstructions intermédiaires.
+ const oldImport=window.tpCorrectionImport,oldPage=window.tpCorrectionPage;
+ if(typeof oldImport==='function'&&typeof oldPage==='function'){
+   window.tpCorrectionPage=function(){if(window.__v121CorrImporting){window.__v121CorrPagePending=true;return}return oldPage.apply(this,arguments)};
+   window.tpCorrectionImport=async function(files){const ov=document.getElementById('v121-corrector-freeze');window.__v121CorrImporting=true;window.__v121CorrPagePending=false;if(ov)ov.style.display='flex';try{return await oldImport.call(this,files)}finally{window.__v121CorrImporting=false;if(ov)ov.style.display='none';try{oldPage()}catch(e){console.error('V121 correcteur render',e)}window.__v121CorrPagePending=false}};
+ }
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V121 — Competences Rta Gestion atelier TP';document.title='V121 Competences Rta Gestion atelier TP';
+ console.info('V121 actif : code élève obligatoire à la diffusion, lecteur sécurisé, import correcteur figé.');
 })();
 </script>
