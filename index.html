@@ -8651,7 +8651,7 @@ function exportStudentDeletionPDF(studentsSnapshot, deletionDate){
 \n<!-- V120 — diffusion projet validé + portail correcteur stabilisé -->
 <script id="v120-runtime">
 (function(){
- const VERSION='V120',DB='fdmahy_tp_storage_v113',STORE='tp_projects',DKEY='tp_generator_diffusions_v76';
+ const VERSION='V122',DB='fdmahy_tp_storage_v113',STORE='tp_projects',DKEY='tp_generator_diffusions_v76';
  const clone=o=>JSON.parse(JSON.stringify(o||{}));
  function savedRows(){try{return JSON.parse(localStorage.getItem('tp_generator_saved_v8')||'[]')||[]}catch(_){return[]}}
  function activeSaved(){const id=String(window.__tpDiffusionSavedId||window.tpGenState?.currentSavedId||'');return savedRows().find(x=>String(x.savedId)===id)||null}
@@ -8690,7 +8690,7 @@ function exportStudentDeletionPDF(studentsSnapshot, deletionDate){
    localStorage.setItem(key,JSON.stringify(rows));window.__v120CorrectorImporting=true;try{window.tpCorrectionPage?.()}finally{setTimeout(()=>window.__v120CorrectorImporting=false,800)}
    setTimeout(()=>alert(`${ok} TP importé(s) • ${dup} doublon(s) ignoré(s).${bad.length?'\\nFichiers refusés : '+bad.join(', '):''}`),20);
  };
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V121 — Competences Rta Gestion atelier TP';document.title='V121 Competences Rta Gestion atelier TP';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V122 — Competences Rta Gestion atelier TP';document.title='V122 Competences Rta Gestion atelier TP';
  console.info('V120 actif : projet de diffusion vérifié, lecteur/code aligné, correcteur import stable.');
 })();
 </script>\n</body></html>`);
@@ -15815,7 +15815,7 @@ window.tpCorrectionValidate=async function(){
 \n<!-- V120 — diffusion projet validé + portail correcteur stabilisé -->
 <script id="v120-runtime">
 (function(){
- const VERSION='V120',DB='fdmahy_tp_storage_v113',STORE='tp_projects',DKEY='tp_generator_diffusions_v76';
+ const VERSION='V122',DB='fdmahy_tp_storage_v113',STORE='tp_projects',DKEY='tp_generator_diffusions_v76';
  const clone=o=>JSON.parse(JSON.stringify(o||{}));
  function savedRows(){try{return JSON.parse(localStorage.getItem('tp_generator_saved_v8')||'[]')||[]}catch(_){return[]}}
  function activeSaved(){const id=String(window.__tpDiffusionSavedId||window.tpGenState?.currentSavedId||'');return savedRows().find(x=>String(x.savedId)===id)||null}
@@ -15854,7 +15854,7 @@ window.tpCorrectionValidate=async function(){
    localStorage.setItem(key,JSON.stringify(rows));window.__v120CorrectorImporting=true;try{window.tpCorrectionPage?.()}finally{setTimeout(()=>window.__v120CorrectorImporting=false,800)}
    setTimeout(()=>alert(`${ok} TP importé(s) • ${dup} doublon(s) ignoré(s).${bad.length?'\\nFichiers refusés : '+bad.join(', '):''}`),20);
  };
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V121 — Competences Rta Gestion atelier TP';document.title='V121 Competences Rta Gestion atelier TP';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V122 — Competences Rta Gestion atelier TP';document.title='V122 Competences Rta Gestion atelier TP';
  console.info('V120 actif : projet de diffusion vérifié, lecteur/code aligné, correcteur import stable.');
 })();
 </script>\n</body>
@@ -15981,29 +15981,7 @@ window.tpCorrectionValidate=async function(){
  window.tpGenExportClassToFolder=async function(){try{if(!folderHandle){const ok=await window.tpGenChooseClassFolder();if(!ok)return false}const ctx=await buildFiles();let perm='granted';if(folderHandle.queryPermission)perm=await folderHandle.queryPermission({mode:'readwrite'});if(perm!=='granted'&&folderHandle.requestPermission)perm=await folderHandle.requestPermission({mode:'readwrite'});if(perm!=='granted')throw Error('Autorisation d’écriture refusée.');for(const f of ctx.files){const fh=await folderHandle.getFileHandle(f.name,{create:true}),w=await fh.createWritable();await w.write(new Blob([f.text],{type:f.name.endsWith('.tp')?'application/json;charset=utf-8':'text/plain;charset=utf-8'}));await w.close()}persist(ctx);const n=ctx.sts.length,name=folderHandle.name;window.tpGenCloseClassExport?.();window.showSuccessMessage?.(`${n} TP élève généré(s) dans « ${name} » et diffusion enregistrée dans Mes TP diffusés.`);return true}catch(e){console.error('V119 dossier',e);window.showWarningMessage?.('Génération impossible : '+(e?.message||e));return false}finally{window.__v117Project=null;window.__v116CurrentProject=null}};
  window.tpGenExportClassZip=async function(){try{const ctx=await buildFiles();const blob=window.tpGenBuildStoreZip(ctx.files);const name=[filePart(ctx.code),filePart(ctx.className),'TP_ELEVES'].filter(Boolean).join('_')+'.zip';window.tpGenDownloadBlob(blob,name);persist(ctx);window.tpGenCloseClassExport?.();window.showSuccessMessage?.(`${ctx.sts.length} TP élève correspondant(s) à « ${ctx.code} » regroupé(s) dans le ZIP et diffusion enregistrée.`);return true}catch(e){console.error('V119 ZIP',e);window.showWarningMessage?.('Génération ZIP impossible : '+(e?.message||e));return false}finally{window.__v117Project=null;window.__v116CurrentProject=null}};
  const oldDiffuse=window.tpGenDiffuseSaved;window.tpGenDiffuseSaved=function(id){folderHandle=null;window.__tpDiffusionSavedId=String(id||'');if(window.tpGenState)window.tpGenState.currentSavedId=String(id||'');return oldDiffuse?.apply(this,arguments)};
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V121 — Competences Rta Gestion atelier TP';document.title='V121 Competences Rta Gestion atelier TP';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V122 — Competences Rta Gestion atelier TP';document.title='V122 Competences Rta Gestion atelier TP';
  console.info('V119 actif : diffusion liée strictement au TP sélectionné, dossier choisi une seule fois.');
-})();
-</script>
-
-<!-- V121 — code obligatoire dans chaque diffusion + correcteur sans clignotement -->
-<style id="v121-corrector-stability-style">
-#v121-corrector-freeze{position:fixed;inset:0;z-index:2147483000;background:rgba(244,248,252,.96);display:none;align-items:center;justify-content:center;color:#174e82;font:800 18px system-ui,sans-serif}#v121-corrector-freeze>div{background:white;border:1px solid #cbdbe8;border-radius:16px;padding:22px 28px;box-shadow:0 16px 45px rgba(20,55,85,.15)}
-</style><div id="v121-corrector-freeze"><div>📥 Import des TP en cours…</div></div>
-<script id="v121-runtime">
-(function(){
- const VERSION='V121';
- function hash(s){try{return typeof tpGenHashCode==='function'?tpGenHashCode(s):(()=>{let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return (h>>>0).toString(16).padStart(8,'0')})()}catch(_){return''}}
- function codeFor(st){let c='';try{c=typeof window.tp45ResolveCode==='function'?window.tp45ResolveCode(st):''}catch(_){}if(!/^\d{4}$/.test(String(c||''))){try{const a=typeof readCodes==='function'?readCodes():{};c=String(a[String(st?.id||'')]||'').replace(/\D/g,'').slice(0,4)}catch(_){}}return /^\d{4}$/.test(String(c||''))?String(c):''}
- const oldBuild=window.tpGenBuildStudentPackage;
- if(typeof oldBuild==='function')window.tpGenBuildStudentPackage=function(st,d){const m=oldBuild.apply(this,arguments),c=codeFor(st);if(!c)throw Error(`Aucun code élève à 4 chiffres n’est défini pour ${st?.name||'cet élève'}. Utilise « Gérer les codes élèves » avant la diffusion.`);const salt=[String(st?.id||''),String(m.classe||d?.className||''),String(m.code||'')].join('|');m.access={required:true,version:2,salt,hash:hash(salt+'|'+c)};m.meta=m.meta||{};m.meta.readerRequired='V121';m.meta.accessRequired=true;m.type='tp-eleve-v121';return m};
- // Fige visuellement le portail pendant l'import et bloque ses reconstructions intermédiaires.
- const oldImport=window.tpCorrectionImport,oldPage=window.tpCorrectionPage;
- if(typeof oldImport==='function'&&typeof oldPage==='function'){
-   window.tpCorrectionPage=function(){if(window.__v121CorrImporting){window.__v121CorrPagePending=true;return}return oldPage.apply(this,arguments)};
-   window.tpCorrectionImport=async function(files){const ov=document.getElementById('v121-corrector-freeze');window.__v121CorrImporting=true;window.__v121CorrPagePending=false;if(ov)ov.style.display='flex';try{return await oldImport.call(this,files)}finally{window.__v121CorrImporting=false;if(ov)ov.style.display='none';try{oldPage()}catch(e){console.error('V121 correcteur render',e)}window.__v121CorrPagePending=false}};
- }
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V121 — Competences Rta Gestion atelier TP';document.title='V121 Competences Rta Gestion atelier TP';
- console.info('V121 actif : code élève obligatoire à la diffusion, lecteur sécurisé, import correcteur figé.');
 })();
 </script>
