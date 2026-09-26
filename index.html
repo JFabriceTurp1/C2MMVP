@@ -15829,7 +15829,7 @@ window.tpCorrectionValidate=async function(){
  const oldSet=Storage.prototype.setItem; if(!window.__v132StorageHook){window.__v132StorageHook=true;Storage.prototype.setItem=function(k,v){const z=oldSet.apply(this,arguments);if(this===localStorage&&k===DIFF)soon(k);return z}}
  // La photothèque n'est volontairement jamais incluse dans cette synchronisation.
  setTimeout(()=>run('demarrage'),1600);
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V133 — Competences Rta Gestion atelier TP';document.title='V132 Competences Rta Gestion atelier TP';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V134 — Competences Rta Gestion atelier TP';document.title='V132 Competences Rta Gestion atelier TP';
  console.info('V133 : Firebase limité aux TP diffusés. TP enregistrés et photothèque restent locaux.');
 })();
 </script>
@@ -15868,8 +15868,57 @@ window.tpCorrectionValidate=async function(){
  window.addEventListener('pagehide',()=>{if(!isHome())return;try{const light={at:new Date().toISOString(),version:VERSION,localStorage:Object.fromEntries(Array.from({length:localStorage.length},(_,i)=>{const k=localStorage.key(i);return[k,localStorage.getItem(k)]}))};localStorage.setItem('evaluation_emergency_backup_v133',JSON.stringify(light))}catch(_){}});
  // Outil volontaire : efface les anciennes copies cloud des TP ENREGISTRÉS V132, jamais les diffusions.
  window.v133CleanSavedTpCloud=async function(){if(!confirm('Supprimer de Firebase les anciennes copies des TP enregistrés ?\nLes TP diffusés ne seront pas touchés.'))return false;const fs=window.firebase?.firestore?.();if(!fs)throw new Error('Firebase indisponible');const col=fs.collection('workspaces').doc('evaluation-mv-main').collection('tpProjectsV132'),snap=await col.get();for(const d of snap.docs){const c=await d.ref.collection('chunks').get();for(let i=0;i<c.docs.length;i+=300){const b=fs.batch();c.docs.slice(i,i+300).forEach(x=>b.delete(x.ref));await b.commit()}await d.ref.delete()}alert(snap.size+' TP enregistrés supprimés de Firebase. Les versions locales sont conservées.');return true};
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V133 — Competences Rta Gestion atelier TP';document.title='V133 Competences Rta Gestion atelier TP';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V134 — Competences Rta Gestion atelier TP';document.title='V133 Competences Rta Gestion atelier TP';
  console.info('V133 poste maison:',isHome()?'actif':'inactif','— TP enregistrés locaux, diffusions Firebase.');
+})();
+</script>
+
+
+<!-- V134 — Stabilisation Mes TP diffusés : navigation non intrusive + suppression Firebase complète -->
+<script id="v134-diffusions-stability">
+(function(){
+ const DKEY='tp_generator_diffusions_v76', DELKEY='tp_diffusions_deleted_v114', WS='evaluation-mv-main';
+ const readRows=()=>{try{const a=JSON.parse(localStorage.getItem(DKEY)||'[]');return Array.isArray(a)?a:[]}catch(_){return[]}};
+ const readDeleted=()=>{try{const a=JSON.parse(localStorage.getItem(DELKEY)||'[]');return Array.isArray(a)?a.map(String):[]}catch(_){return[]}};
+ const isDiffPage=()=>!!document.querySelector('.tpgen-manager-shell h1') && /Mes TP diffusés/i.test(document.querySelector('.tpgen-manager-shell h1')?.textContent||'');
+ // Les synchronisations Firebase peuvent demander un rafraîchissement, mais ne doivent JAMAIS naviguer vers la page.
+ const priorPage=window.tpV76DiffusionsPage;
+ window.tpV76DiffusionsPage=function(ev){
+   const explicit=!!(ev && ev.isTrusted);
+   if(!explicit && !isDiffPage()) return false;
+   return priorPage?.apply(this,arguments);
+ };
+ // Rebranche les boutons créés dynamiquement pour transmettre l'évènement utilisateur.
+ document.addEventListener('click',function(e){
+   const b=e.target?.closest?.('#v76-diff-btn,#v76-saved-diff');
+   if(!b)return;
+   e.preventDefault();e.stopImmediatePropagation();window.tpV76DiffusionsPage(e);
+ },true);
+ async function deleteCollectionDoc(colName,id){
+   const fs=window.firebase?.firestore?.(); if(!fs)return;
+   const ref=fs.collection('workspaces').doc(WS).collection(colName).doc(String(id));
+   try{const chunks=await ref.collection('chunks').get();for(let i=0;i<chunks.docs.length;i+=300){const batch=fs.batch();chunks.docs.slice(i,i+300).forEach(d=>batch.delete(d.ref));await batch.commit()}}catch(_){ }
+   try{await ref.delete()}catch(e){console.warn('V134 suppression '+colName,e)}
+ }
+ window.tp114DeleteDiffusion=async function(id){
+   id=String(id||''); const r=readRows().find(x=>String(x.id)===id); if(!r)return false;
+   if(!confirm('Supprimer ce TP de « Mes TP diffusés » ?\n\n'+(r.tpCode||'TP')+' — '+(r.title||'')+'\n\nLes copies rendues, corrections et évaluations déjà enregistrées seront conservées.'))return false;
+   const gone=new Set(readDeleted());gone.add(id);localStorage.setItem(DELKEY,JSON.stringify([...gone].slice(-3000)));
+   localStorage.setItem(DKEY,JSON.stringify(readRows().filter(x=>String(x.id)!==id)));
+   try{if(window.firebase?.auth?.().currentUser){await deleteCollectionDoc('tpDiffusionsV106',id);await deleteCollectionDoc('tpDiffusionsV132',id)}}catch(e){console.warn('V134 suppression Firebase',e)}
+   window.dispatchEvent(new CustomEvent('tp-diffusions-changed',{detail:{deletedId:id,v:134}}));
+   if(typeof window.showSuccessMessage==='function')window.showSuccessMessage('TP diffusé supprimé. Les rendus et corrections sont conservés.');
+   if(isDiffPage()) priorPage?.();
+   return true;
+ };
+ // Si une ancienne écoute Firebase tente de réinjecter un élément supprimé, on le retire du cache local sans changer d'écran.
+ function purgeDeleted(){const gone=new Set(readDeleted());if(!gone.size)return;const a=readRows(),b=a.filter(x=>!gone.has(String(x.id)));if(b.length!==a.length){try{localStorage.setItem(DKEY,JSON.stringify(b))}catch(_){}}}
+ window.addEventListener('storage',e=>{if(e.key===DKEY)purgeDeleted()});
+ window.addEventListener('tp-v133-synced',purgeDeleted);
+ setInterval(purgeDeleted,4000);
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V134 — Competences Rta Gestion atelier TP';
+ document.title='V134 Competences Rta Gestion atelier TP';
+ console.info('V134 : page TP diffusés non intrusive et suppression Firebase V106/V132 sécurisée.');
 })();
 </script>
 </body>
