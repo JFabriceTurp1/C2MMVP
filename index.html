@@ -2814,7 +2814,7 @@ body{background:#f7f9fc;color:var(--text)}
 <!-- V88 — DONNÉES DE RÉFÉRENCE RÉINTÉGRÉES DEPUIS V86.5
      Jeux embarqués repris : référentiel compétences, élèves par défaut, seconde classe fictive, situations professionnelles.
      Les données dynamiques (classes/élèves/évaluations réellement saisies) restent chargées par IndexedDB/localStorage et Firebase. -->
-<div id="build-version">V144 — Competences Rta Gestion atelier TP</div>
+<div id="build-version">V145 — Competences Rta Gestion atelier TP</div>
 <div id="firebase-auth-overlay">
   <div class="firebase-login-card">
     <h2>☁️ Connexion Firebase — V89</h2>
@@ -8658,6 +8658,8 @@ function exportStudentDeletionPDF(studentsSnapshot, deletionDate){
 .v138-diff-card{border:1px solid #dbe4ee;border-radius:14px;padding:14px 16px;margin:12px 0;background:#fff}.v138-top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.v138-counts{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}.v138-count{display:inline-flex;align-items:center;gap:7px;border-radius:999px;padding:6px 11px;font-weight:900;font-size:13px;border:1px solid transparent}.v138-grey{background:#e5e7eb;color:#374151;border-color:#cbd5e1}.v138-yellow{background:#fef3c7;color:#92400e;border-color:#fbbf24}.v138-green{background:#dcfce7;color:#166534;border-color:#86efac}.v138-students{margin-top:10px;border-top:1px solid #e5e7eb;padding-top:10px}.v138-student{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:7px 8px;border-radius:8px;margin:4px 0}.v138-student.grey{background:#f3f4f6}.v138-student.yellow{background:#fffbeb}.v138-student.green{background:#f0fdf4}.v138-actions{display:flex;gap:7px;flex-wrap:wrap}.v138-toggle{border:0;background:#eef4fa;color:#174e82;font-weight:800;border-radius:9px;padding:8px 11px;cursor:pointer}
 </style>
 <!-- V138 runtime retiré en V139 : remplacé par registre V139 -->
+
+
 
 
 </body></html>`);
@@ -15831,7 +15833,7 @@ window.tpCorrectionValidate=async function(){
    try{localStorage.setItem(key,JSON.stringify([...lm.values()].sort((a,b)=>stamp(b)-stamp(a))))}catch(e){console.warn('V132 cache local allégé impossible',e)}
    return {up,down,count:lm.size}
  }
- async function run(reason='manuel'){if(busy||!auth()?.currentUser||!root())return null;busy=true;try{const d=await syncKind('tpDiffusionsV132',DIFF,idDiff);window.dispatchEvent(new CustomEvent('tp-v133-synced',{detail:{diffusions:d,reason}}));try{window.tpV76DiffusionsPage?.()}catch(_){};console.info('V133 Firebase TP diffusés',d);return {diffusions:d}}catch(e){console.warn('V133 Firebase TP diffusés',e);return {error:String(e?.message||e)}}finally{busy=false}}
+ async function run(reason='manuel'){if(busy||!auth()?.currentUser||!root())return null;busy=true;try{const d=await syncKind('tpDiffusionsV132',DIFF,idDiff);window.dispatchEvent(new CustomEvent('tp-v133-synced',{detail:{diffusions:d,reason}}));/* V145: synchronisation de données uniquement, aucune navigation */console.info('V145 Firebase TP diffusés',d);return {diffusions:d}}catch(e){console.warn('V133 Firebase TP diffusés',e);return {error:String(e?.message||e)}}finally{busy=false}}
  function soon(reason){clearTimeout(timer);timer=setTimeout(()=>run(reason),900)}
  window.firebaseSyncTpMultiposteV132=run;
  window.addEventListener('tp-diffusions-changed',()=>soon('diffusion'));
@@ -16037,8 +16039,44 @@ window.tpCorrectionValidate=async function(){
    o.querySelector('.v144-save').onclick=async()=>{const b=o.querySelector('.v144-save');b.disabled=true;b.textContent='Sauvegarde en cours…';try{const r=await window.v133SaveGlobalBackup?.();if(!r?.ok)throw Error('Sauvegarde non confirmée.');o.remove();await baseLogout?.()}catch(e){b.disabled=false;b.textContent='💾 Sauvegarder puis quitter';alert('Sauvegarde impossible : '+(e?.message||e))}};
    o.querySelector('.v144-nosave').onclick=async()=>{o.remove();await baseLogout?.()};return false;
  };
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V144 — Competences Rta Gestion atelier TP';document.title='V144 Competences Rta Gestion atelier TP';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V145 — Competences Rta Gestion atelier TP';document.title='V144 Competences Rta Gestion atelier TP';
  console.info('V144 actif : base de démarrage V139 conservée; navigation diffusions et sortie corrigées sans modifier Firebase.');
+})();
+</script>
+
+
+<script id="v145-tp-diffusions-navigation-stability">
+(function(){
+  const original = window.tpV76DiffusionsPage;
+  if(typeof original !== 'function') return;
+  let userWindowUntil = 0;
+  window.__v145OpenTpDiffusions = function(){
+    userWindowUntil = Date.now()+1500;
+    return original.apply(window, arguments);
+  };
+  window.tpV76DiffusionsPage = function(){
+    const ev = window.event;
+    const trustedClick = !!(ev && ev.isTrusted && (ev.type==='click' || ev.type==='touchend' || ev.type==='pointerup'));
+    if(trustedClick || Date.now() < userWindowUntil) return original.apply(this, arguments);
+    console.info('V145: ouverture automatique de Mes TP diffusés bloquée.');
+    return false;
+  };
+  function bind(){
+    document.querySelectorAll('#v76-diff-btn,#v76-saved-diff,[data-open-tp-diffusions]').forEach(b=>{
+      if(b.dataset.v145Bound) return;
+      b.dataset.v145Bound='1';
+      b.onclick=function(e){ e?.preventDefault?.(); userWindowUntil=Date.now()+1500; return original.call(window); };
+    });
+  }
+  document.addEventListener('click',e=>{
+    const b=e.target?.closest?.('#v76-diff-btn,#v76-saved-diff,[data-open-tp-diffusions]');
+    if(b) userWindowUntil=Date.now()+1500;
+  },true);
+  const mo=new MutationObserver(bind); mo.observe(document.documentElement,{childList:true,subtree:true}); bind();
+  // Firebase/storage refreshes may update data but never navigate.
+  window.addEventListener('tp-v133-synced',()=>{}, {passive:true});
+  const bv=document.getElementById('build-version'); if(bv) bv.textContent='V145 — Competences Rta Gestion atelier TP';
+  console.info('V145 actif : navigation Mes TP diffusés strictement réservée à une action utilisateur.');
 })();
 </script>
 
