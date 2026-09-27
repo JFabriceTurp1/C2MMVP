@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>V147 Competences Rta Gestion atelier TP</title>
+<title>V150 Competences Rta Gestion atelier TP</title>
 <style>
 *{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f5f7fa;color:#172033}
 .app{display:flex;min-height:100vh}.side{width:235px;background:#172033;color:#fff;padding:22px 14px}.logo{font-size:19px;font-weight:700;padding:8px 10px 24px}
@@ -16105,6 +16105,129 @@ window.tpCorrectionValidate=async function(){
 })();
 </script>
 <!-- V149 : suppression des caractères \n parasites visibles en bas de la page accueil -->
+
+<!-- V150 — correctifs consolidation 27/09/2026 -->
+<style id="v150-ui">
+#build-version{white-space:nowrap}
+</style>
+<script id="v150-consolidation">
+(function(){
+ 'use strict';
+ const APP_VERSION='V150';
+ window.APP_VERSION=APP_VERSION;
+ function applyVersion(){
+   const b=document.getElementById('build-version');
+   if(b) b.textContent=APP_VERSION+' — Competences Rta Gestion atelier TP';
+   document.title=APP_VERSION+' Competences Rta Gestion atelier TP';
+ }
+ applyVersion();
+ new MutationObserver(applyVersion).observe(document.documentElement,{childList:true,subtree:true});
+
+ // 1) Fiches / activités : sauvegarde locale immédiate + remontée Firebase explicite.
+ let activitySyncTimer=0;
+ const oldSaveActivities=window.saveManagedEvaluationActivities || (typeof saveManagedEvaluationActivities==='function'?saveManagedEvaluationActivities:null);
+ function syncActivitiesFirebase(){
+   clearTimeout(activitySyncTimer);
+   activitySyncTimer=setTimeout(async()=>{
+     try{
+       if(typeof window.firebaseSaveCurrentConfig==='function') await window.firebaseSaveCurrentConfig();
+       console.info('V150 : fiches/activités synchronisées Firebase.');
+     }catch(e){
+       console.warn('V150 : Firebase indisponible, fiche conservée localement pour prochaine synchronisation.',e);
+     }
+   },120);
+ }
+ if(oldSaveActivities){
+   const wrapped=function(list){ oldSaveActivities(list); syncActivitiesFirebase(); };
+   window.saveManagedEvaluationActivities=wrapped;
+   try{saveManagedEvaluationActivities=wrapped}catch(_){ }
+ }
+
+ // 2) Duplication d'une activité : nouvel ID, nouveau numéro, ajout en dernière ligne.
+ window.duplicateManagedEvaluationActivity=function(id){
+   const list=getManagedEvaluationActivities();
+   const src=list.find(x=>String(x.id)===String(id)); if(!src)return;
+   const copy=JSON.parse(JSON.stringify(src));
+   copy.id='ACT-ADMIN-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,6);
+   copy.numero=nextManagedActivityNumber(list);
+   copy.titre=(src.titre||'Activité')+' — copie';
+   copy.active=true; copy.createdAt=Date.now(); copy.updatedAt=Date.now();
+   list.push(copy);
+   saveManagedEvaluationActivities(list);
+   renderSettingsEvaluationActivities();
+   window.showSuccessMessage?.('Activité dupliquée et ajoutée en dernière ligne.');
+ };
+ function injectDuplicateButtons(root=document){
+   const box=root.querySelector?.('#settings-activities-list'); if(!box)return;
+   const list=getManagedEvaluationActivities().slice().sort((a,b)=>(Number(a.numero)||9999)-(Number(b.numero)||9999));
+   [...box.querySelectorAll('.settings-item')].forEach((row,i)=>{
+     if(row.querySelector('.v150-duplicate'))return;
+     const a=list[i], actions=row.querySelector('.settings-actions'); if(!a||!actions)return;
+     const b=document.createElement('button'); b.type='button'; b.className='secondary v150-duplicate'; b.textContent='⧉ Dupliquer';
+     b.onclick=()=>window.duplicateManagedEvaluationActivity(a.id); actions.prepend(b);
+   });
+ }
+ injectDuplicateButtons();
+ new MutationObserver(ms=>ms.forEach(m=>m.addedNodes.forEach(n=>{if(n.nodeType===1)injectDuplicateButtons(n.closest?.('#settings-activities-list')?document:n)}))).observe(document.documentElement,{childList:true,subtree:true});
+
+ // 3) Copies rendues : conserver l'état visuel des groupes et neutraliser les reconstructions Firebase répétitives.
+ let correctionUiState={openDates:new Set(),scrollY:0,filters:null};
+ let lastCorrectionRender=0;
+ function captureCorrectionState(){
+   const shell=document.querySelector('#main .tpc-shell'); if(!shell)return;
+   correctionUiState.openDates=new Set([...shell.querySelectorAll('details.tpc-date[open] summary span:first-child')].map(x=>x.textContent.trim()));
+   correctionUiState.scrollY=window.scrollY;
+   correctionUiState.filters={
+     cl:document.getElementById('tpc-f-class')?.value||'',tp:document.getElementById('tpc-f-tp')?.value||'',
+     nm:document.getElementById('tpc-f-name')?.value||'',st:document.getElementById('tpc-f-status')?.value||''
+   };
+ }
+ function restoreCorrectionState(){
+   const s=correctionUiState.filters||{};
+   [['tpc-f-class','cl'],['tpc-f-tp','tp'],['tpc-f-name','nm'],['tpc-f-status','st']].forEach(([id,k])=>{const e=document.getElementById(id);if(e&&s[k]!==undefined)e.value=s[k]});
+   document.querySelectorAll('details.tpc-date').forEach(d=>{const t=d.querySelector('summary span:first-child')?.textContent.trim();if(t&&correctionUiState.openDates.has(t))d.open=true});
+   requestAnimationFrame(()=>window.scrollTo(0,correctionUiState.scrollY||0));
+ }
+ const priorCorrectionPage=window.tpCorrectionPage;
+ if(typeof priorCorrectionPage==='function'){
+   window.tpCorrectionPage=function(){
+     const ev=window.event, explicit=!!(ev&&ev.isTrusted);
+     const shell=document.querySelector('#main .tpc-shell');
+     const editor=document.querySelector('#main .tpc-editor');
+     if(editor && !explicit) return false;
+     if(shell){captureCorrectionState(); if(!explicit && Date.now()-lastCorrectionRender<900){return false;}}
+     lastCorrectionRender=Date.now();
+     const r=priorCorrectionPage.apply(this,arguments);
+     setTimeout(restoreCorrectionState,80); return r;
+   };
+ }
+ // Le nuage ne doit pas clignoter à chaque micro-événement pendant la correction.
+ const cloudObs=new MutationObserver(()=>{
+   if(!document.querySelector('#main .tpc-shell'))return;
+   const cloud=document.querySelector('.firebase-status,.cloud-status,#firebase-status,#cloud-status');
+   if(cloud){cloud.style.transition='none';cloud.style.animation='none'}
+ });
+ cloudObs.observe(document.documentElement,{childList:true,subtree:true,attributes:true});
+
+ // 4) Sauvegarde globale : si le handle de dossier est périmé, redemander le dossier puis réessayer.
+ const oldBackup=window.v133SaveGlobalBackup;
+ async function storeBackupHandle(h){
+   const db=await new Promise((ok,no)=>{const q=indexedDB.open('evaluation_home_backup_v133',1);q.onupgradeneeded=()=>{if(!q.result.objectStoreNames.contains('handles'))q.result.createObjectStore('handles')};q.onsuccess=()=>ok(q.result);q.onerror=()=>no(q.error)});
+   await new Promise((ok,no)=>{const q=db.transaction('handles','readwrite').objectStore('handles').put(h,'backupFolder');q.onsuccess=ok;q.onerror=()=>no(q.error)}); db.close();
+ }
+ if(typeof oldBackup==='function') window.v133SaveGlobalBackup=async function(opts={}){
+   try{return await oldBackup(opts)}catch(e){
+     const msg=String(e?.message||e), stale=e?.name==='InvalidStateError'||/state cached|state had changed|read from disk/i.test(msg);
+     if(!stale)throw e;
+     if(!window.showDirectoryPicker)throw new Error('Le dossier de sauvegarde doit être sélectionné à nouveau.');
+     const h=await window.showDirectoryPicker({mode:'readwrite'}); await storeBackupHandle(h);
+     return await oldBackup(opts);
+   }
+ };
+
+ console.info('V150 actif : activités Firebase + duplication + Copies rendues stable + sauvegarde dossier renouvelable + version centralisée.');
+})();
+</script>
 </body>
 </html>
 
