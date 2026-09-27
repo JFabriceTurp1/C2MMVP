@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>V151 Competences Rta Gestion atelier TP</title>
+<title>V147 Competences Rta Gestion atelier TP</title>
 <style>
 *{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f5f7fa;color:#172033}
 .app{display:flex;min-height:100vh}.side{width:235px;background:#172033;color:#fff;padding:22px 14px}.logo{font-size:19px;font-weight:700;padding:8px 10px 24px}
@@ -2817,7 +2817,7 @@ body{background:#f7f9fc;color:var(--text)}
 <div id="build-version">V147 — Competences Rta Gestion atelier TP</div>
 <div id="firebase-auth-overlay">
   <div class="firebase-login-card">
-    <h2>☁️ Connexion Firebase — V151</h2>
+    <h2>☁️ Connexion Firebase — V152</h2>
     <p>Cette version synchronise les classes, les élèves et désormais les évaluations avec Firebase. Le stockage local reste utilisé comme cache de sécurité pendant cette phase de validation.</p>
     <form id="firebase-login-form">
       <label for="firebase-email">Adresse e-mail</label>
@@ -8663,7 +8663,40 @@ function exportStudentDeletionPDF(studentsSnapshot, deletionDate){
 
 
 <!-- V149 : suppression des caractères \n parasites visibles en bas de la page accueil -->
-</body></html>`);
+\n<!-- V152 — V149 stable + évolutions ciblées, sans modification du démarrage Firebase -->
+<style id="v152-ui">#build-version{white-space:nowrap}</style>
+<script id="v152-targeted-fixes">
+(function(){
+ 'use strict';
+ const APP_VERSION='V152'; window.APP_VERSION=APP_VERSION;
+ function applyVersion(){const b=document.getElementById('build-version');if(b)b.textContent=APP_VERSION+' — Competences Rta Gestion atelier TP';document.title=APP_VERSION+' Competences Rta Gestion atelier TP';}
+ applyVersion(); document.addEventListener('DOMContentLoaded',applyVersion,{once:true}); setTimeout(applyVersion,0); setTimeout(applyVersion,700);
+
+ // Fiches / activités : sauvegarde locale puis synchronisation Firebase différée.
+ let activitySyncTimer=0;
+ const baseSave=(typeof saveManagedEvaluationActivities==='function')?saveManagedEvaluationActivities:null;
+ function syncActivitiesFirebase(){clearTimeout(activitySyncTimer);activitySyncTimer=setTimeout(async()=>{try{if(typeof window.firebaseSaveCurrentConfig==='function')await window.firebaseSaveCurrentConfig();}catch(e){console.warn('V152 activité conservée localement, synchronisation Firebase différée',e)}},180)}
+ if(baseSave){const wrapped=function(list){baseSave(list);syncActivitiesFirebase()};try{saveManagedEvaluationActivities=wrapped}catch(_){}window.saveManagedEvaluationActivities=wrapped}
+
+ // Dupliquer : nouvel identifiant et ajout à la dernière ligne.
+ window.duplicateManagedEvaluationActivity=function(id){const list=getManagedEvaluationActivities(),src=list.find(x=>String(x.id)===String(id));if(!src)return;const copy=JSON.parse(JSON.stringify(src));copy.id='ACT-ADMIN-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,6);copy.numero=nextManagedActivityNumber(list);copy.titre=(src.titre||'Activité')+' — copie';copy.active=true;copy.createdAt=Date.now();copy.updatedAt=Date.now();list.push(copy);saveManagedEvaluationActivities(list);renderSettingsEvaluationActivities();window.showSuccessMessage?.('Activité dupliquée et ajoutée en dernière ligne.')};
+ function addDup(){const box=document.getElementById('settings-activities-list');if(!box)return;const list=getManagedEvaluationActivities().slice().sort((a,b)=>(Number(a.numero)||9999)-(Number(b.numero)||9999));[...box.querySelectorAll('.settings-item')].forEach((row,i)=>{if(row.querySelector('.v152-duplicate'))return;const a=list[i],actions=row.querySelector('.settings-actions');if(!a||!actions)return;const b=document.createElement('button');b.type='button';b.className='secondary v152-duplicate';b.textContent='⧉ Dupliquer';b.onclick=()=>window.duplicateManagedEvaluationActivity(a.id);actions.prepend(b)})}
+ addDup(); new MutationObserver(()=>addDup()).observe(document.documentElement,{childList:true,subtree:true});
+
+ // Copies rendues : mémoriser groupes ouverts, filtres et scroll ; éviter les rerendus Firebase rapprochés.
+ let correctionUiState={openDates:new Set(),scrollY:0,filters:null},lastCorrectionRender=0;
+ function captureCorrectionState(){const shell=document.querySelector('#main .tpc-shell');if(!shell)return;correctionUiState.openDates=new Set([...shell.querySelectorAll('details.tpc-date[open] summary span:first-child')].map(x=>x.textContent.trim()));correctionUiState.scrollY=window.scrollY;correctionUiState.filters={cl:document.getElementById('tpc-f-class')?.value||'',tp:document.getElementById('tpc-f-tp')?.value||'',nm:document.getElementById('tpc-f-name')?.value||'',st:document.getElementById('tpc-f-status')?.value||''}}
+ function restoreCorrectionState(){const f=correctionUiState.filters||{};[['tpc-f-class','cl'],['tpc-f-tp','tp'],['tpc-f-name','nm'],['tpc-f-status','st']].forEach(([id,k])=>{const e=document.getElementById(id);if(e&&f[k]!==undefined)e.value=f[k]});document.querySelectorAll('details.tpc-date').forEach(d=>{const t=d.querySelector('summary span:first-child')?.textContent.trim();if(t&&correctionUiState.openDates.has(t))d.open=true});requestAnimationFrame(()=>window.scrollTo(0,correctionUiState.scrollY||0))}
+ const baseCorrection=window.tpCorrectionPage;
+ if(typeof baseCorrection==='function')window.tpCorrectionPage=function(){const explicit=!!(window.event&&window.event.isTrusted),shell=document.querySelector('#main .tpc-shell'),editor=document.querySelector('#main .tpc-editor');if(editor&&!explicit)return false;if(shell){captureCorrectionState();if(!explicit&&Date.now()-lastCorrectionRender<1000)return false}lastCorrectionRender=Date.now();const r=baseCorrection.apply(this,arguments);setTimeout(restoreCorrectionState,100);return r};
+
+ // Sauvegarde globale : si le handle mémorisé est périmé, redemander le dossier puis réessayer.
+ const baseBackup=window.v133SaveGlobalBackup;
+ async function saveHandle(h){const db=await new Promise((ok,no)=>{const q=indexedDB.open('evaluation_home_backup_v133',1);q.onupgradeneeded=()=>{if(!q.result.objectStoreNames.contains('handles'))q.result.createObjectStore('handles')};q.onsuccess=()=>ok(q.result);q.onerror=()=>no(q.error)});await new Promise((ok,no)=>{const q=db.transaction('handles','readwrite').objectStore('handles').put(h,'backupFolder');q.onsuccess=ok;q.onerror=()=>no(q.error)});db.close()}
+ if(typeof baseBackup==='function')window.v133SaveGlobalBackup=async function(opts={}){try{return await baseBackup(opts)}catch(e){const msg=String(e?.message||e),stale=e?.name==='InvalidStateError'||/state cached|state had changed|read from disk/i.test(msg);if(!stale)throw e;if(!window.showDirectoryPicker)throw new Error('Sélectionne à nouveau le dossier de sauvegarde.');const h=await window.showDirectoryPicker({mode:'readwrite'});await saveHandle(h);return await baseBackup(opts)}};
+ console.info('V152 : base V149 stable, correctifs ciblés actifs ; démarrage Firebase V149 conservé.');
+})();
+</script>\n</body></html>`);
   w.document.close();
 }
 
@@ -16105,171 +16138,6 @@ window.tpCorrectionValidate=async function(){
 })();
 </script>
 <!-- V149 : suppression des caractères \n parasites visibles en bas de la page accueil -->
-
-<!-- V150 — correctifs consolidation 27/09/2026 -->
-<style id="v150-ui">
-#build-version{white-space:nowrap}
-</style>
-<script id="v150-consolidation">
-(function(){
- 'use strict';
- const APP_VERSION='V150';
- window.APP_VERSION=APP_VERSION;
- function applyVersion(){
-   const b=document.getElementById('build-version');
-   if(b) b.textContent=APP_VERSION+' — Competences Rta Gestion atelier TP';
-   document.title=APP_VERSION+' Competences Rta Gestion atelier TP';
- }
- applyVersion();
- new MutationObserver(applyVersion).observe(document.documentElement,{childList:true,subtree:true});
-
- // 1) Fiches / activités : sauvegarde locale immédiate + remontée Firebase explicite.
- let activitySyncTimer=0;
- const oldSaveActivities=window.saveManagedEvaluationActivities || (typeof saveManagedEvaluationActivities==='function'?saveManagedEvaluationActivities:null);
- function syncActivitiesFirebase(){
-   clearTimeout(activitySyncTimer);
-   activitySyncTimer=setTimeout(async()=>{
-     try{
-       if(typeof window.firebaseSaveCurrentConfig==='function') await window.firebaseSaveCurrentConfig();
-       console.info('V150 : fiches/activités synchronisées Firebase.');
-     }catch(e){
-       console.warn('V150 : Firebase indisponible, fiche conservée localement pour prochaine synchronisation.',e);
-     }
-   },120);
- }
- if(oldSaveActivities){
-   const wrapped=function(list){ oldSaveActivities(list); syncActivitiesFirebase(); };
-   window.saveManagedEvaluationActivities=wrapped;
-   try{saveManagedEvaluationActivities=wrapped}catch(_){ }
- }
-
- // 2) Duplication d'une activité : nouvel ID, nouveau numéro, ajout en dernière ligne.
- window.duplicateManagedEvaluationActivity=function(id){
-   const list=getManagedEvaluationActivities();
-   const src=list.find(x=>String(x.id)===String(id)); if(!src)return;
-   const copy=JSON.parse(JSON.stringify(src));
-   copy.id='ACT-ADMIN-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,6);
-   copy.numero=nextManagedActivityNumber(list);
-   copy.titre=(src.titre||'Activité')+' — copie';
-   copy.active=true; copy.createdAt=Date.now(); copy.updatedAt=Date.now();
-   list.push(copy);
-   saveManagedEvaluationActivities(list);
-   renderSettingsEvaluationActivities();
-   window.showSuccessMessage?.('Activité dupliquée et ajoutée en dernière ligne.');
- };
- function injectDuplicateButtons(root=document){
-   const box=root.querySelector?.('#settings-activities-list'); if(!box)return;
-   const list=getManagedEvaluationActivities().slice().sort((a,b)=>(Number(a.numero)||9999)-(Number(b.numero)||9999));
-   [...box.querySelectorAll('.settings-item')].forEach((row,i)=>{
-     if(row.querySelector('.v150-duplicate'))return;
-     const a=list[i], actions=row.querySelector('.settings-actions'); if(!a||!actions)return;
-     const b=document.createElement('button'); b.type='button'; b.className='secondary v150-duplicate'; b.textContent='⧉ Dupliquer';
-     b.onclick=()=>window.duplicateManagedEvaluationActivity(a.id); actions.prepend(b);
-   });
- }
- injectDuplicateButtons();
- new MutationObserver(ms=>ms.forEach(m=>m.addedNodes.forEach(n=>{if(n.nodeType===1)injectDuplicateButtons(n.closest?.('#settings-activities-list')?document:n)}))).observe(document.documentElement,{childList:true,subtree:true});
-
- // 3) Copies rendues : conserver l'état visuel des groupes et neutraliser les reconstructions Firebase répétitives.
- let correctionUiState={openDates:new Set(),scrollY:0,filters:null};
- let lastCorrectionRender=0;
- function captureCorrectionState(){
-   const shell=document.querySelector('#main .tpc-shell'); if(!shell)return;
-   correctionUiState.openDates=new Set([...shell.querySelectorAll('details.tpc-date[open] summary span:first-child')].map(x=>x.textContent.trim()));
-   correctionUiState.scrollY=window.scrollY;
-   correctionUiState.filters={
-     cl:document.getElementById('tpc-f-class')?.value||'',tp:document.getElementById('tpc-f-tp')?.value||'',
-     nm:document.getElementById('tpc-f-name')?.value||'',st:document.getElementById('tpc-f-status')?.value||''
-   };
- }
- function restoreCorrectionState(){
-   const s=correctionUiState.filters||{};
-   [['tpc-f-class','cl'],['tpc-f-tp','tp'],['tpc-f-name','nm'],['tpc-f-status','st']].forEach(([id,k])=>{const e=document.getElementById(id);if(e&&s[k]!==undefined)e.value=s[k]});
-   document.querySelectorAll('details.tpc-date').forEach(d=>{const t=d.querySelector('summary span:first-child')?.textContent.trim();if(t&&correctionUiState.openDates.has(t))d.open=true});
-   requestAnimationFrame(()=>window.scrollTo(0,correctionUiState.scrollY||0));
- }
- const priorCorrectionPage=window.tpCorrectionPage;
- if(typeof priorCorrectionPage==='function'){
-   window.tpCorrectionPage=function(){
-     const ev=window.event, explicit=!!(ev&&ev.isTrusted);
-     const shell=document.querySelector('#main .tpc-shell');
-     const editor=document.querySelector('#main .tpc-editor');
-     if(editor && !explicit) return false;
-     if(shell){captureCorrectionState(); if(!explicit && Date.now()-lastCorrectionRender<900){return false;}}
-     lastCorrectionRender=Date.now();
-     const r=priorCorrectionPage.apply(this,arguments);
-     setTimeout(restoreCorrectionState,80); return r;
-   };
- }
- // Le nuage ne doit pas clignoter à chaque micro-événement pendant la correction.
- const cloudObs=new MutationObserver(()=>{
-   if(!document.querySelector('#main .tpc-shell'))return;
-   const cloud=document.querySelector('.firebase-status,.cloud-status,#firebase-status,#cloud-status');
-   if(cloud){cloud.style.transition='none';cloud.style.animation='none'}
- });
- cloudObs.observe(document.documentElement,{childList:true,subtree:true,attributes:true});
-
- // 4) Sauvegarde globale : si le handle de dossier est périmé, redemander le dossier puis réessayer.
- const oldBackup=window.v133SaveGlobalBackup;
- async function storeBackupHandle(h){
-   const db=await new Promise((ok,no)=>{const q=indexedDB.open('evaluation_home_backup_v133',1);q.onupgradeneeded=()=>{if(!q.result.objectStoreNames.contains('handles'))q.result.createObjectStore('handles')};q.onsuccess=()=>ok(q.result);q.onerror=()=>no(q.error)});
-   await new Promise((ok,no)=>{const q=db.transaction('handles','readwrite').objectStore('handles').put(h,'backupFolder');q.onsuccess=ok;q.onerror=()=>no(q.error)}); db.close();
- }
- if(typeof oldBackup==='function') window.v133SaveGlobalBackup=async function(opts={}){
-   try{return await oldBackup(opts)}catch(e){
-     const msg=String(e?.message||e), stale=e?.name==='InvalidStateError'||/state cached|state had changed|read from disk/i.test(msg);
-     if(!stale)throw e;
-     if(!window.showDirectoryPicker)throw new Error('Le dossier de sauvegarde doit être sélectionné à nouveau.');
-     const h=await window.showDirectoryPicker({mode:'readwrite'}); await storeBackupHandle(h);
-     return await oldBackup(opts);
-   }
- };
-
- console.info('V150 actif : activités Firebase + duplication + Copies rendues stable + sauvegarde dossier renouvelable + version centralisée.');
-})();
-</script>
-
-<!-- V151 — démarrage non bloquant Firebase : restauration logique stable -->
-<style id="v151-firebase-startup-fix">
-/* Firebase ne doit jamais bloquer l'accès au logiciel au démarrage. */
-#firebase-auth-overlay{display:none!important}
-#firebase-auth-overlay.v151-user-open{display:flex!important}
-</style>
-<script id="v151-firebase-startup-fix-runtime">
-(function(){
- 'use strict';
- const VERSION='V151'; window.APP_VERSION=VERSION;
- function applyVersion(){
-   const b=document.getElementById('build-version');
-   if(b)b.textContent=VERSION+' — Competences Rta Gestion atelier TP';
-   document.title=VERSION+' Competences Rta Gestion atelier TP';
-   const h=document.querySelector('#firebase-auth-overlay .firebase-login-card h2');
-   if(h)h.textContent='☁️ Connexion Firebase — '+VERSION;
- }
- function keepStartupOpen(){
-   const o=document.getElementById('firebase-auth-overlay');
-   if(o&&!o.classList.contains('v151-user-open')){o.classList.add('hidden');o.style.display='none'}
- }
- function ensureLoginAction(){
-   const pop=document.getElementById('firebase-sync-popover');
-   if(!pop||document.getElementById('v151-firebase-login-btn'))return;
-   const actions=pop.querySelector('.firebase-mini-compact-actions')||pop.querySelector('.actions')||pop;
-   const btn=document.createElement('button');btn.id='v151-firebase-login-btn';btn.type='button';btn.className='secondary firebase-mini-action';btn.textContent='Connexion';btn.title='Ouvrir la connexion Firebase';
-   btn.onclick=function(){const o=document.getElementById('firebase-auth-overlay');if(o){o.classList.remove('hidden');o.classList.add('v151-user-open');o.style.display='flex'}};
-   actions.appendChild(btn);
- }
- applyVersion();keepStartupOpen();ensureLoginAction();
- document.addEventListener('DOMContentLoaded',()=>{applyVersion();keepStartupOpen();ensureLoginAction()},{once:true});
- // L'ancien runtime peut tenter de réafficher l'overlay si Firebase n'a plus de session :
- // on laisse le logiciel utilisable et on propose une connexion volontaire depuis le nuage.
- const o=document.getElementById('firebase-auth-overlay');
- if(o)new MutationObserver(()=>{if(!o.classList.contains('v151-user-open')){o.classList.add('hidden');o.style.display='none'}}).observe(o,{attributes:true,attributeFilter:['class','style']});
- const closeOnAuth=()=>{try{if(window.firebase&&firebase.auth){firebase.auth().onAuthStateChanged(u=>{if(u&&o){o.classList.remove('v151-user-open');o.classList.add('hidden');o.style.display='none'}})}}catch(e){console.warn('V151 auth observer',e)}};
- setTimeout(closeOnAuth,500);
- new MutationObserver(()=>{applyVersion();ensureLoginAction()}).observe(document.documentElement,{childList:true,subtree:true});
- console.info('V151 actif : Firebase ne bloque plus la page d’accueil ; connexion volontaire disponible depuis le nuage.');
-})();
-</script>
 </body>
 </html>
 
