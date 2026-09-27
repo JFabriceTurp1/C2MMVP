@@ -2815,9 +2815,9 @@ body{background:#f7f9fc;color:var(--text)}
      Jeux embarqués repris : référentiel compétences, élèves par défaut, seconde classe fictive, situations professionnelles.
      Les données dynamiques (classes/élèves/évaluations réellement saisies) restent chargées par IndexedDB/localStorage et Firebase. -->
 <div id="build-version">V115 — Competences Rta Gestion atelier TP</div>
-<div id="firebase-auth-overlay">
+<div id="firebase-auth-overlay" class="hidden" style="display:none">
   <div class="firebase-login-card">
-    <h2>☁️ Connexion Firebase — V89</h2>
+    <h2>☁️ Connexion Firebase — V142</h2>
     <p>Cette version synchronise les classes, les élèves et désormais les évaluations avec Firebase. Le stockage local reste utilisé comme cache de sécurité pendant cette phase de validation.</p>
     <form id="firebase-login-form">
       <label for="firebase-email">Adresse e-mail</label>
@@ -8660,6 +8660,40 @@ function exportStudentDeletionPDF(studentsSnapshot, deletionDate){
 <!-- V138 runtime retiré en V139 : remplacé par registre V139 -->
 
 
+
+<!-- V142 — démarrage mobile non bloquant + authentification Firebase à la demande -->
+<style id="v142-mobile-auth-style">
+#firebase-auth-overlay{pointer-events:auto!important;touch-action:manipulation!important}
+#firebase-auth-overlay .firebase-login-card{pointer-events:auto!important;position:relative!important;z-index:20001!important}
+#firebase-auth-overlay input,#firebase-auth-overlay button{pointer-events:auto!important;touch-action:manipulation!important;-webkit-user-select:text!important;user-select:text!important}
+#firebase-auth-overlay input{font-size:16px!important}
+</style>
+<script id="v142-mobile-auth-runtime">
+(function(){
+ const VERSION='V142';
+ function stamp(){const b=document.getElementById('build-version');if(b)b.textContent=VERSION+' — Competences Rta Gestion atelier TP';document.title=VERSION+' Competences Rta Gestion atelier TP'}
+ stamp(); new MutationObserver(stamp).observe(document.documentElement,{childList:true,subtree:true,characterData:true});
+ function ov(){return document.getElementById('firebase-auth-overlay')}
+ function hide(){const o=ov();if(o){o.classList.add('hidden');o.style.display='none'}}
+ function show(){const o=ov();if(!o)return;o.classList.remove('hidden');o.style.display='flex';requestAnimationFrame(()=>{const i=document.getElementById('firebase-email');if(i){i.disabled=false;i.readOnly=false;i.style.pointerEvents='auto';try{i.focus({preventScroll:true})}catch(_){i.focus()}}})}
+ // Ne jamais bloquer le démarrage : Firebase est une synchronisation, pas un écran d'accès au logiciel.
+ hide();
+ document.addEventListener('DOMContentLoaded',hide,{once:true});
+ window.addEventListener('load',()=>setTimeout(()=>{if(!(window.firebase&&firebase.auth&&firebase.auth().currentUser))hide()},250),{once:true});
+ // Le nuage devient l'entrée explicite vers la connexion quand aucun compte n'est connecté.
+ document.addEventListener('click',function(e){
+   const m=e.target&&e.target.closest&&e.target.closest('#firebase-sync-mini'); if(!m)return;
+   try{if(window.firebase&&firebase.auth&&firebase.auth().currentUser)return}catch(_){}
+   e.preventDefault();e.stopImmediatePropagation();show();
+ },true);
+ // Échap / toucher hors carte permet toujours de sortir de la connexion.
+ document.addEventListener('keydown',e=>{if(e.key==='Escape')hide()});
+ document.addEventListener('click',e=>{const o=ov();if(o&&e.target===o)hide()});
+ window.v142ShowFirebaseLogin=show;window.v142HideFirebaseLogin=hide;
+ console.info('V142 actif : démarrage iOS non bloquant, Firebase à la demande.');
+})();
+</script>
+
 </body></html>`);
   w.document.close();
 }
@@ -12403,9 +12437,11 @@ function startRealtimeListeners(){
         const miniText=document.getElementById('firebase-sync-mini-text');
         if(mini){mini.classList.remove('ok','warn','bad');mini.classList.add('off');}
         if(miniText)miniText.textContent='Firebase déconnecté';
-        overlay.classList.remove('hidden');
+        // V142 : une déconnexion Firebase ne bloque plus le logiciel, notamment sur iPhone/iPad.
+        overlay.classList.add('hidden');
+        overlay.style.display='none';
         panel.hidden=true;
-        errorBox.textContent='';
+        errorBox.textContent='Firebase déconnecté. Touchez le nuage pour vous connecter.';
       }
     });
 
@@ -16135,6 +16171,40 @@ window.tpCorrectionValidate=async function(){
  };
  const bv=document.getElementById('build-version');if(bv)bv.textContent='V140 — Competences Rta Gestion atelier TP';document.title='V140 Competences Rta Gestion atelier TP';
  console.info('V140 : Mes TP diffusés réparé + navigation stable + sauvegarde de sortie très visible.');
+})();
+</script>
+
+
+<!-- V142 — démarrage mobile non bloquant + authentification Firebase à la demande -->
+<style id="v142-mobile-auth-style">
+#firebase-auth-overlay{pointer-events:auto!important;touch-action:manipulation!important}
+#firebase-auth-overlay .firebase-login-card{pointer-events:auto!important;position:relative!important;z-index:20001!important}
+#firebase-auth-overlay input,#firebase-auth-overlay button{pointer-events:auto!important;touch-action:manipulation!important;-webkit-user-select:text!important;user-select:text!important}
+#firebase-auth-overlay input{font-size:16px!important}
+</style>
+<script id="v142-mobile-auth-runtime">
+(function(){
+ const VERSION='V142';
+ function stamp(){const b=document.getElementById('build-version');if(b)b.textContent=VERSION+' — Competences Rta Gestion atelier TP';document.title=VERSION+' Competences Rta Gestion atelier TP'}
+ stamp(); new MutationObserver(stamp).observe(document.documentElement,{childList:true,subtree:true,characterData:true});
+ function ov(){return document.getElementById('firebase-auth-overlay')}
+ function hide(){const o=ov();if(o){o.classList.add('hidden');o.style.display='none'}}
+ function show(){const o=ov();if(!o)return;o.classList.remove('hidden');o.style.display='flex';requestAnimationFrame(()=>{const i=document.getElementById('firebase-email');if(i){i.disabled=false;i.readOnly=false;i.style.pointerEvents='auto';try{i.focus({preventScroll:true})}catch(_){i.focus()}}})}
+ // Ne jamais bloquer le démarrage : Firebase est une synchronisation, pas un écran d'accès au logiciel.
+ hide();
+ document.addEventListener('DOMContentLoaded',hide,{once:true});
+ window.addEventListener('load',()=>setTimeout(()=>{if(!(window.firebase&&firebase.auth&&firebase.auth().currentUser))hide()},250),{once:true});
+ // Le nuage devient l'entrée explicite vers la connexion quand aucun compte n'est connecté.
+ document.addEventListener('click',function(e){
+   const m=e.target&&e.target.closest&&e.target.closest('#firebase-sync-mini'); if(!m)return;
+   try{if(window.firebase&&firebase.auth&&firebase.auth().currentUser)return}catch(_){}
+   e.preventDefault();e.stopImmediatePropagation();show();
+ },true);
+ // Échap / toucher hors carte permet toujours de sortir de la connexion.
+ document.addEventListener('keydown',e=>{if(e.key==='Escape')hide()});
+ document.addEventListener('click',e=>{const o=ov();if(o&&e.target===o)hide()});
+ window.v142ShowFirebaseLogin=show;window.v142HideFirebaseLogin=hide;
+ console.info('V142 actif : démarrage iOS non bloquant, Firebase à la demande.');
 })();
 </script>
 
