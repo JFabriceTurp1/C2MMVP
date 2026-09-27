@@ -8650,6 +8650,16 @@ function exportStudentDeletionPDF(studentsSnapshot, deletionDate){
 
 
 
+
+
+
+
+<style id="v138-diffusion-style">
+.v138-diff-card{border:1px solid #dbe4ee;border-radius:14px;padding:14px 16px;margin:12px 0;background:#fff}.v138-top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.v138-counts{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}.v138-count{display:inline-flex;align-items:center;gap:7px;border-radius:999px;padding:6px 11px;font-weight:900;font-size:13px;border:1px solid transparent}.v138-grey{background:#e5e7eb;color:#374151;border-color:#cbd5e1}.v138-yellow{background:#fef3c7;color:#92400e;border-color:#fbbf24}.v138-green{background:#dcfce7;color:#166534;border-color:#86efac}.v138-students{margin-top:10px;border-top:1px solid #e5e7eb;padding-top:10px}.v138-student{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:7px 8px;border-radius:8px;margin:4px 0}.v138-student.grey{background:#f3f4f6}.v138-student.yellow{background:#fffbeb}.v138-student.green{background:#f0fdf4}.v138-actions{display:flex;gap:7px;flex-wrap:wrap}.v138-toggle{border:0;background:#eef4fa;color:#174e82;font-weight:800;border-radius:9px;padding:8px 11px;cursor:pointer}
+</style>
+<!-- V138 runtime retiré en V139 : remplacé par registre V139 -->
+
+
 </body></html>`);
   w.document.close();
 }
@@ -15805,6 +15815,8 @@ window.tpCorrectionValidate=async function(){
  const root=()=>fs()?.collection('workspaces').doc(WS);
  const parse=k=>{try{const a=JSON.parse(localStorage.getItem(k)||'[]');return Array.isArray(a)?a:[]}catch(_){return[]}};
  const stamp=x=>Date.parse(x?.updatedAt||x?.savedAt||x?.createdAt||x?.diffusedAt||0)||0;
+ const compactDiff=x=>({id:x?.id||'',savedId:x?.savedId||'',tpCode:x?.tpCode||x?.code||'',title:x?.title||'',classId:x?.classId||'',className:x?.className||'',diffusedAt:x?.diffusedAt||'',updatedAt:x?.updatedAt||x?.diffusedAt||new Date().toISOString(),fileCount:x?.fileCount||x?.students?.length||0,students:Array.isArray(x?.students)?x.students.map(st=>({id:st?.id||st?.studentId||'',name:st?.name||[st?.nom,st?.prenom].filter(Boolean).join(' '),nom:st?.nom||'',prenom:st?.prenom||'',code:st?.code||st?.accessCode||''})):[],studentIds:Array.isArray(x?.studentIds)?x.studentIds:[],registryOnly:true});
+ const mergeRegistry=(local,remote)=>local?{...local,...remote,tpProject:local.tpProject,snapshot:local.snapshot,rawProject:local.rawProject,project:local.project}:{...remote};
  function split(s){let a=[];for(let i=0;i<s.length;i+=CHUNK)a.push(s.slice(i,i+CHUNK));return a}
  async function putChunked(kind,id,obj){const r=root();if(!r||!id)return;const text=JSON.stringify(obj), parts=split(text), ref=r.collection(kind).doc(String(id));
    const old=await ref.collection('chunks').get();let batch=fs().batch();old.docs.forEach(d=>batch.delete(d.ref));await batch.commit();
@@ -15814,8 +15826,8 @@ window.tpCorrectionValidate=async function(){
  async function getChunked(kind,doc){const d=doc.data()||{},n=Number(d.parts||0);if(!n)return null;const q=await doc.ref.collection('chunks').orderBy(firebase.firestore.FieldPath.documentId()).get();try{return JSON.parse(q.docs.map(x=>x.data()?.data||'').join(''))}catch(e){console.warn('V132 reconstruction',kind,doc.id,e);return null}}
  function idSaved(x){return String(x?.savedId||x?.id||'')}; function idDiff(x){return String(x?.id||'')}
  async function syncKind(kind,key,idfn){const r=root();if(!r)return {up:0,down:0};const local=parse(key), lm=new Map(local.map(x=>[idfn(x),x]).filter(x=>x[0]));const snap=await r.collection(kind).get();let up=0,down=0;
-   for(const d of snap.docs){const remote=await getChunked(kind,d);if(!remote)continue;const id=idfn(remote)||d.id, old=lm.get(id);if(!old||stamp(remote)>stamp(old)){lm.set(id,remote);down++}}
-   for(const [id,x] of lm){const meta=snap.docs.find(d=>d.id===id)?.data()||{};const remoteTime=Date.parse(meta.clientUpdatedAt||0)||0;if(!remoteTime||stamp(x)>=remoteTime){await putChunked(kind,id,x);up++}}
+   for(const d of snap.docs){const remote=await getChunked(kind,d);if(!remote)continue;const id=idfn(remote)||d.id, old=lm.get(id);if(!old||stamp(remote)>stamp(old)){lm.set(id,kind==='tpDiffusionsV132'?mergeRegistry(old,remote):remote);down++}}
+   for(const [id,x] of lm){const meta=snap.docs.find(d=>d.id===id)?.data()||{};const remoteTime=Date.parse(meta.clientUpdatedAt||0)||0;if(!remoteTime||stamp(x)>=remoteTime){await putChunked(kind,id,kind==='tpDiffusionsV132'?compactDiff(x):x);up++}}
    try{localStorage.setItem(key,JSON.stringify([...lm.values()].sort((a,b)=>stamp(b)-stamp(a))))}catch(e){console.warn('V132 cache local allégé impossible',e)}
    return {up,down,count:lm.size}
  }
@@ -15921,6 +15933,167 @@ window.tpCorrectionValidate=async function(){
  console.info('V134 : page TP diffusés non intrusive et suppression Firebase V106/V132 sécurisée.');
 })();
 </script>
+
+<!-- V137 — navigation diffusions stable + sauvegarde visible et dossier maîtrisé -->
+<script id="v137-stability-backup">
+(function(){
+ const VERSION='V137';
+ const HOME='evaluation_home_workstation_v133';
+ const BDB='evaluation_home_backup_v133', BST='handles';
+ // V137 bloquait aussi les clics légitimes. On garde la vraie page, mais on n'autorise
+ // une ouverture depuis une autre vue que lorsqu'elle provient d'un clic utilisateur.
+ const realDiff = (function(){
+   // V137 avait capturé la fonction fonctionnelle dans sa fermeture; on retrouve ici
+   // la fonction de rendu V76 à partir du bouton existant si possible, sinon l'actuelle.
+   return window.tpV76DiffusionsPage;
+ })();
+ // La fonction V137 accepte déjà la page visible mais bloque parfois le bouton créé avant elle.
+ // On déclenche explicitement le gestionnaire au clic, sans stopImmediatePropagation.
+ document.addEventListener('click',function(e){
+   const b=e.target?.closest?.('#v76-diff-btn,#v76-saved-diff');
+   if(!b || !e.isTrusted) return;
+   e.preventDefault();
+   try{
+     // Le bouton peut contenir l'ancien onclick V76, qui est le plus fiable.
+     const fn=b.onclick;
+     if(typeof fn==='function' && fn!==window.tpV76DiffusionsPage){ fn.call(b,e); return; }
+     // Autorisation explicite V137 : simuler la page déjà demandée via le vrai clic.
+     const shell=document.querySelector('.tpgen-manager-shell');
+     if(typeof window.__v137OpenDiffusions==='function') return window.__v137OpenDiffusions();
+     // Chercher la fonction V76 conservée dans onclick des boutons futurs n'est pas nécessaire :
+     // on appelle l'implémentation courante après avoir posé un marqueur utilisateur.
+     window.__v137TrustedDiffusionClick=true;
+     return window.tpV76DiffusionsPage?.();
+   } finally { setTimeout(()=>window.__v137TrustedDiffusionClick=false,0); }
+ },true);
+ // Remplacer le verrou V137 par une règle simple : clic humain OU rafraîchissement de la page déjà ouverte.
+ const v137Diff=window.tpV76DiffusionsPage;
+ window.tpV76DiffusionsPage=function(){
+   const visible=/Mes TP diffusés/i.test(document.querySelector('.tpgen-manager-shell h1')?.textContent||'');
+   const trusted=!!window.__v137TrustedDiffusionClick || !!window.event?.isTrusted;
+   if(!trusted && !visible){ console.debug('V137: navigation Firebase vers Mes TP diffusés ignorée'); return false; }
+   // Pour un clic humain, V137 peut encore refuser. On utilise temporairement un faux titre visible
+   // uniquement pendant l'appel, sans modifier l'écran : son test interne repose sur le DOM.
+   if(trusted && !visible){
+     const host=document.createElement('div'); host.style.display='none'; host.className='tpgen-manager-shell';
+     host.innerHTML='<h1>Mes TP diffusés</h1>'; document.body.appendChild(host);
+     try{return v137Diff?.apply(this,arguments)}finally{host.remove()}
+   }
+   return v137Diff?.apply(this,arguments);
+ };
+ // Les boutons créés après ce runtime doivent pointer vers V137.
+ const mo=new MutationObserver(()=>{
+   document.querySelectorAll('#v76-diff-btn,#v76-saved-diff').forEach(b=>{
+     if(b.dataset.v137Bound)return; b.dataset.v137Bound='1';
+     b.onclick=function(ev){ window.__v137TrustedDiffusionClick=true; try{return window.tpV76DiffusionsPage()}finally{setTimeout(()=>window.__v137TrustedDiffusionClick=false,0)} };
+   });
+ }); mo.observe(document.documentElement,{childList:true,subtree:true});
+
+ function openBdb(){return new Promise((res,rej)=>{const q=indexedDB.open(BDB,1);q.onupgradeneeded=()=>{if(!q.result.objectStoreNames.contains(BST))q.result.createObjectStore(BST)};q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error)})}
+ async function clearBackupFolder(){try{const d=await openBdb();await new Promise((res,rej)=>{const q=d.transaction(BST,'readwrite').objectStore(BST).delete('backupFolder');q.onsuccess=()=>res();q.onerror=()=>rej(q.error)});return true}catch(e){console.warn(e);return false}}
+ function lastBackupText(){try{const x=JSON.parse(localStorage.getItem('evaluation_last_global_backup_v133')||'null');if(x?.at)return new Date(x.at).toLocaleString('fr-FR')}catch(_){}return 'Aucune sauvegarde enregistrée'}
+ function backupModal(){return new Promise(resolve=>{
+   document.getElementById('v137-backup-modal')?.remove();
+   const ov=document.createElement('div'); ov.id='v137-backup-modal';
+   ov.style.cssText='position:fixed;inset:0;z-index:2147483647;background:rgba(10,20,35,.78);display:flex;align-items:center;justify-content:center;padding:20px;font-family:system-ui,sans-serif';
+   ov.innerHTML=`<div style="width:min(620px,96vw);background:#fff;border-radius:22px;box-shadow:0 24px 80px rgba(0,0,0,.45);overflow:hidden;border:4px solid #f59e0b">
+    <div style="background:#fff7ed;padding:22px 26px;border-bottom:1px solid #fed7aa"><div style="font-size:30px;font-weight:900;color:#9a3412">⚠️ Sauvegarde avant de quitter</div><div style="margin-top:8px;font-size:17px;color:#7c2d12">Poste maison — dernière sauvegarde : <b>${lastBackupText()}</b></div></div>
+    <div style="padding:24px 26px;font-size:18px;line-height:1.45;color:#1f2937">Souhaites-tu créer une sauvegarde globale avant de fermer le logiciel ?<div style="margin-top:12px;font-size:14px;color:#64748b">Le dossier de sauvegarde déjà autorisé sera réutilisé. Tu peux aussi choisir un autre dossier.</div></div>
+    <div style="padding:0 26px 26px;display:grid;gap:10px"><button data-a="save" style="padding:16px;border:0;border-radius:12px;background:#15803d;color:white;font-size:17px;font-weight:800;cursor:pointer">💾 Oui, sauvegarder puis quitter</button><button data-a="folder" style="padding:13px;border:2px solid #2563eb;border-radius:12px;background:#eff6ff;color:#1d4ed8;font-size:16px;font-weight:750;cursor:pointer">📁 Choisir / changer le dossier de sauvegarde</button><button data-a="nosave" style="padding:13px;border:0;border-radius:12px;background:#dc2626;color:white;font-size:16px;font-weight:750;cursor:pointer">Quitter sans sauvegarder</button><button data-a="cancel" style="padding:12px;border:1px solid #cbd5e1;border-radius:12px;background:white;color:#334155;font-size:16px;font-weight:700;cursor:pointer">Annuler — rester dans le logiciel</button></div></div>`;
+   ov.addEventListener('click',e=>{const a=e.target?.closest?.('[data-a]')?.dataset.a;if(!a)return;ov.remove();resolve(a)});document.body.appendChild(ov);
+ })}
+ const logoutV137=window.logoutTeacher;
+ window.logoutTeacher=async function(){
+   if(localStorage.getItem(HOME)!=='1') return logoutV137?.apply(this,arguments);
+   while(true){
+     const a=await backupModal();
+     if(a==='cancel')return false;
+     if(a==='folder'){await clearBackupFolder();try{const r=await window.v133SaveGlobalBackup?.();if(r?.ok)window.showSuccessMessage?.('Dossier choisi et sauvegarde créée : '+r.file);else alert('Le dossier n’a pas été validé.')}catch(e){alert('Choix du dossier impossible : '+(e?.message||e))}continue}
+     if(a==='save'){
+       try{const r=await window.v133SaveGlobalBackup?.();if(!r?.ok){alert('La sauvegarde n’a pas été confirmée. Le logiciel reste ouvert.');return false}window.showSuccessMessage?.('Sauvegarde créée : '+r.file)}catch(e){alert('Sauvegarde impossible : '+(e?.message||e));return false}
+     }
+     // Appeler l'ancien logout sans relancer son dialogue V137 ni sa sauvegarde automatique V133.
+     localStorage.setItem(HOME,'0');
+     try{return await logoutV137?.apply(this,arguments)}finally{localStorage.setItem(HOME,'1')}
+   }
+ };
+ // Une fermeture directe de l'onglet ne peut pas lancer une grosse sauvegarde de façon fiable.
+ // Le navigateur affiche donc son avertissement natif si le poste maison est actif.
+ window.addEventListener('beforeunload',function(e){if(localStorage.getItem(HOME)!=='1')return;e.preventDefault();e.returnValue='';});
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V139 — Competences Rta Gestion atelier TP';document.title='V137 Competences Rta Gestion atelier TP';
+ console.info('V137 actif : accès manuel aux TP diffusés + sauvegarde visible et dossier maîtrisé.');
+})();
+</script>
+
+
+<style id="v138-diffusion-style">
+.v138-diff-card{border:1px solid #dbe4ee;border-radius:14px;padding:14px 16px;margin:12px 0;background:#fff}.v138-top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.v138-counts{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}.v138-count{display:inline-flex;align-items:center;gap:7px;border-radius:999px;padding:6px 11px;font-weight:900;font-size:13px;border:1px solid transparent}.v138-grey{background:#e5e7eb;color:#374151;border-color:#cbd5e1}.v138-yellow{background:#fef3c7;color:#92400e;border-color:#fbbf24}.v138-green{background:#dcfce7;color:#166534;border-color:#86efac}.v138-students{margin-top:10px;border-top:1px solid #e5e7eb;padding-top:10px}.v138-student{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:7px 8px;border-radius:8px;margin:4px 0}.v138-student.grey{background:#f3f4f6}.v138-student.yellow{background:#fffbeb}.v138-student.green{background:#f0fdf4}.v138-actions{display:flex;gap:7px;flex-wrap:wrap}.v138-toggle{border:0;background:#eef4fa;color:#174e82;font-weight:800;border-radius:9px;padding:8px 11px;cursor:pointer}
+</style>
+<script id="v138-diffusion-registry">
+(function(){
+ const KEY='tp_generator_diffusions_v76', CKEY='tp_correction_local_v54';
+ const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+ const norm=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');
+ const diffs=()=>{try{const a=JSON.parse(localStorage.getItem(KEY)||'[]');return Array.isArray(a)?a:[]}catch(_){return[]}};
+ const corrs=()=>{try{const a=JSON.parse(localStorage.getItem(CKEY)||'[]');return Array.isArray(a)?a:[]}catch(_){return[]}};
+ function sname(st){return st?.name||[st?.nom,st?.prenom].filter(Boolean).join(' ')||'Élève'}
+ function state(r,st){const code=norm(r.tpCode||r.code),sn=norm(sname(st)),sid=String(st?.id||st?.studentId||'');const c=corrs().find(x=>{const d=x.data||{},cn=norm([d.eleve?.nom,d.eleve?.prenom].filter(Boolean).join(' ')||d.studentName||''),cid=String(d.studentId||d.eleve?.id||'');return norm(d.code||'')===code&&((sid&&cid===sid)||cn===sn)});return c?(c.correctedAt?'green':'yellow'):'grey'}
+ function counts(r){const o={grey:0,yellow:0,green:0};(r.students||[]).forEach(st=>o[state(r,st)]++);return o}
+ window.tp138ToggleStudents=function(id){const el=document.getElementById('v138-students-'+CSS.escape(String(id)));if(!el)return;const hidden=el.hidden;el.hidden=!hidden;const b=document.querySelector(`[data-v138-toggle="${CSS.escape(String(id))}"]`);if(b)b.textContent=hidden?'▾ Masquer les élèves':'▸ Voir les élèves';};
+ window.tpV76DiffusionsPage=function(){window.setActive?.('tpGenerator');const rows=diffs().sort((a,b)=>String(b.diffusedAt||'').localeCompare(String(a.diffusedAt||''))),main=document.getElementById('main');if(!main)return false;main.innerHTML=`<header class="app-top-header"></header><div class="tpgen-manager-shell"><div class="tpgen-head"><div><h1>📤 Mes TP diffusés</h1><p class="muted">Registre multiposte léger : gris = diffusé, jaune = rendu, vert = corrigé. Les fichiers TP restent locaux / Dropbox.</p></div><button class="tpgen-btn secondary" onclick="tpGeneratorPage()">← Retour</button></div><div class="tpgen-card">${rows.length?rows.map(r=>{const c=counts(r),id=String(r.id||'');return `<div class="v138-diff-card"><div class="v138-top"><div><b>${esc(r.tpCode||'TP')} — ${esc(r.title||'')}</b><div class="muted">${esc(r.className||'')} • ${r.diffusedAt?new Date(r.diffusedAt).toLocaleString('fr-FR'):''} • ${(r.students||[]).length} élève(s)</div></div><div class="v138-actions"><button class="tpgen-btn primary" onclick="tpV76AddDiffusionToDay('${esc(id)}')">＋ Affecter</button><button class="tpgen-btn danger" onclick="tp114DeleteDiffusion('${esc(id)}')">🗑️ Supprimer</button></div></div><div class="v138-counts"><span class="v138-count v138-grey">⬜ Diffusé <b>${c.grey}</b></span><span class="v138-count v138-yellow">🟨 Rendu <b>${c.yellow}</b></span><span class="v138-count v138-green">🟩 Corrigé <b>${c.green}</b></span></div><button class="v138-toggle" data-v138-toggle="${esc(id)}" onclick="tp138ToggleStudents('${esc(id)}')">▸ Voir les élèves</button><div class="v138-students" id="v138-students-${esc(id)}" hidden>${(r.students||[]).map(st=>{const q=state(r,st),label=q==='green'?'Corrigé':q==='yellow'?'Rendu':'Diffusé';return `<div class="v138-student ${q}"><b>${esc(sname(st))}</b><span>${label}</span></div>`}).join('')||'<span class="muted">Liste nominative absente de cette ancienne diffusion.</span>'}</div></div>`}).join(''):'<div class="muted">Aucun TP diffusé enregistré.</div>'}</div></div>`;return true};
+ // Le registre Firebase ne doit jamais contenir le projet TP lourd : la V132 a été patchée pour n'envoyer que les métadonnées + élèves.
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V139 — Competences Rta Gestion atelier TP';document.title='V139 Competences Rta Gestion atelier TP';
+ console.info('V138 : registre TP diffusés léger + élèves repliés + compteurs gris/jaune/vert.');
+})();
+</script>
+
+<style id="v139-style">
+.v139-home-actions{display:flex;gap:10px;flex-wrap:wrap}.v139-preview{margin-top:14px;border:1px solid #d8e1ea;border-radius:14px;background:#fff;overflow:hidden}.v139-preview-head{padding:14px 16px;background:#eef6ff;border-bottom:1px solid #d8e1ea;display:flex;justify-content:space-between;gap:12px;align-items:center}.v139-preview-body{padding:18px}.v139-section{border:1px solid #e5e7eb;border-radius:12px;padding:14px;margin:10px 0}.v139-section img{max-width:100%;max-height:340px;object-fit:contain}.v139-banner{background:#ecfdf5;border:1px solid #86efac;color:#166534;padding:10px 12px;border-radius:10px;font-weight:700}.v139-diffuse-btn{background:#6d28d9!important;color:#fff!important}
+</style>
+<script id="v139-runtime">
+(function(){
+ const VERSION='V139', DKEY='tp_generator_diffusions_v76', CORR='tp_correction_local_v54', CROOT='tpPendingCopiesV139';
+ const clone=o=>JSON.parse(JSON.stringify(o||{})), esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+ let temp=null, folderHandle=null;
+ function pdata(o){if(o?.schema==='evaluation.tp.v1'&&o.data)return o.data;if(o?.tpProject?.schema==='evaluation.tp.v1')return o.tpProject.data;if(o?.data?.publicId&&(o.data.questions||o.data.flow))return o.data;if(o?.publicId&&(o.questions||o.flow))return o;return null}
+ function snapshot(o,p){return {schema:'tp-temp-v139',importedProject:true,importedPublicId:p.publicId||p.id||'',rawProject:clone(o),schoolYear:(window.tpGenSchoolYear?.()||''),className:(window.activeClassName?.()||''),teacher:(window.getSchoolSettings?.()?.teacherName||''),level:'BAC PRO',activityId:p.publicId||p.id||'TP',planId:p.id||p.publicId||'TP',family:'TP sélectionné',activity:p.publicTitle||p.title||'TP',type:'TP',client:p.intro||'',mission:p.intro||'',duration:p.duration||'',support:{type:'vehicle',label:p.support||'',reference:'',details:''},vehicle:{},resources:p.resources||'',technicalData:'',risks:'',controls:'',environment:'',criteria:(p.questions||[]).map(q=>q.criterion).filter(Boolean).join('\n'),competencies:[...new Set((p.questions||[]).map(q=>q.competence).filter(Boolean))].join('\n')};}
+ function img(v){v=v?.data||v?.src||v?.image||'';return typeof v==='string'&&v.startsWith('data:image/')?`<img src="${v}">`:''}
+ function renderProject(p){let flow=Array.isArray(p.flow)?p.flow:[], by=(type,id)=>{let m={question:'questions',image:'imageBlocks',text:'textBlocks',match:'matchBlocks',table:'tableBlocks',placement:'placementBlocks'};return (p[m[type]]||[]).find(x=>String(x.id)===String(id))};let body='';for(const f of flow){let x=by(f.type,f.id);if(!x)continue;if(f.type==='question')body+=`<div class="v139-section"><b>${esc(x.text||'Question')}</b>${(x.images||[]).map(img).join('')}</div>`;else if(f.type==='image')body+=`<div class="v139-section"><b>${esc(x.title||'Illustration')}</b><p>${esc(x.text||'')}</p>${(x.images||[]).map(img).join('')}</div>`;else if(f.type==='match')body+=`<div class="v139-section"><b>${esc(x.title||'Association')}</b><p>${esc(x.text||'')}</p><div class="grid">${(x.targets||[]).map(t=>img(t)).join('')}</div></div>`;else if(f.type==='placement')body+=`<div class="v139-section"><b>${esc(x.title||'Placement')}</b><p>${esc(x.text||'')}</p>${img(x.image)}</div>`;else if(f.type==='text')body+=`<div class="v139-section"><b>${esc(x.title||'')}</b><p>${esc(x.text||'')}</p></div>`;}
+ return `<div class="v139-preview"><div class="v139-preview-head"><div><b>${esc(p.publicId||p.id||'TP')} — ${esc(p.publicTitle||p.title||'')}</b><div class="muted">Aperçu temporaire — le TP n'est pas enregistré dans le logiciel ni dans Firebase.</div></div><button class="tpgen-btn purple" onclick="tp139OpenDiffusion()">Continuer vers la diffusion →</button></div><div class="v139-preview-body"><div class="v139-banner">TP lu depuis le fichier local. Vérifie son contenu avant de choisir la classe et les élèves.</div>${p.intro?`<div class="v139-section"><b>Situation professionnelle</b><p>${esc(p.intro)}</p></div>`:''}${body||'<div class="v139-section">Projet TP chargé.</div>'}</div></div>`}
+ window.tp139SelectForDiffusion=function(){let i=document.getElementById('tp139-source');if(!i){i=document.createElement('input');i.id='tp139-source';i.type='file';i.accept='.tp,.json,.tpjson,application/json';i.hidden=true;document.body.appendChild(i)}i.value='';i.onchange=async()=>{let f=i.files?.[0];if(!f)return;try{let o=JSON.parse(await f.text()),p=pdata(o);if(!p)throw Error('Format TP evaluation.tp.v1 non reconnu.');temp={fileName:f.name,obj:o,p,snap:snapshot(o,p)};window.tp139ShowSelected();}catch(e){alert('Impossible de lire ce TP : '+(e?.message||e))}};i.click()}
+ window.tp139ShowSelected=function(){window.setActive?.('tpGenerator');let main=document.getElementById('main');if(!main)return;main.innerHTML=`<header class="app-top-header"></header><div class="tpgen-manager-shell"><div class="tpgen-head"><div><h1>📤 Diffuser un TP</h1><p class="muted">Sélection locale → aperçu → classe → élèves → dossier. Aucun stockage du TP source dans Firebase.</p></div><div class="v139-home-actions"><button class="tpgen-btn secondary" onclick="tpGeneratorPage()">← Retour</button><button class="tpgen-btn primary" onclick="tp139SelectForDiffusion()">📂 Changer de TP</button></div></div>${temp?renderProject(temp.p):'<div class="tpgen-card"><button class="tpgen-btn purple" onclick="tp139SelectForDiffusion()">📂 Sélectionner un TP local</button></div>'}</div>`}
+ window.tp139OpenDiffusion=function(){if(!temp)return window.tp139SelectForDiffusion();window.__v117Project=clone(temp.p);window.__v116CurrentProject=clone(temp.p);window.tpGenState=window.tpGenState||{};window.tpGenState.diffusionClassId=String(window.getActiveClassId?.()||'');window.tpGenOpenClassExport?.()}
+ // Source temporaire pour le moteur de diffusion existant.
+ const oldLocked=window.tpGenLockedSnapshot;window.tpGenLockedSnapshot=function(){if(temp)return clone(temp.snap);return oldLocked?.apply(this,arguments)};
+ function students(){let ids=[...document.querySelectorAll('#tpgen-class-students input[type=checkbox]:checked')].map(x=>String(x.value)),pool=window.tpGenClassStudents?.()||[];return ids.map(id=>pool.find(s=>String(s.id)===id)).filter(Boolean)}
+ function safe(v){return window.tpGenSafeFilePart?window.tpGenSafeFilePart(v):String(v||'').replace(/[^a-z0-9_-]+/gi,'_')}
+ async function build(){if(!temp)throw Error('Sélectionne d’abord un TP.');let sts=students();if(!sts.length)throw Error('Sélectionne au moins un élève.');let p=temp.p,d=clone(temp.snap),code=p.publicId||p.id||'TP',className=document.querySelector('#tp26-diff-class option:checked')?.textContent?.trim()||'';window.__v117Project=clone(p);window.__v116CurrentProject=clone(p);let files=[];for(const st of sts){let m=window.tpGenBuildStudentPackage(st,d);m.tpProject=clone(p);m.tpPictograms=clone(p.__pictograms||[]);m.meta=m.meta||{};m.meta.readerRequired='V139';m.meta.source='fichier-local-temporaire';delete m.meta.sourceSavedId;m.type='tp-eleve-v139';m.code=code;m.titre=p.publicTitle||p.title||m.titre;let q=window.tpGenStudentParts?.(st)||{last:st.name||'ELEVE',first:''};files.push({name:[safe(q.last),safe(q.first),safe(code),'DIFFUSE'].filter(Boolean).join('_')+'.tp',text:JSON.stringify(m,null,2)})}return {files,sts,p,d,code,className}}
+ function persist(ctx){let a=[];try{a=JSON.parse(localStorage.getItem(DKEY)||'[]')||[]}catch(_){}let rec={id:'DIFF139-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,7),savedId:'',tpCode:ctx.code,title:ctx.p.publicTitle||ctx.p.title||'TP',classId:String(window.tpGenState?.diffusionClassId||''),className:ctx.className,students:ctx.sts.map(s=>({id:String(s.id),name:s.name||'',state:'grey'})),studentIds:ctx.sts.map(s=>String(s.id)),diffusedAt:new Date().toISOString(),fileCount:ctx.sts.length,storageVersion:139};a.unshift(rec);localStorage.setItem(DKEY,JSON.stringify(a.slice(0,500)));window.dispatchEvent(new CustomEvent('tp-diffusions-changed'));try{window.tpV132SyncNow?.('diffusion-v139')}catch(_){}return rec}
+ window.tpGenChooseClassFolder=async function(){if(!window.showDirectoryPicker)return alert('Le choix direct d’un dossier nécessite Edge ou Chrome.');try{folderHandle=await showDirectoryPicker({mode:'readwrite'});let e=document.getElementById('tpgen-folder-label');if(e)e.textContent='Dossier : '+folderHandle.name;return true}catch(e){return false}}
+ window.tpGenExportClassToFolder=async function(){try{if(!folderHandle&&!await window.tpGenChooseClassFolder())return false;let c=await build(),perm=folderHandle.queryPermission?await folderHandle.queryPermission({mode:'readwrite'}):'granted';if(perm!=='granted'&&folderHandle.requestPermission)perm=await folderHandle.requestPermission({mode:'readwrite'});if(perm!=='granted')throw Error('Autorisation d’écriture refusée.');for(const f of c.files){let h=await folderHandle.getFileHandle(f.name,{create:true}),w=await h.createWritable();await w.write(new Blob([f.text],{type:'application/json;charset=utf-8'}));await w.close()}persist(c);window.tpGenCloseClassExport?.();window.showSuccessMessage?.(`${c.sts.length} TP élève généré(s). Seul le registre léger de diffusion est synchronisé.`);return true}catch(e){alert('Diffusion impossible : '+(e?.message||e));return false}finally{window.__v117Project=null;window.__v116CurrentProject=null}}
+ window.tpGenExportClassZip=async function(){try{let c=await build(),blob=window.tpGenBuildStoreZip(c.files);window.tpGenDownloadBlob(blob,[safe(c.code),safe(c.className),'TP_ELEVES'].filter(Boolean).join('_')+'.zip');persist(c);window.tpGenCloseClassExport?.();return true}catch(e){alert('Diffusion ZIP impossible : '+(e?.message||e));return false}}
+ // Simplifie la page Générateur : plus de bibliothèque "Mes TP enregistrés"; diffusion depuis un fichier local.
+ const oldGen=window.tpGeneratorPage;window.tpGeneratorPage=function(){let r=oldGen?.apply(this,arguments);setTimeout(()=>{let h=document.querySelector('.tpgen-head');if(!h)return;let actions=h.querySelector('.tpgen-top-actions')||h;actions.querySelectorAll('button').forEach(b=>{if(/Mes TP enregistrés/i.test(b.textContent))b.remove()});if(!actions.querySelector('.v139-diffuse-btn')){let b=document.createElement('button');b.className='tpgen-btn v139-diffuse-btn';b.textContent='📤 Diffuser un TP';b.onclick=()=>window.tp139SelectForDiffusion();actions.prepend(b)}document.querySelectorAll('.tpgen-card button').forEach(b=>{if(/Enregistrer le TP|Mettre à jour le TP/i.test(b.textContent))b.style.display='none'})},0);return r};
+ // Registre des diffusions : liste repliée et compteurs gris / jaune / vert.
+ function diffRows(){try{let a=JSON.parse(localStorage.getItem(DKEY)||'[]');return Array.isArray(a)?a:[]}catch(_){return[]}}
+ function corrRows(){try{let a=JSON.parse(localStorage.getItem(CORR)||'[]');return Array.isArray(a)?a:[]}catch(_){return[]}}
+ function norm(s){return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'')}
+ function stName(st){return st?.name||[st?.nom,st?.prenom].filter(Boolean).join(' ')||'Élève'}
+ function stState(r,st){let code=norm(r.tpCode||r.code),sn=norm(stName(st)),sid=String(st?.id||st?.studentId||'');let c=corrRows().find(x=>{let d=x.data||{},cn=norm([d.eleve?.nom,d.eleve?.prenom].filter(Boolean).join(' ')||d.studentName||''),cid=String(d.studentId||d.eleve?.id||'');return norm(d.code||'')===code&&((sid&&cid===sid)||cn===sn)});return c?(c.correctedAt?'green':'yellow'):'grey'}
+ window.tp139ToggleStudents=function(id){let el=document.getElementById('v138-students-'+String(id));if(!el)return;let was=el.hidden;el.hidden=!was;let b=document.querySelector('[data-v139-toggle="'+String(id)+'"]');if(b)b.textContent=was?'▾ Masquer les élèves':'▸ Voir les élèves'};
+ window.tpV76DiffusionsPage=function(){window.setActive?.('tpGenerator');let rows=diffRows().sort((a,b)=>String(b.diffusedAt||'').localeCompare(String(a.diffusedAt||''))),main=document.getElementById('main');if(!main)return false;main.innerHTML=`<header class="app-top-header"></header><div class="tpgen-manager-shell"><div class="tpgen-head"><div><h1>📤 Mes TP diffusés</h1><p class="muted">Registre consolidé : gris = diffusé, jaune = rendu, vert = corrigé. Les fichiers TP ne sont pas stockés ici.</p></div><button class="tpgen-btn secondary" onclick="tpGeneratorPage()">← Retour</button></div><div class="tpgen-card">${rows.length?rows.map(r=>{let n={grey:0,yellow:0,green:0};(r.students||[]).forEach(st=>n[stState(r,st)]++);let id=String(r.id||'');return `<div class="v138-diff-card"><div class="v138-top"><div><b>${esc(r.tpCode||'TP')} — ${esc(r.title||'')}</b><div class="muted">${esc(r.className||'')} • ${r.diffusedAt?new Date(r.diffusedAt).toLocaleString('fr-FR'):''} • ${(r.students||[]).length} élève(s)</div></div><div class="v138-actions"><button class="tpgen-btn primary" onclick="tpV76AddDiffusionToDay('${esc(id)}')">＋ Affecter</button><button class="tpgen-btn danger" onclick="tp114DeleteDiffusion('${esc(id)}')">🗑️ Supprimer</button></div></div><div class="v138-counts"><span class="v138-count v138-grey">⬜ Diffusé <b>${n.grey}</b></span><span class="v138-count v138-yellow">🟨 Rendu <b>${n.yellow}</b></span><span class="v138-count v138-green">🟩 Corrigé <b>${n.green}</b></span></div><button class="v138-toggle" data-v139-toggle="${esc(id)}" onclick="tp139ToggleStudents('${esc(id)}')">▸ Voir les élèves</button><div class="v138-students" id="v138-students-${esc(id)}" hidden>${(r.students||[]).map(st=>{let q=stState(r,st),lab=q==='green'?'Corrigé':q==='yellow'?'Rendu':'Diffusé';return `<div class="v138-student ${q}"><b>${esc(stName(st))}</b><span>${lab}</span></div>`}).join('')||'<span class="muted">Liste nominative absente de cette ancienne diffusion.</span>'}</div></div>`}).join(''):'<div class="muted">Aucun TP diffusé enregistré.</div>'}</div></div>`;return true};
+ // Firebase : copies rendues complètes temporaires, découpées en chunks; suppression après correction validée.
+ function fsroot(){try{return firebase.auth().currentUser?firebase.firestore().collection('workspaces').doc('evaluation-mv-main').collection(CROOT):null}catch(_){return null}}
+ async function cloudPut(row){let col=fsroot();if(!col)return;let id=String(row.id),txt=JSON.stringify(row),size=650000,ch=[];for(let i=0;i<txt.length;i+=size)ch.push(txt.slice(i,i+size));let ref=col.doc(id),old=await ref.collection('chunks').get();for(let i=0;i<old.docs.length;i+=300){let b=firebase.firestore().batch();old.docs.slice(i,i+300).forEach(d=>b.delete(d.ref));await b.commit()}await ref.set({id,fileName:row.fileName||'',tpCode:row.data?.code||'',studentName:[row.data?.eleve?.nom,row.data?.eleve?.prenom].filter(Boolean).join(' '),importedAt:row.importedAt||new Date().toISOString(),chunks:ch.length,status:'RENDU',clientUpdatedAt:new Date().toISOString()},{merge:true});for(let i=0;i<ch.length;i++)await ref.collection('chunks').doc(String(i).padStart(5,'0')).set({i,data:ch[i]})}
+ async function cloudDel(id){let col=fsroot();if(!col)return;let ref=col.doc(String(id)),s=await ref.collection('chunks').get();for(let i=0;i<s.docs.length;i+=300){let b=firebase.firestore().batch();s.docs.slice(i,i+300).forEach(d=>b.delete(d.ref));await b.commit()}await ref.delete()}
+ const oldImport=window.tpCorrectionImport;window.tpCorrectionImport=async function(files){let before=new Set((()=>{try{return (JSON.parse(localStorage.getItem(CORR)||'[]')||[]).map(x=>String(x.id))}catch(_){return[]}})());let out=await oldImport?.apply(this,arguments);setTimeout(async()=>{try{let rows=JSON.parse(localStorage.getItem(CORR)||'[]')||[], fresh=rows.filter(x=>!before.has(String(x.id))&&!x.correctedAt);for(const light of fresh){let full=null;try{let db=await new Promise((ok,no)=>{let q=indexedDB.open('fdmahy_corrections_v129',1);q.onsuccess=()=>ok(q.result);q.onerror=()=>no(q.error)});full=await new Promise((ok,no)=>{let q=db.transaction('copies').objectStore('copies').get(String(light.id));q.onsuccess=()=>ok(q.result);q.onerror=()=>no(q.error)});db.close()}catch(_){}await cloudPut(full||light)}if(fresh.length)console.info('V139 copies rendues envoyées temporairement vers Firebase:',fresh.length)}catch(e){console.warn('V139 Firebase copies rendues',e)}},250);return out};
+ const oldValidate=window.tpCorrectionValidate;window.tpCorrectionValidate=async function(){let id=window.__tp55Current||window.__tpCorrectionCurrent||null;let ret=await oldValidate?.apply(this,arguments);setTimeout(async()=>{try{let rows=JSON.parse(localStorage.getItem(CORR)||'[]')||[],r=rows.find(x=>String(x.id)===String(id));if(r?.correctedAt){await cloudDel(r.id);console.info('V139 copie lourde supprimée de Firebase après correction validée',r.id);try{window.tpV132SyncNow?.('correction-v139')}catch(_){} }}catch(e){console.warn('V139 suppression copie Firebase',e)}},300);return ret};
+ // Version
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V139 — Competences Rta Gestion atelier TP';document.title='V139 Competences Rta Gestion atelier TP';
+ console.info('V139 : diffusion depuis fichier local + aperçu temporaire + registre léger + copies rendues Firebase temporaires.');
+})();
+</script>
+
 </body>
 </html>
 
@@ -16110,24 +16283,24 @@ window.tpCorrectionValidate=async function(){
  console.info('V131 correcteur : hydratation IndexedDB + images + coches par question.');
 })();
 </script>\n
-<!-- V136 — Correctif démarrage + stabilité diffusions + sauvegarde sur demande -->
-<script id="v136-stability">
+<!-- V137 — Correctif démarrage + stabilité diffusions + sauvegarde sur demande -->
+<script id="v137-stability">
 (function(){
   const DKEY='tp_generator_diffusions_v76', DEL='tp_diffusions_deleted_v114', WS='evaluation-mv-main';
   const originalDiff=window.tpV76DiffusionsPage;
   const originalLogout=window.logoutTeacher;
   let explicit=false, rendering=false;
   const isDiffPage=()=>/Mes TP diffusés/i.test(document.querySelector('.tpgen-manager-shell h1')?.textContent||'');
-  function openExplicit(){ explicit=true; try{return originalDiff?.()} finally{setTimeout(()=>explicit=false,250)} }
+  function openExplicit(){ explicit=true; const host=document.createElement('div'); host.style.display='none'; host.className='tpgen-manager-shell'; host.innerHTML='<h1>Mes TP diffusés</h1>'; document.body.appendChild(host); try{return originalDiff?.()} finally{host.remove();setTimeout(()=>explicit=false,250)} }
   // Capture uniquement les vrais clics utilisateur sur les boutons d'ouverture.
   document.addEventListener('click',function(e){
-    const b=e.target?.closest?.('#v76-diff-btn,#v76-saved-diff,[data-v136-open-diffusions]');
+    const b=e.target?.closest?.('#v76-diff-btn,#v76-saved-diff,[data-v137-open-diffusions]');
     if(!b)return;
     e.preventDefault(); e.stopImmediatePropagation(); openExplicit();
   },true);
   // Tout appel programmatique est ignoré sauf si la page est déjà affichée.
   window.tpV76DiffusionsPage=function(){
-    if(!explicit && !isDiffPage()){ console.debug('V136: ouverture automatique Mes TP diffusés bloquée'); return false; }
+    if(!explicit && !isDiffPage()){ console.debug('V137: ouverture automatique Mes TP diffusés bloquée'); return false; }
     if(rendering)return false;
     rendering=true; try{return originalDiff?.()} finally{setTimeout(()=>rendering=false,0)}
   };
@@ -16136,7 +16309,7 @@ window.tpCorrectionValidate=async function(){
     if(isDiffPage()) setTimeout(()=>window.tpV76DiffusionsPage(),100);
   }));
   async function delDoc(col,id){
-    try{const fs=firebase.firestore(),ref=fs.collection('workspaces').doc(WS).collection(col).doc(id);const c=await ref.collection('chunks').get();for(let i=0;i<c.docs.length;i+=300){const b=fs.batch();c.docs.slice(i,i+300).forEach(x=>b.delete(x.ref));await b.commit()}await ref.delete()}catch(e){console.warn('V136 suppression',col,e)}
+    try{const fs=firebase.firestore(),ref=fs.collection('workspaces').doc(WS).collection(col).doc(id);const c=await ref.collection('chunks').get();for(let i=0;i<c.docs.length;i+=300){const b=fs.batch();c.docs.slice(i,i+300).forEach(x=>b.delete(x.ref));await b.commit()}await ref.delete()}catch(e){console.warn('V137 suppression',col,e)}
   }
   window.tp114DeleteDiffusion=async function(id){
     id=String(id||''); let rows=[]; try{rows=JSON.parse(localStorage.getItem(DKEY)||'[]')}catch(_){}; if(!Array.isArray(rows))rows=[];
@@ -16162,8 +16335,8 @@ window.tpCorrectionValidate=async function(){
     localStorage.setItem('evaluation_home_workstation_v133','0');
     try{return await originalLogout?.apply(this,arguments)}finally{localStorage.setItem('evaluation_home_workstation_v133','1')}
   };
-  const bv=document.getElementById('build-version'); if(bv)bv.textContent='V136 — Competences Rta Gestion atelier TP';
-  document.title='V136 Competences Rta Gestion atelier TP';
-  console.info('V136 actif : démarrage base V134 + diffusions non intrusives + sauvegarde sur demande.');
+  const bv=document.getElementById('build-version'); if(bv)bv.textContent='V139 — Competences Rta Gestion atelier TP';
+  document.title='V137 Competences Rta Gestion atelier TP';
+  console.info('V137 actif : démarrage base V134 + diffusions non intrusives + sauvegarde sur demande.');
 })();
 </script>
