@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>V113 Competences Rta Gestion atelier TP</title>
+<title>V144 Competences Rta Gestion atelier TP</title>
 <style>
 *{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f5f7fa;color:#172033}
 .app{display:flex;min-height:100vh}.side{width:235px;background:#172033;color:#fff;padding:22px 14px}.logo{font-size:19px;font-weight:700;padding:8px 10px 24px}
@@ -2814,10 +2814,10 @@ body{background:#f7f9fc;color:var(--text)}
 <!-- V88 — DONNÉES DE RÉFÉRENCE RÉINTÉGRÉES DEPUIS V86.5
      Jeux embarqués repris : référentiel compétences, élèves par défaut, seconde classe fictive, situations professionnelles.
      Les données dynamiques (classes/élèves/évaluations réellement saisies) restent chargées par IndexedDB/localStorage et Firebase. -->
-<div id="build-version">V143 — Competences Rta Gestion atelier TP</div>
-<div id="firebase-auth-overlay" class="hidden" style="display:none">
+<div id="build-version">V144 — Competences Rta Gestion atelier TP</div>
+<div id="firebase-auth-overlay">
   <div class="firebase-login-card">
-    <h2>☁️ Connexion Firebase — V143</h2>
+    <h2>☁️ Connexion Firebase — V89</h2>
     <p>Cette version synchronise les classes, les élèves et désormais les évaluations avec Firebase. Le stockage local reste utilisé comme cache de sécurité pendant cette phase de validation.</p>
     <form id="firebase-login-form">
       <label for="firebase-email">Adresse e-mail</label>
@@ -8660,40 +8660,6 @@ function exportStudentDeletionPDF(studentsSnapshot, deletionDate){
 <!-- V138 runtime retiré en V139 : remplacé par registre V139 -->
 
 
-
-<!-- V142 — démarrage mobile non bloquant + authentification Firebase à la demande -->
-<style id="v142-mobile-auth-style">
-#firebase-auth-overlay{pointer-events:auto!important;touch-action:manipulation!important}
-#firebase-auth-overlay .firebase-login-card{pointer-events:auto!important;position:relative!important;z-index:20001!important}
-#firebase-auth-overlay input,#firebase-auth-overlay button{pointer-events:auto!important;touch-action:manipulation!important;-webkit-user-select:text!important;user-select:text!important}
-#firebase-auth-overlay input{font-size:16px!important}
-</style>
-<script id="v142-mobile-auth-runtime">
-(function(){
- const VERSION='V142';
- function stamp(){const b=document.getElementById('build-version');if(b)b.textContent=VERSION+' — Competences Rta Gestion atelier TP';document.title=VERSION+' Competences Rta Gestion atelier TP'}
- stamp(); new MutationObserver(stamp).observe(document.documentElement,{childList:true,subtree:true,characterData:true});
- function ov(){return document.getElementById('firebase-auth-overlay')}
- function hide(){const o=ov();if(o){o.classList.add('hidden');o.style.display='none'}}
- function show(){const o=ov();if(!o)return;o.classList.remove('hidden');o.style.display='flex';requestAnimationFrame(()=>{const i=document.getElementById('firebase-email');if(i){i.disabled=false;i.readOnly=false;i.style.pointerEvents='auto';try{i.focus({preventScroll:true})}catch(_){i.focus()}}})}
- // Ne jamais bloquer le démarrage : Firebase est une synchronisation, pas un écran d'accès au logiciel.
- hide();
- document.addEventListener('DOMContentLoaded',hide,{once:true});
- window.addEventListener('load',()=>setTimeout(()=>{if(!(window.firebase&&firebase.auth&&firebase.auth().currentUser))hide()},250),{once:true});
- // Le nuage devient l'entrée explicite vers la connexion quand aucun compte n'est connecté.
- document.addEventListener('click',function(e){
-   const m=e.target&&e.target.closest&&e.target.closest('#firebase-sync-mini'); if(!m)return;
-   try{if(window.firebase&&firebase.auth&&firebase.auth().currentUser)return}catch(_){}
-   e.preventDefault();e.stopImmediatePropagation();show();
- },true);
- // Échap / toucher hors carte permet toujours de sortir de la connexion.
- document.addEventListener('keydown',e=>{if(e.key==='Escape')hide()});
- document.addEventListener('click',e=>{const o=ov();if(o&&e.target===o)hide()});
- window.v142ShowFirebaseLogin=show;window.v142HideFirebaseLogin=hide;
- console.info('V142 actif : démarrage iOS non bloquant, Firebase à la demande.');
-})();
-</script>
-
 </body></html>`);
   w.document.close();
 }
@@ -12437,11 +12403,9 @@ function startRealtimeListeners(){
         const miniText=document.getElementById('firebase-sync-mini-text');
         if(mini){mini.classList.remove('ok','warn','bad');mini.classList.add('off');}
         if(miniText)miniText.textContent='Firebase déconnecté';
-        // V142 : une déconnexion Firebase ne bloque plus le logiciel, notamment sur iPhone/iPad.
-        overlay.classList.add('hidden');
-        overlay.style.display='none';
+        overlay.classList.remove('hidden');
         panel.hidden=true;
-        errorBox.textContent='Firebase déconnecté. Touchez le nuage pour vous connecter.';
+        errorBox.textContent='';
       }
     });
 
@@ -15970,98 +15934,6 @@ window.tpCorrectionValidate=async function(){
 })();
 </script>
 
-<!-- V137 — navigation diffusions stable + sauvegarde visible et dossier maîtrisé -->
-<script id="v137-stability-backup">
-(function(){
- const VERSION='V137';
- const HOME='evaluation_home_workstation_v133';
- const BDB='evaluation_home_backup_v133', BST='handles';
- // V137 bloquait aussi les clics légitimes. On garde la vraie page, mais on n'autorise
- // une ouverture depuis une autre vue que lorsqu'elle provient d'un clic utilisateur.
- const realDiff = (function(){
-   // V137 avait capturé la fonction fonctionnelle dans sa fermeture; on retrouve ici
-   // la fonction de rendu V76 à partir du bouton existant si possible, sinon l'actuelle.
-   return window.tpV76DiffusionsPage;
- })();
- // La fonction V137 accepte déjà la page visible mais bloque parfois le bouton créé avant elle.
- // On déclenche explicitement le gestionnaire au clic, sans stopImmediatePropagation.
- document.addEventListener('click',function(e){
-   const b=e.target?.closest?.('#v76-diff-btn,#v76-saved-diff');
-   if(!b || !e.isTrusted) return;
-   e.preventDefault();
-   try{
-     // Le bouton peut contenir l'ancien onclick V76, qui est le plus fiable.
-     const fn=b.onclick;
-     if(typeof fn==='function' && fn!==window.tpV76DiffusionsPage){ fn.call(b,e); return; }
-     // Autorisation explicite V137 : simuler la page déjà demandée via le vrai clic.
-     const shell=document.querySelector('.tpgen-manager-shell');
-     if(typeof window.__v137OpenDiffusions==='function') return window.__v137OpenDiffusions();
-     // Chercher la fonction V76 conservée dans onclick des boutons futurs n'est pas nécessaire :
-     // on appelle l'implémentation courante après avoir posé un marqueur utilisateur.
-     window.__v137TrustedDiffusionClick=true;
-     return window.tpV76DiffusionsPage?.();
-   } finally { setTimeout(()=>window.__v137TrustedDiffusionClick=false,0); }
- },true);
- // Remplacer le verrou V137 par une règle simple : clic humain OU rafraîchissement de la page déjà ouverte.
- const v137Diff=window.tpV76DiffusionsPage;
- window.tpV76DiffusionsPage=function(){
-   const visible=/Mes TP diffusés/i.test(document.querySelector('.tpgen-manager-shell h1')?.textContent||'');
-   const trusted=!!window.__v137TrustedDiffusionClick || !!window.event?.isTrusted;
-   if(!trusted && !visible){ console.debug('V137: navigation Firebase vers Mes TP diffusés ignorée'); return false; }
-   // Pour un clic humain, V137 peut encore refuser. On utilise temporairement un faux titre visible
-   // uniquement pendant l'appel, sans modifier l'écran : son test interne repose sur le DOM.
-   if(trusted && !visible){
-     const host=document.createElement('div'); host.style.display='none'; host.className='tpgen-manager-shell';
-     host.innerHTML='<h1>Mes TP diffusés</h1>'; document.body.appendChild(host);
-     try{return v137Diff?.apply(this,arguments)}finally{host.remove()}
-   }
-   return v137Diff?.apply(this,arguments);
- };
- // Les boutons créés après ce runtime doivent pointer vers V137.
- const mo=new MutationObserver(()=>{
-   document.querySelectorAll('#v76-diff-btn,#v76-saved-diff').forEach(b=>{
-     if(b.dataset.v137Bound)return; b.dataset.v137Bound='1';
-     b.onclick=function(ev){ window.__v137TrustedDiffusionClick=true; try{return window.tpV76DiffusionsPage()}finally{setTimeout(()=>window.__v137TrustedDiffusionClick=false,0)} };
-   });
- }); mo.observe(document.documentElement,{childList:true,subtree:true});
-
- function openBdb(){return new Promise((res,rej)=>{const q=indexedDB.open(BDB,1);q.onupgradeneeded=()=>{if(!q.result.objectStoreNames.contains(BST))q.result.createObjectStore(BST)};q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error)})}
- async function clearBackupFolder(){try{const d=await openBdb();await new Promise((res,rej)=>{const q=d.transaction(BST,'readwrite').objectStore(BST).delete('backupFolder');q.onsuccess=()=>res();q.onerror=()=>rej(q.error)});return true}catch(e){console.warn(e);return false}}
- function lastBackupText(){try{const x=JSON.parse(localStorage.getItem('evaluation_last_global_backup_v133')||'null');if(x?.at)return new Date(x.at).toLocaleString('fr-FR')}catch(_){}return 'Aucune sauvegarde enregistrée'}
- function backupModal(){return new Promise(resolve=>{
-   document.getElementById('v137-backup-modal')?.remove();
-   const ov=document.createElement('div'); ov.id='v137-backup-modal';
-   ov.style.cssText='position:fixed;inset:0;z-index:2147483647;background:rgba(10,20,35,.78);display:flex;align-items:center;justify-content:center;padding:20px;font-family:system-ui,sans-serif';
-   ov.innerHTML=`<div style="width:min(620px,96vw);background:#fff;border-radius:22px;box-shadow:0 24px 80px rgba(0,0,0,.45);overflow:hidden;border:4px solid #f59e0b">
-    <div style="background:#fff7ed;padding:22px 26px;border-bottom:1px solid #fed7aa"><div style="font-size:30px;font-weight:900;color:#9a3412">⚠️ Sauvegarde avant de quitter</div><div style="margin-top:8px;font-size:17px;color:#7c2d12">Poste maison — dernière sauvegarde : <b>${lastBackupText()}</b></div></div>
-    <div style="padding:24px 26px;font-size:18px;line-height:1.45;color:#1f2937">Souhaites-tu créer une sauvegarde globale avant de fermer le logiciel ?<div style="margin-top:12px;font-size:14px;color:#64748b">Le dossier de sauvegarde déjà autorisé sera réutilisé. Tu peux aussi choisir un autre dossier.</div></div>
-    <div style="padding:0 26px 26px;display:grid;gap:10px"><button data-a="save" style="padding:16px;border:0;border-radius:12px;background:#15803d;color:white;font-size:17px;font-weight:800;cursor:pointer">💾 Oui, sauvegarder puis quitter</button><button data-a="folder" style="padding:13px;border:2px solid #2563eb;border-radius:12px;background:#eff6ff;color:#1d4ed8;font-size:16px;font-weight:750;cursor:pointer">📁 Choisir / changer le dossier de sauvegarde</button><button data-a="nosave" style="padding:13px;border:0;border-radius:12px;background:#dc2626;color:white;font-size:16px;font-weight:750;cursor:pointer">Quitter sans sauvegarder</button><button data-a="cancel" style="padding:12px;border:1px solid #cbd5e1;border-radius:12px;background:white;color:#334155;font-size:16px;font-weight:700;cursor:pointer">Annuler — rester dans le logiciel</button></div></div>`;
-   ov.addEventListener('click',e=>{const a=e.target?.closest?.('[data-a]')?.dataset.a;if(!a)return;ov.remove();resolve(a)});document.body.appendChild(ov);
- })}
- const logoutV137=window.logoutTeacher;
- window.logoutTeacher=async function(){
-   if(localStorage.getItem(HOME)!=='1') return logoutV137?.apply(this,arguments);
-   while(true){
-     const a=await backupModal();
-     if(a==='cancel')return false;
-     if(a==='folder'){await clearBackupFolder();try{const r=await window.v133SaveGlobalBackup?.();if(r?.ok)window.showSuccessMessage?.('Dossier choisi et sauvegarde créée : '+r.file);else alert('Le dossier n’a pas été validé.')}catch(e){alert('Choix du dossier impossible : '+(e?.message||e))}continue}
-     if(a==='save'){
-       try{const r=await window.v133SaveGlobalBackup?.();if(!r?.ok){alert('La sauvegarde n’a pas été confirmée. Le logiciel reste ouvert.');return false}window.showSuccessMessage?.('Sauvegarde créée : '+r.file)}catch(e){alert('Sauvegarde impossible : '+(e?.message||e));return false}
-     }
-     // Appeler l'ancien logout sans relancer son dialogue V137 ni sa sauvegarde automatique V133.
-     localStorage.setItem(HOME,'0');
-     try{return await logoutV137?.apply(this,arguments)}finally{localStorage.setItem(HOME,'1')}
-   }
- };
- // Une fermeture directe de l'onglet ne peut pas lancer une grosse sauvegarde de façon fiable.
- // Le navigateur affiche donc son avertissement natif si le poste maison est actif.
- window.addEventListener('beforeunload',function(e){if(localStorage.getItem(HOME)!=='1')return;e.preventDefault();e.returnValue='';});
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V139 — Competences Rta Gestion atelier TP';document.title='V137 Competences Rta Gestion atelier TP';
- console.info('V137 actif : accès manuel aux TP diffusés + sauvegarde visible et dossier maîtrisé.');
-})();
-</script>
-
-
 <style id="v138-diffusion-style">
 .v138-diff-card{border:1px solid #dbe4ee;border-radius:14px;padding:14px 16px;margin:12px 0;background:#fff}.v138-top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.v138-counts{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}.v138-count{display:inline-flex;align-items:center;gap:7px;border-radius:999px;padding:6px 11px;font-weight:900;font-size:13px;border:1px solid transparent}.v138-grey{background:#e5e7eb;color:#374151;border-color:#cbd5e1}.v138-yellow{background:#fef3c7;color:#92400e;border-color:#fbbf24}.v138-green{background:#dcfce7;color:#166534;border-color:#86efac}.v138-students{margin-top:10px;border-top:1px solid #e5e7eb;padding-top:10px}.v138-student{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:7px 8px;border-radius:8px;margin:4px 0}.v138-student.grey{background:#f3f4f6}.v138-student.yellow{background:#fffbeb}.v138-student.green{background:#f0fdf4}.v138-actions{display:flex;gap:7px;flex-wrap:wrap}.v138-toggle{border:0;background:#eef4fa;color:#174e82;font-weight:800;border-radius:9px;padding:8px 11px;cursor:pointer}
 </style>
@@ -16130,141 +16002,46 @@ window.tpCorrectionValidate=async function(){
 })();
 </script>
 
-<style id="v140-style">
-#v140-exit-overlay{position:fixed;inset:0;z-index:2147483646;background:rgba(7,18,35,.82);display:flex;align-items:center;justify-content:center;padding:24px;backdrop-filter:blur(4px)}
-#v140-exit-overlay[hidden]{display:none!important}.v140-exit-box{width:min(680px,96vw);background:#fff;border:4px solid #1d4ed8;border-radius:24px;box-shadow:0 30px 90px rgba(0,0,0,.55);padding:30px;text-align:center}.v140-exit-icon{font-size:54px;line-height:1}.v140-exit-box h2{font-size:30px;margin:10px 0;color:#0f2745}.v140-exit-box p{font-size:17px;line-height:1.5;color:#475569}.v140-exit-actions{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:22px}.v140-exit-actions button{min-height:58px;border-radius:14px;border:0;font-weight:900;font-size:16px;cursor:pointer;padding:12px}.v140-save{background:#15803d;color:white}.v140-nosave{background:#b91c1c;color:white}.v140-folder{background:#e0ecff;color:#174e82}.v140-cancel{background:#e5e7eb;color:#1f2937}@media(max-width:620px){.v140-exit-actions{grid-template-columns:1fr}.v140-exit-box{padding:22px}.v140-exit-box h2{font-size:25px}}
+
+<!-- V144 — couche fonctionnelle uniquement; démarrage/Firebase hérités de la base stable V139 -->
+<style id="v144-style">
+#v144-version{position:fixed;right:12px;bottom:12px;z-index:9999;background:#123f70;color:#fff;padding:7px 12px;border-radius:999px;font:800 13px/1.2 Arial,sans-serif;box-shadow:0 2px 8px #0003;pointer-events:none}
+.v144-card{border:1px solid #d8dee8;border-radius:14px;padding:15px;margin:12px 0;background:#fff}.v144-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}.v144-counts{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0}.v144-pill{padding:7px 11px;border-radius:999px;font-weight:800}.v144-grey{background:#e5e7eb}.v144-yellow{background:#fde68a}.v144-green{background:#bbf7d0}.v144-students{margin-top:10px;border-top:1px solid #e5e7eb;padding-top:8px}.v144-student{display:flex;justify-content:space-between;padding:7px 9px;border-radius:8px;margin:4px 0}.v144-student.grey{background:#f3f4f6}.v144-student.yellow{background:#fef3c7}.v144-student.green{background:#dcfce7}
+#v144-exit{position:fixed;inset:0;z-index:2147483000;background:rgba(5,12,25,.86);display:flex;align-items:center;justify-content:center;padding:18px}#v144-exitbox{width:min(720px,96vw);background:#fff;border:6px solid #f59e0b;border-radius:24px;padding:28px;text-align:center;box-shadow:0 30px 90px #000a}#v144-exitbox h2{font-size:32px;color:#8a3f00;margin:5px 0 12px}#v144-exitbox p{font-size:18px}.v144-actions{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:22px}.v144-actions button{border:0;border-radius:13px;padding:16px;font-size:17px;font-weight:800;cursor:pointer}.v144-save{background:#16834b;color:#fff}.v144-folder{background:#155e9b;color:#fff}.v144-nosave{background:#b42318;color:#fff}.v144-cancel{background:#e5e7eb;color:#111827}@media(max-width:650px){.v144-actions{grid-template-columns:1fr}#v144-exitbox{padding:20px}#v144-exitbox h2{font-size:27px}}
 </style>
-<script id="v140-final-fix">
-(function(){
- const VERSION='V140',DKEY='tp_generator_diffusions_v76';
- const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
- const rows=()=>{try{const a=JSON.parse(localStorage.getItem(DKEY)||'[]');return Array.isArray(a)?a:[]}catch(_){return[]}};
- const corr=()=>{try{const a=JSON.parse(localStorage.getItem('tp_correction_local_v54')||'[]');return Array.isArray(a)?a:[]}catch(_){return[]}};
- const nm=s=>String(s?.name||s?.nomComplet||[s?.last,s?.first].filter(Boolean).join(' ')||s?.id||'Élève');
- function status(r,s){let direct=String(s?.state||s?.status||'').toLowerCase();if(/corrig|green/.test(direct))return'green';if(/rendu|yellow|corriger/.test(direct))return'yellow';let cs=corr(),sid=String(s?.id||''),name=nm(s).toLowerCase(),code=String(r?.tpCode||'').toLowerCase();let hit=cs.find(x=>{let d=x.data||x,st=d.eleve||d.student||{},xn=String(st.id||x.studentId||''),xname=String([st.nom||st.last||'',st.prenom||st.first||''].filter(Boolean).join(' ')||x.studentName||'').toLowerCase(),xc=String(d.code||d.tpCode||x.tpCode||'').toLowerCase();return (!code||!xc||xc===code)&&((sid&&xn===sid)||(name&&xname===name))});return hit?(hit.correctedAt||hit.validatedAt||hit.status==='corrected'?'green':'yellow'):'grey'}
- window.tp140RenderDiffusions=function(){
-   try{window.setActive?.('tpGenerator')}catch(_){}
-   const main=document.getElementById('main');if(!main)return false;
-   const data=rows().sort((a,b)=>String(b.diffusedAt||'').localeCompare(String(a.diffusedAt||'')));
-   main.innerHTML=`<header class="app-top-header"></header><div class="tpgen-manager-shell"><div class="tpgen-head"><div><h1>📤 Mes TP diffusés</h1><p class="muted">Registre consolidé : gris = diffusé, jaune = rendu, vert = corrigé. Les élèves sont repliés par défaut.</p></div><button type="button" class="tpgen-btn secondary" data-v140-home>← Accueil / Retour</button></div><div class="tpgen-card">${data.length?data.map(r=>{let c={grey:0,yellow:0,green:0},sts=Array.isArray(r.students)?r.students:[];sts.forEach(s=>c[status(r,s)]++);let id=String(r.id||'');return `<div class="v138-diff-card"><div class="v138-top"><div><b>${esc(r.tpCode||'TP')} — ${esc(r.title||'')}</b><div class="muted">${esc(r.className||'')} • ${r.diffusedAt?new Date(r.diffusedAt).toLocaleString('fr-FR'):''} • ${sts.length} élève(s)</div></div><div class="v138-actions"><button type="button" class="tpgen-btn primary" onclick="tpV76AddDiffusionToDay('${esc(id)}')">＋ Affecter</button><button type="button" class="tpgen-btn danger" onclick="tp114DeleteDiffusion('${esc(id)}')">🗑️ Supprimer</button></div></div><div class="v138-counts"><span class="v138-count v138-grey">⬜ Diffusé <b>${c.grey}</b></span><span class="v138-count v138-yellow">🟨 Rendu <b>${c.yellow}</b></span><span class="v138-count v138-green">🟩 Corrigé <b>${c.green}</b></span></div><button type="button" class="v138-toggle" data-v140-toggle="${esc(id)}">▸ Voir les élèves</button><div class="v138-students" data-v140-students="${esc(id)}" hidden>${sts.map(s=>{let q=status(r,s),lab=q==='green'?'Corrigé':q==='yellow'?'Rendu':'Diffusé';return `<div class="v138-student ${q}"><b>${esc(nm(s))}</b><span>${lab}</span></div>`}).join('')||'<span class="muted">Liste nominative absente de cette ancienne diffusion.</span>'}</div></div>`}).join(''):'<div class="muted">Aucun TP diffusé enregistré.</div>'}</div></div>`;
-   return true;
- };
- // Le clic utilisateur ouvre directement le registre. Aucun faux écran ni appel récursif.
- document.addEventListener('click',function(e){
-   const open=e.target?.closest?.('#v76-diff-btn,#v76-saved-diff,[data-v137-open-diffusions],[data-v140-open-diffusions]');
-   if(open){e.preventDefault();e.stopImmediatePropagation();window.tp140RenderDiffusions();return}
-   const tog=e.target?.closest?.('[data-v140-toggle]');if(tog){e.preventDefault();const id=tog.getAttribute('data-v140-toggle'),box=document.querySelector('[data-v140-students="'+CSS.escape(id)+'"]');if(box){box.hidden=!box.hidden;tog.textContent=box.hidden?'▸ Voir les élèves':'▾ Masquer les élèves'}return}
-   const home=e.target?.closest?.('[data-v140-home]');if(home){e.preventDefault();try{window.tpGeneratorPage?.()}catch(_){try{window.homePage?.()}catch(__){}}}
- },true);
- // L'API historique reste disponible uniquement pour un appel volontaire depuis le code courant.
- window.tpV76DiffusionsPage=function(){return window.tp140RenderDiffusions()};
-
- function ensureModal(){let o=document.getElementById('v140-exit-overlay');if(o)return o;o=document.createElement('div');o.id='v140-exit-overlay';o.hidden=true;o.innerHTML=`<div class="v140-exit-box" role="dialog" aria-modal="true" aria-labelledby="v140-exit-title"><div class="v140-exit-icon">💾</div><h2 id="v140-exit-title">Sauvegarder avant de quitter ?</h2><p id="v140-exit-last">Choisis ce que tu souhaites faire avant de fermer le logiciel.</p><div class="v140-exit-actions"><button class="v140-save" data-choice="save">💾 Sauvegarder puis quitter</button><button class="v140-folder" data-choice="folder">📁 Choisir / changer le dossier</button><button class="v140-nosave" data-choice="nosave">🚪 Quitter sans sauvegarder</button><button class="v140-cancel" data-choice="cancel">↩ Annuler</button></div></div>`;document.body.appendChild(o);return o}
- function askExit(){return new Promise(resolve=>{const o=ensureModal();let last=null;try{last=JSON.parse(localStorage.getItem('evaluation_last_global_backup_v133')||'null')}catch(_){};document.getElementById('v140-exit-last').innerHTML=last?.at?`Dernière sauvegarde réussie : <b>${esc(new Date(last.at).toLocaleString('fr-FR'))}</b><br>Souhaites-tu créer une nouvelle sauvegarde ?`:'Aucune sauvegarde récente n’est enregistrée. Souhaites-tu sauvegarder avant de quitter ?';o.hidden=false;const fn=e=>{const b=e.target.closest('[data-choice]');if(!b)return;o.removeEventListener('click',fn);o.hidden=true;resolve(b.dataset.choice)};o.addEventListener('click',fn)})}
- async function chooseFolder(){if(!window.showDirectoryPicker){alert('Le choix direct d’un dossier n’est pas disponible dans ce navigateur.');return false}try{const h=await showDirectoryPicker({mode:'readwrite'});const db=await new Promise((res,rej)=>{const q=indexedDB.open('evaluation_home_backup_v133',1);q.onupgradeneeded=()=>{if(!q.result.objectStoreNames.contains('handles'))q.result.createObjectStore('handles')};q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error)});await new Promise((res,rej)=>{const q=db.transaction('handles','readwrite').objectStore('handles').put(h,'backupFolder');q.onsuccess=()=>res();q.onerror=()=>rej(q.error)});db.close();alert('Dossier de sauvegarde sélectionné : '+h.name);return true}catch(e){if(e?.name!=='AbortError')alert('Impossible de sélectionner le dossier : '+(e?.message||e));return false}}
- const previousLogout=window.logoutTeacher;
- window.logoutTeacher=async function(){
-   const home=localStorage.getItem('evaluation_home_workstation_v133')==='1';if(!home)return previousLogout?.apply(this,arguments);
-   while(true){const choice=await askExit();if(choice==='cancel')return false;if(choice==='folder'){await chooseFolder();continue}if(choice==='save'){try{const r=await window.v133SaveGlobalBackup?.();if(!r?.ok){alert('La sauvegarde n’a pas été confirmée. Le logiciel reste ouvert.');return false}window.showSuccessMessage?.('Sauvegarde créée : '+r.file)}catch(e){alert('Sauvegarde impossible : '+(e?.message||e));return false}}
-     localStorage.setItem('evaluation_home_workstation_v133','0');try{return await previousLogout?.apply(this,arguments)}finally{localStorage.setItem('evaluation_home_workstation_v133','1')}
-   }
- };
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V140 — Competences Rta Gestion atelier TP';document.title='V140 Competences Rta Gestion atelier TP';
- console.info('V140 : Mes TP diffusés réparé + navigation stable + sauvegarde de sortie très visible.');
-})();
-</script>
-
-
-<!-- V142 — démarrage mobile non bloquant + authentification Firebase à la demande -->
-<style id="v142-mobile-auth-style">
-#firebase-auth-overlay{pointer-events:auto!important;touch-action:manipulation!important}
-#firebase-auth-overlay .firebase-login-card{pointer-events:auto!important;position:relative!important;z-index:20001!important}
-#firebase-auth-overlay input,#firebase-auth-overlay button{pointer-events:auto!important;touch-action:manipulation!important;-webkit-user-select:text!important;user-select:text!important}
-#firebase-auth-overlay input{font-size:16px!important}
-</style>
-<script id="v142-mobile-auth-runtime">
-(function(){
- const VERSION='V142';
- function stamp(){const b=document.getElementById('build-version');if(b)b.textContent=VERSION+' — Competences Rta Gestion atelier TP';document.title=VERSION+' Competences Rta Gestion atelier TP'}
- stamp(); new MutationObserver(stamp).observe(document.documentElement,{childList:true,subtree:true,characterData:true});
- function ov(){return document.getElementById('firebase-auth-overlay')}
- function hide(){const o=ov();if(o){o.classList.add('hidden');o.style.display='none'}}
- function show(){const o=ov();if(!o)return;o.classList.remove('hidden');o.style.display='flex';requestAnimationFrame(()=>{const i=document.getElementById('firebase-email');if(i){i.disabled=false;i.readOnly=false;i.style.pointerEvents='auto';try{i.focus({preventScroll:true})}catch(_){i.focus()}}})}
- // Ne jamais bloquer le démarrage : Firebase est une synchronisation, pas un écran d'accès au logiciel.
- hide();
- document.addEventListener('DOMContentLoaded',hide,{once:true});
- window.addEventListener('load',()=>setTimeout(()=>{if(!(window.firebase&&firebase.auth&&firebase.auth().currentUser))hide()},250),{once:true});
- // Le nuage devient l'entrée explicite vers la connexion quand aucun compte n'est connecté.
- document.addEventListener('click',function(e){
-   const m=e.target&&e.target.closest&&e.target.closest('#firebase-sync-mini'); if(!m)return;
-   try{if(window.firebase&&firebase.auth&&firebase.auth().currentUser)return}catch(_){}
-   e.preventDefault();e.stopImmediatePropagation();show();
- },true);
- // Échap / toucher hors carte permet toujours de sortir de la connexion.
- document.addEventListener('keydown',e=>{if(e.key==='Escape')hide()});
- document.addEventListener('click',e=>{const o=ov();if(o&&e.target===o)hide()});
- window.v142ShowFirebaseLogin=show;window.v142HideFirebaseLogin=hide;
- console.info('V142 actif : démarrage iOS non bloquant, Firebase à la demande.');
-})();
-</script>
-
-
-<!-- V143 — bootstrap final anti-blocage / version visible -->
-<style id="v143-final-style">
-#v143-version-badge{position:fixed;right:12px;bottom:12px;z-index:2147483647;background:#0f4f87;color:#fff;border:2px solid #fff;border-radius:999px;padding:8px 13px;font:800 14px/1 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;box-shadow:0 4px 16px rgba(15,23,42,.28);pointer-events:none}
-#firebase-auth-overlay.v143-user-open{display:flex!important;visibility:visible!important;opacity:1!important;pointer-events:auto!important}
-body:not(.v143-firebase-user-open) #firebase-auth-overlay{display:none!important;visibility:hidden!important;opacity:0!important;pointer-events:none!important}
-</style>
-<div id="v143-version-badge" aria-label="Version du logiciel">V143</div>
-<script id="v143-final-bootstrap">
+<div id="v144-version">V144</div>
+<script id="v144-runtime">
 (function(){
  'use strict';
- const VERSION='V143';
- let userRequestedFirebase=false;
- function stamp(){
-   const b=document.getElementById('build-version');
-   if(b) b.textContent=VERSION+' — Competences Rta Gestion atelier TP';
-   const badge=document.getElementById('v143-version-badge'); if(badge) badge.textContent=VERSION;
-   document.title=VERSION+' Competences Rta Gestion atelier TP';
- }
- function overlay(){return document.getElementById('firebase-auth-overlay')}
- function forceAppOpen(){
-   stamp();
-   const o=overlay();
-   if(o && !userRequestedFirebase){
-     o.classList.add('hidden'); o.classList.remove('v143-user-open');
-     o.style.setProperty('display','none','important');
-     o.setAttribute('aria-hidden','true');
-     document.body && document.body.classList.remove('v143-firebase-user-open');
-   }
- }
- function openFirebaseByUser(){
-   userRequestedFirebase=true;
-   const o=overlay(); if(!o)return;
-   document.body && document.body.classList.add('v143-firebase-user-open');
-   o.classList.remove('hidden');o.classList.add('v143-user-open');o.style.setProperty('display','flex','important');o.removeAttribute('aria-hidden');
-   setTimeout(()=>{const i=document.getElementById('firebase-email');if(i){i.disabled=false;i.readOnly=false;try{i.focus()}catch(_){}}},50);
- }
- // Legacy Firebase initialization may try to reopen its V89/Vxx modal after a failed SDK/auth init.
- // Neutralize that behavior continuously, except after an explicit tap on the cloud control.
- document.addEventListener('DOMContentLoaded',()=>{
-   forceAppOpen();
-   const mini=document.getElementById('firebase-sync-mini'); if(mini) mini.addEventListener('click',()=>setTimeout(openFirebaseByUser,0),true);
-   const closeCandidates=document.querySelectorAll('#firebase-auth-overlay [data-close],#firebase-auth-overlay .close');
-   closeCandidates.forEach(x=>x.addEventListener('click',()=>{userRequestedFirebase=false;forceAppOpen()},true));
-   setTimeout(forceAppOpen,0);setTimeout(forceAppOpen,250);setTimeout(forceAppOpen,1000);setTimeout(forceAppOpen,2500);
- });
- window.addEventListener('load',forceAppOpen);
- const mo=new MutationObserver(()=>{stamp(); if(!userRequestedFirebase) forceAppOpen()});
- mo.observe(document.documentElement,{subtree:true,childList:true,attributes:true,attributeFilter:['class','style']});
- // Expose only for the explicit cloud button if another UI handler wants it.
- window.v143OpenFirebaseLogin=openFirebaseByUser;
- stamp();forceAppOpen();
- // Remove stale app-shell caches/SW registrations once V143 itself has loaded.
- if('caches' in window){caches.keys().then(keys=>Promise.all(keys.filter(k=>!/V143/i.test(k)).map(k=>caches.delete(k)))).catch(()=>{});}
- if('serviceWorker' in navigator){navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>{try{r.update()}catch(_){}})).catch(()=>{});}
+ const DKEY='tp_generator_diffusions_v76', CORR='tp_correction_local_v54';
+ const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+ const read=(k,d=[])=>{try{const v=JSON.parse(localStorage.getItem(k)||'null');return v??d}catch(_){return d}};
+ const studentName=s=>String(s?.name||[s?.nom,s?.prenom].filter(Boolean).join(' ')||'Élève').trim();
+ function state(r,s){const sid=String(s?.id||''), name=studentName(s).toLowerCase(), cs=read(CORR,[]);const hit=cs.find(c=>{const d=c.data||c,cid=String(d.studentId||d.eleveId||d.eleve?.id||''),cn=String(d.nomComplet||d.eleveNom||[d.nom,d.prenom].filter(Boolean).join(' ')).toLowerCase();return (sid&&cid===sid)||(name&&cn===name)});if(hit?.correctedAt||hit?.status==='corrected'||hit?.validatedAt)return'green';if(hit)return'yellow';return'grey'}
+ window.tpV76DiffusionsPage=function(){
+   try{window.setActive?.('tpGenerator')}catch(_){}
+   const main=document.getElementById('main'); if(!main)return false;
+   const data=(Array.isArray(read(DKEY,[]))?read(DKEY,[]):[]).sort((a,b)=>String(b.diffusedAt||'').localeCompare(String(a.diffusedAt||'')));
+   main.innerHTML=`<header class="app-top-header"></header><div class="tpgen-manager-shell"><div class="tpgen-head"><div><h1>📤 Mes TP diffusés</h1><p class="muted">${data.length} diffusion(s). Les élèves sont repliés par défaut.</p></div><button type="button" class="tpgen-btn secondary" id="v144-back">← Accueil</button></div><div class="tpgen-card">${data.length?data.map(r=>{const sts=Array.isArray(r.students)?r.students:[],c={grey:0,yellow:0,green:0};sts.forEach(x=>c[state(r,x)]++);const id=String(r.id||'');return `<div class="v144-card"><div class="v144-head"><div><b>${esc(r.tpCode||'TP')} — ${esc(r.title||'')}</b><div class="muted">${esc(r.className||'')} • ${r.diffusedAt?new Date(r.diffusedAt).toLocaleString('fr-FR'):''} • ${sts.length} élève(s)</div></div><div><button class="tpgen-btn primary" onclick="tpV76AddDiffusionToDay('${esc(id)}')">＋ Affecter</button> <button class="tpgen-btn danger" onclick="tp114DeleteDiffusion('${esc(id)}');setTimeout(tpV76DiffusionsPage,120)">🗑️ Supprimer</button></div></div><div class="v144-counts"><span class="v144-pill v144-grey">⬜ Diffusé <b>${c.grey}</b></span><span class="v144-pill v144-yellow">🟨 Rendu <b>${c.yellow}</b></span><span class="v144-pill v144-green">🟩 Corrigé <b>${c.green}</b></span></div><button type="button" class="tpgen-btn secondary" onclick="var x=this.nextElementSibling;x.hidden=!x.hidden;this.textContent=x.hidden?'▸ Voir les élèves':'▾ Masquer les élèves'">▸ Voir les élèves</button><div class="v144-students" hidden>${sts.length?sts.map(st=>{const q=state(r,st),lab=q==='green'?'Corrigé':q==='yellow'?'Rendu':'Diffusé';return `<div class="v144-student ${q}"><b>${esc(studentName(st))}</b><span>${lab}</span></div>`}).join(''):'<span class="muted">Liste nominative absente de cette ancienne diffusion.</span>'}</div></div>`}).join(''):'<div class="muted">Aucun TP diffusé enregistré.</div>'}</div></div>`;
+   document.getElementById('v144-back').onclick=()=>{try{window.go?.('home')}catch(_){location.reload()}};
+   return true;
+ };
+ // Visible exit prompt, without touching Firebase startup/authentication.
+ const baseLogout=window.logoutTeacher;
+ window.logoutTeacher=function(){
+   document.getElementById('v144-exit')?.remove();
+   let last=null;try{last=JSON.parse(localStorage.getItem('evaluation_last_global_backup_v133')||'null')}catch(_){}
+   const o=document.createElement('div');o.id='v144-exit';o.innerHTML=`<div id="v144-exitbox"><div style="font-size:54px">💾</div><h2>Avant de quitter</h2><p><b>Souhaites-tu sauvegarder les données du poste maison ?</b></p><p class="muted">${last?.at?'Dernière sauvegarde : '+new Date(last.at).toLocaleString('fr-FR'):'Aucune sauvegarde récente indiquée.'}</p><div class="v144-actions"><button class="v144-save">💾 Sauvegarder puis quitter</button><button class="v144-folder">📁 Choisir / changer le dossier</button><button class="v144-nosave">🚪 Quitter sans sauvegarder</button><button class="v144-cancel">Annuler</button></div></div>`;document.body.appendChild(o);
+   o.querySelector('.v144-cancel').onclick=()=>o.remove();
+   o.querySelector('.v144-folder').onclick=async()=>{try{if(!window.showDirectoryPicker)throw Error('Choix direct de dossier non disponible dans ce navigateur.');const h=await showDirectoryPicker({mode:'readwrite'}),db=await new Promise((ok,no)=>{const q=indexedDB.open('evaluation_home_backup_v133',1);q.onupgradeneeded=()=>{if(!q.result.objectStoreNames.contains('handles'))q.result.createObjectStore('handles')};q.onsuccess=()=>ok(q.result);q.onerror=()=>no(q.error)});await new Promise((ok,no)=>{const q=db.transaction('handles','readwrite').objectStore('handles').put(h,'backupFolder');q.onsuccess=ok;q.onerror=()=>no(q.error)});db.close();alert('Dossier sélectionné : '+h.name)}catch(e){if(e?.name!=='AbortError')alert(e.message||e)}};
+   o.querySelector('.v144-save').onclick=async()=>{const b=o.querySelector('.v144-save');b.disabled=true;b.textContent='Sauvegarde en cours…';try{const r=await window.v133SaveGlobalBackup?.();if(!r?.ok)throw Error('Sauvegarde non confirmée.');o.remove();await baseLogout?.()}catch(e){b.disabled=false;b.textContent='💾 Sauvegarder puis quitter';alert('Sauvegarde impossible : '+(e?.message||e))}};
+   o.querySelector('.v144-nosave').onclick=async()=>{o.remove();await baseLogout?.()};return false;
+ };
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V144 — Competences Rta Gestion atelier TP';document.title='V144 Competences Rta Gestion atelier TP';
+ console.info('V144 actif : base de démarrage V139 conservée; navigation diffusions et sortie corrigées sans modifier Firebase.');
 })();
 </script>
+
 </body>
 </html>
 
@@ -16454,93 +16231,3 @@ body:not(.v143-firebase-user-open) #firebase-auth-overlay{display:none!important
  console.info('V131 correcteur : hydratation IndexedDB + images + coches par question.');
 })();
 </script>\n
-<!-- V137 — Correctif démarrage + stabilité diffusions + sauvegarde sur demande -->
-<script id="v137-stability">
-(function(){
-  const DKEY='tp_generator_diffusions_v76', DEL='tp_diffusions_deleted_v114', WS='evaluation-mv-main';
-  const originalDiff=window.tpV76DiffusionsPage;
-  const originalLogout=window.logoutTeacher;
-  let explicit=false, rendering=false;
-  const isDiffPage=()=>/Mes TP diffusés/i.test(document.querySelector('.tpgen-manager-shell h1')?.textContent||'');
-  function openExplicit(){ explicit=true; const host=document.createElement('div'); host.style.display='none'; host.className='tpgen-manager-shell'; host.innerHTML='<h1>Mes TP diffusés</h1>'; document.body.appendChild(host); try{return originalDiff?.()} finally{host.remove();setTimeout(()=>explicit=false,250)} }
-  // Capture uniquement les vrais clics utilisateur sur les boutons d'ouverture.
-  document.addEventListener('click',function(e){
-    const b=e.target?.closest?.('#v76-diff-btn,#v76-saved-diff,[data-v137-open-diffusions]');
-    if(!b)return;
-    e.preventDefault(); e.stopImmediatePropagation(); openExplicit();
-  },true);
-  // Tout appel programmatique est ignoré sauf si la page est déjà affichée.
-  window.tpV76DiffusionsPage=function(){
-    if(!explicit && !isDiffPage()){ console.debug('V137: ouverture automatique Mes TP diffusés bloquée'); return false; }
-    if(rendering)return false;
-    rendering=true; try{return originalDiff?.()} finally{setTimeout(()=>rendering=false,0)}
-  };
-  // Les synchronisations n'ont jamais le droit de naviguer.
-  ['tp-diffusions-changed','tp-v133-synced'].forEach(n=>window.addEventListener(n,()=>{
-    if(isDiffPage()) setTimeout(()=>window.tpV76DiffusionsPage(),100);
-  }));
-  async function delDoc(col,id){
-    try{const fs=firebase.firestore(),ref=fs.collection('workspaces').doc(WS).collection(col).doc(id);const c=await ref.collection('chunks').get();for(let i=0;i<c.docs.length;i+=300){const b=fs.batch();c.docs.slice(i,i+300).forEach(x=>b.delete(x.ref));await b.commit()}await ref.delete()}catch(e){console.warn('V137 suppression',col,e)}
-  }
-  window.tp114DeleteDiffusion=async function(id){
-    id=String(id||''); let rows=[]; try{rows=JSON.parse(localStorage.getItem(DKEY)||'[]')}catch(_){}; if(!Array.isArray(rows))rows=[];
-    const r=rows.find(x=>String(x.id)===id); if(!r)return false;
-    if(!confirm('Supprimer ce TP de « Mes TP diffusés » ?\n\n'+(r.tpCode||'TP')+' — '+(r.title||'')))return false;
-    let gone=[]; try{gone=JSON.parse(localStorage.getItem(DEL)||'[]')}catch(_){}; if(!Array.isArray(gone))gone=[];
-    gone=[...new Set([...gone.map(String),id])]; localStorage.setItem(DEL,JSON.stringify(gone.slice(-3000)));
-    localStorage.setItem(DKEY,JSON.stringify(rows.filter(x=>String(x.id)!==id)));
-    if(window.firebase?.auth?.().currentUser){await delDoc('tpDiffusionsV106',id);await delDoc('tpDiffusionsV132',id)}
-    if(isDiffPage()){ explicit=true; try{originalDiff?.()}finally{explicit=false} }
-    window.showSuccessMessage?.('TP diffusé supprimé.'); return true;
-  };
-  // Quitter : proposer la sauvegarde, sans sauvegarde automatique imposée.
-  window.logoutTeacher=async function(){
-    const home=localStorage.getItem('evaluation_home_workstation_v133')==='1';
-    if(!home) return originalLogout?.apply(this,arguments);
-    let last=null; try{last=JSON.parse(localStorage.getItem('evaluation_last_global_backup_v133')||'null')}catch(_){}
-    const txt='Sauvegarder avant de quitter ?'+(last?.at?'\n\nDernière sauvegarde : '+new Date(last.at).toLocaleString('fr-FR'):'');
-    if(confirm(txt)){
-      try{const r=await window.v133SaveGlobalBackup?.(); if(!r?.ok){alert('La sauvegarde n’a pas été confirmée. Le logiciel reste ouvert.');return}}catch(e){alert('Sauvegarde impossible : '+(e?.message||e));return}
-    } else if(!confirm('Quitter sans créer de nouvelle sauvegarde ?')) return;
-    // Neutraliser uniquement la sauvegarde automatique de l'ancien logout pendant sa sortie.
-    localStorage.setItem('evaluation_home_workstation_v133','0');
-    try{return await originalLogout?.apply(this,arguments)}finally{localStorage.setItem('evaluation_home_workstation_v133','1')}
-  };
-  const bv=document.getElementById('build-version'); if(bv)bv.textContent='V139 — Competences Rta Gestion atelier TP';
-  document.title='V137 Competences Rta Gestion atelier TP';
-  console.info('V137 actif : démarrage base V134 + diffusions non intrusives + sauvegarde sur demande.');
-})();
-</script>
-
-<!-- V141 — Navigation diffusions consolidée + sauvegarde très visible -->
-<style id="v141-style">
-#v141-exit-overlay{position:fixed;inset:0;z-index:2147483647;background:rgba(5,12,25,.88);display:flex;align-items:center;justify-content:center;padding:22px;backdrop-filter:blur(5px)}
-#v141-exit-box{width:min(760px,96vw);background:#fff;border:6px solid #f59e0b;border-radius:24px;box-shadow:0 30px 90px #000b;padding:30px;text-align:center}
-#v141-exit-box h2{font-size:34px;margin:0 0 12px;color:#8a3f00}#v141-exit-box p{font-size:19px;line-height:1.45}#v141-exit-box .v141-actions{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:24px}#v141-exit-box button{font-size:18px;font-weight:800;padding:17px 14px;border-radius:14px;border:0;cursor:pointer}#v141-save{background:#16834b;color:#fff}#v141-folder{background:#155e9b;color:#fff}#v141-nosave{background:#b42318;color:#fff}#v141-cancel{background:#e5e7eb;color:#111827}
-.v141-card{border:1px solid #d8dee8;border-radius:14px;padding:15px;margin:12px 0;background:#fff}.v141-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.v141-counts{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0}.v141-pill{padding:7px 11px;border-radius:999px;font-weight:800}.v141-grey{background:#e5e7eb}.v141-yellow{background:#fde68a}.v141-green{background:#bbf7d0}.v141-students{margin-top:10px;border-top:1px solid #e5e7eb;padding-top:8px}.v141-student{display:flex;justify-content:space-between;padding:7px 9px;border-radius:8px;margin:4px 0}.v141-student.grey{background:#f3f4f6}.v141-student.yellow{background:#fef3c7}.v141-student.green{background:#dcfce7}
-</style>
-<script id="v141-runtime">
-(function(){
- const VERSION='V141', KEY='tp_generator_diffusions_v76', CORR='tp_correction_local_v54';
- const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
- const rows=()=>{try{let a=JSON.parse(localStorage.getItem(KEY)||'[]');return Array.isArray(a)?a:[]}catch(_){return[]}};
- const corrections=()=>{try{let a=JSON.parse(localStorage.getItem(CORR)||'[]');return Array.isArray(a)?a:[]}catch(_){return[]}};
- const studentName=s=>String(s?.name||[s?.nom,s?.prenom].filter(Boolean).join(' ')||'Élève').trim();
- function state(r,s){let sid=String(s?.id||''),name=studentName(s).toLowerCase(), cs=corrections();let hit=cs.find(c=>{let d=c.data||c, cid=String(d.studentId||d.eleveId||d.eleve?.id||''),cn=String(d.nomComplet||d.eleveNom||[d.nom,d.prenom].filter(Boolean).join(' ')).toLowerCase();return (sid&&cid===sid)||(name&&cn===name)});if(hit?.correctedAt||hit?.status==='corrected'||hit?.validatedAt)return'green';if(hit)return'yellow';return'grey'}
- function render(){
-  window.setActive?.('tpGenerator'); const main=document.getElementById('main'); if(!main)return false; const data=rows().sort((a,b)=>String(b.diffusedAt||'').localeCompare(String(a.diffusedAt||'')));
-  main.innerHTML=`<header class="app-top-header"></header><div class="tpgen-manager-shell"><div class="tpgen-head"><div><h1>📤 Mes TP diffusés</h1><p class="muted">Registre consolidé multiposte. Les fichiers TP restent locaux / Dropbox.</p></div><button type="button" class="tpgen-btn secondary" id="v141-back">← Accueil</button></div><div class="tpgen-card">${data.length?data.map(r=>{let sts=Array.isArray(r.students)?r.students:[],c={grey:0,yellow:0,green:0};sts.forEach(s=>c[state(r,s)]++);let id=String(r.id||'');return `<div class="v141-card"><div class="v141-head"><div><b>${esc(r.tpCode||'TP')} — ${esc(r.title||'')}</b><div class="muted">${esc(r.className||'')} • ${r.diffusedAt?new Date(r.diffusedAt).toLocaleString('fr-FR'):''} • ${sts.length} élève(s)</div></div><div><button class="tpgen-btn primary" data-v141-affect="${esc(id)}">＋ Affecter</button> <button class="tpgen-btn danger" data-v141-delete="${esc(id)}">🗑️ Supprimer</button></div></div><div class="v141-counts"><span class="v141-pill v141-grey">⬜ Diffusé <b>${c.grey}</b></span><span class="v141-pill v141-yellow">🟨 Rendu <b>${c.yellow}</b></span><span class="v141-pill v141-green">🟩 Corrigé <b>${c.green}</b></span></div><button class="tpgen-btn secondary" data-v141-toggle="${esc(id)}">▸ Voir les élèves</button><div class="v141-students" data-v141-students="${esc(id)}" hidden>${sts.length?sts.map(s=>{let q=state(r,s),lab=q==='green'?'Corrigé':q==='yellow'?'Rendu':'Diffusé';return `<div class="v141-student ${q}"><b>${esc(studentName(s))}</b><span>${lab}</span></div>`}).join(''):'<span class="muted">Liste nominative absente de cette ancienne diffusion.</span>'}</div></div>`}).join(''):'<div class="muted">Aucun TP diffusé enregistré.</div>'}</div></div>`; return true;
- }
- window.tpV76DiffusionsPage=render;
- // Un clic utilisateur ouvre toujours la page, quelle que soit l'ancienne couche runtime encore présente.
- document.addEventListener('click',function(e){let b=e.target?.closest?.('button,a');if(!b)return;let txt=(b.textContent||'').replace(/\s+/g,' ').trim();if(/Mes TP diffusés/i.test(txt)){e.preventDefault();e.stopImmediatePropagation();render();return}if(b.id==='v141-back'){e.preventDefault();e.stopImmediatePropagation();window.go?.('home');return}let t=b.dataset?.v141Toggle;if(t){let box=document.querySelector(`[data-v141-students="${CSS.escape(t)}"]`);if(box){box.hidden=!box.hidden;b.textContent=box.hidden?'▸ Voir les élèves':'▾ Masquer les élèves'}return}let a=b.dataset?.v141Affect;if(a){window.tpV76AddDiffusionToDay?.(a);return}let d=b.dataset?.v141Delete;if(d){window.tp114DeleteDiffusion?.(d);setTimeout(render,100);return}},true);
- // Fenêtre de sortie finale et volontairement très visible.
- const baseLogout=window.logoutTeacher;
- async function chooseFolder(){if(!window.showDirectoryPicker){alert('Le choix direct d’un dossier n’est pas disponible dans ce navigateur.');return false}try{let h=await showDirectoryPicker({mode:'readwrite'}),db=await new Promise((ok,no)=>{let q=indexedDB.open('evaluation_home_backup_v133',1);q.onupgradeneeded=()=>{if(!q.result.objectStoreNames.contains('handles'))q.result.createObjectStore('handles')};q.onsuccess=()=>ok(q.result);q.onerror=()=>no(q.error)});await new Promise((ok,no)=>{let q=db.transaction('handles','readwrite').objectStore('handles').put(h,'backupFolder');q.onsuccess=()=>ok();q.onerror=()=>no(q.error)});db.close();return h.name}catch(e){if(e?.name!=='AbortError')alert('Impossible de choisir le dossier : '+(e?.message||e));return false}}
- function modal(){document.getElementById('v141-exit-overlay')?.remove();let last=null;try{last=JSON.parse(localStorage.getItem('evaluation_last_global_backup_v133')||'null')}catch(_){};let o=document.createElement('div');o.id='v141-exit-overlay';o.innerHTML=`<div id="v141-exit-box"><div style="font-size:56px">💾</div><h2>Avant de quitter</h2><p><b>Souhaites-tu créer une sauvegarde globale du poste maison ?</b></p><p class="muted">${last?.at?'Dernière sauvegarde : '+new Date(last.at).toLocaleString('fr-FR'):'Aucune sauvegarde récente enregistrée.'}</p><div class="v141-actions"><button id="v141-save">💾 Sauvegarder puis quitter</button><button id="v141-folder">📁 Choisir / changer le dossier</button><button id="v141-nosave">🚪 Quitter sans sauvegarder</button><button id="v141-cancel">Annuler</button></div></div>`;document.body.appendChild(o);o.querySelector('#v141-cancel').onclick=()=>o.remove();o.querySelector('#v141-folder').onclick=async()=>{let n=await chooseFolder();if(n)alert('Dossier de sauvegarde sélectionné : '+n)};o.querySelector('#v141-save').onclick=async()=>{let bt=o.querySelector('#v141-save');bt.disabled=true;bt.textContent='Sauvegarde en cours…';try{let r=await window.v133SaveGlobalBackup?.();if(!r?.ok)throw Error('Sauvegarde non confirmée');o.remove();await baseLogout?.()}catch(e){bt.disabled=false;bt.textContent='💾 Sauvegarder puis quitter';alert('Sauvegarde impossible : '+(e?.message||e))}};o.querySelector('#v141-nosave').onclick=async()=>{o.remove();await baseLogout?.()}}
- window.logoutTeacher=function(){modal();return false};
- // Force l'affichage de la bonne version même si un ancien runtime tente de le réécrire ensuite.
- function version(){let b=document.getElementById('build-version');if(b&&b.textContent!=='V141 — Competences Rta Gestion atelier TP')b.textContent='V141 — Competences Rta Gestion atelier TP';document.title='V141 Competences Rta Gestion atelier TP'} version();new MutationObserver(version).observe(document.documentElement,{childList:true,subtree:true,characterData:true});
- console.info('V141 actif : navigation TP diffusés consolidée, sortie sauvegarde visible, version contrôlée.');
-})();
-</script>
