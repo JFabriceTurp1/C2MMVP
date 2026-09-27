@@ -2814,10 +2814,10 @@ body{background:#f7f9fc;color:var(--text)}
 <!-- V88 — DONNÉES DE RÉFÉRENCE RÉINTÉGRÉES DEPUIS V86.5
      Jeux embarqués repris : référentiel compétences, élèves par défaut, seconde classe fictive, situations professionnelles.
      Les données dynamiques (classes/élèves/évaluations réellement saisies) restent chargées par IndexedDB/localStorage et Firebase. -->
-<div id="build-version">V115 — Competences Rta Gestion atelier TP</div>
+<div id="build-version">V143 — Competences Rta Gestion atelier TP</div>
 <div id="firebase-auth-overlay" class="hidden" style="display:none">
   <div class="firebase-login-card">
-    <h2>☁️ Connexion Firebase — V142</h2>
+    <h2>☁️ Connexion Firebase — V143</h2>
     <p>Cette version synchronise les classes, les élèves et désormais les évaluations avec Firebase. Le stockage local reste utilisé comme cache de sécurité pendant cette phase de validation.</p>
     <form id="firebase-login-form">
       <label for="firebase-email">Adresse e-mail</label>
@@ -16208,6 +16208,63 @@ window.tpCorrectionValidate=async function(){
 })();
 </script>
 
+
+<!-- V143 — bootstrap final anti-blocage / version visible -->
+<style id="v143-final-style">
+#v143-version-badge{position:fixed;right:12px;bottom:12px;z-index:2147483647;background:#0f4f87;color:#fff;border:2px solid #fff;border-radius:999px;padding:8px 13px;font:800 14px/1 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;box-shadow:0 4px 16px rgba(15,23,42,.28);pointer-events:none}
+#firebase-auth-overlay.v143-user-open{display:flex!important;visibility:visible!important;opacity:1!important;pointer-events:auto!important}
+body:not(.v143-firebase-user-open) #firebase-auth-overlay{display:none!important;visibility:hidden!important;opacity:0!important;pointer-events:none!important}
+</style>
+<div id="v143-version-badge" aria-label="Version du logiciel">V143</div>
+<script id="v143-final-bootstrap">
+(function(){
+ 'use strict';
+ const VERSION='V143';
+ let userRequestedFirebase=false;
+ function stamp(){
+   const b=document.getElementById('build-version');
+   if(b) b.textContent=VERSION+' — Competences Rta Gestion atelier TP';
+   const badge=document.getElementById('v143-version-badge'); if(badge) badge.textContent=VERSION;
+   document.title=VERSION+' Competences Rta Gestion atelier TP';
+ }
+ function overlay(){return document.getElementById('firebase-auth-overlay')}
+ function forceAppOpen(){
+   stamp();
+   const o=overlay();
+   if(o && !userRequestedFirebase){
+     o.classList.add('hidden'); o.classList.remove('v143-user-open');
+     o.style.setProperty('display','none','important');
+     o.setAttribute('aria-hidden','true');
+     document.body && document.body.classList.remove('v143-firebase-user-open');
+   }
+ }
+ function openFirebaseByUser(){
+   userRequestedFirebase=true;
+   const o=overlay(); if(!o)return;
+   document.body && document.body.classList.add('v143-firebase-user-open');
+   o.classList.remove('hidden');o.classList.add('v143-user-open');o.style.setProperty('display','flex','important');o.removeAttribute('aria-hidden');
+   setTimeout(()=>{const i=document.getElementById('firebase-email');if(i){i.disabled=false;i.readOnly=false;try{i.focus()}catch(_){}}},50);
+ }
+ // Legacy Firebase initialization may try to reopen its V89/Vxx modal after a failed SDK/auth init.
+ // Neutralize that behavior continuously, except after an explicit tap on the cloud control.
+ document.addEventListener('DOMContentLoaded',()=>{
+   forceAppOpen();
+   const mini=document.getElementById('firebase-sync-mini'); if(mini) mini.addEventListener('click',()=>setTimeout(openFirebaseByUser,0),true);
+   const closeCandidates=document.querySelectorAll('#firebase-auth-overlay [data-close],#firebase-auth-overlay .close');
+   closeCandidates.forEach(x=>x.addEventListener('click',()=>{userRequestedFirebase=false;forceAppOpen()},true));
+   setTimeout(forceAppOpen,0);setTimeout(forceAppOpen,250);setTimeout(forceAppOpen,1000);setTimeout(forceAppOpen,2500);
+ });
+ window.addEventListener('load',forceAppOpen);
+ const mo=new MutationObserver(()=>{stamp(); if(!userRequestedFirebase) forceAppOpen()});
+ mo.observe(document.documentElement,{subtree:true,childList:true,attributes:true,attributeFilter:['class','style']});
+ // Expose only for the explicit cloud button if another UI handler wants it.
+ window.v143OpenFirebaseLogin=openFirebaseByUser;
+ stamp();forceAppOpen();
+ // Remove stale app-shell caches/SW registrations once V143 itself has loaded.
+ if('caches' in window){caches.keys().then(keys=>Promise.all(keys.filter(k=>!/V143/i.test(k)).map(k=>caches.delete(k)))).catch(()=>{});}
+ if('serviceWorker' in navigator){navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>{try{r.update()}catch(_){}})).catch(()=>{});}
+})();
+</script>
 </body>
 </html>
 
