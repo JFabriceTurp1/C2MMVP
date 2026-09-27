@@ -2312,6 +2312,7 @@ body{background:#f7f9fc;color:var(--text)}
 .settings-rubric-title.rubric-students{background:#eefbf3;border-left:6px solid #22a06b}
 .settings-rubric-title.rubric-ref{background:#f6f0ff;border-left:6px solid #7c3aed}
 .settings-rubric-title.rubric-other{background:#fff8e8;border-left:6px solid #d97706}
+.settings-rubric-title.rubric-activities{background:#eef8ff;border-left:6px solid #0284c7}
 .settings-card.section-teacher{border-top:4px solid #2e75b6;background:linear-gradient(180deg,#fbfdff,#f5faff)}
 .settings-card.section-students{border-top:4px solid #22a06b;background:linear-gradient(180deg,#fbfffd,#f4fbf7)}
 .settings-card.section-ref{border-top:4px solid #7c3aed;background:linear-gradient(180deg,#fdfbff,#f8f5ff)}
@@ -2998,14 +2999,15 @@ body{background:#f7f9fc;color:var(--text)}
     </details>
   </div>
   
-  <div class="settings-card settings-section section-ref" style="grid-column:1/-1">
-    <h3>🗂️ Gestion des fiches et activités d’évaluation</h3>
-    <p class="muted">Rubrique administrateur : ajoute, modifie, archive ou réactive les fiches utilisées dans les évaluations et dans l’Atelier du jour. Les évaluations déjà enregistrées restent inchangées.</p>
-    <div class="row" style="gap:8px;flex-wrap:wrap">
-      <button type="button" class="primary" onclick="addManagedEvaluationActivity()">＋ Nouvelle fiche / activité</button>
+  <div class="settings-rubric-title rubric-activities">🗂️ Gestion des fiches et activités d’évaluation</div>
+  <div class="settings-card settings-section section-activities" style="grid-column:1/-1">
+    <h3>🗂️ Administration des fiches d’évaluation</h3>
+    <p class="muted">Catégorie autonome : tableau complet des fiches, critères modifiables, duplication, archivage et génération locale du PDF à la demande.</p>
+    <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center">
+      <button type="button" class="primary" onclick="openEvaluationActivitiesManager()">Ouvrir le tableau d’administration</button>
       <span class="pill" id="settings-activities-count"></span>
     </div>
-    <div id="settings-activities-list" class="settings-list" style="margin-top:14px"></div>
+    <div id="settings-activities-list" style="display:none"></div>
   </div>
 
 
@@ -7211,6 +7213,7 @@ function makeSettingsRubricsCollapsible(){
     if(title.classList.contains("rubric-students"))details.classList.add("rubric-students-wrap");
     if(title.classList.contains("rubric-ref"))details.classList.add("rubric-ref-wrap");
     if(title.classList.contains("rubric-other"))details.classList.add("rubric-other-wrap");
+    if(title.classList.contains("rubric-activities"))details.classList.add("rubric-activities-wrap");
     details.open=false;
     const summary=document.createElement("summary");
     summary.className=title.className;
@@ -8663,6 +8666,42 @@ function exportStudentDeletionPDF(studentsSnapshot, deletionDate){
 
 
 <!-- V149 : suppression des caractères \n parasites visibles en bas de la page accueil -->
+
+<style id="v156-activities-style">
+.settings-rubric-title.rubric-activities{background:#eef8ff;border-left:6px solid #0284c7}
+.settings-rubric-collapse.rubric-activities-wrap>summary{background:#eef8ff;border-left:6px solid #0284c7}
+.act156-shell{padding:18px;max-width:1500px;margin:auto}.act156-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}.act156-tools{display:flex;gap:8px;flex-wrap:wrap}.act156-tablewrap{overflow:auto;background:#fff;border:1px solid #dbe4ee;border-radius:14px;margin-top:14px}.act156-table{width:100%;border-collapse:collapse;min-width:1050px}.act156-table th,.act156-table td{padding:9px 10px;border-bottom:1px solid #e7edf4;vertical-align:top;text-align:left}.act156-table th{position:sticky;top:0;background:#f4f8fc;z-index:1;font-size:12px}.act156-table tr.archived{opacity:.55}.act156-actions{display:flex;gap:5px;flex-wrap:wrap}.act156-actions button{padding:6px 8px;font-size:12px}.act156-editor{margin-top:16px;background:#fff;border:2px solid #bfdbfe;border-radius:14px;padding:16px}.act156-grid{display:grid;grid-template-columns:120px 1fr 1fr;gap:10px}.act156-grid .wide{grid-column:1/-1}.act156-grid label{font-weight:700;font-size:12px}.act156-grid input,.act156-grid textarea{width:100%;box-sizing:border-box;margin-top:4px}.act156-criteria{display:grid;gap:7px;margin-top:8px}.act156-criterion{display:grid;grid-template-columns:34px 1fr 34px;gap:6px;align-items:center}.act156-criterion input{width:100%}.act156-num{text-align:center;font-weight:800}.act156-pdf-note{font-size:12px;color:#52616f;margin-top:6px}
+@media(max-width:760px){.act156-shell{padding:10px}.act156-grid{grid-template-columns:1fr}.act156-grid .wide{grid-column:auto}.act156-head .act156-tools button{width:100%}}
+</style>
+<script id="v156-activities-runtime">
+(function(){
+'use strict';
+const V='V156'; let editId=null;
+function esc2(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function list(){return window.getManagedEvaluationActivities?.()||[]}
+function byNumber(a,b){return (Number(a.numero)||99999)-(Number(b.numero)||99999)}
+function syncCount(){const e=document.getElementById('settings-activities-count');if(e){const x=list();e.textContent=`${x.filter(a=>a.active!==false).length} active(s) · ${x.filter(a=>a.active===false).length} archivée(s)`}}
+window.openEvaluationActivitiesManager=function(){page='settingsActivities';setActive?.('settings');renderEvaluationActivitiesManager()}
+window.renderEvaluationActivitiesManager=function(){
+ const main=document.getElementById('main'); if(!main)return; const rows=list().slice().sort(byNumber);
+ main.innerHTML=`<header class="app-top-header"></header><div class="act156-shell"><div class="act156-head"><div><h1>🗂️ Gestion des fiches et activités d’évaluation</h1><p class="muted">Toutes les fiches sur une page. Modifie directement leur contenu pédagogique et leurs critères.</p></div><div class="act156-tools"><button class="secondary" onclick="openSettingsAfterActivities()">← Paramètres</button><button class="primary" onclick="newEvaluationActivityV156()">＋ Nouvelle fiche</button><button class="secondary" onclick="generateEvaluationActivitiesPdfV156()">📄 Générer le PDF complet</button></div></div><div class="act156-pdf-note">Le PDF est généré à la demande et téléchargé localement. Il n’est ni stocké dans Firebase ni transporté dans le ZIP.</div><div class="act156-tablewrap"><table class="act156-table"><thead><tr><th>N°</th><th>Thème</th><th>Fiche / activité</th><th>CAP</th><th>Bac Pro</th><th>Critères</th><th>État</th><th>Actions</th></tr></thead><tbody>${rows.map(a=>`<tr class="${a.active===false?'archived':''}"><td>A${String(a.numero||'').padStart(2,'0')}</td><td>${esc2(a.theme||'')}</td><td><b>${esc2(a.titre||'')}</b><div class="muted">${esc2(a.description||'')}</div></td><td>${esc2((a.competences_cap||[]).join(', ')||'—')}</td><td>${esc2((a.competences_bac_pro||[]).join(', ')||'—')}</td><td>${(a.criteres||[]).length}</td><td>${a.active===false?'Archivée':'Active'}</td><td><div class="act156-actions"><button class="secondary" onclick="editEvaluationActivityV156('${esc2(a.id)}')">✏️ Modifier</button><button class="secondary" onclick="duplicateEvaluationActivityV156('${esc2(a.id)}')">⧉ Dupliquer</button><button class="secondary" onclick="setManagedEvaluationActivityActive('${esc2(a.id)}',${a.active===false?'true':'false'});renderEvaluationActivitiesManager()">${a.active===false?'↩ Réactiver':'📦 Archiver'}</button></div></td></tr>`).join('')}</tbody></table></div><div id="act156-editor"></div></div>`;
+ if(editId) renderEditor(editId);
+}
+window.openSettingsAfterActivities=function(){page='settings';renderSettingsPage?.()}
+window.newEvaluationActivityV156=function(){const x=list();const n=Math.max(0,...x.map(a=>Number(a.numero)||0))+1;const a={id:'ACT-ADMIN-'+Date.now().toString(36),numero:n,theme:'Activité personnalisée',titre:'Nouvelle activité',description:'',criteres:[''],competences_cap:[],competences_bac_pro:[],diplomes:['CAP','Bac Pro'],active:true,createdAt:Date.now()};x.push(a);window.saveManagedEvaluationActivities?.(x);editId=a.id;renderEvaluationActivitiesManager()}
+window.editEvaluationActivityV156=function(id){editId=id;renderEditor(id);document.getElementById('act156-editor')?.scrollIntoView({behavior:'smooth',block:'start'})}
+function renderEditor(id){const a=list().find(x=>String(x.id)===String(id)),root=document.getElementById('act156-editor');if(!a||!root)return;root.innerHTML=`<div class="act156-editor"><h2>Modifier A${String(a.numero||'').padStart(2,'0')} — ${esc2(a.titre||'')}</h2><div class="act156-grid"><label>N°<input id="a156-num" type="number" value="${esc2(a.numero||'')}"></label><label>Thème<input id="a156-theme" value="${esc2(a.theme||'')}"></label><label>Intitulé<input id="a156-title" value="${esc2(a.titre||'')}"></label><label class="wide">Description / objectif<textarea id="a156-desc" rows="2">${esc2(a.description||'')}</textarea></label><label>Compétences CAP<input id="a156-cap" value="${esc2((a.competences_cap||[]).join(', '))}"></label><label>Compétences Bac Pro<input id="a156-bac" value="${esc2((a.competences_bac_pro||[]).join(', '))}"></label></div><h3>Critères d’évaluation</h3><p class="muted">Chaque phrase est modifiable. Tu peux ajouter, supprimer ou réordonner les critères.</p><div id="a156-criteria" class="act156-criteria">${(a.criteres||[]).map((c,i)=>criterionRow(c,i)).join('')}</div><div class="act156-actions" style="margin-top:9px"><button class="secondary" onclick="addCriterionV156()">＋ Ajouter un critère</button></div><div class="act156-actions" style="margin-top:16px"><button class="primary" onclick="saveEvaluationActivityV156('${esc2(id)}')">💾 Enregistrer la fiche</button><button class="secondary" onclick="editId=null;renderEvaluationActivitiesManager()">Annuler</button><button class="secondary" onclick="generateEvaluationActivitiesPdfV156('${esc2(id)}')">📄 PDF de cette fiche</button></div></div>`}
+function criterionRow(c,i){return `<div class="act156-criterion"><span class="act156-num">${i+1}</span><input class="a156-crit" value="${esc2(c)}"><button class="secondary" title="Supprimer" onclick="this.parentElement.remove();renumberCriteriaV156()">×</button></div>`}
+window.addCriterionV156=function(){const r=document.getElementById('a156-criteria');if(r){r.insertAdjacentHTML('beforeend',criterionRow('',r.children.length));renumberCriteriaV156()}}
+window.renumberCriteriaV156=function(){document.querySelectorAll('#a156-criteria .act156-num').forEach((e,i)=>e.textContent=i+1)}
+window.saveEvaluationActivityV156=function(id){const x=list(),a=x.find(z=>String(z.id)===String(id));if(!a)return;const val=id=>document.getElementById(id)?.value?.trim()||'';const title=val('a156-title');if(!title)return window.showWarningMessage?.('L’intitulé est obligatoire.');Object.assign(a,{numero:Number(val('a156-num'))||a.numero,theme:val('a156-theme'),titre:title,description:val('a156-desc'),competences_cap:window.normalizeActivityComps?.(val('a156-cap'))||val('a156-cap').split(',').map(s=>s.trim()).filter(Boolean),competences_bac_pro:window.normalizeActivityComps?.(val('a156-bac'))||val('a156-bac').split(',').map(s=>s.trim()).filter(Boolean),criteres:[...document.querySelectorAll('.a156-crit')].map(e=>e.value.trim()).filter(Boolean),updatedAt:Date.now()});window.saveManagedEvaluationActivities?.(x);editId=null;renderEvaluationActivitiesManager();window.showSuccessMessage?.('Fiche enregistrée localement et synchronisation Firebase demandée.')}
+window.duplicateEvaluationActivityV156=function(id){if(window.duplicateManagedEvaluationActivity){window.duplicateManagedEvaluationActivity(id);renderEvaluationActivitiesManager();return}const x=list(),a=x.find(z=>String(z.id)===String(id));if(!a)return;const c=JSON.parse(JSON.stringify(a));c.id='ACT-ADMIN-DUP-'+Date.now().toString(36);c.numero=Math.max(0,...x.map(z=>Number(z.numero)||0))+1;c.titre=(c.titre||'Activité')+' — copie';c.active=true;c.createdAt=Date.now();x.push(c);window.saveManagedEvaluationActivities?.(x);renderEvaluationActivitiesManager()}
+window.generateEvaluationActivitiesPdfV156=function(oneId){try{const J=window.jspdf?.jsPDF;if(!J)throw Error('Le module PDF n’est pas disponible.');const data=(oneId?list().filter(a=>String(a.id)===String(oneId)):list().filter(a=>a.active!==false)).slice().sort(byNumber);const doc=new J({orientation:'portrait',unit:'mm',format:'a4'});data.forEach((a,k)=>{if(k)doc.addPage();doc.setFont('helvetica','bold');doc.setFontSize(15);doc.text(`A${String(a.numero||'').padStart(2,'0')} — ${String(a.titre||'')}`,14,18,{maxWidth:182});doc.setFontSize(10);doc.setFont('helvetica','normal');doc.text(`Thème : ${a.theme||'—'}`,14,27,{maxWidth:182});doc.text(doc.splitTextToSize(a.description||'',182),14,34);let y=48;doc.setFont('helvetica','bold');doc.text('Compétences',14,y);doc.setFont('helvetica','normal');y+=6;doc.text(`CAP : ${(a.competences_cap||[]).join(', ')||'—'}`,14,y);y+=5;doc.text(`Bac Pro : ${(a.competences_bac_pro||[]).join(', ')||'—'}`,14,y);y+=9;doc.setFont('helvetica','bold');doc.text('Critères d’évaluation',14,y);y+=5;doc.autoTable({startY:y,head:[['N°','Critère d’évaluation']],body:(a.criteres||[]).map((c,i)=>[String(i+1),String(c)]),theme:'grid',styles:{fontSize:9,cellPadding:2.5},columnStyles:{0:{cellWidth:12},1:{cellWidth:168}},margin:{left:14,right:14}})});doc.save(oneId?`Fiche_evaluation_${String(data[0]?.numero||'').padStart(2,'0')}.pdf`:`Fiches_evaluation_${data.length}_activites_${V}.pdf`);window.showSuccessMessage?.('PDF généré localement. Aucun PDF n’est envoyé dans Firebase.')}catch(e){console.error(e);window.showWarningMessage?.('Génération PDF impossible : '+(e?.message||e))}}
+// Keep category count current while old hidden renderer remains for compatibility.
+const oldR=window.renderSettingsEvaluationActivities;window.renderSettingsEvaluationActivities=function(){try{oldR?.apply(this,arguments)}catch(e){}syncCount()};
+})();
+</script>
+
 </body></html>`);
   w.document.close();
 }
@@ -13727,7 +13766,7 @@ function tpGenRenderRtaActivityInfo(){const box=document.getElementById('tpgen-r
 function tpGenSetPracticalSearch(v){tpGenState.practicalSearch=v;tpGenRenderPracticalSheets()}
 function tpGenSetPracticalSheet(v){tpGenState.practicalCode=v;tpGenRenderPracticalSheets()}
 function tpGenPracticalFiltered(){const q=tpGenNorm(tpGenState.practicalSearch);return TPGEN_SHEETS.filter(x=>!q||tpGenNorm(x.code+' '+x.title).includes(q))}
-function tpGenRenderPracticalSheets(){const sel=document.getElementById('tpgen-practical-sheet');if(!sel)return;const rows=tpGenPracticalFiltered();sel.innerHTML='<option value="">— Aucune fiche pratique sélectionnée —</option>'+rows.map(x=>`<option value="${x.code}" ${x.code===tpGenState.practicalCode?'selected':''}>${x.code} — ${esc(x.title)}</option>`).join('');const c=document.getElementById('tpgen-practical-count');if(c)c.textContent=`${rows.length} fiche(s) affichée(s) sur 63`;const info=document.getElementById('tpgen-practical-info');const p=TPGEN_SHEETS.find(x=>x.code===tpGenState.practicalCode);if(info)info.innerHTML=p?`<b>${p.code} — ${esc(p.title)}</b><br>Cette fiche devient une ressource pédagogique du TP. <button type="button" class="tpgen-btn secondary" style="margin-top:7px" onclick="window.open('Fiches_Evaluations_63_Activites_CAP_BacPro_V4_CHARTE_DEFINITIVE.pdf#page=${p.page}','_blank')">Ouvrir la fiche</button>`:'Choisis une des 63 fiches pratiques lorsque tu ne disposes pas d’une RTA adaptée au véhicule.'}
+function tpGenRenderPracticalSheets(){const sel=document.getElementById('tpgen-practical-sheet');if(!sel)return;const rows=tpGenPracticalFiltered();sel.innerHTML='<option value="">— Aucune fiche pratique sélectionnée —</option>'+rows.map(x=>`<option value="${x.code}" ${x.code===tpGenState.practicalCode?'selected':''}>${x.code} — ${esc(x.title)}</option>`).join('');const c=document.getElementById('tpgen-practical-count');if(c)c.textContent=`${rows.length} fiche(s) affichée(s) sur 63`;const info=document.getElementById('tpgen-practical-info');const p=TPGEN_SHEETS.find(x=>x.code===tpGenState.practicalCode);if(info)info.innerHTML=p?`<b>${p.code} — ${esc(p.title)}</b><br>Cette fiche devient une ressource pédagogique du TP. Le PDF est généré localement à partir de la fiche actuelle. <button type="button" class="tpgen-btn secondary" style="margin-top:7px" onclick="generateEvaluationActivitiesPdfV156('${p.code}')">Générer la fiche PDF</button>`:'Choisis une des 63 fiches pratiques lorsque tu ne disposes pas d’une RTA adaptée au véhicule.'}
 function tpGenRenderActivityList(){const box=document.getElementById('tpgen-activity-list');if(!box)return;const rows=tpGenFilter();const count=document.getElementById('tpgen-count');if(count)count.textContent=`${rows.length} activité(s) validée(s) dans la base enseignant`;box.innerHTML=rows.length?rows.map(x=>`<button type="button" class="tpgen-item ${String(x.activityId)===String(tpGenState.selectedId)?'active':''}" onclick="tpGenSelectActivity('${esc(x.activityId)}')"><div class="tpgen-item-title">${esc(x.activite)}</div><div class="tpgen-item-sub">${esc(x.sequence)} • ${esc(x.famille)} • ${esc(x.type)}</div></button>`).join(''):'<div class="tpgen-empty">Aucune activité validée ne correspond aux filtres.</div>'}
 function tpGenCompetenceCards(text){const codes=(String(text||'').match(/C\d\.\d/g)||[]);return codes.map(code=>{const c=(window.TP_GENERATOR_REFERENTIAL||[]).find(x=>x.code===code);return c?`<div class="tpgen-comp"><strong>${esc(c.code)}</strong> — ${esc(c.name)}<div class="muted" style="font-size:10px;margin-top:3px">${esc(c.block)} • ${esc(c.unit)}</div></div>`:`<div class="tpgen-comp"><strong>${esc(code)}</strong></div>`}).join('')}
 function tpGenVehicleValue(id){return document.getElementById(id)?.value?.trim()||''}
@@ -16086,11 +16125,11 @@ window.tpCorrectionValidate=async function(){
 </style>
 <script id="v146-runtime">
 (function(){
- const VERSION='V155', DKEY='tp_generator_diffusions_v76';
+ const VERSION='V156', DKEY='tp_generator_diffusions_v76';
  const clone=o=>JSON.parse(JSON.stringify(o||{}));
  const safe=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Za-z0-9_-]+/g,'-').replace(/^-+|-+$/g,'')||'TP';
  let folderHandle=null;
- function forceVersion(){const b=document.getElementById('build-version');if(b&&b.textContent!=='V155 — Competences Rta Gestion atelier TP')b.textContent='V155 — Competences Rta Gestion atelier TP';document.title='V155 Competences Rta Gestion atelier TP';document.getElementById('v144-version')?.remove();}
+ function forceVersion(){const b=document.getElementById('build-version');if(b&&b.textContent!=='V156 — Competences Rta Gestion atelier TP')b.textContent='V156 — Competences Rta Gestion atelier TP';document.title='V156 Competences Rta Gestion atelier TP';document.getElementById('v144-version')?.remove();}
  forceVersion();
  document.addEventListener('DOMContentLoaded',forceVersion,{once:true});
  setTimeout(forceVersion,0);setTimeout(forceVersion,500);
@@ -16110,7 +16149,7 @@ window.tpCorrectionValidate=async function(){
 <script id="v155-targeted-fixes">
 (function(){
   'use strict';
-  const APP_VERSION='V155';
+  const APP_VERSION='V156';
   const ACTIVITY_KEY='managed_evaluation_activities_v1';
   const HOME_KEY='evaluation_home_workstation_v133';
   const BACKUP_DB='evaluation_home_backup_v133';
