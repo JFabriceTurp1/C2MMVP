@@ -2814,17 +2814,17 @@ body{background:#f7f9fc;color:var(--text)}
 <!-- V88 — DONNÉES DE RÉFÉRENCE RÉINTÉGRÉES DEPUIS V86.5
      Jeux embarqués repris : référentiel compétences, élèves par défaut, seconde classe fictive, situations professionnelles.
      Les données dynamiques (classes/élèves/évaluations réellement saisies) restent chargées par IndexedDB/localStorage et Firebase. -->
-<div id="build-version">V147 — Competences Rta Gestion atelier TP</div>
-<div id="firebase-auth-overlay">
+<div id="build-version">V153 — Competences Rta Gestion atelier TP</div>
+<div id="firebase-auth-overlay" class="hidden">
   <div class="firebase-login-card">
-    <h2>☁️ Connexion Firebase — V152</h2>
+    <h2>☁️ Connexion Firebase — V153</h2>
     <p>Cette version synchronise les classes, les élèves et désormais les évaluations avec Firebase. Le stockage local reste utilisé comme cache de sécurité pendant cette phase de validation.</p>
     <form id="firebase-login-form">
       <label for="firebase-email">Adresse e-mail</label>
       <input id="firebase-email" type="email" autocomplete="username" required>
       <label for="firebase-password">Mot de passe</label>
       <input id="firebase-password" type="password" autocomplete="current-password" required>
-      <div class="firebase-login-actions"><button type="submit" class="primary">Se connecter</button></div>
+      <div class="firebase-login-actions"><button type="submit" class="primary">Se connecter</button><button type="button" class="secondary" id="firebase-login-cancel">Continuer sans Firebase</button></div>
       <div id="firebase-login-error" class="firebase-login-error">Initialisation Firebase…</div>
     </form>
     <div class="firebase-login-note">Aucun mot de passe n’est enregistré dans le fichier HTML. L’identification est gérée directement par Firebase Authentication.</div>
@@ -8663,19 +8663,19 @@ function exportStudentDeletionPDF(studentsSnapshot, deletionDate){
 
 
 <!-- V149 : suppression des caractères \n parasites visibles en bas de la page accueil -->
-\n<!-- V152 — V149 stable + évolutions ciblées, sans modification du démarrage Firebase -->
+<!-- V153 — V149 stable + évolutions ciblées, sans modification du démarrage Firebase -->
 <style id="v152-ui">#build-version{white-space:nowrap}</style>
 <script id="v152-targeted-fixes">
 (function(){
  'use strict';
- const APP_VERSION='V152'; window.APP_VERSION=APP_VERSION;
+ const APP_VERSION='V153'; window.APP_VERSION=APP_VERSION;
  function applyVersion(){const b=document.getElementById('build-version');if(b)b.textContent=APP_VERSION+' — Competences Rta Gestion atelier TP';document.title=APP_VERSION+' Competences Rta Gestion atelier TP';}
  applyVersion(); document.addEventListener('DOMContentLoaded',applyVersion,{once:true}); setTimeout(applyVersion,0); setTimeout(applyVersion,700);
 
  // Fiches / activités : sauvegarde locale puis synchronisation Firebase différée.
  let activitySyncTimer=0;
  const baseSave=(typeof saveManagedEvaluationActivities==='function')?saveManagedEvaluationActivities:null;
- function syncActivitiesFirebase(){clearTimeout(activitySyncTimer);activitySyncTimer=setTimeout(async()=>{try{if(typeof window.firebaseSaveCurrentConfig==='function')await window.firebaseSaveCurrentConfig();}catch(e){console.warn('V152 activité conservée localement, synchronisation Firebase différée',e)}},180)}
+ function syncActivitiesFirebase(){clearTimeout(activitySyncTimer);activitySyncTimer=setTimeout(async()=>{try{if(typeof window.firebaseSaveCurrentConfig==='function')await window.firebaseSaveCurrentConfig();}catch(e){console.warn('V153 activité conservée localement, synchronisation Firebase différée',e)}},180)}
  if(baseSave){const wrapped=function(list){baseSave(list);syncActivitiesFirebase()};try{saveManagedEvaluationActivities=wrapped}catch(_){}window.saveManagedEvaluationActivities=wrapped}
 
  // Dupliquer : nouvel identifiant et ajout à la dernière ligne.
@@ -8694,7 +8694,7 @@ function exportStudentDeletionPDF(studentsSnapshot, deletionDate){
  const baseBackup=window.v133SaveGlobalBackup;
  async function saveHandle(h){const db=await new Promise((ok,no)=>{const q=indexedDB.open('evaluation_home_backup_v133',1);q.onupgradeneeded=()=>{if(!q.result.objectStoreNames.contains('handles'))q.result.createObjectStore('handles')};q.onsuccess=()=>ok(q.result);q.onerror=()=>no(q.error)});await new Promise((ok,no)=>{const q=db.transaction('handles','readwrite').objectStore('handles').put(h,'backupFolder');q.onsuccess=ok;q.onerror=()=>no(q.error)});db.close()}
  if(typeof baseBackup==='function')window.v133SaveGlobalBackup=async function(opts={}){try{return await baseBackup(opts)}catch(e){const msg=String(e?.message||e),stale=e?.name==='InvalidStateError'||/state cached|state had changed|read from disk/i.test(msg);if(!stale)throw e;if(!window.showDirectoryPicker)throw new Error('Sélectionne à nouveau le dossier de sauvegarde.');const h=await window.showDirectoryPicker({mode:'readwrite'});await saveHandle(h);return await baseBackup(opts)}};
- console.info('V152 : base V149 stable, correctifs ciblés actifs ; démarrage Firebase V149 conservé.');
+ console.info('V153 : base V149 stable, correctifs ciblés actifs ; démarrage Firebase V149 conservé.');
 })();
 </script>\n</body></html>`);
   w.document.close();
@@ -11367,6 +11367,8 @@ function openAssistanceMail(){
   const errorBox=document.getElementById('firebase-login-error');
   const form=document.getElementById('firebase-login-form');
   const submitBtn=form ? form.querySelector('button[type="submit"]') : null;
+  const cancelLoginBtn=document.getElementById('firebase-login-cancel');
+  if(cancelLoginBtn) cancelLoginBtn.addEventListener('click',()=>overlay.classList.add('hidden'));
   let auth=null, firestore=null, cloudReady=false, syncing=false;
 
   function setStatus(text,kind){
@@ -12383,7 +12385,10 @@ function startRealtimeListeners(){
   const miniPop=document.getElementById('firebase-sync-popover');
   const miniSync=document.getElementById('firebase-mini-sync-btn');
   if(mini && miniPop){
-    mini.addEventListener('click',()=>miniPop.classList.toggle('open'));
+    mini.addEventListener('click',()=>{
+      if(auth && !auth.currentUser){ overlay.classList.remove('hidden'); return; }
+      miniPop.classList.toggle('open');
+    });
   }
   if(miniSync){
     miniSync.addEventListener('click',()=>{
@@ -12438,8 +12443,10 @@ function startRealtimeListeners(){
         const mini=document.getElementById('firebase-sync-mini');
         const miniText=document.getElementById('firebase-sync-mini-text');
         if(mini){mini.classList.remove('ok','warn','bad');mini.classList.add('off');}
-        if(miniText)miniText.textContent='Firebase déconnecté';
-        overlay.classList.remove('hidden');
+        if(miniText)miniText.textContent='Firebase déconnecté — toucher le nuage pour se connecter';
+        // V153 : l'absence de session Firebase ne bloque jamais le démarrage.
+        // La connexion est volontairement ouverte depuis le nuage.
+        overlay.classList.add('hidden');
         panel.hidden=true;
         errorBox.textContent='';
       }
@@ -12477,8 +12484,13 @@ function startRealtimeListeners(){
       }
     });
   }catch(err){
-    overlay.classList.remove('hidden');
-    errorBox.textContent=friendlyError(err);
+    overlay.classList.add('hidden');
+    panel.hidden=true;
+    const mini=document.getElementById('firebase-sync-mini');
+    const miniText=document.getElementById('firebase-sync-mini-text');
+    if(mini){mini.classList.remove('ok','warn','bad');mini.classList.add('off');}
+    if(miniText)miniText.textContent='Firebase indisponible — le logiciel reste utilisable';
+    console.warn('Firebase indisponible au démarrage',err);
   }
 })();
 </script>
@@ -15726,7 +15738,7 @@ window.tpCorrectionValidate=async function(){
  const oldDiffuse=window.tpGenDiffuseSaved;window.tpGenDiffuseSaved=async function(id){const x=rows().find(r=>String(r.savedId)===String(id));if(x?.snapshot?.rawProjectStored){const raw=await getProject(id);if(raw)mem.set(String(id),raw)}return oldDiffuse?.(id)};
  const oldLocked=window.tpGenLockedSnapshot;window.tpGenLockedSnapshot=function(){const d=oldLocked?.();if(d?.rawProjectStored&&!d.rawProject){const id=String(tpGenState.currentSavedId||window.__tpDiffusionSavedId||'');const raw=mem.get(id);if(raw)d.rawProject=JSON.parse(JSON.stringify(raw))}return d};
  const oldDelete=window.tpGenDeleteSaved;window.tpGenDeleteSaved=async function(id){const before=rows().some(x=>String(x.savedId)===String(id));const ret=await oldDelete?.(id);if(before&&!rows().some(x=>String(x.savedId)===String(id)))try{await delProject(id)}catch(e){console.warn(e)}return ret};
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V113 — Competences Rta Gestion atelier TP';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent=(window.APP_VERSION||'V153')+' — Competences Rta Gestion atelier TP';
  migrate();
  console.info('V113 actif : projets TP lourds stockés dans IndexedDB; localStorage limité aux métadonnées.');
 })();
@@ -15788,7 +15800,7 @@ window.tpCorrectionValidate=async function(){
  };
  const oldDiffPage=window.tpV76DiffusionsPage;
  if(typeof oldDiffPage==='function')window.tpV76DiffusionsPage=function(){const out=oldDiffPage.apply(this,arguments);setTimeout(()=>{const data=diffRows().filter(r=>!new Set(deletedIds()).has(String(r.id))).sort((a,b)=>String(b.diffusedAt||'').localeCompare(String(a.diffusedAt||''))),els=[...document.querySelectorAll('.v76-diff-row')];els.forEach((el,i)=>{const r=data[i];if(!r||el.querySelector('[data-v114-delete]'))return;const oldBtn=el.querySelector('button');const wrap=document.createElement('div');wrap.className='v114-diff-actions';if(oldBtn){oldBtn.replaceWith(wrap);wrap.appendChild(oldBtn)}const b=document.createElement('button');b.type='button';b.className='tpgen-btn danger';b.dataset.v114Delete='1';b.textContent='🗑️ Supprimer';b.onclick=()=>window.tp114DeleteDiffusion(r.id);wrap.appendChild(b)})},0);return out};
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V115 — Competences Rta Gestion atelier TP';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent=(window.APP_VERSION||'V153')+' — Competences Rta Gestion atelier TP';
  console.info('V114 actif : import TP IndexedDB corrigé et suppression individuelle des TP diffusés.');
 })();
 </script>
@@ -15874,7 +15886,7 @@ window.tpCorrectionValidate=async function(){
  const oldSet=Storage.prototype.setItem; if(!window.__v132StorageHook){window.__v132StorageHook=true;Storage.prototype.setItem=function(k,v){const z=oldSet.apply(this,arguments);if(this===localStorage&&k===DIFF)soon(k);return z}}
  // La photothèque n'est volontairement jamais incluse dans cette synchronisation.
  setTimeout(()=>run('demarrage'),1600);
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V134 — Competences Rta Gestion atelier TP';document.title='V132 Competences Rta Gestion atelier TP';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent=(window.APP_VERSION||'V153')+' — Competences Rta Gestion atelier TP';document.title=(window.APP_VERSION||'V153')+' Competences Rta Gestion atelier TP';
  console.info('V133 : Firebase limité aux TP diffusés. TP enregistrés et photothèque restent locaux.');
 })();
 </script>
@@ -15913,7 +15925,7 @@ window.tpCorrectionValidate=async function(){
  window.addEventListener('pagehide',()=>{if(!isHome())return;try{const light={at:new Date().toISOString(),version:VERSION,localStorage:Object.fromEntries(Array.from({length:localStorage.length},(_,i)=>{const k=localStorage.key(i);return[k,localStorage.getItem(k)]}))};localStorage.setItem('evaluation_emergency_backup_v133',JSON.stringify(light))}catch(_){}});
  // Outil volontaire : efface les anciennes copies cloud des TP ENREGISTRÉS V132, jamais les diffusions.
  window.v133CleanSavedTpCloud=async function(){if(!confirm('Supprimer de Firebase les anciennes copies des TP enregistrés ?\nLes TP diffusés ne seront pas touchés.'))return false;const fs=window.firebase?.firestore?.();if(!fs)throw new Error('Firebase indisponible');const col=fs.collection('workspaces').doc('evaluation-mv-main').collection('tpProjectsV132'),snap=await col.get();for(const d of snap.docs){const c=await d.ref.collection('chunks').get();for(let i=0;i<c.docs.length;i+=300){const b=fs.batch();c.docs.slice(i,i+300).forEach(x=>b.delete(x.ref));await b.commit()}await d.ref.delete()}alert(snap.size+' TP enregistrés supprimés de Firebase. Les versions locales sont conservées.');return true};
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V134 — Competences Rta Gestion atelier TP';document.title='V133 Competences Rta Gestion atelier TP';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent=(window.APP_VERSION||'V153')+' — Competences Rta Gestion atelier TP';document.title=(window.APP_VERSION||'V153')+' Competences Rta Gestion atelier TP';
  console.info('V133 poste maison:',isHome()?'actif':'inactif','— TP enregistrés locaux, diffusions Firebase.');
 })();
 </script>
@@ -15961,8 +15973,8 @@ window.tpCorrectionValidate=async function(){
  window.addEventListener('storage',e=>{if(e.key===DKEY)purgeDeleted()});
  window.addEventListener('tp-v133-synced',purgeDeleted);
  setInterval(purgeDeleted,4000);
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V134 — Competences Rta Gestion atelier TP';
- document.title='V134 Competences Rta Gestion atelier TP';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent=(window.APP_VERSION||'V153')+' — Competences Rta Gestion atelier TP';
+ document.title=(window.APP_VERSION||'V153')+' Competences Rta Gestion atelier TP';
  console.info('V134 : page TP diffusés non intrusive et suppression Firebase V106/V132 sécurisée.');
 })();
 </script>
@@ -15983,7 +15995,7 @@ window.tpCorrectionValidate=async function(){
  window.tp138ToggleStudents=function(id){const el=document.getElementById('v138-students-'+CSS.escape(String(id)));if(!el)return;const hidden=el.hidden;el.hidden=!hidden;const b=document.querySelector(`[data-v138-toggle="${CSS.escape(String(id))}"]`);if(b)b.textContent=hidden?'▾ Masquer les élèves':'▸ Voir les élèves';};
  window.tpV76DiffusionsPage=function(){window.setActive?.('tpGenerator');const rows=diffs().sort((a,b)=>String(b.diffusedAt||'').localeCompare(String(a.diffusedAt||''))),main=document.getElementById('main');if(!main)return false;main.innerHTML=`<header class="app-top-header"></header><div class="tpgen-manager-shell"><div class="tpgen-head"><div><h1>📤 Mes TP diffusés</h1><p class="muted">Registre multiposte léger : gris = diffusé, jaune = rendu, vert = corrigé. Les fichiers TP restent locaux / Dropbox.</p></div><button class="tpgen-btn secondary" onclick="tpGeneratorPage()">← Retour</button></div><div class="tpgen-card">${rows.length?rows.map(r=>{const c=counts(r),id=String(r.id||'');return `<div class="v138-diff-card"><div class="v138-top"><div><b>${esc(r.tpCode||'TP')} — ${esc(r.title||'')}</b><div class="muted">${esc(r.className||'')} • ${r.diffusedAt?new Date(r.diffusedAt).toLocaleString('fr-FR'):''} • ${(r.students||[]).length} élève(s)</div></div><div class="v138-actions"><button class="tpgen-btn primary" onclick="tpV76AddDiffusionToDay('${esc(id)}')">＋ Affecter</button><button class="tpgen-btn danger" onclick="tp114DeleteDiffusion('${esc(id)}')">🗑️ Supprimer</button></div></div><div class="v138-counts"><span class="v138-count v138-grey">⬜ Diffusé <b>${c.grey}</b></span><span class="v138-count v138-yellow">🟨 Rendu <b>${c.yellow}</b></span><span class="v138-count v138-green">🟩 Corrigé <b>${c.green}</b></span></div><button class="v138-toggle" data-v138-toggle="${esc(id)}" onclick="tp138ToggleStudents('${esc(id)}')">▸ Voir les élèves</button><div class="v138-students" id="v138-students-${esc(id)}" hidden>${(r.students||[]).map(st=>{const q=state(r,st),label=q==='green'?'Corrigé':q==='yellow'?'Rendu':'Diffusé';return `<div class="v138-student ${q}"><b>${esc(sname(st))}</b><span>${label}</span></div>`}).join('')||'<span class="muted">Liste nominative absente de cette ancienne diffusion.</span>'}</div></div>`}).join(''):'<div class="muted">Aucun TP diffusé enregistré.</div>'}</div></div>`;return true};
  // Le registre Firebase ne doit jamais contenir le projet TP lourd : la V132 a été patchée pour n'envoyer que les métadonnées + élèves.
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V139 — Competences Rta Gestion atelier TP';document.title='V139 Competences Rta Gestion atelier TP';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent=(window.APP_VERSION||'V153')+' — Competences Rta Gestion atelier TP';document.title=(window.APP_VERSION||'V153')+' Competences Rta Gestion atelier TP';
  console.info('V138 : registre TP diffusés léger + élèves repliés + compteurs gris/jaune/vert.');
 })();
 </script>
@@ -16030,7 +16042,7 @@ window.tpCorrectionValidate=async function(){
  const oldImport=window.tpCorrectionImport;window.tpCorrectionImport=async function(files){let before=new Set((()=>{try{return (JSON.parse(localStorage.getItem(CORR)||'[]')||[]).map(x=>String(x.id))}catch(_){return[]}})());let out=await oldImport?.apply(this,arguments);setTimeout(async()=>{try{let rows=JSON.parse(localStorage.getItem(CORR)||'[]')||[], fresh=rows.filter(x=>!before.has(String(x.id))&&!x.correctedAt);for(const light of fresh){let full=null;try{let db=await new Promise((ok,no)=>{let q=indexedDB.open('fdmahy_corrections_v129',1);q.onsuccess=()=>ok(q.result);q.onerror=()=>no(q.error)});full=await new Promise((ok,no)=>{let q=db.transaction('copies').objectStore('copies').get(String(light.id));q.onsuccess=()=>ok(q.result);q.onerror=()=>no(q.error)});db.close()}catch(_){}await cloudPut(full||light)}if(fresh.length)console.info('V139 copies rendues envoyées temporairement vers Firebase:',fresh.length)}catch(e){console.warn('V139 Firebase copies rendues',e)}},250);return out};
  const oldValidate=window.tpCorrectionValidate;window.tpCorrectionValidate=async function(){let id=window.__tp55Current||window.__tpCorrectionCurrent||null;let ret=await oldValidate?.apply(this,arguments);setTimeout(async()=>{try{let rows=JSON.parse(localStorage.getItem(CORR)||'[]')||[],r=rows.find(x=>String(x.id)===String(id));if(r?.correctedAt){await cloudDel(r.id);console.info('V139 copie lourde supprimée de Firebase après correction validée',r.id);try{window.tpV132SyncNow?.('correction-v139')}catch(_){} }}catch(e){console.warn('V139 suppression copie Firebase',e)}},300);return ret};
  // Version
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V139 — Competences Rta Gestion atelier TP';document.title='V139 Competences Rta Gestion atelier TP';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent=(window.APP_VERSION||'V153')+' — Competences Rta Gestion atelier TP';document.title=(window.APP_VERSION||'V153')+' Competences Rta Gestion atelier TP';
  console.info('V139 : diffusion depuis fichier local + aperçu temporaire + registre léger + copies rendues Firebase temporaires.');
 })();
 </script>
@@ -16070,7 +16082,7 @@ window.tpCorrectionValidate=async function(){
    o.querySelector('.v144-save').onclick=async()=>{const b=o.querySelector('.v144-save');b.disabled=true;b.textContent='Sauvegarde en cours…';try{const r=await window.v133SaveGlobalBackup?.();if(!r?.ok)throw Error('Sauvegarde non confirmée.');o.remove();await baseLogout?.()}catch(e){b.disabled=false;b.textContent='💾 Sauvegarder puis quitter';alert('Sauvegarde impossible : '+(e?.message||e))}};
    o.querySelector('.v144-nosave').onclick=async()=>{o.remove();await baseLogout?.()};return false;
  };
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V145 — Competences Rta Gestion atelier TP';document.title='V144 Competences Rta Gestion atelier TP';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent=(window.APP_VERSION||'V153')+' — Competences Rta Gestion atelier TP';document.title=(window.APP_VERSION||'V153')+' Competences Rta Gestion atelier TP';
  console.info('V144 actif : base de démarrage V139 conservée; navigation diffusions et sortie corrigées sans modifier Firebase.');
 })();
 </script>
@@ -16106,7 +16118,7 @@ window.tpCorrectionValidate=async function(){
   const mo=new MutationObserver(bind); mo.observe(document.documentElement,{childList:true,subtree:true}); bind();
   // Firebase/storage refreshes may update data but never navigate.
   window.addEventListener('tp-v133-synced',()=>{}, {passive:true});
-  const bv=document.getElementById('build-version'); if(bv) bv.textContent='V145 — Competences Rta Gestion atelier TP';
+  const bv=document.getElementById('build-version'); if(bv) bv.textContent=(window.APP_VERSION||'V153')+' — Competences Rta Gestion atelier TP';
   console.info('V145 actif : navigation Mes TP diffusés strictement réservée à une action utilisateur.');
 })();
 </script>
@@ -16123,7 +16135,7 @@ window.tpCorrectionValidate=async function(){
  const clone=o=>JSON.parse(JSON.stringify(o||{}));
  const safe=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Za-z0-9_-]+/g,'-').replace(/^-+|-+$/g,'')||'TP';
  let folderHandle=null;
- function forceVersion(){const b=document.getElementById('build-version');if(b&&b.textContent!=='V146 — Competences Rta Gestion atelier TP')b.textContent='V146 — Competences Rta Gestion atelier TP';document.title='V146 Competences Rta Gestion atelier TP';document.getElementById('v144-version')?.remove();}
+ function forceVersion(){const b=document.getElementById('build-version');if(b&&b.textContent!=='V146 — Competences Rta Gestion atelier TP')b.textContent='V146 — Competences Rta Gestion atelier TP';document.title=(window.APP_VERSION||'V153')+' Competences Rta Gestion atelier TP';document.getElementById('v144-version')?.remove();}
  forceVersion();
  document.addEventListener('DOMContentLoaded',forceVersion,{once:true});
  setTimeout(forceVersion,0);setTimeout(forceVersion,500);
@@ -16175,7 +16187,7 @@ window.tpCorrectionValidate=async function(){
  window.tp116ViewDiffusion=function(id){const r=diffRows().find(x=>String(x.id)===String(id));if(!r)return alert('TP diffusé introuvable.');const p=r.tpProject||projectFromRaw(r.snapshot?.rawProject);const ov=document.createElement('div');ov.className='v116-preview-overlay';ov.innerHTML=`<div class="v116-preview-box"><div class="v116-preview-top"><div><b>👁 ${esc(r.tpCode)} — ${esc(r.title)}</b><div class="muted">${esc(r.className)} · ${r.students?.length||0} élève(s)</div></div><button type="button">✕ Fermer</button></div>${sheet(p)}</div>`;ov.querySelector('button').onclick=()=>ov.remove();document.body.appendChild(ov)};
  // Reconstruit Mes TP diffusés avec Voir + Affecter + Supprimer et ne dépend pas de l'ancien formulaire générateur.
  const priorPage=window.tpV76DiffusionsPage;window.tpV76DiffusionsPage=function(){priorPage?.();setTimeout(()=>{const data=diffRows().sort((a,b)=>String(b.diffusedAt||'').localeCompare(String(a.diffusedAt||''))),els=[...document.querySelectorAll('.v76-diff-row')];els.forEach((el,i)=>{const r=data[i];if(!r)return;let wrap=el.querySelector('.v114-diff-actions,.v116-diff-actions');if(!wrap){wrap=document.createElement('div');wrap.className='v116-diff-actions';const b=el.querySelector('button');if(b){b.replaceWith(wrap);wrap.appendChild(b)}}else wrap.classList.add('v116-diff-actions');if(!wrap.querySelector('[data-v116-view]')){const b=document.createElement('button');b.className='tpgen-btn secondary';b.dataset.v116View='1';b.textContent='👁 Voir le TP';b.onclick=()=>window.tp116ViewDiffusion(r.id);wrap.prepend(b)}})},0)};
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V117 — Competences Rta Gestion atelier TP';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent=(window.APP_VERSION||'V153')+' — Competences Rta Gestion atelier TP';
  console.info('V117 actif : rendu TP polyvalent et diffusion tracée.');
 })();
 </script><style id="v117-prof-style">
@@ -16199,7 +16211,7 @@ window.tpCorrectionValidate=async function(){
  let oldBuild=window.tpGenBuildStudentPackage;window.tpGenBuildStudentPackage=function(student,d){let m=oldBuild.apply(this,arguments),p=window.__v117Project||window.__v116CurrentProject||null;if(p){m.tpProject=clone(p);m.tpPictograms=clone(p.__pictograms||[]);m.meta=m.meta||{};m.meta.readerRequired='V117';m.type='tp-eleve-v117'}return m};
  // Hydratation complète avec pictogrammes avant export.
  ['tpGenExportClassToFolder','tpGenExportClassZip'].forEach(name=>{let prev=window[name];if(typeof prev!=='function')return;window[name]=async function(){let sid=String(tpGenState?.currentSavedId||window.__tpDiffusionSavedId||''),rr=sid?await raw(sid):null;window.__v117Project=unpack(rr);try{return await prev.apply(this,arguments)}finally{window.__v117Project=null}}});
- let bv=document.getElementById('build-version');if(bv)bv.textContent='V117 — Competences Rta Gestion atelier TP';console.info('V117 actif : vue TP polyvalente + diffusion persistante.');
+ let bv=document.getElementById('build-version');if(bv)bv.textContent=(window.APP_VERSION||'V153')+' — Competences Rta Gestion atelier TP';console.info('V117 actif : vue TP polyvalente + diffusion persistante.');
 })();
 </script><!-- V118 — concordance Editeur / Logiciel / Lecteur + diffusion transactionnelle -->
 <style id="v118-style">
@@ -16237,7 +16249,7 @@ window.tpCorrectionValidate=async function(){
  function injectRetroSettings(){let main=document.getElementById('main');if(!main||main.querySelector('#v118-retro-settings'))return;let host=main.querySelector('.rubric-other-wrap .settings-rubric-collapse-body')||main.querySelector('.settings-grid')||main;let card=document.createElement('div');card.id='v118-retro-settings';card.className='settings-card section-other';card.innerHTML=`<h3>🕘 Évaluations rétroactives</h3><p class="muted">Choisis les cartes visibles dans « Nouvelle évaluation » pour le profil administrateur.</p><div class="v118-switch-row"><div><b>Positionnement rétroactif</b><div class="muted">Afficher la création d'un positionnement à une date antérieure.</div></div><label class="v118-switch"><input type="checkbox" ${retroOn(RETRO_POS)?'checked':''} onchange="v118ToggleRetro('${RETRO_POS}',this.checked)"><span class="v118-slider"></span></label></div><div class="v118-switch-row"><div><b>Import rétroactif collectif</b><div class="muted">Afficher l'import Excel rétroactif collectif.</div></div><label class="v118-switch"><input type="checkbox" ${retroOn(RETRO_XLS)?'checked':''} onchange="v118ToggleRetro('${RETRO_XLS}',this.checked)"><span class="v118-slider"></span></label></div>`;host.appendChild(card)}
  let oldSettings=window.renderSettingsPage;if(typeof oldSettings==='function')window.renderSettingsPage=function(){let r=oldSettings.apply(this,arguments);setTimeout(injectRetroSettings,0);return r};
  let oldChoice=window.evaluationChoicePage;if(typeof oldChoice==='function')window.evaluationChoicePage=function(){let r=oldChoice.apply(this,arguments);setTimeout(()=>{document.querySelectorAll('.eval-choice-card').forEach(c=>{let t=c.textContent||'';if(/Positionnement rétroactif/i.test(t)&&!retroOn(RETRO_POS))c.remove();if(/Import rétroactif collectif/i.test(t)&&!retroOn(RETRO_XLS))c.remove()})},0);return r};
- let bv=document.getElementById('build-version');if(bv)bv.textContent='V118 — Competences Rta Gestion atelier TP';
+ let bv=document.getElementById('build-version');if(bv)bv.textContent=(window.APP_VERSION||'V153')+' — Competences Rta Gestion atelier TP';
  console.info('V118 actif : diffusion transactionnelle, générateur replié, rétroactif paramétrable.');
 })();
 </script>
@@ -16262,7 +16274,7 @@ window.tpCorrectionValidate=async function(){
  window.tpGenExportClassToFolder=async function(){try{if(!folderHandle){const ok=await window.tpGenChooseClassFolder();if(!ok)return false}const ctx=await buildFiles();let perm='granted';if(folderHandle.queryPermission)perm=await folderHandle.queryPermission({mode:'readwrite'});if(perm!=='granted'&&folderHandle.requestPermission)perm=await folderHandle.requestPermission({mode:'readwrite'});if(perm!=='granted')throw Error('Autorisation d’écriture refusée.');for(const f of ctx.files){const fh=await folderHandle.getFileHandle(f.name,{create:true}),w=await fh.createWritable();await w.write(new Blob([f.text],{type:f.name.endsWith('.tp')?'application/json;charset=utf-8':'text/plain;charset=utf-8'}));await w.close()}persist(ctx);const n=ctx.sts.length,name=folderHandle.name;window.tpGenCloseClassExport?.();window.showSuccessMessage?.(`${n} TP élève généré(s) dans « ${name} » et diffusion enregistrée dans Mes TP diffusés.`);return true}catch(e){console.error('V119 dossier',e);window.showWarningMessage?.('Génération impossible : '+(e?.message||e));return false}finally{window.__v117Project=null;window.__v116CurrentProject=null}};
  window.tpGenExportClassZip=async function(){try{const ctx=await buildFiles();const blob=window.tpGenBuildStoreZip(ctx.files);const name=[filePart(ctx.code),filePart(ctx.className),'TP_ELEVES'].filter(Boolean).join('_')+'.zip';window.tpGenDownloadBlob(blob,name);persist(ctx);window.tpGenCloseClassExport?.();window.showSuccessMessage?.(`${ctx.sts.length} TP élève correspondant(s) à « ${ctx.code} » regroupé(s) dans le ZIP et diffusion enregistrée.`);return true}catch(e){console.error('V119 ZIP',e);window.showWarningMessage?.('Génération ZIP impossible : '+(e?.message||e));return false}finally{window.__v117Project=null;window.__v116CurrentProject=null}};
  const oldDiffuse=window.tpGenDiffuseSaved;window.tpGenDiffuseSaved=function(id){folderHandle=null;window.__tpDiffusionSavedId=String(id||'');if(window.tpGenState)window.tpGenState.currentSavedId=String(id||'');return oldDiffuse?.apply(this,arguments)};
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V128 — Competences Rta Gestion atelier TP';document.title='V127 Competences Rta Gestion atelier TP';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent=(window.APP_VERSION||'V153')+' — Competences Rta Gestion atelier TP';document.title=(window.APP_VERSION||'V153')+' Competences Rta Gestion atelier TP';
  console.info('V127 actif : diffusion compacte, sans duplication du projet TP dans localStorage.');
 })();
 </script>
@@ -16291,7 +16303,7 @@ window.tpCorrectionValidate=async function(){
  };
  function wire(){document.querySelectorAll('#tp109-folder-input,#tp109-files-input,.tpc-toolbar input[type=file]').forEach(input=>{input.onchange=async()=>{const f=input.files;if(f?.length)await window.tpCorrectionImport(f);input.value=''}})}
  const oldPage=window.tpCorrectionPage;window.tpCorrectionPage=function(){const r=oldPage?.apply(this,arguments);setTimeout(wire,50);return r};setTimeout(wire,500);
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V130 — Competences Rta Gestion atelier TP';document.title='V131 Competences Rta Gestion atelier TP';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent=(window.APP_VERSION||'V153')+' — Competences Rta Gestion atelier TP';document.title=(window.APP_VERSION||'V153')+' Competences Rta Gestion atelier TP';
  console.info('V130 — import Copies rendues V128/V130 actif avec stockage IndexedDB anti-quota.');
 })();
 </script>
@@ -16320,7 +16332,7 @@ window.tpCorrectionValidate=async function(){
  function render(r){const d=r.data||{},p=project(d);if(!p)return'';const a=answers(d),flow=Array.isArray(p.flow)?p.flow:(p.questions||[]).map(q=>({type:'question',id:q.id}));let html='',sec='',n=0;for(const f of flow){if(f.type!=='question'){let x=obj(p,f);if(x?.parentQuestionId)continue;html+=block(r,p,f,a);continue}let q=obj(p,f);if(!q||q.excluded)continue;if((q.section||'Activité')!==sec){sec=q.section||'Activité';html+=`<h2 class="section">${esc(sec)}</h2>`}let val=a[q.id],k='q_'+q.id;html+=`<section class="q"><div class="v131-qhead"><div><div class="qtitle">${++n}. ${esc(q.text||'')}</div><div class="meta">${esc(q.competence||'')}${q.criterionId?' · '+esc(q.criterionId):''}</div></div><div data-v131-mark="${esc(k)}">${markButtons(r,k)}</div></div>${(q.images||[]).map(im=>imageTag(im,'max-width:100%;max-height:280px;object-fit:contain;margin-top:8px')).join('')}${q.answerType==='none'?'':`<div class="answer">${esc(val||'—')}</div>`}${flow.filter(z=>z.type!=='question'&&obj(p,z)?.parentQuestionId===q.id).map(z=>block(r,p,z,a)).join('')}</section>`}return `<div class="v130-copy"><div class="tphead"><div><small>BAC PRO MAINTENANCE DES VÉHICULES · COPIE ÉLÈVE</small><h1>${esc(p.publicTitle||p.title||d.titre||'TP')}</h1><div>Durée : ${esc(p.duration||'—')}</div></div><span class="code">${esc(p.publicId||p.id||d.code||'TP')}</span></div><div class="brief"><section><h3>Situation professionnelle</h3>${esc(p.intro||'')}</section><section><h3>Objectifs</h3>${esc(p.objectives||'')}</section><section><h3>Support</h3>${esc(p.support||'')}</section><section><h3>Ressources et matériels</h3>${esc(p.resources||'')}</section></div>${html}</div>`}
  const previous=window.tpCorrectionOpen;
  window.tpCorrectionOpen=function(id){const light=read().find(x=>String(x.id)===String(id));if(!light)return previous?.apply(this,arguments);previous?.apply(this,arguments);setTimeout(async()=>{const ed=document.querySelector('.tpc-editor'),left=ed?.firstElementChild;if(!left)return;left.innerHTML='<div class="v131-hydrating">Chargement de la copie complète et de ses illustrations…</div>';const stored=await full(id),r=stored||light;if(!project(r.data)){left.innerHTML='<div class="tpc-card">Cette copie ne contient pas le projet TP complet nécessaire à la vue fidèle.</div>';return}const local=read().find(x=>String(x.id)===String(id));if(local?.marks)r.marks={...(r.marks||{}),...local.marks};left.innerHTML='<div class="tpc-card"><b>V131 — Vue de correction fidèle.</b> Les illustrations sont rechargées depuis la copie complète. Chaque question dispose maintenant des boutons ✓ Correct, ✕ Incorrect et — Non évalué.</div>'+render(r)},20)};
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V131 — Competences Rta Gestion atelier TP';document.title='V131 Competences Rta Gestion atelier TP';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent=(window.APP_VERSION||'V153')+' — Competences Rta Gestion atelier TP';document.title=(window.APP_VERSION||'V153')+' Competences Rta Gestion atelier TP';
  console.info('V131 correcteur : hydratation IndexedDB + images + coches par question.');
 })();
 </script><!-- V147 — correctif final diffusion TP local : DOIT rester le dernier runtime du fichier -->
@@ -16333,7 +16345,7 @@ window.tpCorrectionValidate=async function(){
  function setVersion(){
    const b=document.getElementById('build-version');
    if(b)b.textContent='V147 — Competences Rta Gestion atelier TP';
-   document.title='V147 Competences Rta Gestion atelier TP';
+   document.title=(window.APP_VERSION||'V153')+' Competences Rta Gestion atelier TP';
    document.getElementById('v144-version')?.remove();
  }
  setVersion(); document.addEventListener('DOMContentLoaded',setVersion,{once:true}); setTimeout(setVersion,100);
@@ -16422,7 +16434,7 @@ window.tpCorrectionValidate=async function(){
  });
  function compact(root=document){root.querySelectorAll?.('.v131-markbar .v131-mark').forEach(b=>{if(b.classList.contains('ok')){b.textContent='✓';b.title='Correct'}else if(b.classList.contains('bad')){b.textContent='✕';b.title='Incorrect'}else{b.textContent='—';b.title='Non évalué'}b.setAttribute('aria-label',b.title)})}
  compact(); new MutationObserver(m=>m.forEach(x=>x.addedNodes.forEach(n=>{if(n.nodeType===1)compact(n)}))).observe(document.documentElement,{childList:true,subtree:true});
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V149 — Competences Rta Gestion atelier TP';document.title='V149 Competences Rta Gestion atelier TP';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent=(window.APP_VERSION||'V153')+' — Competences Rta Gestion atelier TP';document.title=(window.APP_VERSION||'V153')+' Competences Rta Gestion atelier TP';
  console.info('V148 : Copies rendues stable pendant Firebase + coches compactes.');
 })();
 </script>
