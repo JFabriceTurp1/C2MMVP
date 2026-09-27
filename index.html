@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>V150 Competences Rta Gestion atelier TP</title>
+<title>V151 Competences Rta Gestion atelier TP</title>
 <style>
 *{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f5f7fa;color:#172033}
 .app{display:flex;min-height:100vh}.side{width:235px;background:#172033;color:#fff;padding:22px 14px}.logo{font-size:19px;font-weight:700;padding:8px 10px 24px}
@@ -2817,7 +2817,7 @@ body{background:#f7f9fc;color:var(--text)}
 <div id="build-version">V147 — Competences Rta Gestion atelier TP</div>
 <div id="firebase-auth-overlay">
   <div class="firebase-login-card">
-    <h2>☁️ Connexion Firebase — V89</h2>
+    <h2>☁️ Connexion Firebase — V151</h2>
     <p>Cette version synchronise les classes, les élèves et désormais les évaluations avec Firebase. Le stockage local reste utilisé comme cache de sécurité pendant cette phase de validation.</p>
     <form id="firebase-login-form">
       <label for="firebase-email">Adresse e-mail</label>
@@ -16226,6 +16226,48 @@ window.tpCorrectionValidate=async function(){
  };
 
  console.info('V150 actif : activités Firebase + duplication + Copies rendues stable + sauvegarde dossier renouvelable + version centralisée.');
+})();
+</script>
+
+<!-- V151 — démarrage non bloquant Firebase : restauration logique stable -->
+<style id="v151-firebase-startup-fix">
+/* Firebase ne doit jamais bloquer l'accès au logiciel au démarrage. */
+#firebase-auth-overlay{display:none!important}
+#firebase-auth-overlay.v151-user-open{display:flex!important}
+</style>
+<script id="v151-firebase-startup-fix-runtime">
+(function(){
+ 'use strict';
+ const VERSION='V151'; window.APP_VERSION=VERSION;
+ function applyVersion(){
+   const b=document.getElementById('build-version');
+   if(b)b.textContent=VERSION+' — Competences Rta Gestion atelier TP';
+   document.title=VERSION+' Competences Rta Gestion atelier TP';
+   const h=document.querySelector('#firebase-auth-overlay .firebase-login-card h2');
+   if(h)h.textContent='☁️ Connexion Firebase — '+VERSION;
+ }
+ function keepStartupOpen(){
+   const o=document.getElementById('firebase-auth-overlay');
+   if(o&&!o.classList.contains('v151-user-open')){o.classList.add('hidden');o.style.display='none'}
+ }
+ function ensureLoginAction(){
+   const pop=document.getElementById('firebase-sync-popover');
+   if(!pop||document.getElementById('v151-firebase-login-btn'))return;
+   const actions=pop.querySelector('.firebase-mini-compact-actions')||pop.querySelector('.actions')||pop;
+   const btn=document.createElement('button');btn.id='v151-firebase-login-btn';btn.type='button';btn.className='secondary firebase-mini-action';btn.textContent='Connexion';btn.title='Ouvrir la connexion Firebase';
+   btn.onclick=function(){const o=document.getElementById('firebase-auth-overlay');if(o){o.classList.remove('hidden');o.classList.add('v151-user-open');o.style.display='flex'}};
+   actions.appendChild(btn);
+ }
+ applyVersion();keepStartupOpen();ensureLoginAction();
+ document.addEventListener('DOMContentLoaded',()=>{applyVersion();keepStartupOpen();ensureLoginAction()},{once:true});
+ // L'ancien runtime peut tenter de réafficher l'overlay si Firebase n'a plus de session :
+ // on laisse le logiciel utilisable et on propose une connexion volontaire depuis le nuage.
+ const o=document.getElementById('firebase-auth-overlay');
+ if(o)new MutationObserver(()=>{if(!o.classList.contains('v151-user-open')){o.classList.add('hidden');o.style.display='none'}}).observe(o,{attributes:true,attributeFilter:['class','style']});
+ const closeOnAuth=()=>{try{if(window.firebase&&firebase.auth){firebase.auth().onAuthStateChanged(u=>{if(u&&o){o.classList.remove('v151-user-open');o.classList.add('hidden');o.style.display='none'}})}}catch(e){console.warn('V151 auth observer',e)}};
+ setTimeout(closeOnAuth,500);
+ new MutationObserver(()=>{applyVersion();ensureLoginAction()}).observe(document.documentElement,{childList:true,subtree:true});
+ console.info('V151 actif : Firebase ne bloque plus la page d’accueil ; connexion volontaire disponible depuis le nuage.');
 })();
 </script>
 </body>
