@@ -16086,11 +16086,11 @@ window.tpCorrectionValidate=async function(){
 </style>
 <script id="v146-runtime">
 (function(){
- const VERSION='V146', DKEY='tp_generator_diffusions_v76';
+ const VERSION='V155', DKEY='tp_generator_diffusions_v76';
  const clone=o=>JSON.parse(JSON.stringify(o||{}));
  const safe=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Za-z0-9_-]+/g,'-').replace(/^-+|-+$/g,'')||'TP';
  let folderHandle=null;
- function forceVersion(){const b=document.getElementById('build-version');if(b&&b.textContent!=='V146 — Competences Rta Gestion atelier TP')b.textContent='V146 — Competences Rta Gestion atelier TP';document.title='V146 Competences Rta Gestion atelier TP';document.getElementById('v144-version')?.remove();}
+ function forceVersion(){const b=document.getElementById('build-version');if(b&&b.textContent!=='V155 — Competences Rta Gestion atelier TP')b.textContent='V155 — Competences Rta Gestion atelier TP';document.title='V155 Competences Rta Gestion atelier TP';document.getElementById('v144-version')?.remove();}
  forceVersion();
  document.addEventListener('DOMContentLoaded',forceVersion,{once:true});
  setTimeout(forceVersion,0);setTimeout(forceVersion,500);
@@ -16101,10 +16101,149 @@ window.tpCorrectionValidate=async function(){
  window.tpGenChooseClassFolder=async function(){if(!window.showDirectoryPicker){alert('Le choix direct d’un dossier nécessite Edge ou Chrome. Utilise « Télécharger le ZIP » sur les autres navigateurs.');return false}try{folderHandle=await window.showDirectoryPicker({mode:'readwrite'});const e=document.getElementById('tpgen-folder-label');if(e)e.textContent='Dossier : '+folderHandle.name;return true}catch(e){return false}};
  window.tpGenExportClassToFolder=async function(){try{if(!folderHandle&&!await window.tpGenChooseClassFolder())return false;const c=await build();let perm=folderHandle.queryPermission?await folderHandle.queryPermission({mode:'readwrite'}):'granted';if(perm!=='granted'&&folderHandle.requestPermission)perm=await folderHandle.requestPermission({mode:'readwrite'});if(perm!=='granted')throw Error('Autorisation d’écriture refusée.');for(const f of c.files){const h=await folderHandle.getFileHandle(f.name,{create:true}),w=await h.createWritable();await w.write(new Blob([f.text],{type:'application/json;charset=utf-8'}));await w.close()}persist(c);const n=c.files.length,name=folderHandle.name;window.tpGenCloseClassExport?.();window.showSuccessMessage?.(`${n} TP élève généré(s) dans « ${name} » et diffusion enregistrée.`);return true}catch(e){console.error('V146 diffusion dossier',e);window.showWarningMessage?.('Génération impossible : '+(e?.message||e));return false}};
  window.tpGenExportClassZip=async function(){try{const c=await build();const blob=window.tpGenBuildStoreZip?.(c.files);if(!blob)throw Error('Le moteur ZIP est indisponible.');window.tpGenDownloadBlob?.(blob,[safe(c.code),safe(c.className),'TP_ELEVES'].filter(Boolean).join('_')+'.zip');persist(c);window.tpGenCloseClassExport?.();window.showSuccessMessage?.(`${c.sts.length} TP élève généré(s) dans le ZIP et diffusion enregistrée.`);return true}catch(e){console.error('V146 diffusion ZIP',e);window.showWarningMessage?.('Génération ZIP impossible : '+(e?.message||e));return false}};
- console.info('V146 actif : diffusion depuis le TP local en mémoire + version unique dans la pastille longue.');
+ console.info('V155 : diffusion locale conservée; affichage de version centralisé.');
 })();
 </script>
 <!-- V149 : suppression des caractères \n parasites visibles en bas de la page accueil -->
+
+<!-- V155 — correctifs ciblés sur base V154/V149, sans modification du bootstrap Firebase -->
+<script id="v155-targeted-fixes">
+(function(){
+  'use strict';
+  const APP_VERSION='V155';
+  const ACTIVITY_KEY='managed_evaluation_activities_v1';
+  const HOME_KEY='evaluation_home_workstation_v133';
+  const BACKUP_DB='evaluation_home_backup_v133';
+  const BACKUP_STORE='handles';
+
+  // 1) Une seule version visible. Ne touche ni à l'authentification ni au démarrage Firebase.
+  function applyVersion(){
+    const b=document.getElementById('build-version');
+    if(b) b.textContent=APP_VERSION+' — Competences Rta Gestion atelier TP';
+    document.title=APP_VERSION+' Competences Rta Gestion atelier TP';
+    document.getElementById('v144-version')?.remove();
+  }
+  applyVersion();
+  document.addEventListener('DOMContentLoaded',applyVersion,{once:true});
+  setTimeout(applyVersion,50); setTimeout(applyVersion,800);
+
+  // 2) Fiches/activités : local d'abord, puis synchronisation Firebase explicite si une session existe.
+  let activitySyncTimer=0;
+  function syncActivitiesSoon(){
+    clearTimeout(activitySyncTimer);
+    activitySyncTimer=setTimeout(async()=>{
+      try{
+        const fb=window.firebase;
+        if(!fb?.auth?.()?.currentUser) return; // reste local, aucune perte si hors connexion
+        if(typeof window.firebaseSaveCurrentConfig==='function') await window.firebaseSaveCurrentConfig();
+      }catch(e){ console.warn('V155 : activité conservée localement, synchronisation Firebase différée.',e); }
+    },350);
+  }
+  const oldSaveActivities=window.saveManagedEvaluationActivities;
+  if(typeof oldSaveActivities==='function'){
+    window.saveManagedEvaluationActivities=function(list){
+      const result=oldSaveActivities.apply(this,arguments);
+      syncActivitiesSoon();
+      return result;
+    };
+  }
+
+  // 3) Duplication : nouvel identifiant, nouveau numéro, copie en dernière ligne.
+  window.duplicateManagedEvaluationActivity=function(id){
+    const list=window.getManagedEvaluationActivities?.()||[];
+    const src=list.find(x=>String(x.id)===String(id));
+    if(!src) return window.showWarningMessage?.('Activité introuvable.');
+    const copy=JSON.parse(JSON.stringify(src));
+    copy.id='ACT-ADMIN-DUP-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,6);
+    copy.numero=Math.max(0,...list.map(x=>Number(x.numero)||0))+1;
+    copy.titre=(src.titre||'Activité')+' — copie';
+    copy.active=true; copy.createdAt=Date.now(); copy.updatedAt=Date.now();
+    delete copy.archivedAt;
+    list.push(copy);
+    window.saveManagedEvaluationActivities?.(list);
+    window.renderSettingsEvaluationActivities?.();
+    window.showSuccessMessage?.('Activité dupliquée et ajoutée en dernière ligne.');
+  };
+  const oldRenderActivities=window.renderSettingsEvaluationActivities;
+  if(typeof oldRenderActivities==='function'){
+    window.renderSettingsEvaluationActivities=function(){
+      const r=oldRenderActivities.apply(this,arguments);
+      document.querySelectorAll('#settings-activities-list .settings-item').forEach(row=>{
+        const edit=row.querySelector('button[onclick*="editManagedEvaluationActivity"]');
+        if(!edit || row.querySelector('.v155-duplicate-activity')) return;
+        const m=(edit.getAttribute('onclick')||'').match(/editManagedEvaluationActivity\('([^']+)'\)/);
+        if(!m) return;
+        const b=document.createElement('button');
+        b.type='button'; b.className='secondary v155-duplicate-activity'; b.textContent='⧉ Dupliquer';
+        b.onclick=()=>window.duplicateManagedEvaluationActivity(m[1]);
+        edit.after(b);
+      });
+      return r;
+    };
+  }
+
+  // 4) Copies rendues : préserver groupe(s) ouverts, filtres et position lors d'un recalcul de liste.
+  const oldFilter=window.tpCorrectionFilter;
+  if(typeof oldFilter==='function'){
+    let filterBusy=false, pending=false;
+    window.tpCorrectionFilter=function(){
+      if(filterBusy){ pending=true; return; }
+      filterBusy=true;
+      const main=document.getElementById('main');
+      const y=main?.scrollTop||window.scrollY||0;
+      const opened=[...document.querySelectorAll('#tpc-groups details.tpc-date[open] summary span:first-child')].map(x=>x.textContent.trim());
+      const filters={}; ['tpc-f-class','tpc-f-tp','tpc-f-name','tpc-f-status'].forEach(id=>{const e=document.getElementById(id);if(e)filters[id]=e.value});
+      try{return oldFilter.apply(this,arguments)}finally{
+        requestAnimationFrame(()=>{
+          Object.entries(filters).forEach(([id,v])=>{const e=document.getElementById(id);if(e&&e.value!==v)e.value=v});
+          document.querySelectorAll('#tpc-groups details.tpc-date').forEach(d=>{const t=d.querySelector('summary span:first-child')?.textContent.trim();if(opened.includes(t))d.open=true});
+          if(main)main.scrollTop=y; else window.scrollTo(0,y);
+          filterBusy=false;
+          if(pending){pending=false;setTimeout(()=>window.tpCorrectionFilter?.(),120)}
+        });
+      }
+    };
+  }
+
+  // 5) Sauvegarde : si le handle mémorisé est périmé, proposer une nouvelle sélection au lieu d'exposer l'erreur navigateur.
+  function openBackupDb(){return new Promise((res,rej)=>{const q=indexedDB.open(BACKUP_DB,1);q.onupgradeneeded=()=>{if(!q.result.objectStoreNames.contains(BACKUP_STORE))q.result.createObjectStore(BACKUP_STORE)};q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error)})}
+  async function storeBackupHandle(h){const db=await openBackupDb();await new Promise((res,rej)=>{const q=db.transaction(BACKUP_STORE,'readwrite').objectStore(BACKUP_STORE).put(h,'backupFolder');q.onsuccess=res;q.onerror=()=>rej(q.error)});db.close()}
+  async function clearBackupHandle(){try{const db=await openBackupDb();await new Promise((res,rej)=>{const q=db.transaction(BACKUP_STORE,'readwrite').objectStore(BACKUP_STORE).delete('backupFolder');q.onsuccess=res;q.onerror=()=>rej(q.error)});db.close()}catch(_){}}
+  async function chooseFreshFolder(){if(!window.showDirectoryPicker)throw Error('Le choix direct du dossier nécessite Edge ou Chrome.');const h=await window.showDirectoryPicker({mode:'readwrite'});await storeBackupHandle(h);return h}
+  async function saveWithRecovery(){
+    try{return await window.v133SaveGlobalBackup?.()}
+    catch(e){
+      console.warn('V155 : ancien dossier de sauvegarde invalide, nouvelle sélection demandée.',e);
+      await clearBackupHandle();
+      const h=await chooseFreshFolder();
+      const r=await window.v133SaveGlobalBackup?.();
+      if(!r?.ok)throw Error('La sauvegarde n’a pas pu être confirmée dans « '+(h?.name||'le dossier sélectionné')+' ».');
+      return r;
+    }
+  }
+  window.v155SaveGlobalBackup=saveWithRecovery;
+
+  // Remplace uniquement le dialogue de sortie; appel direct à la déconnexion historique pour éviter une double sauvegarde.
+  window.logoutTeacher=function(){
+    document.getElementById('v144-exit')?.remove();
+    let last=null;try{last=JSON.parse(localStorage.getItem('evaluation_last_global_backup_v133')||'null')}catch(_){ }
+    const o=document.createElement('div');o.id='v144-exit';
+    o.innerHTML=`<div id="v144-exitbox"><div style="font-size:54px">💾</div><h2>Avant de quitter</h2><p><b>Souhaites-tu sauvegarder les données du poste maison ?</b></p><p class="muted">${last?.at?'Dernière sauvegarde : '+new Date(last.at).toLocaleString('fr-FR'):'Aucune sauvegarde récente indiquée.'}</p><div class="v144-actions"><button class="v144-save">💾 Sauvegarder puis quitter</button><button class="v144-folder">📁 Choisir / changer le dossier</button><button class="v144-nosave">🚪 Quitter sans sauvegarder</button><button class="v144-cancel">Annuler</button></div></div>`;
+    document.body.appendChild(o);
+    const finish=()=>{try{window.clearActiveTeacher?.();window.applyTeacherPermissions?.();window.showTeacherLogin?.(true)}catch(e){console.error(e)}};
+    o.querySelector('.v144-cancel').onclick=()=>o.remove();
+    o.querySelector('.v144-folder').onclick=async()=>{try{const h=await chooseFreshFolder();alert('Dossier sélectionné : '+h.name)}catch(e){if(e?.name!=='AbortError')alert('Impossible de sélectionner ce dossier : '+(e?.message||e))}};
+    o.querySelector('.v144-save').onclick=async()=>{const b=o.querySelector('.v144-save');b.disabled=true;b.textContent='Sauvegarde en cours…';try{const r=await saveWithRecovery();if(!r?.ok)throw Error('Sauvegarde non confirmée.');o.remove();finish()}catch(e){b.disabled=false;b.textContent='💾 Sauvegarder puis quitter';if(e?.name!=='AbortError')alert('La sauvegarde n’a pas abouti. Choisis à nouveau le dossier de sauvegarde puis réessaie.')}};
+    o.querySelector('.v144-nosave').onclick=()=>{o.remove();finish()};
+    return false;
+  };
+
+  // Le rendu initial des activités peut avoir eu lieu avant l'installation du wrapper.
+  try{window.renderSettingsEvaluationActivities?.()}catch(_){ }
+  console.info('V155 : 5 correctifs ciblés actifs, bootstrap Firebase inchangé.');
+})();
+</script>
+
 </body>
 </html>
 
