@@ -16094,6 +16094,50 @@ window.tpCorrectionValidate=async function(){
 })();
 </script>
 
+<style id="v140-style">
+#v140-exit-overlay{position:fixed;inset:0;z-index:2147483646;background:rgba(7,18,35,.82);display:flex;align-items:center;justify-content:center;padding:24px;backdrop-filter:blur(4px)}
+#v140-exit-overlay[hidden]{display:none!important}.v140-exit-box{width:min(680px,96vw);background:#fff;border:4px solid #1d4ed8;border-radius:24px;box-shadow:0 30px 90px rgba(0,0,0,.55);padding:30px;text-align:center}.v140-exit-icon{font-size:54px;line-height:1}.v140-exit-box h2{font-size:30px;margin:10px 0;color:#0f2745}.v140-exit-box p{font-size:17px;line-height:1.5;color:#475569}.v140-exit-actions{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:22px}.v140-exit-actions button{min-height:58px;border-radius:14px;border:0;font-weight:900;font-size:16px;cursor:pointer;padding:12px}.v140-save{background:#15803d;color:white}.v140-nosave{background:#b91c1c;color:white}.v140-folder{background:#e0ecff;color:#174e82}.v140-cancel{background:#e5e7eb;color:#1f2937}@media(max-width:620px){.v140-exit-actions{grid-template-columns:1fr}.v140-exit-box{padding:22px}.v140-exit-box h2{font-size:25px}}
+</style>
+<script id="v140-final-fix">
+(function(){
+ const VERSION='V140',DKEY='tp_generator_diffusions_v76';
+ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ const rows=()=>{try{const a=JSON.parse(localStorage.getItem(DKEY)||'[]');return Array.isArray(a)?a:[]}catch(_){return[]}};
+ const corr=()=>{try{const a=JSON.parse(localStorage.getItem('tp_correction_local_v54')||'[]');return Array.isArray(a)?a:[]}catch(_){return[]}};
+ const nm=s=>String(s?.name||s?.nomComplet||[s?.last,s?.first].filter(Boolean).join(' ')||s?.id||'Élève');
+ function status(r,s){let direct=String(s?.state||s?.status||'').toLowerCase();if(/corrig|green/.test(direct))return'green';if(/rendu|yellow|corriger/.test(direct))return'yellow';let cs=corr(),sid=String(s?.id||''),name=nm(s).toLowerCase(),code=String(r?.tpCode||'').toLowerCase();let hit=cs.find(x=>{let d=x.data||x,st=d.eleve||d.student||{},xn=String(st.id||x.studentId||''),xname=String([st.nom||st.last||'',st.prenom||st.first||''].filter(Boolean).join(' ')||x.studentName||'').toLowerCase(),xc=String(d.code||d.tpCode||x.tpCode||'').toLowerCase();return (!code||!xc||xc===code)&&((sid&&xn===sid)||(name&&xname===name))});return hit?(hit.correctedAt||hit.validatedAt||hit.status==='corrected'?'green':'yellow'):'grey'}
+ window.tp140RenderDiffusions=function(){
+   try{window.setActive?.('tpGenerator')}catch(_){}
+   const main=document.getElementById('main');if(!main)return false;
+   const data=rows().sort((a,b)=>String(b.diffusedAt||'').localeCompare(String(a.diffusedAt||'')));
+   main.innerHTML=`<header class="app-top-header"></header><div class="tpgen-manager-shell"><div class="tpgen-head"><div><h1>📤 Mes TP diffusés</h1><p class="muted">Registre consolidé : gris = diffusé, jaune = rendu, vert = corrigé. Les élèves sont repliés par défaut.</p></div><button type="button" class="tpgen-btn secondary" data-v140-home>← Accueil / Retour</button></div><div class="tpgen-card">${data.length?data.map(r=>{let c={grey:0,yellow:0,green:0},sts=Array.isArray(r.students)?r.students:[];sts.forEach(s=>c[status(r,s)]++);let id=String(r.id||'');return `<div class="v138-diff-card"><div class="v138-top"><div><b>${esc(r.tpCode||'TP')} — ${esc(r.title||'')}</b><div class="muted">${esc(r.className||'')} • ${r.diffusedAt?new Date(r.diffusedAt).toLocaleString('fr-FR'):''} • ${sts.length} élève(s)</div></div><div class="v138-actions"><button type="button" class="tpgen-btn primary" onclick="tpV76AddDiffusionToDay('${esc(id)}')">＋ Affecter</button><button type="button" class="tpgen-btn danger" onclick="tp114DeleteDiffusion('${esc(id)}')">🗑️ Supprimer</button></div></div><div class="v138-counts"><span class="v138-count v138-grey">⬜ Diffusé <b>${c.grey}</b></span><span class="v138-count v138-yellow">🟨 Rendu <b>${c.yellow}</b></span><span class="v138-count v138-green">🟩 Corrigé <b>${c.green}</b></span></div><button type="button" class="v138-toggle" data-v140-toggle="${esc(id)}">▸ Voir les élèves</button><div class="v138-students" data-v140-students="${esc(id)}" hidden>${sts.map(s=>{let q=status(r,s),lab=q==='green'?'Corrigé':q==='yellow'?'Rendu':'Diffusé';return `<div class="v138-student ${q}"><b>${esc(nm(s))}</b><span>${lab}</span></div>`}).join('')||'<span class="muted">Liste nominative absente de cette ancienne diffusion.</span>'}</div></div>`}).join(''):'<div class="muted">Aucun TP diffusé enregistré.</div>'}</div></div>`;
+   return true;
+ };
+ // Le clic utilisateur ouvre directement le registre. Aucun faux écran ni appel récursif.
+ document.addEventListener('click',function(e){
+   const open=e.target?.closest?.('#v76-diff-btn,#v76-saved-diff,[data-v137-open-diffusions],[data-v140-open-diffusions]');
+   if(open){e.preventDefault();e.stopImmediatePropagation();window.tp140RenderDiffusions();return}
+   const tog=e.target?.closest?.('[data-v140-toggle]');if(tog){e.preventDefault();const id=tog.getAttribute('data-v140-toggle'),box=document.querySelector('[data-v140-students="'+CSS.escape(id)+'"]');if(box){box.hidden=!box.hidden;tog.textContent=box.hidden?'▸ Voir les élèves':'▾ Masquer les élèves'}return}
+   const home=e.target?.closest?.('[data-v140-home]');if(home){e.preventDefault();try{window.tpGeneratorPage?.()}catch(_){try{window.homePage?.()}catch(__){}}}
+ },true);
+ // L'API historique reste disponible uniquement pour un appel volontaire depuis le code courant.
+ window.tpV76DiffusionsPage=function(){return window.tp140RenderDiffusions()};
+
+ function ensureModal(){let o=document.getElementById('v140-exit-overlay');if(o)return o;o=document.createElement('div');o.id='v140-exit-overlay';o.hidden=true;o.innerHTML=`<div class="v140-exit-box" role="dialog" aria-modal="true" aria-labelledby="v140-exit-title"><div class="v140-exit-icon">💾</div><h2 id="v140-exit-title">Sauvegarder avant de quitter ?</h2><p id="v140-exit-last">Choisis ce que tu souhaites faire avant de fermer le logiciel.</p><div class="v140-exit-actions"><button class="v140-save" data-choice="save">💾 Sauvegarder puis quitter</button><button class="v140-folder" data-choice="folder">📁 Choisir / changer le dossier</button><button class="v140-nosave" data-choice="nosave">🚪 Quitter sans sauvegarder</button><button class="v140-cancel" data-choice="cancel">↩ Annuler</button></div></div>`;document.body.appendChild(o);return o}
+ function askExit(){return new Promise(resolve=>{const o=ensureModal();let last=null;try{last=JSON.parse(localStorage.getItem('evaluation_last_global_backup_v133')||'null')}catch(_){};document.getElementById('v140-exit-last').innerHTML=last?.at?`Dernière sauvegarde réussie : <b>${esc(new Date(last.at).toLocaleString('fr-FR'))}</b><br>Souhaites-tu créer une nouvelle sauvegarde ?`:'Aucune sauvegarde récente n’est enregistrée. Souhaites-tu sauvegarder avant de quitter ?';o.hidden=false;const fn=e=>{const b=e.target.closest('[data-choice]');if(!b)return;o.removeEventListener('click',fn);o.hidden=true;resolve(b.dataset.choice)};o.addEventListener('click',fn)})}
+ async function chooseFolder(){if(!window.showDirectoryPicker){alert('Le choix direct d’un dossier n’est pas disponible dans ce navigateur.');return false}try{const h=await showDirectoryPicker({mode:'readwrite'});const db=await new Promise((res,rej)=>{const q=indexedDB.open('evaluation_home_backup_v133',1);q.onupgradeneeded=()=>{if(!q.result.objectStoreNames.contains('handles'))q.result.createObjectStore('handles')};q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error)});await new Promise((res,rej)=>{const q=db.transaction('handles','readwrite').objectStore('handles').put(h,'backupFolder');q.onsuccess=()=>res();q.onerror=()=>rej(q.error)});db.close();alert('Dossier de sauvegarde sélectionné : '+h.name);return true}catch(e){if(e?.name!=='AbortError')alert('Impossible de sélectionner le dossier : '+(e?.message||e));return false}}
+ const previousLogout=window.logoutTeacher;
+ window.logoutTeacher=async function(){
+   const home=localStorage.getItem('evaluation_home_workstation_v133')==='1';if(!home)return previousLogout?.apply(this,arguments);
+   while(true){const choice=await askExit();if(choice==='cancel')return false;if(choice==='folder'){await chooseFolder();continue}if(choice==='save'){try{const r=await window.v133SaveGlobalBackup?.();if(!r?.ok){alert('La sauvegarde n’a pas été confirmée. Le logiciel reste ouvert.');return false}window.showSuccessMessage?.('Sauvegarde créée : '+r.file)}catch(e){alert('Sauvegarde impossible : '+(e?.message||e));return false}}
+     localStorage.setItem('evaluation_home_workstation_v133','0');try{return await previousLogout?.apply(this,arguments)}finally{localStorage.setItem('evaluation_home_workstation_v133','1')}
+   }
+ };
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V140 — Competences Rta Gestion atelier TP';document.title='V140 Competences Rta Gestion atelier TP';
+ console.info('V140 : Mes TP diffusés réparé + navigation stable + sauvegarde de sortie très visible.');
+})();
+</script>
+
 </body>
 </html>
 
