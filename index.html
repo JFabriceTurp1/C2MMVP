@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>V144 Competences Rta Gestion atelier TP</title>
+<title>V146 Competences Rta Gestion atelier TP</title>
 <style>
 *{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f5f7fa;color:#172033}
 .app{display:flex;min-height:100vh}.side{width:235px;background:#172033;color:#fff;padding:22px 14px}.logo{font-size:19px;font-weight:700;padding:8px 10px 24px}
@@ -2814,7 +2814,7 @@ body{background:#f7f9fc;color:var(--text)}
 <!-- V88 — DONNÉES DE RÉFÉRENCE RÉINTÉGRÉES DEPUIS V86.5
      Jeux embarqués repris : référentiel compétences, élèves par défaut, seconde classe fictive, situations professionnelles.
      Les données dynamiques (classes/élèves/évaluations réellement saisies) restent chargées par IndexedDB/localStorage et Firebase. -->
-<div id="build-version">V145 — Competences Rta Gestion atelier TP</div>
+<div id="build-version">V146 — Competences Rta Gestion atelier TP</div>
 <div id="firebase-auth-overlay">
   <div class="firebase-login-card">
     <h2>☁️ Connexion Firebase — V89</h2>
@@ -16080,6 +16080,32 @@ window.tpCorrectionValidate=async function(){
 })();
 </script>
 
+
+<style id="v146-style">
+#v144-version{display:none!important}
+#build-version{display:block!important;right:96px!important;bottom:14px!important;z-index:1100!important;background:#0f3f73!important;color:#fff!important;border-radius:999px!important;padding:8px 18px!important;font:800 13px/1.2 Arial,sans-serif!important;opacity:1!important;box-shadow:0 3px 10px #0002!important;white-space:nowrap!important;max-width:calc(100vw - 145px)!important;overflow:hidden!important;text-overflow:ellipsis!important;pointer-events:none!important}
+@media(max-width:700px){#build-version{right:82px!important;bottom:12px!important;font-size:11px!important;padding:7px 12px!important;max-width:calc(100vw - 110px)!important}}
+</style>
+<script id="v146-runtime">
+(function(){
+ const VERSION='V146', DKEY='tp_generator_diffusions_v76';
+ const clone=o=>JSON.parse(JSON.stringify(o||{}));
+ const safe=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Za-z0-9_-]+/g,'-').replace(/^-+|-+$/g,'')||'TP';
+ let folderHandle=null;
+ function forceVersion(){const b=document.getElementById('build-version');if(b&&b.textContent!=='V146 — Competences Rta Gestion atelier TP')b.textContent='V146 — Competences Rta Gestion atelier TP';document.title='V146 Competences Rta Gestion atelier TP';document.getElementById('v144-version')?.remove();}
+ forceVersion();
+ document.addEventListener('DOMContentLoaded',forceVersion,{once:true});
+ setTimeout(forceVersion,0);setTimeout(forceVersion,500);
+ function students(){const all=window.tpGenClassStudents?.()||[],ids=window.tpGenSelectedClassStudentIds?.()||[];return ids.map(id=>all.find(s=>String(s.id)===String(id))).filter(Boolean).map(s=>({id:String(s.id),name:s.name||[s.nom,s.prenom].filter(Boolean).join(' ')}));}
+ function source(){const p=window.__v117Project||window.__v116CurrentProject||null;const d=window.tpGenLockedSnapshot?.()||null;if(!p||!d)throw Error('Le TP local chargé n’est plus disponible. Reviens à « Diffuser un TP » et sélectionne le fichier à nouveau.');return {p:clone(p),d:clone(d)};}
+ async function build(){const {p,d}=source(),sts=students();if(!sts.length)throw Error('Sélectionne au moins un élève.');const code=p.publicId||p.id||d.importedPublicId||'TP';const className=document.querySelector('#tp26-diff-class option:checked')?.textContent?.trim()||d.className||'';const files=[];for(const st of sts){const m=window.tpGenBuildStudentPackage?.(st,d);if(!m)throw Error('Le moteur de génération élève est indisponible.');m.tpProject=clone(p);m.tpPictograms=clone(p.__pictograms||[]);m.meta=m.meta||{};m.meta.readerRequired=VERSION;m.meta.source='fichier-local-temporaire';delete m.meta.sourceSavedId;m.type='tp-eleve-v146';m.code=code;m.titre=p.publicTitle||p.title||m.titre;const q=window.tpGenStudentParts?.(st)||{last:st.name||'ELEVE',first:''};files.push({name:[safe(q.last),safe(q.first),safe(code),'DIFFUSE'].filter(Boolean).join('_')+'.tp',text:JSON.stringify(m,null,2)});}return {p,d,sts,code,className,files};}
+ function persist(c){let a=[];try{a=JSON.parse(localStorage.getItem(DKEY)||'[]')||[]}catch(_){}const rec={id:'DIFF146-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,7),savedId:'',tpCode:c.code,title:c.p.publicTitle||c.p.title||'TP',classId:String(window.tpGenState?.diffusionClassId||''),className:c.className,students:c.sts.map(s=>({id:String(s.id),name:s.name||'',state:'grey'})),studentIds:c.sts.map(s=>String(s.id)),diffusedAt:new Date().toISOString(),fileCount:c.sts.length,storageVersion:146};a.unshift(rec);localStorage.setItem(DKEY,JSON.stringify(a.slice(0,500)));window.dispatchEvent(new CustomEvent('tp-diffusions-changed'));try{window.tpV132SyncNow?.('diffusion-v146')}catch(_){}return rec;}
+ window.tpGenChooseClassFolder=async function(){if(!window.showDirectoryPicker){alert('Le choix direct d’un dossier nécessite Edge ou Chrome. Utilise « Télécharger le ZIP » sur les autres navigateurs.');return false}try{folderHandle=await window.showDirectoryPicker({mode:'readwrite'});const e=document.getElementById('tpgen-folder-label');if(e)e.textContent='Dossier : '+folderHandle.name;return true}catch(e){return false}};
+ window.tpGenExportClassToFolder=async function(){try{if(!folderHandle&&!await window.tpGenChooseClassFolder())return false;const c=await build();let perm=folderHandle.queryPermission?await folderHandle.queryPermission({mode:'readwrite'}):'granted';if(perm!=='granted'&&folderHandle.requestPermission)perm=await folderHandle.requestPermission({mode:'readwrite'});if(perm!=='granted')throw Error('Autorisation d’écriture refusée.');for(const f of c.files){const h=await folderHandle.getFileHandle(f.name,{create:true}),w=await h.createWritable();await w.write(new Blob([f.text],{type:'application/json;charset=utf-8'}));await w.close()}persist(c);const n=c.files.length,name=folderHandle.name;window.tpGenCloseClassExport?.();window.showSuccessMessage?.(`${n} TP élève généré(s) dans « ${name} » et diffusion enregistrée.`);return true}catch(e){console.error('V146 diffusion dossier',e);window.showWarningMessage?.('Génération impossible : '+(e?.message||e));return false}};
+ window.tpGenExportClassZip=async function(){try{const c=await build();const blob=window.tpGenBuildStoreZip?.(c.files);if(!blob)throw Error('Le moteur ZIP est indisponible.');window.tpGenDownloadBlob?.(blob,[safe(c.code),safe(c.className),'TP_ELEVES'].filter(Boolean).join('_')+'.zip');persist(c);window.tpGenCloseClassExport?.();window.showSuccessMessage?.(`${c.sts.length} TP élève généré(s) dans le ZIP et diffusion enregistrée.`);return true}catch(e){console.error('V146 diffusion ZIP',e);window.showWarningMessage?.('Génération ZIP impossible : '+(e?.message||e));return false}};
+ console.info('V146 actif : diffusion depuis le TP local en mémoire + version unique dans la pastille longue.');
+})();
+</script>
 </body>
 </html>
 
