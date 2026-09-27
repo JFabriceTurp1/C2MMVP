@@ -8662,6 +8662,7 @@ function exportStudentDeletionPDF(studentsSnapshot, deletionDate){
 
 
 
+<!-- V149 : suppression des caractères \n parasites visibles en bas de la page accueil -->
 </body></html>`);
   w.document.close();
 }
@@ -14749,8 +14750,7 @@ window.tpCorrectionValidate=async function(){
 <!-- V64 — corrections PDF, états TP, recherche TP, sélection historique -->
 
 <style id="v68-ui-fixes">#firebase-panel button[aria-label*="Fermer"],#firebase-panel .close,#firebase-panel .modal-close,.firebase-close{min-width:40px!important;min-height:40px!important;font-size:24px!important;line-height:1!important}</style>
-<script id="v68-safe-hooks">(function(){function syncSoon(){clearTimeout(window.__v68CorrSync);window.__v68CorrSync=setTimeout(function(){try{const p=window.firebaseSyncExtendedLocalData?.();if(p&&p.catch)p.catch(()=>{});}catch(e){}},700)}function wrap(name){const f=window[name];if(typeof f!=='function'||f.__v68)return;const w=async function(){const r=await f.apply(this,arguments);syncSoon();return r};w.__v68=true;window[name]=w}['tpCorrectionImport','tpCorrectionDraftSave','tpCorrectionSetLevel','tpCorrectionAutoLevels','tp55Mark','tpCorrectionValidate'].forEach(wrap);setTimeout(function(){['tpCorrectionImport','tpCorrectionDraftSave','tpCorrectionSetLevel','tpCorrectionAutoLevels','tp55Mark','tpCorrectionValidate'].forEach(wrap)},1800);const clean=function(){document.querySelectorAll('.tpgen-local').forEach(function(el){const t=(el.textContent||'').toLowerCase();if(t.includes('v41')||t.includes('mode test local'))el.remove()})};setTimeout(clean,300);setTimeout(clean,1800)})();</script>
-\n<script id="v70-correction-delete-tombstones">
+<script id="v68-safe-hooks">(function(){function syncSoon(){clearTimeout(window.__v68CorrSync);window.__v68CorrSync=setTimeout(function(){try{const p=window.firebaseSyncExtendedLocalData?.();if(p&&p.catch)p.catch(()=>{});}catch(e){}},700)}function wrap(name){const f=window[name];if(typeof f!=='function'||f.__v68)return;const w=async function(){const r=await f.apply(this,arguments);syncSoon();return r};w.__v68=true;window[name]=w}['tpCorrectionImport','tpCorrectionDraftSave','tpCorrectionSetLevel','tpCorrectionAutoLevels','tp55Mark','tpCorrectionValidate'].forEach(wrap);setTimeout(function(){['tpCorrectionImport','tpCorrectionDraftSave','tpCorrectionSetLevel','tpCorrectionAutoLevels','tp55Mark','tpCorrectionValidate'].forEach(wrap)},1800);const clean=function(){document.querySelectorAll('.tpgen-local').forEach(function(el){const t=(el.textContent||'').toLowerCase();if(t.includes('v41')||t.includes('mode test local'))el.remove()})};setTimeout(clean,300);setTimeout(clean,1800)})();</script><script id="v70-correction-delete-tombstones">
 (function(){
  const KEY='tp_correction_local_v54', DEL='tp_correction_deleted_v70';
  const rows=()=>{try{const a=JSON.parse(localStorage.getItem(KEY)||'[]');return Array.isArray(a)?a:[]}catch(e){return[]}};
@@ -14769,8 +14769,7 @@ window.tpCorrectionValidate=async function(){
    tombstone(ids);const set=new Set(ids.map(String));write(rows().filter(r=>!set.has(String(r.id))));syncSoon();window.tpCorrectionPage?.();
  };
 })();
-</script>\n
-<style id="v73-firebase-realtime-style">
+</script><style id="v73-firebase-realtime-style">
 #firebase-activity-led.firebase-activity-led{width:12px!important;height:12px!important;min-width:12px!important;min-height:12px!important;max-width:12px!important;max-height:12px!important;border-radius:50%!important;aspect-ratio:1/1!important;flex:0 0 12px!important;padding:0!important}
 </style>
 <script id="v73-tp-corrections-realtime">
@@ -15332,8 +15331,7 @@ window.tpCorrectionValidate=async function(){
 
 <!-- V84 — suppression robuste des travaux préparés -->
 <!-- V85 — retrait persistant + cloisonnement séance classe/date -->
-<!-- V86 — retrait individuel réel + cloisonnement strict classe/date -->
-\n\n<!-- V87 — retrait par clic sur la ligne + stabilité Administration du jour -->
+<!-- V86 — retrait individuel réel + cloisonnement strict classe/date --><!-- V87 — retrait par clic sur la ligne + stabilité Administration du jour -->
 
 <style id="v88-admin-style">
 #at-main .at-planning-panel{max-height:260px;padding:9px 10px}
@@ -16106,6 +16104,7 @@ window.tpCorrectionValidate=async function(){
  console.info('V146 actif : diffusion depuis le TP local en mémoire + version unique dans la pastille longue.');
 })();
 </script>
+<!-- V149 : suppression des caractères \n parasites visibles en bas de la page accueil -->
 </body>
 </html>
 
@@ -16146,8 +16145,7 @@ window.tpCorrectionValidate=async function(){
  const bv=document.getElementById('build-version');if(bv)bv.textContent='V117 — Competences Rta Gestion atelier TP';
  console.info('V117 actif : rendu TP polyvalent et diffusion tracée.');
 })();
-</script>
-\n<style id="v117-prof-style">
+</script><style id="v117-prof-style">
 .v117-overlay{position:fixed;inset:0;z-index:10050;background:#0f172acc;padding:18px;overflow:auto}.v117-view{max-width:1120px;margin:auto;background:#eef3f7;border-radius:16px;padding:14px}.v117-top{position:sticky;top:0;z-index:2;background:#fff;border-radius:12px;padding:10px 14px;display:flex;justify-content:space-between;gap:12px;align-items:center;box-shadow:0 2px 10px #0002}.v117-sheet{background:#fff;max-width:1040px;margin:14px auto;padding:25px 30px;box-shadow:0 3px 18px #15304b24}.v117-sheet .tp-header{display:flex;gap:18px;align-items:center;border-bottom:5px solid #1c75b8;padding-bottom:12px}.v117-sheet .titles{flex:1}.v117-sheet .eyebrow{text-transform:uppercase;letter-spacing:.12em;font-size:10px;font-weight:800;color:#1c75b8}.v117-sheet h1{font-size:27px;margin:2px 0;color:#173e60}.v117-sheet .code{background:#173e60;color:#fff;border-radius:5px;padding:7px 10px;font-weight:800}.v117-sheet .brief{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:14px 0}.v117-sheet .brief section{background:#edf6fc;border-left:4px solid #1c75b8;padding:10px 12px}.v117-sheet .brief h2{font-size:12px;text-transform:uppercase;color:#1c75b8;margin:0 0 4px}.v117-sheet .section-title{font-size:17px;color:#173e60;border-bottom:2px solid #d5e1ec;padding-bottom:5px;margin:23px 0 10px}.v117-sheet .question-card,.v117-sheet .content-block{border:1px solid #c8d7e5;border-radius:7px;margin:11px 0;padding:12px 13px;display:flow-root}.v117-sheet .qhead{display:flex;gap:9px}.v117-sheet .qno{background:#1c75b8;color:#fff;border-radius:4px;padding:3px 6px;min-width:30px;height:max-content;text-align:center;font-weight:800}.v117-sheet .qbody{flex:1;display:flow-root}.v117-sheet .qtext{white-space:pre-wrap;font-weight:650}.v117-sheet .qmeta{font-size:10px;color:#46617c;margin-top:6px}.v117-sheet .block-picto{float:right;width:44px;height:44px;object-fit:contain;margin:0 0 8px 12px}.v117-sheet img.content-img{max-width:100%;max-height:300px;object-fit:contain}.v117-sheet .match-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:9px}.v117-sheet .match-card{border:1px solid #cbd9e7;padding:8px;text-align:center;border-radius:7px}.v117-sheet .match-card img{width:100%;height:120px;object-fit:contain}.v117-sheet .token-bank{display:flex;gap:7px;flex-wrap:wrap;padding:8px;background:#edf5fa;border-radius:5px}.v117-sheet .token{border:1px solid #5a9bcc;border-radius:20px;padding:6px 11px;background:#fff;font-weight:700}.v117-sheet .placement{position:relative;width:min(100%,600px);margin:10px auto}.v117-sheet .placement>img{width:100%}.v117-sheet table{width:100%;border-collapse:collapse}.v117-sheet td,.v117-sheet th{border:1px solid #9fc4d6;padding:8px}.v117-project-badge{display:inline-block;background:#e7f2fb;color:#174e82;border-radius:999px;padding:4px 9px;font-size:12px;font-weight:800;margin-left:6px}
 </style>
 <script id="v117-prof-runtime">
@@ -16170,8 +16168,7 @@ window.tpCorrectionValidate=async function(){
  ['tpGenExportClassToFolder','tpGenExportClassZip'].forEach(name=>{let prev=window[name];if(typeof prev!=='function')return;window[name]=async function(){let sid=String(tpGenState?.currentSavedId||window.__tpDiffusionSavedId||''),rr=sid?await raw(sid):null;window.__v117Project=unpack(rr);try{return await prev.apply(this,arguments)}finally{window.__v117Project=null}}});
  let bv=document.getElementById('build-version');if(bv)bv.textContent='V117 — Competences Rta Gestion atelier TP';console.info('V117 actif : vue TP polyvalente + diffusion persistante.');
 })();
-</script>\n
-<!-- V118 — concordance Editeur / Logiciel / Lecteur + diffusion transactionnelle -->
+</script><!-- V118 — concordance Editeur / Logiciel / Lecteur + diffusion transactionnelle -->
 <style id="v118-style">
 .v118-create-details{border:1px solid #cbd9e7;border-radius:16px;background:#fff;margin:14px 0;overflow:hidden}
 .v118-create-details>summary{cursor:pointer;list-style:none;padding:16px 18px;font-weight:900;font-size:18px;color:#123f70;display:flex;align-items:center;gap:10px}
@@ -16265,8 +16262,7 @@ window.tpCorrectionValidate=async function(){
  console.info('V130 — import Copies rendues V128/V130 actif avec stockage IndexedDB anti-quota.');
 })();
 </script>
-<style id="v129-import-style">body.tp129-importing:after{content:'Import des TP en cours…';position:fixed;inset:0;z-index:999999;background:#0f172acc;color:white;display:grid;place-items:center;font:900 24px Arial}</style>
-\n<style id="v131-corrector-style">
+<style id="v129-import-style">body.tp129-importing:after{content:'Import des TP en cours…';position:fixed;inset:0;z-index:999999;background:#0f172acc;color:white;display:grid;place-items:center;font:900 24px Arial}</style><style id="v131-corrector-style">
 .v131-qhead{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.v131-markbar{display:flex;gap:7px;flex-wrap:wrap;margin:8px 0}.v131-mark{border:2px solid #cbd5e1;background:#fff;border-radius:9px;padding:7px 11px;font-weight:900;cursor:pointer}.v131-mark.ok{color:#15803d;border-color:#86efac}.v131-mark.bad{color:#b91c1c;border-color:#fca5a5}.v131-mark.neutral{color:#475569}.v131-mark.ok.active{background:#dcfce7;border-color:#16a34a}.v131-mark.bad.active{background:#fee2e2;border-color:#dc2626}.v131-mark.neutral.active{background:#e2e8f0;border-color:#64748b}.v131-image-missing{border:1px dashed #f59e0b;background:#fffbeb;color:#92400e;padding:8px;border-radius:8px;font-size:12px}.v131-hydrating{padding:18px;font-weight:800;color:#174e82}
 </style>
 <script id="v131-corrector-runtime">
@@ -16294,9 +16290,7 @@ window.tpCorrectionValidate=async function(){
  const bv=document.getElementById('build-version');if(bv)bv.textContent='V131 — Competences Rta Gestion atelier TP';document.title='V131 Competences Rta Gestion atelier TP';
  console.info('V131 correcteur : hydratation IndexedDB + images + coches par question.');
 })();
-</script>\n
-
-<!-- V147 — correctif final diffusion TP local : DOIT rester le dernier runtime du fichier -->
+</script><!-- V147 — correctif final diffusion TP local : DOIT rester le dernier runtime du fichier -->
 <script id="v147-final-local-diffusion">
 (function(){
  const VERSION='V147', DKEY='tp_generator_diffusions_v76';
@@ -16368,5 +16362,34 @@ window.tpCorrectionValidate=async function(){
    catch(e){console.error('V147 diffusion ZIP',e);window.showWarningMessage?.('Génération ZIP impossible : '+(e?.message||e));return false}
  };
  console.info('V147 actif : le dernier runtime impose la diffusion depuis le TP local actuellement chargé.');
+})();
+</script>
+
+<!-- V148 — stabilité Copies rendues + commandes de correction compactes -->
+<style id="v148-correction-style">
+.v131-markbar{display:flex!important;gap:5px!important;align-items:center!important;margin:5px 0!important}
+.v131-mark{width:32px!important;height:30px!important;min-width:32px!important;padding:0!important;border-radius:8px!important;font-size:18px!important;line-height:1!important;font-weight:800!important;display:inline-flex!important;align-items:center!important;justify-content:center!important}
+</style>
+<script id="v148-correction-stability">
+(function(){
+ const VERSION='V148'; let allowPageUntil=0;
+ const forcePage=()=>{allowPageUntil=Date.now()+1200};
+ const oldPage=window.tpCorrectionPage;
+ if(typeof oldPage==='function'){
+   window.tpCorrectionPage=function(){
+     const shell=document.querySelector('#main .tpc-shell');
+     const ev=window.event, trusted=!!(ev&&ev.isTrusted);
+     if(shell && !trusted && Date.now()>allowPageUntil){console.info('V148: rafraîchissement visuel Copies rendues ignoré (données synchronisées en arrière-plan).');return false}
+     return oldPage.apply(this,arguments);
+   };
+ }
+ ['tpCorrectionImport','tpCorrectionDelete','tp58DeleteSelected'].forEach(name=>{
+   const old=window[name]; if(typeof old!=='function')return;
+   window[name]=async function(){forcePage();try{return await old.apply(this,arguments)}finally{allowPageUntil=Date.now()+700}};
+ });
+ function compact(root=document){root.querySelectorAll?.('.v131-markbar .v131-mark').forEach(b=>{if(b.classList.contains('ok')){b.textContent='✓';b.title='Correct'}else if(b.classList.contains('bad')){b.textContent='✕';b.title='Incorrect'}else{b.textContent='—';b.title='Non évalué'}b.setAttribute('aria-label',b.title)})}
+ compact(); new MutationObserver(m=>m.forEach(x=>x.addedNodes.forEach(n=>{if(n.nodeType===1)compact(n)}))).observe(document.documentElement,{childList:true,subtree:true});
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V149 — Competences Rta Gestion atelier TP';document.title='V149 Competences Rta Gestion atelier TP';
+ console.info('V148 : Copies rendues stable pendant Firebase + coches compactes.');
 })();
 </script>
