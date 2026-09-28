@@ -16086,11 +16086,11 @@ window.tpCorrectionValidate=async function(){
 </style>
 <script id="v146-runtime">
 (function(){
- const VERSION='V155', DKEY='tp_generator_diffusions_v76';
+ const VERSION='V157', DKEY='tp_generator_diffusions_v76';
  const clone=o=>JSON.parse(JSON.stringify(o||{}));
  const safe=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Za-z0-9_-]+/g,'-').replace(/^-+|-+$/g,'')||'TP';
  let folderHandle=null;
- function forceVersion(){const b=document.getElementById('build-version');if(b&&b.textContent!=='V155 — Competences Rta Gestion atelier TP')b.textContent='V155 — Competences Rta Gestion atelier TP';document.title='V155 Competences Rta Gestion atelier TP';document.getElementById('v144-version')?.remove();}
+ function forceVersion(){const b=document.getElementById('build-version');if(b&&b.textContent!=='V157 — Competences Rta Gestion atelier TP')b.textContent='V157 — Competences Rta Gestion atelier TP';document.title='V157 Competences Rta Gestion atelier TP';document.getElementById('v144-version')?.remove();}
  forceVersion();
  document.addEventListener('DOMContentLoaded',forceVersion,{once:true});
  setTimeout(forceVersion,0);setTimeout(forceVersion,500);
@@ -16110,7 +16110,7 @@ window.tpCorrectionValidate=async function(){
 <script id="v155-targeted-fixes">
 (function(){
   'use strict';
-  const APP_VERSION='V155';
+  const APP_VERSION='V157';
   const ACTIVITY_KEY='managed_evaluation_activities_v1';
   const HOME_KEY='evaluation_home_workstation_v133';
   const BACKUP_DB='evaluation_home_backup_v133';
@@ -16530,5 +16530,75 @@ window.tpCorrectionValidate=async function(){
  compact(); new MutationObserver(m=>m.forEach(x=>x.addedNodes.forEach(n=>{if(n.nodeType===1)compact(n)}))).observe(document.documentElement,{childList:true,subtree:true});
  const bv=document.getElementById('build-version');if(bv)bv.textContent='V154 — Competences Rta Gestion atelier TP';document.title='V154 Competences Rta Gestion atelier TP';
  console.info('V148 : Copies rendues stable pendant Firebase + coches compactes.');
+})();
+</script>
+
+
+<!-- V157 — administration autonome des fiches d'évaluation, PDF local à la demande. Bootstrap inchangé. -->
+<style id="v157-activities-style">
+#v157-activities-overlay{position:fixed;inset:0;z-index:120000;background:#eef3f8;overflow:auto;color:#17324d}
+.v157-shell{max-width:1500px;margin:0 auto;padding:18px}.v157-head{position:sticky;top:0;z-index:4;background:#eef3f8;padding:8px 0 12px;display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}.v157-tools,.v157-actions{display:flex;gap:7px;flex-wrap:wrap}.v157-card{background:#fff;border:1px solid #d7e0e9;border-radius:14px;box-shadow:0 2px 8px #1232;padding:14px}.v157-tablewrap{overflow:auto;max-height:55vh}.v157-table{width:100%;border-collapse:collapse;min-width:1080px}.v157-table th,.v157-table td{border-bottom:1px solid #e4e9ef;padding:9px 8px;text-align:left;vertical-align:top}.v157-table th{position:sticky;top:0;background:#f4f7fa;z-index:2;color:#17365d}.v157-table tr.v157-arch{opacity:.58}.v157-table tr.v157-selected{background:#eef7ff}.v157-editor{margin-top:14px}.v157-grid{display:grid;grid-template-columns:110px 1fr 1fr;gap:10px}.v157-grid label{font-weight:800;font-size:12px}.v157-grid input,.v157-grid textarea{width:100%;box-sizing:border-box;margin-top:4px}.v157-wide{grid-column:1/-1}.v157-criteria{display:grid;gap:7px}.v157-crit{display:grid;grid-template-columns:32px 1fr auto;gap:7px;align-items:center}.v157-critnum{text-align:center;font-weight:900}.v157-note{font-size:12px;color:#5c6b79}.v157-category-summary{background:#eef8ff!important;border-left:6px solid #0284c7!important;color:#17365d!important}
+@media(max-width:760px){.v157-shell{padding:8px}.v157-grid{grid-template-columns:1fr}.v157-wide{grid-column:auto}.v157-head .v157-tools button{width:100%}.v157-editor{padding:10px}.v157-crit{grid-template-columns:26px 1fr}.v157-crit .v157-actions{grid-column:2}}
+</style>
+<script id="v157-activities-runtime">
+(function(){
+'use strict';
+const APP='V157'; let currentId=null;
+const E=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const rows=()=>window.getManagedEvaluationActivities?.()||[];
+const sortRows=a=>a.slice().sort((x,y)=>(Number(x.numero)||99999)-(Number(y.numero)||99999));
+function save(a){window.saveManagedEvaluationActivities?.(a);}
+function comps(s){return String(s||'').split(/[,;\n]+/).map(x=>x.trim()).filter(Boolean)}
+function forceVersion(){const b=document.getElementById('build-version');if(b)b.textContent=APP+' — Competences Rta Gestion atelier TP';document.title=APP+' Competences Rta Gestion atelier TP';document.getElementById('v144-version')?.remove()}
+forceVersion();document.addEventListener('DOMContentLoaded',forceVersion,{once:true});setTimeout(forceVersion,250);setTimeout(forceVersion,1200);
+
+function installCategory(){
+ const list=document.getElementById('settings-activities-list'); if(!list)return;
+ const card=list.closest('.settings-card'); if(!card||card.closest('#v157-activities-category'))return;
+ const details=document.createElement('details'); details.id='v157-activities-category'; details.className='settings-rubric-collapse rubric-activities-wrap'; details.open=false;
+ const sum=document.createElement('summary'); sum.className='settings-rubric-title v157-category-summary'; sum.innerHTML='🗂️ Gestion des fiches et activités d’évaluation';
+ const body=document.createElement('div'); body.className='settings-rubric-collapse-body';
+ card.parentNode.insertBefore(details,card); details.append(sum,body); body.appendChild(card);
+ const h=card.querySelector('h3'); if(h)h.textContent='Administration des fiches et activités';
+ const p=card.querySelector('p.muted'); if(p)p.textContent='Tableau complet : contenu pédagogique, critères, duplication, archivage et PDF généré localement à la demande.';
+ const row=card.querySelector('.row'); if(row){row.innerHTML='<button type="button" class="primary" onclick="openEvaluationActivitiesManagerV157()">Ouvrir le tableau d’administration</button><button type="button" class="secondary" onclick="generateEvaluationActivitiesPdfV157()">📄 Générer le PDF complet</button><span class="pill" id="settings-activities-count-v157"></span>'}
+ list.style.display='none'; updateCount();
+}
+function updateCount(){const e=document.getElementById('settings-activities-count-v157');if(e){const a=rows();e.textContent=`${a.filter(x=>x.active!==false).length} active(s) · ${a.filter(x=>x.active===false).length} archivée(s)`}}
+const mo=new MutationObserver(()=>{if(document.getElementById('settings-activities-list'))installCategory()});mo.observe(document.documentElement,{childList:true,subtree:true});
+
+window.openEvaluationActivitiesManagerV157=function(){
+ document.getElementById('v157-activities-overlay')?.remove();
+ const o=document.createElement('div');o.id='v157-activities-overlay';document.body.appendChild(o);renderManager();
+};
+window.closeEvaluationActivitiesManagerV157=function(){document.getElementById('v157-activities-overlay')?.remove();currentId=null;updateCount()};
+function renderManager(){
+ const o=document.getElementById('v157-activities-overlay');if(!o)return;const a=sortRows(rows());
+ o.innerHTML=`<div class="v157-shell"><div class="v157-head"><div><h1 style="margin:0">🗂️ Gestion des fiches et activités d’évaluation</h1><div class="v157-note">Toutes les fiches sur une page. Les PDF sont générés localement et ne sont pas stockés dans Firebase.</div></div><div class="v157-tools"><button class="primary" onclick="newEvaluationActivityV157()">＋ Nouvelle fiche</button><button class="secondary" onclick="generateEvaluationActivitiesPdfV157()">📄 PDF complet</button><button class="secondary" onclick="closeEvaluationActivitiesManagerV157()">← Paramètres</button></div></div><div class="v157-card v157-tablewrap"><table class="v157-table"><thead><tr><th>N°</th><th>Thème</th><th>Fiche / activité</th><th>CAP</th><th>Bac Pro</th><th>Critères</th><th>État</th><th>Actions</th></tr></thead><tbody>${a.map(x=>`<tr class="${x.active===false?'v157-arch':''} ${String(x.id)===String(currentId)?'v157-selected':''}"><td>A${String(x.numero||'').padStart(2,'0')}</td><td>${E(x.theme||'')}</td><td><b>${E(x.titre||'')}</b><div class="v157-note">${E(x.description||'')}</div></td><td>${E((x.competences_cap||[]).join(', ')||'—')}</td><td>${E((x.competences_bac_pro||[]).join(', ')||'—')}</td><td>${(x.criteres||[]).length}</td><td>${x.active===false?'Archivée':'Active'}</td><td><div class="v157-actions"><button class="secondary" onclick="editEvaluationActivityV157('${E(x.id)}')">✏️ Modifier</button><button class="secondary" onclick="duplicateEvaluationActivityV157('${E(x.id)}')">⧉ Dupliquer</button><button class="secondary" onclick="toggleEvaluationActivityV157('${E(x.id)}')">${x.active===false?'↩ Réactiver':'📦 Archiver'}</button><button class="secondary" onclick="generateEvaluationActivitiesPdfV157('${E(x.id)}')">📄 PDF</button></div></td></tr>`).join('')}</tbody></table></div><div id="v157-editor"></div></div>`;
+ if(currentId)renderEditor();
+}
+window.newEvaluationActivityV157=function(){const a=rows(),n=Math.max(0,...a.map(x=>Number(x.numero)||0))+1,x={id:'ACT-ADMIN-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,6),numero:n,theme:'Activité personnalisée',titre:'Nouvelle activité',description:'',criteres:[''],competences_cap:[],competences_bac_pro:[],diplomes:['CAP','Bac Pro'],active:true,createdAt:Date.now()};a.push(x);save(a);currentId=x.id;renderManager()};
+window.editEvaluationActivityV157=function(id){currentId=id;renderManager();setTimeout(()=>document.getElementById('v157-editor')?.scrollIntoView({behavior:'smooth',block:'start'}),0)};
+function critRow(v,i){return `<div class="v157-crit"><span class="v157-critnum">${i+1}</span><input class="v157-critinput" value="${E(v)}"><div class="v157-actions"><button class="secondary" title="Monter" onclick="moveCriterionV157(this,-1)">↑</button><button class="secondary" title="Descendre" onclick="moveCriterionV157(this,1)">↓</button><button class="secondary" title="Supprimer" onclick="this.closest('.v157-crit').remove();renumberCriteriaV157()">×</button></div></div>`}
+function renderEditor(){const x=rows().find(z=>String(z.id)===String(currentId)),r=document.getElementById('v157-editor');if(!x||!r)return;r.innerHTML=`<div class="v157-card v157-editor"><h2>Modifier A${String(x.numero||'').padStart(2,'0')} — ${E(x.titre||'')}</h2><div class="v157-grid"><label>N°<input id="v157-num" type="number" value="${E(x.numero||'')}"></label><label>Thème<input id="v157-theme" value="${E(x.theme||'')}"></label><label>Intitulé<input id="v157-title" value="${E(x.titre||'')}"></label><label class="v157-wide">Description / objectif<textarea id="v157-desc" rows="3">${E(x.description||'')}</textarea></label><label>Compétences CAP<input id="v157-cap" value="${E((x.competences_cap||[]).join(', '))}"></label><label>Compétences Bac Pro<input id="v157-bac" value="${E((x.competences_bac_pro||[]).join(', '))}"></label></div><h3>Critères d’évaluation</h3><div class="v157-note">Les phrases ci-dessous sont entièrement modifiables. Tu peux ajouter, supprimer et réordonner les critères.</div><div id="v157-criteria" class="v157-criteria">${(x.criteres||[]).map(critRow).join('')}</div><div class="v157-actions" style="margin-top:10px"><button class="secondary" onclick="addCriterionV157()">＋ Ajouter un critère</button></div><div class="v157-actions" style="margin-top:16px"><button class="primary" onclick="saveEvaluationActivityV157('${E(x.id)}')">💾 Enregistrer la fiche</button><button class="secondary" onclick="currentId=null;renderManager()">Annuler</button><button class="secondary" onclick="generateEvaluationActivitiesPdfV157('${E(x.id)}')">📄 PDF de cette fiche</button></div></div>`}
+window.addCriterionV157=function(){const r=document.getElementById('v157-criteria');if(r){r.insertAdjacentHTML('beforeend',critRow('',r.children.length));renumberCriteriaV157()}};
+window.renumberCriteriaV157=function(){document.querySelectorAll('#v157-criteria .v157-critnum').forEach((e,i)=>e.textContent=i+1)};
+window.moveCriterionV157=function(btn,dir){const row=btn.closest('.v157-crit'),box=row?.parentElement;if(!row||!box)return;if(dir<0&&row.previousElementSibling)box.insertBefore(row,row.previousElementSibling);if(dir>0&&row.nextElementSibling)box.insertBefore(row.nextElementSibling,row);renumberCriteriaV157()};
+window.saveEvaluationActivityV157=function(id){const a=rows(),x=a.find(z=>String(z.id)===String(id));if(!x)return;const v=k=>document.getElementById(k)?.value?.trim()||'';if(!v('v157-title'))return window.showWarningMessage?.('L’intitulé est obligatoire.');Object.assign(x,{numero:Number(v('v157-num'))||x.numero,theme:v('v157-theme'),titre:v('v157-title'),description:v('v157-desc'),competences_cap:comps(v('v157-cap')),competences_bac_pro:comps(v('v157-bac')),criteres:[...document.querySelectorAll('#v157-criteria .v157-critinput')].map(e=>e.value.trim()).filter(Boolean),updatedAt:Date.now()});save(a);currentId=null;renderManager();window.showSuccessMessage?.('Fiche enregistrée localement. Synchronisation Firebase demandée.')};
+window.duplicateEvaluationActivityV157=function(id){const a=rows(),x=a.find(z=>String(z.id)===String(id));if(!x)return;const c=JSON.parse(JSON.stringify(x));c.id='ACT-DUP-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,6);c.numero=Math.max(0,...a.map(z=>Number(z.numero)||0))+1;c.titre=(c.titre||'Activité')+' — copie';c.active=true;c.createdAt=Date.now();c.updatedAt=Date.now();a.push(c);save(a);renderManager();window.showSuccessMessage?.('Activité dupliquée en dernière ligne.')};
+window.toggleEvaluationActivityV157=function(id){const a=rows(),x=a.find(z=>String(z.id)===String(id));if(!x)return;x.active=x.active===false;x.updatedAt=Date.now();save(a);renderManager()};
+
+window.generateEvaluationActivitiesPdfV157=function(oneId){try{const J=window.jspdf?.jsPDF;if(!J)throw Error('Le module PDF n’est pas disponible.');const data=sortRows(oneId?rows().filter(x=>String(x.id)===String(oneId)):rows().filter(x=>x.active!==false));if(!data.length)throw Error('Aucune fiche à générer.');const doc=new J({orientation:'portrait',unit:'mm',format:'a4'});data.forEach((x,k)=>{if(k)doc.addPage();doc.setFont('helvetica','bold');doc.setFontSize(15);doc.text(`A${String(x.numero||'').padStart(2,'0')} — ${String(x.titre||'')}`,14,18,{maxWidth:182});doc.setFont('helvetica','normal');doc.setFontSize(9.5);doc.text(`Thème : ${x.theme||'—'}`,14,27,{maxWidth:182});let y=34;const desc=doc.splitTextToSize(x.description||'',182);if(desc.length){doc.text(desc,14,y);y+=desc.length*4.5+4}doc.setFont('helvetica','bold');doc.text('Compétences',14,y);doc.setFont('helvetica','normal');y+=5;doc.text(`CAP : ${(x.competences_cap||[]).join(', ')||'—'}`,14,y,{maxWidth:182});y+=5;doc.text(`Bac Pro : ${(x.competences_bac_pro||[]).join(', ')||'—'}`,14,y,{maxWidth:182});y+=8;doc.setFont('helvetica','bold');doc.text('Critères d’évaluation',14,y);y+=4;if(typeof doc.autoTable==='function')doc.autoTable({startY:y,head:[['N°','Critère d’évaluation']],body:(x.criteres||[]).map((c,i)=>[String(i+1),String(c)]),theme:'grid',styles:{fontSize:8.5,cellPadding:2.2},headStyles:{fillColor:[18,63,115],textColor:255},columnStyles:{0:{cellWidth:12},1:{cellWidth:168}},margin:{left:14,right:14}});else{(x.criteres||[]).forEach((c,i)=>{const ls=doc.splitTextToSize(`${i+1}. ${c}`,180);if(y+ls.length*4.5>282){doc.addPage();y=15}doc.text(ls,15,y);y+=ls.length*4.5+2})}});doc.save(oneId?`Fiche_evaluation_A${String(data[0].numero||'').padStart(2,'0')}.pdf`:`Fiches_evaluation_${data.length}_activites_${APP}.pdf`);window.showSuccessMessage?.('PDF généré localement. Aucun PDF n’est envoyé dans Firebase.')}catch(e){console.error(e);window.showWarningMessage?.('Génération PDF impossible : '+(e?.message||e))}};
+
+// Les anciens boutons à base de prompt ouvrent désormais le tableau.
+window.addManagedEvaluationActivity=function(){openEvaluationActivitiesManagerV157();setTimeout(newEvaluationActivityV157,0)};
+window.editManagedEvaluationActivity=function(id){openEvaluationActivitiesManagerV157();setTimeout(()=>editEvaluationActivityV157(id),0)};
+window.duplicateManagedEvaluationActivity=function(id){return duplicateEvaluationActivityV157(id)};
+
+// Dans le générateur de TP, la fiche pratique est générée depuis les données courantes, jamais depuis un PDF statique.
+const oldPractical=window.tpGenRenderPracticalSheets;
+if(typeof oldPractical==='function')window.tpGenRenderPracticalSheets=function(){oldPractical.apply(this,arguments);const info=document.getElementById('tpgen-practical-info'),code=window.tpGenState?.practicalCode;if(info&&code){const b=info.querySelector('button');if(b){b.textContent='Générer la fiche PDF';b.onclick=()=>generateEvaluationActivitiesPdfV157(code)}}};
+
+console.info('V157 : administration des fiches + PDF local à la demande actifs. Bootstrap Firebase inchangé.');
 })();
 </script>
