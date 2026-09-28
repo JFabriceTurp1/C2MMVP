@@ -16244,6 +16244,66 @@ window.tpCorrectionValidate=async function(){
 })();
 </script>
 
+
+
+<!-- V158 — compatibilité historique Copies rendues. Ajout isolé : aucun bootstrap modifié. -->
+<style id="v158-legacy-correction-style">
+.v158-legacy-banner{background:#fff8e7;border:1px solid #f2cf77;border-left:5px solid #d99b13;border-radius:10px;padding:11px 13px;margin-bottom:12px;color:#5d4610}
+.v158-legacy-section{background:#fff;border:1px solid #dbe3ec;border-radius:12px;padding:14px;margin:0 0 12px}.v158-legacy-section h3{margin:0 0 10px;color:#17365d}
+.v158-kv{display:grid;grid-template-columns:minmax(180px,32%) 1fr;gap:6px 12px;padding:7px 0;border-bottom:1px solid #edf1f5}.v158-kv:last-child{border-bottom:0}.v158-k{font-weight:800;color:#40566d}.v158-v{white-space:pre-wrap;overflow-wrap:anywhere}
+.v158-nav{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 14px}.v158-legacy-chip{display:inline-flex;align-items:center;padding:4px 8px;border-radius:999px;background:#fff1c2;color:#6c5000;font-weight:800;font-size:12px;margin-left:8px}
+@media(max-width:700px){.v158-kv{grid-template-columns:1fr}.v158-k{margin-bottom:-3px}}
+@media print{body *{visibility:hidden!important}.tpc-shell,.tpc-shell *{visibility:visible!important}.tpc-shell{position:absolute!important;inset:0!important;width:100%!important}.page-header button,.v158-nav button,aside button{display:none!important}.tpc-editor{grid-template-columns:1fr!important}aside{break-before:page}.v158-legacy-banner{border:1px solid #999!important}}
+</style>
+<script id="v158-legacy-correction-runtime">
+(function(){
+ 'use strict';
+ const APP='V158', KEY='tp_correction_local_v54';
+ const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ const read=()=>{try{const a=JSON.parse(localStorage.getItem(KEY)||'[]');return Array.isArray(a)?a:[]}catch(_){return[]}};
+ const project=d=>d?.tpProject||d?.project||d?.projetTP||d?.tp?.project||d?.meta?.tpProject||null;
+ const student=d=>[d?.identite?.nom||d?.eleve?.nom||d?.nom||'',d?.identite?.prenom||d?.eleve?.prenom||d?.prenom||''].filter(Boolean).join(' ').trim()||'Élève';
+ const dateVal=d=>d?.dates?.rendu||d?.submission?.submittedAt||d?.dateRendu||d?.renduAt||d?.date||'';
+ function primitive(v){return v==null||['string','number','boolean'].includes(typeof v)}
+ function label(k){return String(k||'').replace(/([a-z])([A-Z])/g,'$1 $2').replace(/[_-]+/g,' ').replace(/^./,x=>x.toUpperCase())}
+ function renderObject(obj,depth=0){
+   if(primitive(obj))return `<div class="v158-v">${esc(obj===true?'Oui':obj===false?'Non':obj??'—')}</div>`;
+   if(Array.isArray(obj)){
+     if(!obj.length)return '<div class="muted">Aucune donnée.</div>';
+     return obj.map((x,i)=>primitive(x)?`<div class="v158-kv"><div class="v158-k">${i+1}</div>${renderObject(x,depth+1)}</div>`:`<div class="v158-legacy-section"><h3>Élément ${i+1}</h3>${renderObject(x,depth+1)}</div>`).join('');
+   }
+   const skip=new Set(['tpProject','project','projetTP','tpPictograms']);
+   return Object.entries(obj||{}).filter(([k,v])=>!skip.has(k)&&v!==undefined&&v!==null&&v!=='').map(([k,v])=>{
+     if(primitive(v))return `<div class="v158-kv"><div class="v158-k">${esc(label(k))}</div>${renderObject(v,depth+1)}</div>`;
+     return `<div class="v158-legacy-section"><h3>${esc(label(k))}</h3>${renderObject(v,depth+1)}</div>`;
+   }).join('')||'<div class="muted">Aucune réponse exploitable dans cette rubrique.</div>';
+ }
+ function legacyHtml(r){
+   const d=r?.data||{}, rep=d.reponses||d.answers||d.reponse||{};
+   const meta={Élève:student(d),Classe:d.classe||d.identite?.classe||'',TP:d.code||d.tp?.id||'',Titre:d.titre||d.tp?.titre||'',Support:d.vehicule?.modele||d.support?.label||d.support||'',Rendu:dateVal(d)};
+   const metaHtml=Object.entries(meta).filter(([,v])=>v).map(([k,v])=>`<div class="v158-kv"><div class="v158-k">${esc(k)}</div><div class="v158-v">${esc(v)}</div></div>`).join('');
+   return `<div class="v158-legacy-banner"><b>Ancien format — mode de compatibilité V158</b><br>Cette copie ne possède pas le projet TP complet du nouveau format. Les données réellement enregistrées dans l'ancienne copie sont affichées ci-dessous pour permettre sa correction.</div><div class="v158-legacy-section"><h3>Identification</h3>${metaHtml}</div><div class="v158-legacy-section"><h3>Travail et réponses de l’élève</h3>${renderObject(rep)}</div>${d.autoEvaluation?`<div class="v158-legacy-section"><h3>Auto-évaluation élève</h3>${renderObject(d.autoEvaluation)}</div>`:''}`;
+ }
+ function sameGroup(a,b){const da=String(dateVal(a?.data)||'').slice(0,10),db=String(dateVal(b?.data)||'').slice(0,10);const ca=a?.data?.classe||a?.data?.identite?.classe||'',cb=b?.data?.classe||b?.data?.identite?.classe||'';return da===db&&ca===cb}
+ function nav(id){const all=read(),cur=all.find(x=>String(x.id)===String(id));if(!cur)return '';const list=all.filter(x=>sameGroup(x,cur)).sort((a,b)=>student(a.data).localeCompare(student(b.data),'fr'));const i=list.findIndex(x=>String(x.id)===String(id)),prev=list[i-1],next=list[i+1];return `<div class="v158-nav"><button class="secondary" ${prev?'':'disabled'} onclick="${prev?`tpCorrectionOpen('${String(prev.id).replace(/'/g,"\\'")}')`:''}">← Copie précédente</button><button class="secondary" ${next?'':'disabled'} onclick="${next?`tpCorrectionOpen('${String(next.id).replace(/'/g,"\\'")}')`:''}">Copie suivante →</button><button class="secondary" onclick="window.print()">🖨️ Imprimer la correction</button></div>`}
+ const prior=window.tpCorrectionOpen;
+ window.tpCorrectionOpen=function(id){
+   const out=prior?.apply(this,arguments);
+   setTimeout(()=>{
+     const r=read().find(x=>String(x.id)===String(id)); if(!r||project(r.data))return;
+     const ed=document.querySelector('.tpc-editor'),left=ed?.firstElementChild;if(!left)return;
+     left.innerHTML=nav(id)+legacyHtml(r);
+     const h=document.querySelector('.tpc-shell .page-header h1');if(h&&!h.querySelector('.v158-legacy-chip'))h.insertAdjacentHTML('beforeend','<span class="v158-legacy-chip">Ancien format</span>');
+   },120);
+   return out;
+ };
+ function markLegacyRows(root=document){root.querySelectorAll?.('.tpc-row').forEach(row=>{const b=row.querySelector('button[onclick*="tpCorrectionOpen"]');if(!b||row.querySelector('.v158-legacy-chip'))return;const m=(b.getAttribute('onclick')||'').match(/tpCorrectionOpen\(['\"]([^'\"]+)/);if(!m)return;const r=read().find(x=>String(x.id)===m[1]);if(r&&!project(r.data)){const target=row.children?.[1]||row.firstElementChild;target?.insertAdjacentHTML('beforeend','<span class="v158-legacy-chip">Ancien format</span>')}})}
+ markLegacyRows();new MutationObserver(ms=>ms.forEach(m=>m.addedNodes.forEach(n=>{if(n.nodeType===1)markLegacyRows(n)}))).observe(document.documentElement,{childList:true,subtree:true});
+ function setVersion(){const b=document.getElementById('build-version');if(b)b.textContent='V158 — Competences Rta Gestion atelier TP';document.title='V158 Competences Rta Gestion atelier TP'}
+ setVersion();document.addEventListener('DOMContentLoaded',setVersion,{once:true});setTimeout(setVersion,250);
+ console.info('V158 : compatibilité de correction des anciennes copies activée, sans modification du démarrage.');
+})();
+</script>
 </body>
 </html>
 
