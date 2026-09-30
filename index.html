@@ -16304,6 +16304,51 @@ window.tpCorrectionValidate=async function(){
  console.info('V158 : compatibilité de correction des anciennes copies activée, sans modification du démarrage.');
 })();
 </script>
+
+
+<!-- V159 — Corrections TP multiposte fiables : brouillons Firebase + purge après validation -->
+<style id="v159-correction-sync-style">
+.v159-sync-badge{display:inline-flex;align-items:center;gap:6px;margin-left:8px;padding:3px 8px;border-radius:999px;font-size:11px;font-weight:800;background:#eef2f7;color:#475569}.v159-sync-badge.syncing{background:#fff7d6;color:#8a5a00}.v159-sync-badge.ok{background:#e9f9ef;color:#176b36}.v159-sync-badge.offline{background:#fff0f0;color:#9b1c1c}
+</style>
+<script id="v159-correction-sync">
+(function(){
+ const KEY='tp_correction_local_v54', WORKSPACE='evaluation-mv-main', COL='tpCorrectionWorkV159';
+ let unsub=null,busy=false,remoteApply=false,timer=null;
+ const rows=()=>{try{const a=JSON.parse(localStorage.getItem(KEY)||'[]');return Array.isArray(a)?a:[]}catch(_){return[]}};
+ const save=a=>localStorage.setItem(KEY,JSON.stringify((a||[]).slice(0,2000)));
+ const fs=()=>{try{return window.firebase?.firestore?.()}catch(_){return null}};
+ const ready=()=>!!(fs()&&window.firebase?.auth?.().currentUser);
+ const norm=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+ function identity(r){const d=r?.data||{},e=d.identite||d.eleve||{},tp=d.tp||{};return [d.studentId||e.id||norm((e.nom||'')+' '+(e.prenom||'')),tp.id||d.code||norm(tp.titre||d.titre||''),String(d.dates?.rendu||d.submission?.submittedAt||d.date||r.importedAt||'').slice(0,10)].join('|')}
+ function hash(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return (h>>>0).toString(36)}
+ const docId=r=>'c_'+hash(identity(r));
+ const col=()=>fs().collection('workspaces').doc(WORKSPACE).collection(COL);
+ function badge(state,text){let h=document.querySelector('.tpc-shell .page-header p');if(!h)return;let b=document.getElementById('v159-sync-badge');if(!b){b=document.createElement('span');b.id='v159-sync-badge';b.className='v159-sync-badge';h.appendChild(b)}b.className='v159-sync-badge '+state;b.textContent=text}
+ function compactArchive(r){const d=r?.data||{},e=d.identite||d.eleve||{},tp=d.tp||{};return {id:r.id||'',identity:identity(r),studentId:d.studentId||e.id||'',nom:e.nom||'',prenom:e.prenom||'',classe:e.classe||d.classe||'',tpId:tp.id||d.code||'',tpTitre:tp.titre||d.titre||'',note:r.note??'',appreciation:r.appreciation||'',levels:r.levels||{},evaluationId:r.savedEvaluationId||'',correctedAt:r.correctedAt||new Date().toISOString(),fileName:r.fileName||''}}
+ async function push(r){if(!r||!ready()||remoteApply)return false;badge('syncing','☁ Synchronisation…');const ref=col().doc(docId(r));const payload=JSON.parse(JSON.stringify(r));await ref.set({status:r.correctedAt?'corrected':'draft',record:r.correctedAt?null:payload,archive:r.correctedAt?compactArchive(r):null,updatedAt:firebase.firestore.FieldValue.serverTimestamp(),clientUpdatedAt:new Date().toISOString()},{merge:true});badge('ok',r.correctedAt?'✓ Correction synchronisée':'✓ Brouillon synchronisé');return true}
+ function current(){const id=window.__tp55Current||window.__tpCorrectionCurrent||null;return rows().find(x=>String(x.id)===String(id))}
+ function queue(){clearTimeout(timer);timer=setTimeout(()=>{const r=current();if(r)push(r).catch(e=>{console.warn('V159 sync brouillon',e);badge('offline','☁ À synchroniser')})},450)}
+ function mergeSnapshot(snap){if(busy)return;busy=true;try{let a=rows(),changed=false;remoteApply=true;snap.docChanges().forEach(ch=>{const v=ch.doc.data()||{};if(v.status==='corrected'&&v.archive){const ar=v.archive;const ix=a.findIndex(r=>docId(r)===ch.doc.id);if(ix>=0&&!a[ix].correctedAt){a.splice(ix,1);changed=true}return}if(v.status!=='draft'||!v.record)return;const rr=v.record,ix=a.findIndex(r=>docId(r)===ch.doc.id);if(ix<0){a.push(rr);changed=true;return}const open=String(a[ix].id)===String(window.__tp55Current||window.__tpCorrectionCurrent||'')&&document.querySelector('.tpc-editor');if(open)return;const lt=Date.parse(a[ix].v159UpdatedAt||a[ix].updatedAt||a[ix].importedAt||0)||0,rt=Date.parse(v.clientUpdatedAt||rr.v159UpdatedAt||rr.updatedAt||rr.importedAt||0)||0;if(rt>=lt){a[ix]=rr;changed=true}});if(changed){save(a);window.dispatchEvent(new CustomEvent('tp-v159-corrections-updated'));/* aucune navigation / aucun rerender global */}}finally{remoteApply=false;busy=false}}
+ async function listen(){if(!ready()||unsub)return;try{unsub=col().onSnapshot(mergeSnapshot,e=>{console.warn('V159 écoute corrections',e);unsub=null});const pending=rows().filter(r=>!r.correctedAt);for(const r of pending)await push(r)}catch(e){console.warn('V159 init corrections',e)}}
+ function install(){
+   // Sauvegarde de chaque modification de correction, même si les anciens wrappers ont été remplacés.
+   document.addEventListener('input',e=>{if(e.target?.closest?.('.tpc-editor'))queue()},true);
+   document.addEventListener('change',e=>{if(e.target?.closest?.('.tpc-editor'))queue()},true);
+   document.addEventListener('click',e=>{if(e.target?.closest?.('.tpc-editor'))setTimeout(queue,40)},true);
+   ['tpCorrectionDraftSave','tpCorrectionSetLevel','tpCorrectionAutoLevels','tp55Mark'].forEach(name=>{const old=window[name];if(typeof old!=='function'||old.__v159)return;const w=function(){const out=old.apply(this,arguments);setTimeout(queue,30);return out};w.__v159=true;window[name]=w});
+   const imp=window.tpCorrectionImport;if(typeof imp==='function'&&!imp.__v159){const w=async function(){const before=new Set(rows().map(r=>String(r.id)));const out=await imp.apply(this,arguments);for(const r of rows().filter(x=>!before.has(String(x.id))&&!x.correctedAt)){try{await push(r)}catch(e){console.warn('V159 import cloud',e)}}return out};w.__v159=true;window.tpCorrectionImport=w}
+   const val=window.tpCorrectionValidate;if(typeof val==='function'&&!val.__v159){const w=async function(){const id=window.__tp55Current||window.__tpCorrectionCurrent||null;const out=await val.apply(this,arguments);const r=rows().find(x=>String(x.id)===String(id));if(r?.correctedAt){try{await push(r);/* record lourd remplacé par archive légère dans le même document */}catch(e){console.warn('V159 validation cloud',e);badge('offline','☁ Correction à synchroniser')}}return out};w.__v159=true;window.tpCorrectionValidate=w}
+ }
+ function boot(){install();listen();setTimeout(install,1200);setTimeout(install,3500)}
+ try{window.firebase?.auth?.().onAuthStateChanged(u=>{if(u){if(unsub){try{unsub()}catch(_){ }unsub=null}boot()}else{if(unsub){try{unsub()}catch(_){ }unsub=null}}})}catch(_){setTimeout(boot,1200)}
+ window.tpV159SyncCorrectionsNow=async function(){await listen();for(const r of rows().filter(x=>!x.correctedAt))await push(r);return true};
+ setTimeout(boot,900);
+ console.info('V159 : corrections TP multiposte actives. Brouillons complets dans Firebase, archive légère après validation, sans modification du démarrage.');
+})();
+</script>
+<script id="v159-version-display">
+(function(){const V='V159';function set(){document.querySelectorAll('.app-version-badge,.version-badge,[data-app-version]').forEach(e=>{if(/V\d+/i.test(e.textContent||''))e.textContent=(e.textContent||'').replace(/V\d+/i,V)});document.title=(document.title||'Competences Rta Gestion atelier TP').replace(/V\d+/i,V)}set();setTimeout(set,300);setTimeout(set,1800)})();
+</script>
 </body>
 </html>
 
