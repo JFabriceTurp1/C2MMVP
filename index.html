@@ -16912,3 +16912,39 @@ console.info('V157 : administration des fiches + PDF local à la demande actifs.
  console.info('V161 : unicité élève+TP, doublons ignorés, corrigés protégés, filtre À corriger par défaut.');
 })();
 </script>
+
+<!-- V166 — registre de corrections confirmé par le professeur (01/10/2026). Bootstrap V159 inchangé. -->
+<script id="v166-confirmed-corrections">
+(()=>{
+'use strict';
+const V='V166', KEY='tp_correction_local_v54';
+const confirmed=[
+['ADINANI Ayache','DEBUTANT-LEVAGE-001'],['ADINANI Ayache','DEBUTANT-SECURITE-002'],['ADINANI Ayache','DEBUTANT-TRI-005'],
+['BACAR Rayane','DEBUTANT-IDENTIFICATION-004'],['BACAR Rayane','DEBUTANT-SECURITE-002'],
+['BALZAME Enzo','BACPRO-MOTEUR-006'],['BALZAME Enzo','DEBUTANT-LEVAGE-001'],
+['CADET Baptiste','DEBUTANT-IDENTIFICATION-004'],['CADET Baptiste','DEBUTANT-LEVAGE-001'],['CADET Baptiste','DEBUTANT-TRI-005'],
+['CAPRON Noah','DEBUTANT-LEVAGE-001'],['DIJOUX Gabriel','DEBUTANT-OUTILLAGE-003'],
+['ESPERANCE AUBERVAL Timothey','DEBUTANT-LEVAGE-001'],['ETIENNE Marthe','DEBUTANT-OUTILLAGE-003'],
+['GONNEAU Quentin','DEBUTANT-IDENTIFICATION-004'],['GONNEAU Quentin','DEBUTANT-LEVAGE-001'],['GONNEAU Quentin','DEBUTANT-SECURITE-002'],['GONNEAU Quentin','DEBUTANT-TRI-005'],
+['HERIES Maitan','DEBUTANT-OUTILLAGE-003'],['LAGARRIGUE Matthéo','DEBUTANT-IDENTIFICATION-004'],['LEONIE Adrien','BACPRO-MOTEUR-006'],
+['METRO Théo','DEBUTANT-IDENTIFICATION-004'],['METRO Théo','DEBUTANT-OUTILLAGE-003'],['METRO Théo','DEBUTANT-SECURITE-002'],['METRO Théo','DEBUTANT-TRI-005'],
+['PAYET--ETHEVE Baptiste','DEBUTANT-IDENTIFICATION-004'],['PAYET--ETHEVE Baptiste','DEBUTANT-OUTILLAGE-003'],['PAYET--ETHEVE Baptiste','DEBUTANT-TRI-005'],
+['RIVIERE Safrane','DEBUTANT-IDENTIFICATION-004'],['RIVIERE Safrane','DEBUTANT-OUTILLAGE-003'],['RIVIERE Safrane','DEBUTANT-SECURITE-002'],['RIVIERE Safrane','DEBUTANT-TRI-005'],
+['TECHER Davy','DEBUTANT-IDENTIFICATION-004'],['TECHER Davy','DEBUTANT-LEVAGE-001'],['TECHER Davy','DEBUTANT-OUTILLAGE-003'],['TECHER Davy','DEBUTANT-SECURITE-002'],['TECHER Davy','DEBUTANT-TRI-005'],
+['ZETTOR William','DEBUTANT-IDENTIFICATION-004'],['ZETTOR William','DEBUTANT-LEVAGE-001'],['ZETTOR William','DEBUTANT-OUTILLAGE-003']
+];
+function n(v){return String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/[^A-Z0-9]+/g,' ').trim().replace(/\s+/g,' ')}
+function student(d){const i=d?.identite||d?.identity||d?.eleve||d?.student||{};return [i.nom||d?.nom||d?.studentLastName||'',i.prenom||d?.prenom||d?.studentFirstName||''].filter(Boolean).join(' ')||d?.studentName||d?.eleveNom||''}
+function code(d){return d?.tp?.id||d?.tp?.code||d?.code||d?.tpCode||d?.activityCode||''}
+const SET=new Set(confirmed.map(([s,c])=>n(s)+'|'+n(c)));
+function rows(){try{return JSON.parse(localStorage.getItem(KEY)||'[]')||[]}catch(e){return []}}
+function save(a){localStorage.setItem(KEY,JSON.stringify(a))}
+function reconcileConfirmed(){const a=rows();let changed=0,matched=0;for(const r of a){const k=n(student(r.data||{}))+'|'+n(code(r.data||{}));if(!SET.has(k))continue;matched++;if(!r.correctedAt){r.correctedAt=new Date().toISOString();changed++}if(r.workflowState!=='CORRIGE'){r.workflowState='CORRIGE';changed++}r.confirmedCorrectedV166=true;r.confirmedCorrectionKey=k}if(changed)save(a);window.__v166ConfirmedStats={matched,changed,total:a.length,registry:SET.size};return {matched,changed,total:a.length}}
+function setVersion(){document.querySelectorAll('[id*=version i],.version,.app-version,[class*=version i]').forEach(el=>{if(/V\d{2,3}/i.test(el.textContent||''))el.textContent=(el.textContent||'').replace(/V\d{2,3}/ig,V)});document.title=(document.title||'').replace(/V\d{2,3}/ig,V)}
+window.tpV166ReconcileConfirmedCorrections=reconcileConfirmed;
+const page=window.tpCorrectionPage;if(typeof page==='function'&&!page.__v166){const w=function(){reconcileConfirmed();const out=page.apply(this,arguments);setTimeout(()=>{reconcileConfirmed();const s=document.getElementById('tpc-f-status');if(s){s.value='todo';window.tpCorrectionFilter?.()}},140);return out};w.__v166=true;window.tpCorrectionPage=w}
+const load=window.loadData;if(typeof load==='function'&&!load.__v166){const w=async function(){const out=await load.apply(this,arguments);reconcileConfirmed();return out};w.__v166=true;window.loadData=w}
+setVersion();document.addEventListener('DOMContentLoaded',()=>{setVersion();setTimeout(()=>{reconcileConfirmed();setVersion()},550)},{once:true});setTimeout(()=>{reconcileConfirmed();setVersion()},2400);
+console.info('V166 : registre des TP corrigés confirmé par le professeur appliqué; Copies rendues recroisées; À corriger par défaut; bootstrap V159 conservé.');
+})();
+</script>
