@@ -16466,6 +16466,50 @@ console.info('V160 : consolidation du module correction sur la base stable V159.
  console.info('V164 : Évaluations enregistrées prioritaires pour le statut corrigé; vues TP réconciliées; À corriger par défaut; bootstrap V159 conservé.');
 })();
 </script>
+<!-- V165 — nettoyage Évaluations enregistrées + rapprochement strict élève/TP. Bootstrap V159 inchangé. -->
+<script id="v165-recorded-dedupe-crosscheck">
+(function(){
+'use strict';
+const V='V165', KEY='tp_correction_local_v54';
+const norm=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/\.(JSON|TP)$/g,' ').replace(/[^A-Z0-9]+/g,' ').replace(/\s+/g,' ').trim();
+const studentNorm=s=>norm(s).replace(/\s+/g,' ');
+const tpCode=v=>{
+ const raw=String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase();
+ const patterns=[/\b(DEBUTANT[- _]+[A-Z0-9]+[- _]+\d{3})\b/,/\b(BACPRO[- _]+[A-Z0-9]+[- _]+\d{3})\b/,/\b(BACPRO[- _]+SYNTHESE[- _]+\d{3})\b/,/\b(CAP[- _]+[A-Z0-9]+[- _]+\d{3})\b/];
+ for(const re of patterns){const m=raw.match(re);if(m)return m[1].replace(/[ _]+/g,'-')}
+ return '';
+};
+const evCode=e=>tpCode(e?.tpCode||e?.title||e?.tpImportedFile||e?.tpActivityId||'');
+const copyCode=r=>{const d=r?.data||{};return tpCode(d.code||d.tp?.id||d.titre||r.fileName||d.meta?.title||d.meta?.activityId||'')};
+const isTp=e=>!!(evCode(e)||e?.tpCorrection||norm(e?.type)==='TP');
+const stamp=e=>Number(e?.recordedAt||e?.modifiedAt||e?.createdAt||0)||0;
+const sname=s=>studentNorm(s?.name||[s?.nom||s?.lastName||'',s?.prenom||s?.firstName||''].filter(Boolean).join(' '));
+const copyStudent=r=>{const d=r?.data||{},e=d.identite||d.eleve||{};return {id:String(d.studentId||d.meta?.studentId||e.id||''),name:studentNorm(d.studentName||[e.nom||d.nom||'',e.prenom||d.prenom||''].filter(Boolean).join(' '))}};
+function owner(r){const c=copyStudent(r),pool=Array.isArray(window.allStudents)?window.allStudents:[];if(c.id){const x=pool.find(s=>String(s.id||'')===c.id);if(x)return x}if(c.name){const a=pool.filter(s=>sname(s)===c.name);if(a.length===1)return a[0]}return null}
+function referenceEvaluation(r){const st=owner(r),code=copyCode(r);if(!st||!code)return null;return (st.evaluations||[]).filter(e=>e&&!e.archived&&e.recorded&&isTp(e)&&evCode(e)===code).sort((a,b)=>stamp(b)-stamp(a))[0]||null}
+function rows(){try{const a=JSON.parse(localStorage.getItem(KEY)||'[]');return Array.isArray(a)?a:[]}catch(_){return[]}}
+function save(a){try{localStorage.setItem(KEY,JSON.stringify(a))}catch(_){}}
+function reconcile(){const a=rows();let matched=0,changed=0;for(const r of a){const ev=referenceEvaluation(r);if(!ev)continue;matched++;const when=stamp(ev)||Date.now();if(!r.correctedAt){r.correctedAt=new Date(when).toISOString();changed++}if(ev.id&&String(r.savedEvaluationId||'')!==String(ev.id)){r.savedEvaluationId=ev.id;changed++}r.workflowState='CORRIGE';r.recordedEvaluationReconciled=true;r.recordedEvaluationId=ev.id||'';r.recordedEvaluationNote=typeof window.evaluationScore20==='function'?window.evaluationScore20(ev):(ev.sourceNote20??ev.note??null)}if(changed)save(a);window.__v165ReconcileStats={matched,changed,total:a.length};return {matched,changed,total:a.length}}
+async function dedupeRecorded(){
+ if(window.__v165DedupeRunning)return 0;window.__v165DedupeRunning=true;
+ try{
+  const pool=Array.isArray(window.allStudents)?window.allStudents:[], drops=[];
+  for(const st of pool){const groups=new Map();for(const e of (st.evaluations||[])){if(!e||e.archived||!e.recorded||!isTp(e))continue;const code=evCode(e);if(!code)continue;const k=String(st.id||sname(st))+'|'+code;(groups.get(k)||groups.set(k,[]).get(k)).push(e)}
+   for(const arr of groups.values()){if(arr.length<2)continue;arr.sort((a,b)=>stamp(b)-stamp(a));for(const e of arr.slice(1))if(e.id)drops.push(String(e.id))}
+  }
+  for(const id of [...new Set(drops)]){try{await window.deleteFromStore('evaluations',id)}catch(_){}}
+  window.__v165DedupeStats={removed:[...new Set(drops)].length};return [...new Set(drops)].length;
+ }finally{window.__v165DedupeRunning=false}
+}
+window.tpV165ReconcileRecordedEvaluations=reconcile;window.tpV165DedupeRecordedEvaluations=dedupeRecorded;
+const oldLoad=window.loadData;if(typeof oldLoad==='function'&&!oldLoad.__v165){const w=async function(){const out=await oldLoad.apply(this,arguments);if(!window.__v165Reloading){const n=await dedupeRecorded();if(n){window.__v165Reloading=true;try{await oldLoad.apply(this,arguments)}finally{window.__v165Reloading=false}}}reconcile();return out};w.__v165=true;window.loadData=w}
+const oldPage=window.tpCorrectionPage;if(typeof oldPage==='function'&&!oldPage.__v165){const w=function(){reconcile();const out=oldPage.apply(this,arguments);setTimeout(()=>{reconcile();const sel=document.getElementById('tpc-f-status');if(sel){sel.value='todo';window.tpCorrectionFilter?.()}},120);return out};w.__v165=true;window.tpCorrectionPage=w}
+const oldRecorded=window.recordedEvaluationsPage;if(typeof oldRecorded==='function'&&!oldRecorded.__v165){const w=function(){dedupeRecorded().then(n=>{if(n)window.loadData?.().then(()=>oldRecorded())});return oldRecorded.apply(this,arguments)};w.__v165=true;window.recordedEvaluationsPage=w}
+function version(){const b=document.getElementById('build-version');if(b)b.textContent=V+' — Competences Rta Gestion atelier TP';document.title=(document.title||'Competences Rta Gestion atelier TP').replace(/V\d+/i,V)}
+version();document.addEventListener('DOMContentLoaded',()=>{version();setTimeout(async()=>{await dedupeRecorded();reconcile();version()},500)},{once:true});setTimeout(()=>{reconcile();version()},2300);
+console.info('V165 : doublons des évaluations TP enregistrées nettoyés par élève+code TP; Copies rendues recroisées sur la source nettoyée; À corriger par défaut; bootstrap V159 conservé.');
+})();
+</script>
 </body>
 </html>
 
