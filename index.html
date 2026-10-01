@@ -16407,6 +16407,33 @@ console.info('V160 : consolidation du module correction sur la base stable V159.
  console.info('V162 : historique des corrections réconcilié, filtre À corriger par défaut, bootstrap V159 conservé.');
 })();
 </script>
+
+<!-- V163 — croisement exhaustif Copies rendues / historique des évaluations TP. Bootstrap V159 inchangé. -->
+<script id="v163-history-crosscheck">
+(function(){
+ 'use strict';
+ const V='V163', KEY='tp_correction_local_v54';
+ const norm=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+ const rows=()=>{try{const a=JSON.parse(localStorage.getItem(KEY)||'[]');return Array.isArray(a)?a:[]}catch(_){return[]}};
+ const save=a=>localStorage.setItem(KEY,JSON.stringify(a));
+ function copyStudent(r){const d=r?.data||{},e=d.identite||d.eleve||{};return {id:String(d.studentId||d.meta?.studentId||e.id||''),name:norm(d.studentName||[e.nom||d.nom||'',e.prenom||d.prenom||''].filter(Boolean).join(' '))}}
+ function studentName(s){return norm(s?.name||[s?.nom||s?.lastName||'',s?.prenom||s?.firstName||''].filter(Boolean).join(' '))}
+ function findStudent(r){const c=copyStudent(r),pool=Array.isArray(window.allStudents)?window.allStudents:[];if(c.id){const x=pool.find(s=>String(s.id||s.studentId||'')===c.id);if(x)return x}if(!c.name)return null;const a=pool.filter(s=>studentName(s)===c.name);return a.length===1?a[0]:null}
+ function tokensCopy(r){const d=r?.data||{},tp=d.tp||{},m=d.meta||{};return [...new Set([d.code,tp.id,m.activityId,d.activityId,tp.titre,d.titre].map(norm).filter(Boolean))]}
+ function tokensEval(e){return [...new Set([e?.tpCode,e?.tpActivityId,e?.activityId,e?.title].map(norm).filter(Boolean))]}
+ function codeFromTitle(v){const x=norm(v);const m=x.match(/\b(?:bacpro|cap)?\s*(?:synthese\s*)?\d{2,4}\b/);return m?m[0].replace(/\s+/g,' '):''}
+ function matchEval(r,e){if(!e||e.archived)return false;if(!(e.tpCorrection||norm(e.type)==='tp'||e.tpCode||e.tpActivityId))return false;const a=tokensCopy(r),b=tokensEval(e);if(a.some(x=>b.includes(x)))return true;const ac=[...new Set(a.map(codeFromTitle).filter(Boolean))],bc=[...new Set(b.map(codeFromTitle).filter(Boolean))];if(ac.some(x=>bc.includes(x)))return true;for(const x of a){if(x.length>=8&&b.some(y=>y.length>=8&&(x.includes(y)||y.includes(x))))return true}return false}
+ function historical(r){const st=findStudent(r);if(!st)return null;const evs=Array.isArray(st.evaluations)?st.evaluations:[];return [...evs].reverse().find(e=>matchEval(r,e))||null}
+ function reconcile(){const a=rows();let n=0;for(const r of a){const ev=historical(r);if(!ev)continue;const was=!!r.correctedAt;if(!r.correctedAt)r.correctedAt=new Date(ev.modifiedAt||ev.createdAt||Date.now()).toISOString();if(!r.savedEvaluationId&&ev.id)r.savedEvaluationId=ev.id;r.historyReconciled=true;r.historyReconciledV163=true;r.workflowState='CORRIGE';if(!was)n++}if(n)save(a);return n}
+ window.tpV163ReconcileHistory=reconcile;
+ function forceTodo(){const s=document.getElementById('tpc-f-status');if(s){s.value='todo';window.tpCorrectionFilter?.()}document.querySelectorAll('#tp109-states .tp109-chip').forEach(b=>b.classList.toggle('active',b.dataset.state==='todo'))}
+ const page=window.tpCorrectionPage;if(typeof page==='function'&&!page.__v163){const w=function(){reconcile();const out=page.apply(this,arguments);setTimeout(()=>{reconcile();forceTodo()},120);return out};w.__v163=true;window.tpCorrectionPage=w}
+ const load=window.loadData;if(typeof load==='function'&&!load.__v163){const w=async function(){const out=await load.apply(this,arguments);const n=reconcile();if(n&&document.querySelector('.tpc-shell')&&!document.querySelector('.tpc-editor'))setTimeout(()=>window.tpCorrectionFilter?.(),50);return out};w.__v163=true;window.loadData=w}
+ function setVersion(){const b=document.getElementById('build-version');if(b)b.textContent=V+' — Competences Rta Gestion atelier TP';document.querySelectorAll('.app-version-badge,.version-badge,[data-app-version]').forEach(e=>{if(/V\d+/i.test(e.textContent||''))e.textContent=(e.textContent||'').replace(/V\d+/i,V)});document.title=(document.title||'Competences Rta Gestion atelier TP').replace(/V\d+/i,V)}
+ setVersion();document.addEventListener('DOMContentLoaded',()=>{setVersion();setTimeout(()=>{reconcile();setVersion()},350)},{once:true});setTimeout(()=>{reconcile();setVersion()},2000);
+ console.info('V163 : croisement exhaustif des copies rendues avec l’historique TP; À corriger par défaut; bootstrap V159 conservé.');
+})();
+</script>
 </body>
 </html>
 
