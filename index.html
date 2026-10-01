@@ -16434,6 +16434,38 @@ console.info('V160 : consolidation du module correction sur la base stable V159.
  console.info('V163 : croisement exhaustif des copies rendues avec l’historique TP; À corriger par défaut; bootstrap V159 conservé.');
 })();
 </script>
+
+
+<!-- V164 — rapprochement Copies rendues / Évaluations enregistrées. Bootstrap V159 inchangé. -->
+<script id="v164-recorded-evaluations-crosscheck">
+(function(){
+ 'use strict';
+ const V='V164', KEY='tp_correction_local_v54';
+ const norm=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/\.(json|tp)$/g,' ').replace(/[^a-z0-9]+/g,' ').replace(/\b(corrige|corrigee|rendu|rendue|statut|copie|evaluation)\b/g,' ').replace(/\s+/g,' ').trim();
+ const rows=()=>{try{const a=JSON.parse(localStorage.getItem(KEY)||'[]');return Array.isArray(a)?a:[]}catch(_){return[]}};
+ const save=a=>localStorage.setItem(KEY,JSON.stringify(a));
+ const sname=s=>norm(s?.name||[s?.nom||s?.lastName||'',s?.prenom||s?.firstName||''].filter(Boolean).join(' '));
+ function copyStudent(r){const d=r?.data||{},e=d.identite||d.eleve||{};return{id:String(d.studentId||d.meta?.studentId||e.id||''),name:norm(d.studentName||[e.nom||d.nom||'',e.prenom||d.prenom||''].filter(Boolean).join(' '))}}
+ function findStudent(r){const c=copyStudent(r),pool=Array.isArray(window.allStudents)?window.allStudents:[];if(c.id){const x=pool.find(s=>String(s.id||s.studentId||'')===c.id);if(x)return x}if(!c.name)return null;const exact=pool.filter(s=>sname(s)===c.name);if(exact.length===1)return exact[0];return null}
+ function codeTokens(v){const x=norm(v),out=[];for(const m of x.matchAll(/\b(?:bacpro\s*)?(?:synthese\s*)?\d{2,4}\b/g))out.push(m[0].replace(/\s+/g,' '));for(const m of x.matchAll(/\b[a-z]{0,4}\d{1,3}\b/g))out.push(m[0]);return [...new Set(out)]}
+ function copyKeys(r){const d=r?.data||{},tp=d.tp||{},m=d.meta||{};return [...new Set([d.code,tp.id,m.activityId,d.activityId,tp.titre,d.titre,r.fileName,d.meta?.title].map(norm).filter(Boolean))]}
+ function evalKeys(e){return [...new Set([e?.tpCode,e?.tpActivityId,e?.activityId,e?.title,e?.tpImportedFile,e?.activitySupport,e?.tpPendingKey].map(norm).filter(Boolean))]}
+ function meaningfulWords(v){return new Set(norm(v).split(' ').filter(w=>w.length>=4&&!['avec','dans','pour','sans','dune','dun','vehicule','atelier','lycee'].includes(w)))}
+ function similar(a,b){if(!a||!b)return false;if(a===b)return true;if(a.length>=7&&b.length>=7&&(a.includes(b)||b.includes(a)))return true;const A=meaningfulWords(a),B=meaningfulWords(b);if(!A.size||!B.size)return false;let hit=0;A.forEach(w=>{if(B.has(w))hit++});return hit>=2 && hit/Math.min(A.size,B.size)>=0.55}
+ function isTpEval(e){return !!e&&!e.archived&&(e.tpCorrection||norm(e.type)==='tp'||e.tpCode||e.tpActivityId||e.tpImportedFile||/^tp\b/.test(norm(e.title))||/\btp\b/.test(norm(e.title)))}
+ function match(r,e){if(!isTpEval(e))return false;const a=copyKeys(r),b=evalKeys(e);if(a.some(x=>b.includes(x)))return true;const ac=[...new Set(a.flatMap(codeTokens))],bc=[...new Set(b.flatMap(codeTokens))];if(ac.some(x=>bc.includes(x)))return true;return a.some(x=>b.some(y=>similar(x,y)))}
+ function findEvaluation(r){const st=findStudent(r);if(!st)return null;const evs=Array.isArray(st.evaluations)?st.evaluations:[];const recorded=evs.filter(e=>e&&e.recorded&&!e.archived);const active=evs.filter(e=>e&&!e.recorded&&!e.archived);return [...recorded].reverse().find(e=>match(r,e))||[...active].reverse().find(e=>match(r,e))||null}
+ function reconcile(){const a=rows();let changed=0,matched=0;for(const r of a){const ev=findEvaluation(r);if(!ev)continue;matched++;const stamp=ev.recordedAt||ev.modifiedAt||ev.createdAt||Date.now();if(!r.correctedAt){r.correctedAt=new Date(stamp).toISOString();changed++}if(ev.id&&String(r.savedEvaluationId||'')!==String(ev.id)){r.savedEvaluationId=ev.id;changed++}if(r.workflowState!=='CORRIGE'){r.workflowState='CORRIGE';changed++}r.historyReconciled=true;r.recordedEvaluationReconciled=true;r.recordedEvaluationId=ev.id||r.recordedEvaluationId||'';r.recordedEvaluationNote=(typeof window.evaluationScore20==='function'?window.evaluationScore20(ev):(ev.sourceNote20??ev.note??null));}
+ if(changed)save(a);window.__v164ReconcileStats={matched,changed,total:a.length};return {matched,changed,total:a.length}}
+ window.tpV164ReconcileRecordedEvaluations=reconcile;
+ function todo(){const s=document.getElementById('tpc-f-status');if(s){s.value='todo';window.tpCorrectionFilter?.()}document.querySelectorAll('#tp109-states .tp109-chip').forEach(b=>b.classList.toggle('active',b.dataset.state==='todo'))}
+ const pg=window.tpCorrectionPage;if(typeof pg==='function'&&!pg.__v164){const w=function(){reconcile();const out=pg.apply(this,arguments);setTimeout(()=>{reconcile();todo()},140);return out};w.__v164=true;window.tpCorrectionPage=w}
+ const ld=window.loadData;if(typeof ld==='function'&&!ld.__v164){const w=async function(){const out=await ld.apply(this,arguments);const z=reconcile();if(z.changed&&document.querySelector('.tpc-shell')&&!document.querySelector('.tpc-editor'))setTimeout(()=>window.tpCorrectionFilter?.(),60);return out};w.__v164=true;window.loadData=w}
+ function version(){const b=document.getElementById('build-version');if(b)b.textContent=V+' — Competences Rta Gestion atelier TP';document.title=(document.title||'Competences Rta Gestion atelier TP').replace(/V\d+/i,V)}
+ version();document.addEventListener('DOMContentLoaded',()=>{version();setTimeout(()=>{reconcile();version()},450)},{once:true});setTimeout(()=>{reconcile();version()},2200);
+ console.info('V164 : Évaluations enregistrées prioritaires pour le statut corrigé; vues TP réconciliées; À corriger par défaut; bootstrap V159 conservé.');
+})();
+</script>
 </body>
 </html>
 
