@@ -16811,39 +16811,36 @@ console.info('V161 : première remise uniquement, registre anti-doublon permanen
 })();
 </script>
 
-<!-- V162 — réconciliation des copies déjà corrigées avec l'historique élève. Patch isolé, bootstrap inchangé. -->
-<script id="v162-history-reconciliation">
+
+<!-- V163 — réconciliation LAZY des copies corrigées. Aucun traitement au démarrage. -->
+<script id="v163-lazy-history-reconciliation">
 (function(){
 'use strict';
 const KEY='tp_correction_local_v54', REG='tp_submission_registry_v161';
 const norm=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
-const rows=()=>{try{const a=JSON.parse(localStorage.getItem(KEY)||'[]');return Array.isArray(a)?a:[]}catch(_){return[]}};
-const write=a=>localStorage.setItem(KEY,JSON.stringify((a||[]).slice(0,2000)));
-const registry=()=>{try{return JSON.parse(localStorage.getItem(REG)||'{}')||{}}catch(_){return{}}};
-const writeRegistry=r=>localStorage.setItem(REG,JSON.stringify(r||{}));
-function identity(d){const e=d?.identite||d?.eleve||{};return {id:String(d?.studentId||e.id||''),name:norm((e.nom||'')+' '+(e.prenom||'')),classe:norm(d?.classe||e.classe||'')}}
-function tpCode(d){return norm(d?.tp?.id||d?.code||d?.meta?.activityId||d?.activityId||'')}
-function tpTitle(d){return norm(d?.tp?.titre||d?.titre||'')}
-function diffusion(d){return String(d?.diffusionId||d?.meta?.diffusionId||d?.submission?.diffusionId||d?.sourceDiffusionId||'')}
-function logical(d){const i=identity(d);return [i.id||i.name,tpCode(d)||tpTitle(d),diffusion(d)||i.classe].join('|')}
-function studentFor(d){const i=identity(d),pool=[...(window.allStudents||[]),...(window.students||[])];return pool.find(s=>i.id&&String(s.id)===i.id)||pool.find(s=>norm((s.name||((s.nom||'')+' '+(s.prenom||''))))===i.name&&(!i.classe||!s.classe||norm(s.classe)===i.classe))||null}
-function evaluationsFor(st){const a=[];if(Array.isArray(st?.evaluations))a.push(...st.evaluations);try{if(Array.isArray(window.evaluations))a.push(...window.evaluations.filter(e=>String(e.studentId||'')===String(st?.id||'')))}catch(_){}const seen=new Set();return a.filter(e=>{const k=String(e?.id||JSON.stringify([e?.date,e?.title,e?.tpCode,e?.tpActivityId]));if(seen.has(k))return false;seen.add(k);return true})}
-function strongMatch(row,ev){const d=row.data||{},code=tpCode(d),title=tpTitle(d),evCode=norm(ev?.tpCode||''),evAct=norm(ev?.tpActivityId||''),evTitle=norm(ev?.title||'');
- if(row.savedEvaluationId&&String(ev?.id||'')===String(row.savedEvaluationId))return true;
- if(ev?.tpCorrectionId&&String(ev.tpCorrectionId)===String(row.id))return true;
- if(row.fileName&&ev?.tpImportedFile&&String(ev.tpImportedFile)===String(row.fileName))return true;
- if(code&&(evCode===code||evAct===code))return true;
- if(code&&ev?.tpCorrection===true&&evTitle.includes(code))return true;
- if(!code&&title&&ev?.tpCorrection===true&&evTitle.includes(title))return true;
- return false;
+const readRows=()=>{try{const a=JSON.parse(localStorage.getItem(KEY)||'[]');return Array.isArray(a)?a:[]}catch(_){return[]}};
+const readReg=()=>{try{return JSON.parse(localStorage.getItem(REG)||'{}')||{}}catch(_){return{}}};
+function ident(d){const e=d&&((d.identite)||(d.eleve))||{};return {id:String((d&&d.studentId)||e.id||''),name:norm((e.nom||'')+' '+(e.prenom||'')),classe:norm((d&&d.classe)||e.classe||'')}}
+function code(d){return norm((d&&d.tp&&d.tp.id)||(d&&d.code)||(d&&d.meta&&d.meta.activityId)||(d&&d.activityId)||'')}
+function title(d){return norm((d&&d.tp&&d.tp.titre)||(d&&d.titre)||'')}
+function diffId(d){return String((d&&d.diffusionId)||(d&&d.meta&&d.meta.diffusionId)||(d&&d.submission&&d.submission.diffusionId)||(d&&d.sourceDiffusionId)||'')}
+function logical(d){const i=ident(d);return [i.id||i.name,code(d)||title(d),diffId(d)||i.classe].join('|')}
+function findStudent(d){const i=ident(d),pool=[...(Array.isArray(window.allStudents)?window.allStudents:[]),...(Array.isArray(window.students)?window.students:[])];return pool.find(s=>i.id&&String(s.id)===i.id)||pool.find(s=>norm(s.name||((s.nom||'')+' '+(s.prenom||'')))===i.name&&(!i.classe||!s.classe||norm(s.classe)===i.classe))||null}
+function evals(st){const a=[];if(Array.isArray(st&&st.evaluations))a.push(...st.evaluations);if(Array.isArray(window.evaluations))a.push(...window.evaluations.filter(e=>String(e.studentId||'')===String((st&&st.id)||'')));return a}
+function match(row,ev){const d=row.data||{},c=code(d),t=title(d),ec=norm(ev&&ev.tpCode),ea=norm(ev&&ev.tpActivityId),et=norm(ev&&ev.title);if(row.savedEvaluationId&&String(ev&&ev.id||'')===String(row.savedEvaluationId))return true;if(ev&&ev.tpCorrectionId&&String(ev.tpCorrectionId)===String(row.id))return true;if(row.fileName&&ev&&ev.tpImportedFile&&String(ev.tpImportedFile)===String(row.fileName))return true;if(c&&(ec===c||ea===c))return true;if(c&&ev&&ev.tpCorrection===true&&et.includes(c))return true;if(!c&&t&&ev&&ev.tpCorrection===true&&et.includes(t))return true;return false}
+function reconcile(){const a=readRows(),reg=readReg();let changed=0;for(const r of a){if(!r||r.correctedAt)continue;const st=findStudent(r.data||{});if(!st)continue;const ev=evals(st).find(e=>match(r,e));if(!ev)continue;r.correctedAt=new Date(Number(ev.modifiedAt||ev.createdAt)||Date.now()).toISOString();r.savedEvaluationId=r.savedEvaluationId||ev.id||'';r.workflowState='CORRIGE';const k=logical(r.data||{});reg[k]={...(reg[k]||{}),key:k,id:r.id,status:'CORRIGE',firstImportedAt:(reg[k]&&reg[k].firstImportedAt)||r.importedAt||new Date().toISOString(),correctedAt:r.correctedAt,fileName:r.fileName||''};changed++}if(changed){localStorage.setItem(KEY,JSON.stringify(a.slice(0,2000)));localStorage.setItem(REG,JSON.stringify(reg))}return changed}
+window.tp163ReconcileHistory=reconcile;
+const original=window.tpCorrectionPage;
+if(typeof original==='function'){
+  window.tpCorrectionPage=function(){
+    try{reconcile()}catch(e){console.warn('V163: réconciliation Copies rendues ignorée',e)}
+    const out=original.apply(this,arguments);
+    setTimeout(function(){try{const f=document.getElementById('tpc-f-status');if(f){f.value='todo';if(typeof window.tpCorrectionFilter==='function')window.tpCorrectionFilter()}}catch(_){}},0);
+    return out;
+  };
 }
-function reconcileHistory(){let a=rows(),reg=registry(),changed=0;for(const r of a){if(r.correctedAt)continue;const st=studentFor(r.data||{});if(!st)continue;const ev=evaluationsFor(st).find(e=>strongMatch(r,e));if(!ev)continue;r.correctedAt=new Date(Number(ev.modifiedAt||ev.createdAt)||Date.now()).toISOString();r.savedEvaluationId=r.savedEvaluationId||ev.id||'';r.workflowState='CORRIGE';const k=logical(r.data||{});reg[k]={...(reg[k]||{}),key:k,id:r.id,status:'CORRIGE',firstImportedAt:reg[k]?.firstImportedAt||r.importedAt||new Date().toISOString(),correctedAt:r.correctedAt,fileName:r.fileName||''};changed++}if(changed){write(a);writeRegistry(reg);console.info('V162 :',changed,'copie(s) réconciliée(s) depuis l’historique élève.')}return changed}
-window.tp162ReconcileHistory=reconcileHistory;
-const oldPage=window.tpCorrectionPage;if(typeof oldPage==='function'&&!oldPage.__v162){const w=function(){try{reconcileHistory()}catch(e){console.warn('V162 réconciliation historique',e)}const out=oldPage.apply(this,arguments);setTimeout(()=>{const s=document.getElementById('tpc-f-status');if(s&&(!s.dataset.v162Init)){s.value='todo';s.dataset.v162Init='1';try{window.tpCorrectionFilter?.()}catch(_){}}},0);return out};w.__v162=true;window.tpCorrectionPage=w}
-// Après chargement/synchronisation des données élève, réconcilier silencieusement sans reconstruire la vue.
-window.addEventListener('tp-v159-corrections-updated',()=>{try{reconcileHistory()}catch(_){}},true);
-setTimeout(()=>{try{reconcileHistory()}catch(_){}},2200);
-function stamp(){const b=document.getElementById('build-version');if(b)b.textContent='V162 — Competences Rta Gestion atelier TP';document.title='V162 Competences Rta Gestion atelier TP'}stamp();setTimeout(stamp,500);setTimeout(stamp,1800);
-console.info('V162 : historique élève prioritaire pour les copies déjà corrigées; ouverture Copies rendues sur À corriger. Bootstrap V161 inchangé.');
+// Affichage version seulement : aucun appel Firebase, aucune lecture historique, aucun timer de démarrage.
+try{const b=document.getElementById('build-version');if(b)b.textContent='V163 — Competences Rta Gestion atelier TP';document.title='V163 Competences Rta Gestion atelier TP'}catch(_){}
+console.info('V163 : base V161, réconciliation uniquement à l’ouverture de Copies rendues.');
 })();
 </script>
