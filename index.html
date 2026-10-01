@@ -16800,33 +16800,13 @@ window.tpCorrectionImport=async function(files){
 };
 // Toute correction validée marque définitivement la remise dans le registre local + cloud.
 function wrapValidate(){const old=window.tpCorrectionValidate;if(typeof old!=='function'||old.__v161)return;const w=async function(){const id=window.__tp55Current||window.__tpCorrectionCurrent||null,before=read().find(x=>String(x.id)===String(id));const out=await old.apply(this,arguments);const after=read().find(x=>String(x.id)===String(id))||before;if(after){const d=after.data||{},r=seed(),k=logical(d);r[k]={...(r[k]||{}),key:k,id:after.id,status:'CORRIGE',firstImportedAt:r[k]?.firstImportedAt||after.importedAt||new Date().toISOString(),correctedAt:after.correctedAt||new Date().toISOString(),fileName:after.fileName||''};saveReg(r);await pushReceipt(d,r[k])}return out};w.__v161=true;window.tpCorrectionValidate=w}
-// Réconciliation V164 : exécutée uniquement quand Copies rendues est ouvert (ou lors d'une notification de correction).
-// Priorité 1 : registre permanent V161. Priorité 2 : historique/évaluations déjà enregistrées de l'élève.
-function reconcile(){
- const a=read(),r=seed();let ch=false;
- const n=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
- const ident=d=>{const e=d?.identite||d?.eleve||{};return {id:String(d?.studentId||e.id||''),name:n((e.nom||'')+' '+(e.prenom||'')),classe:n(d?.classe||e.classe||'')}};
- const code=d=>n(d?.tp?.id||d?.code||d?.meta?.activityId||'');
- const title=d=>n(d?.tp?.titre||d?.titre||'');
- const studentsPool=()=>[...(Array.isArray(window.allStudents)?window.allStudents:[]),...(Array.isArray(window.students)?window.students:[])];
- const findStudent=d=>{const i=ident(d);return studentsPool().find(s=>i.id&&String(s.id)===i.id)||studentsPool().find(s=>n(s.name||((s.nom||'')+' '+(s.prenom||'')))===i.name&&(!i.classe||!s.classe||n(s.classe)===i.classe))||null};
- const evals=st=>{const e=[];if(Array.isArray(st?.evaluations))e.push(...st.evaluations);if(Array.isArray(window.evaluations))e.push(...window.evaluations.filter(v=>String(v.studentId||'')===String(st?.id||'')));return e};
- const matches=(x,e)=>{const d=x.data||{},c=code(d),t=title(d),ec=n(e?.tpCode),ea=n(e?.tpActivityId),et=n(e?.title);if(x.savedEvaluationId&&String(e?.id||'')===String(x.savedEvaluationId))return true;if(e?.tpCorrectionId&&String(e.tpCorrectionId)===String(x.id))return true;if(x.fileName&&e?.tpImportedFile&&String(e.tpImportedFile)===String(x.fileName))return true;if(c&&(ec===c||ea===c))return true;if(c&&e?.tpCorrection===true&&et.includes(c))return true;if(!c&&t&&e?.tpCorrection===true&&et.includes(t))return true;return false};
- for(const x of a){
-   if(!x||x.correctedAt)continue;
-   const k=logical(x.data||{}),z=r[k];
-   if(z?.status==='CORRIGE'){x.correctedAt=z.correctedAt||new Date().toISOString();x.workflowState='CORRIGE';ch=true;continue}
-   const st=findStudent(x.data||{});if(!st)continue;const ev=evals(st).find(e=>matches(x,e));if(!ev)continue;
-   x.correctedAt=new Date(Number(ev.modifiedAt||ev.createdAt)||Date.now()).toISOString();x.savedEvaluationId=x.savedEvaluationId||ev.id||'';x.workflowState='CORRIGE';
-   r[k]={...(r[k]||{}),key:k,id:x.id,status:'CORRIGE',firstImportedAt:r[k]?.firstImportedAt||x.importedAt||new Date().toISOString(),correctedAt:x.correctedAt,fileName:x.fileName||''};ch=true;
- }
- if(ch){save(a);saveReg(r)}
-}
+// Réconciliation : une copie déjà corrigée ne peut jamais redevenir À corriger.
+function reconcile(){const a=read(),r=seed();let ch=false;for(const x of a){const z=r[logical(x.data||{})];if(z?.status==='CORRIGE'&&!x.correctedAt){x.correctedAt=z.correctedAt||new Date().toISOString();x.workflowState='CORRIGE';ch=true}}if(ch)save(a)}
 // Stabilité visuelle : les notifications cloud mettent à jour les données, pas la page.
 window.addEventListener('tp-v159-corrections-updated',()=>{reconcile();},true);
 const oldPage=window.tpCorrectionPage;if(typeof oldPage==='function'&&!oldPage.__v161){const w=function(){reconcile();const out=oldPage.apply(this,arguments);return out};w.__v161=true;window.tpCorrectionPage=w}
 seed();wrapValidate();setTimeout(wrapValidate,1200);setTimeout(wrapValidate,3500);
-function stamp(){const b=document.getElementById('build-version');if(b)b.textContent='V164 — Competences Rta Gestion atelier TP';document.title='V164 Competences Rta Gestion atelier TP'}stamp();setTimeout(stamp,500);setTimeout(stamp,1800);
-console.info('V164 : base V161 intacte au démarrage ; réconciliation historique uniquement dans Copies rendues.');
+function stamp(){const b=document.getElementById('build-version');if(b)b.textContent='V161 — Competences Rta Gestion atelier TP';document.title='V161 Competences Rta Gestion atelier TP'}stamp();setTimeout(stamp,500);setTimeout(stamp,1800);
+console.info('V161 : première remise uniquement, registre anti-doublon permanent et Copies rendues stabilisé. Bootstrap inchangé.');
 })();
 </script>
