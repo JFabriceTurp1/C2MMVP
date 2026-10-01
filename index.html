@@ -8663,53 +8663,6 @@ function exportStudentDeletionPDF(studentsSnapshot, deletionDate){
 
 
 <!-- V149 : suppression des caractères \n parasites visibles en bas de la page accueil -->
-
-
-<!-- V160 — Copies rendues : ouverture sur les TP à corriger uniquement. Patch isolé, bootstrap inchangé. -->
-<script id="v160-copies-default-todo">
-(function(){
-  const VERSION='V160';
-  let wantedStatus='todo';
-  const previous=window.tpCorrectionPage;
-  if(typeof previous==='function'){
-    window.tpCorrectionPage=function(){
-      const out=previous.apply(this,arguments);
-      setTimeout(()=>{
-        const sel=document.getElementById('tpc-f-status');
-        if(!sel)return;
-        sel.value=wantedStatus;
-        if(!sel.__v160Bound){
-          sel.__v160Bound=true;
-          sel.addEventListener('change',()=>{wantedStatus=sel.value||'';});
-        }
-        try{window.tpCorrectionFilter?.()}catch(e){console.warn('V160 filtre Copies rendues',e)}
-      },80);
-      return out;
-    };
-  }
-  // Si l'utilisateur choisit explicitement un autre état, le conserver tant qu'il reste dans le module.
-  document.addEventListener('change',e=>{
-    if(e.target?.id==='tpc-f-status') wantedStatus=e.target.value||'';
-  },true);
-  // En quittant Copies rendues, la prochaine ouverture repart sur « À corriger ».
-  const oldGo=window.go;
-  if(typeof oldGo==='function'){
-    window.go=function(view){
-      if(view!=='correctionTp') wantedStatus='todo';
-      return oldGo.apply(this,arguments);
-    };
-  }
-  function stamp(){
-    const bv=document.getElementById('build-version');
-    if(bv) bv.textContent='V160 — Competences Rta Gestion atelier TP';
-    document.title='V160 Competences Rta Gestion atelier TP';
-  }
-  stamp();
-  new MutationObserver(stamp).observe(document.documentElement,{childList:true,subtree:true});
-  console.info('V160 : Copies rendues ouvre uniquement les TP à corriger. Bootstrap V159 inchangé.');
-})();
-</script>
-
 </body></html>`);
   w.document.close();
 }
