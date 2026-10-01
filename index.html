@@ -14798,7 +14798,7 @@ window.tpCorrectionValidate=async function(){
    window.__v73Unsub=c.onSnapshot(mergeRemote,e=>{console.warn('V73 écoute corrections TP',e);window.__v73Listening=false});
  }catch(e){console.warn('V73 initialisation corrections TP',e);window.__v73Listening=false}}
  // Empêche une double validation sur deux postes : verrou Firestore court, puis état "corrected" partagé.
- function installValidationGuard(){const old=window.tpCorrectionValidate;if(typeof old!=='function'||old.__v73)return;const w=async function(){const id=window.__tp55Current;const r=rows().find(x=>String(x.id)===String(id));if(!r)return old.apply(this,arguments);if(!authReady())return old.apply(this,arguments);const ref=col().doc(key(r)), me=device();try{await db().runTransaction(async tx=>{const s=await tx.get(ref),v=s.exists?(s.data()||{}):{},until=v.lockUntil?.toMillis?.()||0;if((v.status==='corrected'||v.correctedAt)&&!r.correctedAt)throw new Error('ALREADY_CORRECTED');if(v.status==='correcting'&&v.lockOwner!==me&&until>Date.now())throw new Error('LOCKED');tx.set(ref,{status:'correcting',lockOwner:me,lockUntil:firebase.firestore.Timestamp.fromMillis(Date.now()+120000),updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true})});}catch(e){if(e?.message==='ALREADY_CORRECTED'||e?.message==='LOCKED'){alert(e.message==='ALREADY_CORRECTED'?'Ce TP a déjà été corrigé sur un autre poste. Les données vont être actualisées.':'Ce TP est actuellement en cours de correction sur un autre poste.');try{const s=await ref.get();if(s.exists)mergeRemote({docChanges:()=>[{doc:s}]})}catch(_){}return}throw e}
+ function installValidationGuard(){return;/* V167: verrou Firestore de validation neutralisé; la déduplication élève+TP reste active. */const old=window.tpCorrectionValidate;if(typeof old!=='function'||old.__v73)return;const w=async function(){const id=window.__tp55Current;const r=rows().find(x=>String(x.id)===String(id));if(!r)return old.apply(this,arguments);if(!authReady())return old.apply(this,arguments);const ref=col().doc(key(r)), me=device();try{await db().runTransaction(async tx=>{const s=await tx.get(ref),v=s.exists?(s.data()||{}):{},until=v.lockUntil?.toMillis?.()||0;if((v.status==='corrected'||v.correctedAt)&&!r.correctedAt)throw new Error('ALREADY_CORRECTED');if(v.status==='correcting'&&v.lockOwner!==me&&until>Date.now())throw new Error('LOCKED');tx.set(ref,{status:'correcting',lockOwner:me,lockUntil:firebase.firestore.Timestamp.fromMillis(Date.now()+120000),updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true})});}catch(e){if(e?.message==='ALREADY_CORRECTED'||e?.message==='LOCKED'){alert(e.message==='ALREADY_CORRECTED'?'Ce TP a déjà été corrigé sur un autre poste. Les données vont être actualisées.':'Ce TP est actuellement en cours de correction sur un autre poste.');try{const s=await ref.get();if(s.exists)mergeRemote({docChanges:()=>[{doc:s}]})}catch(_){}return}throw e}
    try{const out=await old.apply(this,arguments);const nr=rows().find(x=>String(x.id)===String(id))||r;await pushRow(nr);return out}catch(e){try{await ref.set({status:'returned',lockOwner:null,lockUntil:null,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true})}catch(_){}throw e}};w.__v73=true;window.tpCorrectionValidate=w}
  function installMutationHooks(){['tpCorrectionImport','tpCorrectionDraftSave','tpCorrectionSetLevel','tpCorrectionAutoLevels','tp55Mark'].forEach(name=>{const old=window[name];if(typeof old!=='function'||old.__v73)return;const w=async function(){const out=await old.apply(this,arguments);const id=window.__tp55Current, r=rows().find(x=>String(x.id)===String(id));if(r)pushRow(r).catch(()=>{});else if(name==='tpCorrectionImport')setTimeout(()=>rows().slice(-20).forEach(x=>pushRow(x).catch(()=>{})),50);return out};w.__v73=true;window[name]=w});
    const del=window.tpCorrectionDelete;if(typeof del==='function'&&!del.__v73){const w=function(id){const r=rows().find(x=>String(x.id)===String(id)),out=del.apply(this,arguments);setTimeout(()=>{if(r&&!rows().some(x=>String(x.id)===String(id)))tombstone(r).catch(()=>{})},0);return out};w.__v73=true;window.tpCorrectionDelete=w}
@@ -16913,11 +16913,11 @@ console.info('V157 : administration des fiches + PDF local à la demande actifs.
 })();
 </script>
 
-<!-- V166 — registre de corrections confirmé par le professeur (01/10/2026). Bootstrap V159 inchangé. -->
+<!-- V167 — validation correction réparée + réconciliation immédiate. Bootstrap V159 inchangé. -->
 <script id="v166-confirmed-corrections">
 (()=>{
 'use strict';
-const V='V166', KEY='tp_correction_local_v54';
+const V='V167', KEY='tp_correction_local_v54';
 const confirmed=[
 ['ADINANI Ayache','DEBUTANT-LEVAGE-001'],['ADINANI Ayache','DEBUTANT-SECURITE-002'],['ADINANI Ayache','DEBUTANT-TRI-005'],
 ['BACAR Rayane','DEBUTANT-IDENTIFICATION-004'],['BACAR Rayane','DEBUTANT-SECURITE-002'],
@@ -16948,3 +16948,43 @@ setVersion();document.addEventListener('DOMContentLoaded',()=>{setVersion();setT
 console.info('V166 : registre des TP corrigés confirmé par le professeur appliqué; Copies rendues recroisées; À corriger par défaut; bootstrap V159 conservé.');
 })();
 </script>
+
+
+<!-- V167 — validation TP non bloquante + rafraîchissement de toutes les vues -->
+<style id="v167-validation-style">
+.tp167-validating{opacity:.7;pointer-events:none}.tp167-status{margin-top:8px;font-size:13px;font-weight:700;color:#475569}.tp167-status.ok{color:#166534}.tp167-status.err{color:#b91c1c}
+</style>
+<script id="v167-validation-fix">
+(function(){
+ const KEY='tp_correction_local_v54';
+ const rows=()=>{try{return JSON.parse(localStorage.getItem(KEY)||'[]')||[]}catch(e){return[]}};
+ function install(){
+  const old=window.tpCorrectionValidate;if(typeof old!=='function'||old.__v167)return;
+  const fn=async function(){
+   const btn=document.activeElement?.matches?.('button')?document.activeElement:document.querySelector('button[onclick="tpCorrectionValidate()"]');
+   if(btn?.dataset?.busy==='1')return;
+   const id=window.__tp55Current||window.__tpCorrectionCurrent||'';
+   if(btn){btn.dataset.busy='1';btn.classList.add('tp167-validating');btn.dataset.oldText=btn.textContent;btn.textContent='⏳ Enregistrement de la correction…'}
+   let st=document.querySelector('.tp167-status');if(!st&&btn){st=document.createElement('div');st.className='tp167-status';btn.insertAdjacentElement('afterend',st)}if(st)st.textContent='Enregistrement de la note, des compétences et de l’historique…';
+   try{
+    const before=rows().find(x=>String(x.id)===String(id));
+    await old.apply(this,arguments);
+    const after=rows().find(x=>String(x.id)===String(id));
+    if(after?.correctedAt||after?.savedEvaluationId){
+      try{window.tpV166ReconcileConfirmedCorrections?.()}catch(e){}
+      try{await window.loadData?.()}catch(e){console.warn('V167 loadData',e)}
+      if(st){st.className='tp167-status ok';st.textContent='✓ Correction enregistrée et listes mises à jour.'}
+      setTimeout(()=>{try{window.tpCorrectionPage?.()}catch(e){}},250);
+    }else if(before && !after?.correctedAt){
+      if(st){st.className='tp167-status err';st.textContent='La correction n’a pas été validée. Vérifie la note, les compétences et la reconnaissance de l’élève.'}
+    }
+   }catch(e){console.error('V167 validation TP',e);if(st){st.className='tp167-status err';st.textContent='Erreur de validation : '+(e?.message||e)}alert('La correction n’a pas pu être enregistrée : '+(e?.message||e));}
+   finally{if(btn){btn.dataset.busy='0';btn.classList.remove('tp167-validating');btn.textContent=btn.dataset.oldText||'💾 Valider la correction et l’évaluation'}}
+  };fn.__v167=true;window.tpCorrectionValidate=fn;
+ }
+ install();setTimeout(install,1200);setTimeout(install,3000);
+ try{window.tpV166ReconcileConfirmedCorrections?.()}catch(e){}
+ console.info('V167 : validation correction réparée; verrou Firebase bloquant neutralisé; réconciliation et vues actualisées.');
+})();
+</script>
+<!-- VERSION V167 -->
