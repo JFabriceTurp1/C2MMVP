@@ -2777,7 +2777,7 @@ body{background:#f7f9fc;color:var(--text)}
 <div class="app">
 <button aria-expanded="true" aria-label="Masquer la barre latérale" class="sidebar-toggle" id="sidebar-toggle" onclick="toggleSidebar()" title="Masquer la barre latérale" type="button">◀</button>
 <aside class="side">
-<div class="logo">COMPÉTENCES MV<br/><small style="font-size:11px;font-weight:400">V10 — Évaluation • Atelier • RTA • TP</small></div>
+<div class="logo">COMPÉTENCES MV<br/><small style="font-size:11px;font-weight:400">V198 — Évaluation • Atelier • TP</small></div>
 <div class="nav">
 <button id="nav-home" onclick="go('home')">🏠 <span>Accueil</span></button>
 <button id="nav-students" onclick="go('students')">👨‍🎓 <span>Élèves</span></button>
@@ -2921,19 +2921,6 @@ body{background:#f7f9fc;color:var(--text)}
 <span class="pill" id="settings-activities-count"></span>
 </div>
 <div class="settings-list" id="settings-activities-list" style="margin-top:14px"></div>
-</div>
-<div class="settings-rubric-title rubric-ref">📚 Intégration RTA</div>
-<div class="settings-card settings-section section-ref" style="grid-column:1/-1">
-<h3>📚 Bibliothèques RTA — intégration contrôlée</h3>
-<p class="muted">Les 63 fiches d’activités restent indépendantes. Chaque RTA constitue une bibliothèque d’évaluation séparée. La source de référence est une synthèse structurée et validée (activités + compétences CAP/Bac Pro). Plusieurs RTA et plusieurs véhicules pourront coexister.</p>
-<div class="at-notice"><b>Version d’essai :</b> la bibliothèque « RTA 848 — Renault Clio IV Phase 2 » est préchargée avec les 270 activités du tableau de synthèse fourni. Pour les futures RTA, importe une synthèse RTA validée au format JSON. Chaque nouvelle bibliothèque reste indépendante, peut être archivée ou supprimée, et peut concerner un autre véhicule.</div>
-<div class="row" style="gap:8px;flex-wrap:wrap">
-<button class="primary" onclick="installBuiltInRta848(true)" type="button">📚 Charger / restaurer la RTA 848</button>
-<button class="secondary" onclick="document.getElementById('rta-json-input').click()" type="button">🧩 Importer une synthèse RTA JSON</button>
-<span class="pill" id="settings-rta-count"></span>
-<input accept=".json,application/json" hidden="" id="rta-json-input" onchange="importRtaJson(this.files[0]);this.value=''" type="file"/>
-</div>
-<div class="settings-list" id="settings-rta-list" style="margin-top:14px"></div>
 </div>
 <div class="settings-rubric-title rubric-other">🛠️ Administration / Développement</div>
 <details class="settings-card settings-sub-collapse section-other">
@@ -5408,12 +5395,6 @@ function evaluationChoicePage(){
           <h2>Évaluation sur fiche d’activités</h2>
           <p>Choisir une fiche pratique parmi les 63 activités. Les 10 critères et uniquement les compétences du diplôme de l’élève sont chargés automatiquement.</p>
           <div class="eval-choice-action">Choisir une fiche d’activités →</div>
-        </button>
-        <button type="button" class="eval-choice-card professional" onclick="beginRtaEvaluation()">
-          <div class="eval-choice-icon">📚</div>
-          <h2>Évaluation sur RTA</h2>
-          <p>Choisir une revue technique automobile, puis une activité issue de cette RTA. Plusieurs bibliothèques RTA peuvent coexister.</p>
-          <div class="eval-choice-action">Choisir une RTA →</div>
         </button>
         ${isAdminTeacher()?`<button type="button" class="eval-choice-card retroactive" onclick="beginRetrospectiveEvaluation()">
           <div class="eval-choice-icon">🕘</div>
@@ -11158,18 +11139,15 @@ function openAssistanceMail(){
       adminCode:localStorage.getItem("evaluation_admin_code_v71")||"1234",
       schoolSettings:school,
       activeClassId:localStorage.getItem("evaluation_active_class_v77")||"",
-      teachers:JSON.parse(localStorage.getItem("evaluation_teachers_v84_1")||"[]"),
       competencies:comps,
       multiReferentials:(()=>{try{return JSON.parse(JSON.stringify(window.multiReferentialsCache||multiReferentialsCache||null))}catch(e){return null}})(),
       professionalSituations:situations,
       managedEvaluationActivities:getManagedEvaluationActivities(),
-      rtaLibraries:getRtaLibraries(),
       bilanPeriods:(()=>{try{return JSON.parse(localStorage.getItem("evaluation_bilan_periods_v91")||"[]")||[]}catch(e){return[]}})(),
       bilanRecords:(()=>{try{return JSON.parse(localStorage.getItem("evaluation_bilan_records_v92")||"[]")||[]}catch(e){return[]}})(),
       savedReports:(()=>{try{return JSON.parse(localStorage.getItem("evaluation_saved_reports_v90")||"[]")||[]}catch(e){return[]}})(),
       retroPeriodObservations:(()=>{try{return JSON.parse(localStorage.getItem("evaluation_period_observations_v90")||"[]")||[]}catch(e){return[]}})(),
       bilanWeighting:(()=>{try{return JSON.parse(localStorage.getItem("evaluation_bilan_weighting_v10")||"null")||null}catch(e){return null}})(),
-      teachers:(()=>{try{return JSON.parse(localStorage.getItem("evaluation_teachers_v84_1")||"[]")||[]}catch(e){return[]}})(),
       updatedAtClient:Date.now()
     };
   }
@@ -11196,10 +11174,6 @@ function openAssistanceMail(){
     if(Array.isArray(cfg.managedEvaluationActivities)){
       try{safeLocalSetItem(MANAGED_EVALUATION_ACTIVITIES_KEY,JSON.stringify(cfg.managedEvaluationActivities));}
       catch(e){console.warn("Fiches d'évaluation non conservées en local",e);}
-    }
-    if(Array.isArray(cfg.rtaLibraries)){
-      try{safeLocalSetItem(RTA_LIBRARY_KEY,JSON.stringify(cfg.rtaLibraries));}
-      catch(e){console.warn("Bibliothèques RTA non conservées en local",e);}
     }
     if(Array.isArray(cfg.professionalSituations)&&cfg.professionalSituations.length){
       try{
@@ -11837,64 +11811,10 @@ window.firebaseSaveCurrentConfig=async()=>{await saveFullConfig(firebaseBuildApp
     }
     return [...m.values()];
   }
+  // V198 — ancien Générateur TP et RTA retirés du logiciel Professeur.
+  // Point de compatibilité sans aucun échange Firebase.
   async function synchronizeExtendedLocalData(){
-    if(!auth?.currentUser)return {connected:false};
-    const cfgRef=userRoot().collection(FIREBASE_CONFIG_COLLECTION);
-    // Générateur TP : brouillons, TP enregistrés/verrouillés, codes et personnalisations.
-    const tpRef=cfgRef.doc(FIREBASE_TPGEN_DOC);
-    let tpSnap=null,remote={};
-    try{
-      tpSnap=await firebaseTimeout(tpRef.get(),7000,'Lecture Générateur TP');
-      remote=tpSnap&&tpSnap.exists?(tpSnap.data()||{}):{};
-    }catch(e){console.warn('V198.4 — Générateur TP distant différé :',e);remote={};}
-    const localDrafts=v51Json('evaluation_tp_generator_drafts_v2',[]),localSaved=v51Json('tp_generator_saved_v8',[]);
-    // V53 — tombstones de suppression : un TP supprimé sur un poste ne doit jamais être
-    // ressuscité par une ancienne copie encore présente dans Firebase ou sur un autre poste.
-    const localDeletedSaved=v51Json('tp_generator_deleted_saved_v1',{});
-    const remoteDeletedSaved=(remote.deletedSaved&&typeof remote.deletedSaved==='object')?remote.deletedSaved:{};
-    const deletedSaved={...remoteDeletedSaved,...localDeletedSaved};
-    for(const [id,ts] of Object.entries(remoteDeletedSaved)){
-      const l=localDeletedSaved[id];
-      if(!l || v51Time({updatedAt:ts})>v51Time({updatedAt:l})) deletedSaved[id]=ts;
-    }
-    const drafts=v51MergeRows(localDrafts,remote.drafts||[],['draftId','id']);
-    const saved=v51MergeRows(localSaved,remote.saved||[],['savedId','id']).filter(x=>!deletedSaved[String(x.savedId||x.id||'')]);
-    const codes={...(remote.codes||{}),...v51Json('tp_generator_student_codes_v8',{})};
-    const stableCodes={...(remote.stableCodes||{}),...v51Json('tp_v45_codes_by_student_v1',{})};
-    const overrides={...(remote.overrides||{}),...v51Json('evaluation_tp_generator_catalog_overrides_v1',{})};
-    safeLocalSetItem('evaluation_tp_generator_drafts_v2',JSON.stringify(drafts));
-    safeLocalSetItem('tp_generator_saved_v8',JSON.stringify(saved));
-    safeLocalSetItem('tp_generator_deleted_saved_v1',JSON.stringify(deletedSaved));
-    safeLocalSetItem('tp_generator_student_codes_v8',JSON.stringify(codes));
-    safeLocalSetItem('tp_v45_codes_by_student_v1',JSON.stringify(stableCodes));
-    safeLocalSetItem('evaluation_tp_generator_catalog_overrides_v1',JSON.stringify(overrides));
-    try{
-      await firebaseTimeout(tpRef.set({drafts,saved,deletedSaved,codes,stableCodes,overrides,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:false}),7000,'Envoi Générateur TP');
-    }catch(e){console.warn('V198.4 — envoi Générateur TP différé :',e);}
-
-    // RTA : bibliothèque dédiée, fusionnée par id. Elle reste aussi dans configuration/application
-    // pour compatibilité avec les versions antérieures.
-    const rtaRef=cfgRef.doc('rtaLibraries');
-    let rtaSnap=null,rtaRemote=[];
-    try{
-      rtaSnap=await firebaseTimeout(rtaRef.get(),7000,'Lecture bibliothèque RTA');
-      rtaRemote=rtaSnap&&rtaSnap.exists?(rtaSnap.data()?.items||[]):[];
-    }catch(e){console.warn('V198.4 — RTA distant différé :',e);rtaRemote=[];}
-    const rta=v51MergeRows(v51Json('evaluation_rta_libraries_v1',[]),rtaRemote,['id','libraryId','name']);
-    // La clé exacte est fournie par RTA_LIBRARY_KEY ; utiliser le contenu courant si différent.
-    let currentRta=[];try{currentRta=getRtaLibraries?.()||[]}catch(e){}
-    const mergedRta=v51MergeRows(currentRta,rta,['id','libraryId','name']);
-    try{safeLocalSetItem(RTA_LIBRARY_KEY,JSON.stringify(mergedRta));safeLocalSetItem(RTA_LIBRARY_INIT_KEY,'1')}catch(e){}
-    try{
-      await firebaseTimeout(rtaRef.set({items:mergedRta,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:false}),7000,'Envoi bibliothèque RTA');
-    }catch(e){console.warn('V198.4 — envoi RTA différé :',e);}
-
-    // V73 — Les corrections TP ne sont plus renvoyées en bloc dans configuration/tpCorrections.
-    // Elles sont synchronisées événement par événement dans la collection tpCorrectionsV73
-    // par le module temps réel chargé en fin de page. Cela évite de retransmettre toute la file
-    // à chaque frappe/correction et supprime la limite pratique du document Firestore unique.
-    const corrLocalCount=v51Json('tp_correction_local_v54',[]).length;
-    return {connected:true,drafts:drafts.length,saved:saved.length,rta:mergedRta.length,corrections:corrLocalCount};
+    return {connected:!!auth?.currentUser,drafts:0,saved:0,rta:0,corrections:0,disabled:true};
   }
   window.firebaseSyncExtendedLocalData=synchronizeExtendedLocalData;
 
@@ -11910,27 +11830,22 @@ window.firebaseSaveCurrentConfig=async()=>{await saveFullConfig(firebaseBuildApp
       setSyncProgress(12,'Ouverture de la base centrale multiposte…');
       await firebaseTimeout(migrateLegacyFirebaseWorkspaceIfNeeded(),10000,'Ouverture de la base centrale');
       setSyncProgress(15,'Envoi des modifications locales en attente…');
-      let pendingResult={}; try{pendingResult=await firebaseTimeout(flushPendingFirebaseOps(),10000,'Envoi des modifications locales');}catch(e){console.warn('V198.3 — envoi différé :',e);}
+      let pendingResult={};try{pendingResult=await firebaseTimeout(flushPendingFirebaseOps(),10000,'Envoi des modifications locales');}catch(e){console.warn('V198.1 — opérations locales différées :',e);}
       setSyncProgress(18,'Lecture des classes centrales…');
       let cloudClasses=await firebaseTimeout(cloudDocs('classes'),8000,'Lecture des classes Firebase');
       setSyncProgress(30,'Lecture des élèves V86.5…');
       let cloudStudents=await firebaseTimeout(cloudDocs('students'),8000,'Lecture des élèves Firebase');
       setSyncProgress(44,'Lecture des évaluations V86.5…');
-      // V198.3 — lecture protégée. Le SDK Firestore peut rester en attente
-      // indéfiniment dans certains états réseau/cache : le démarrage ne doit pas
-      // dépendre de cette promesse.
+      // V198.1 — garde-fou restauré après le nettoyage V198.
       let cloudEvaluations=[];
       let evaluationsReadDeferred=false;
       try{
         cloudEvaluations=await firebaseTimeout(cloudDocs('evaluations'),8000,'Lecture des évaluations Firebase');
       }catch(e){
         evaluationsReadDeferred=true;
-        console.warn('V198.3 — évaluations Firebase différées :',e);
-        setSyncProgress(48,'Évaluations Firebase différées — poursuite du démarrage…');
+        console.warn('V198.1 — évaluations Firebase différées :',e);
+        setSyncProgress(48,'Évaluations Firebase différées — conservation des données locales…');
       }
-
-      // La lecture du document racine pouvait également figer l'écran alors que
-      // le dernier texte affiché restait "Lecture des évaluations" à 44 %.
       setSyncProgress(50,'Lecture de la configuration Firebase…');
       const rootRef=userRoot();
       let rootSnap=null,rootData={};
@@ -11938,7 +11853,7 @@ window.firebaseSaveCurrentConfig=async()=>{await saveFullConfig(firebaseBuildApp
         rootSnap=await firebaseTimeout(rootRef.get(),8000,'Lecture de la configuration Firebase');
         rootData=rootSnap&&rootSnap.exists?(rootSnap.data()||{}):{};
       }catch(e){
-        console.warn('V198.3 — configuration Firebase différée :',e);
+        console.warn('V198.1 — configuration Firebase différée :',e);
         rootData={};
       }
 
@@ -11983,14 +11898,12 @@ window.firebaseSaveCurrentConfig=async()=>{await saveFullConfig(firebaseBuildApp
       if(!evaluationsReadDeferred){
         await replaceLocalEvaluations(cloudEvaluations);
       }else{
-        console.warn('V198.3 — évaluations locales conservées : aucune réponse Firebase fiable reçue.');
+        console.warn('V198.1 — évaluations locales conservées : lecture Firebase non confirmée.');
       }
       setPendingStudentSyncIds([]);
       try{
         await firebaseTimeout(rootRef.set({centralSyncInitialized:true,workspace:FIREBASE_SHARED_WORKSPACE_ID,evaluationsInitialized:true,lastSyncAt:firebase.firestore.FieldValue.serverTimestamp(),lastSyncBy:auth.currentUser.email||auth.currentUser.uid||''},{merge:true}),8000,'Mise à jour Firebase');
-      }catch(e){
-        console.warn('V198.3 — mise à jour racine différée :',e);
-      }
+      }catch(e){console.warn('V198.1 — mise à jour racine différée :',e);}
 
       setSyncProgress(58,'Synchronisation de l’Atelier du jour…');
       let atelierSessionsCount=0;
@@ -12004,34 +11917,24 @@ window.firebaseSaveCurrentConfig=async()=>{await saveFullConfig(firebaseBuildApp
         console.warn('Atelier du jour non bloquant :',e);
         setSyncProgress(64,'Atelier du jour différé — poursuite de la synchronisation…');
       }
-      setSyncProgress(66,'Synchronisation RTA et générateur de TP…');
-      let extendedSync={};
-      try{
-        extendedSync=await firebaseTimeout(synchronizeExtendedLocalData(),18000,'Synchronisation RTA et générateur de TP');
-      }catch(e){
-        console.warn('V198.4 — RTA / TP différé, démarrage poursuivi :',e);
-        setSyncProgress(70,'RTA / TP différé — poursuite du démarrage…');
-      }
+      setSyncProgress(66,'Modules obsolètes RTA / Générateur TP désactivés…');
+      let extendedSync={drafts:0,saved:0,rta:0,corrections:0,disabled:true};
       setSyncProgress(72,'Synchronisation des paramètres…');
+      // V198.2 — les paramètres ne doivent plus bloquer le démarrage.
+      // Au démarrage : lecture seulement. Aucune réécriture immédiate du gros document
+      // configuration/application, qui était inutile et pouvait figer la synchro à 72 %.
       let cfg=null;
       try{
         cfg=await firebaseTimeout(cloudGetOne(FIREBASE_CONFIG_COLLECTION,FIREBASE_CONFIG_DOC),8000,'Lecture des paramètres Firebase');
       }catch(e){
-        console.warn('V198.4 — paramètres Firebase différés :',e);
-        cfg=null;
+        console.warn('V198.2 — paramètres Firebase différés, paramètres locaux conservés :',e);
+        setSyncProgress(74,'Paramètres Firebase différés — poursuite avec les paramètres locaux…');
       }
       if(cfg){
-        firebaseApplyApplicationConfig(cfg);
-        // V51 : la configuration historique peut contenir une ancienne copie RTA.
-        // On refait la fusion dédiée puis on sauvegarde l'union, jamais une copie locale seule.
-        try{
-          extendedSync=await firebaseTimeout(synchronizeExtendedLocalData(),18000,'Consolidation RTA / TP');
-          await firebaseTimeout(saveFullConfig(firebaseBuildApplicationConfig()),8000,'Enregistrement des paramètres');
-        }catch(e){console.warn('V198.4 — consolidation RTA / TP différée :',e)}
-      }else{
-        // Première initialisation : publier uniquement après fusion des données locales dédiées.
-        try{await firebaseTimeout(saveFullConfig(firebaseBuildApplicationConfig()),8000,'Configuration initiale')}catch(e){console.warn('V198.4 — configuration initiale différée :',e)}
+        try{firebaseApplyApplicationConfig(cfg)}catch(e){console.warn('V198.2 — application des paramètres distants :',e)}
       }
+      // Pas de saveFullConfig() au démarrage : les paramètres seront écrits uniquement
+      // lorsqu'une modification réelle de paramètres l'exige.
 
       // Professeurs/comptes : priorité absolue à la collection V86.5 "comptes".
       // À défaut, la liste éventuellement contenue dans configuration/application reste appliquée.
@@ -12086,8 +11989,6 @@ window.firebaseSaveCurrentConfig=async()=>{await saveFullConfig(firebaseBuildApp
       if(reconnectPushPending)localStorage.removeItem("evaluation_firebase_reconnect_push_pending");
       startRealtimeListeners();
       startAccountsRealtime();
-      // V51 : filet de sécurité multiposte pour les modules encore basés sur localStorage.
-      if(!window.__v51ExtendedSyncTimer) window.__v51ExtendedSyncTimer=setInterval(()=>{const tpBusy=!!document.querySelector('.tpgen-page,.tpgen-saved-page,.tpgen-manager-shell,.tpgen-shell,[id^="tpgen-"]');if(auth?.currentUser&&!syncing&&!tpBusy)synchronizeExtendedLocalData().catch(e=>console.warn('Sync périodique RTA/TP',e))},30000);
     }catch(err){
       console.error('Synchronisation Firebase V86.5 → V88',err);
       setStatus('Synchronisation : '+friendlyError(err),'bad');
@@ -12343,7 +12244,7 @@ function startRealtimeListeners(){
     miniInfo.addEventListener('click',async()=>{
       const d=window.firebaseLastDiagnostic;if(!d){alert("Clique d'abord sur Synchroniser pour afficher le diagnostic Firebase.");return;}
       let x=null;try{x=await firebaseDataIntegrityDiagnostic()}catch(e){}
-      alert("Compte Firebase : "+(d.email||"—")+"\nUID : "+(d.uid||"—")+"\n\nClasses Firebase : "+d.classes+"\nÉlèves Firebase : "+d.students+"\nÉvaluations Firebase : "+d.evaluations+(x?"\nÉvaluations locales : "+x.local+"\nOrphelines locales : "+x.orphanLocal+"\nUniquement locales : "+x.onlyLocal+"\nUniquement Firebase : "+x.onlyCloud+"\nOpérations évaluations en attente : "+x.pending:"")+"\nSéances Atelier du jour : "+(d.atelierSessions||0)+"\nProfesseurs : "+d.teachers+"\nRTA synchronisées : "+(d.rtaLibraries||0)+"\nBrouillons TP : "+(d.tpDrafts||0)+"\nTP enregistrés : "+(d.tpSaved||0)+"\nConfiguration : "+(d.configuration?"oui":"non"));
+      alert("Compte Firebase : "+(d.email||"—")+"\nUID : "+(d.uid||"—")+"\n\nClasses Firebase : "+d.classes+"\nÉlèves Firebase : "+d.students+"\nÉvaluations Firebase : "+d.evaluations+(x?"\nÉvaluations locales : "+x.local+"\nOrphelines locales : "+x.orphanLocal+"\nUniquement locales : "+x.onlyLocal+"\nUniquement Firebase : "+x.onlyCloud+"\nOpérations évaluations en attente : "+x.pending:"")+"\nSéances Atelier du jour : "+(d.atelierSessions||0)+"\nProfesseurs : "+d.teachers+"\nConfiguration : "+(d.configuration?"oui":"non"));
     });;
   }
 
@@ -13240,7 +13141,7 @@ function renderAdmin(){
  ${v93CategoryCard('rentree','🟦','Évaluations de rentrée',c.rentree,'Observation et positionnement initial')}
  ${v93CategoryCard('professional','🟪','Situations professionnelles',c.professional,'SP du référentiel')}
  ${v93CategoryCard('sheets','🟩','60 FICHES PRATIQUES',c.sheets,'Activités techniques de l’atelier')}
- ${v93CategoryCard('rta','🟣','Activités issues d’une RTA',c.rta,'Recherche et sélection dans les RTA')}
+
  ${v93CategoryCard('tp','📤','TP diffusés',c.tp,'TP diffusés à cette classe uniquement')}
  ${v93CategoryCard('extras','🟨','Même travail / autre support',c.extras,'Dupliquer un travail sur un autre support')}
  ${v93CategoryCard('custom','🟥','Activité ponctuelle',c.custom,'Créer une activité propre à la séance')}
@@ -14871,8 +14772,7 @@ window.tpCorrectionValidate=async function(){
       const bridge=window.atelierAddTpDiffusionToDay;
       if(typeof bridge!=='function')throw new Error('liaison Atelier indisponible');
       const aid=bridge(rec);
-      try{window.firebaseSyncExtendedLocalData?.()}catch(_){}
-      return aid;
+          return aid;
     }catch(err){
       console.error('V81 — ajout TP diffusé à la séance',err);
       alert('Impossible d’ajouter ce TP au tableau du jour : '+(err?.message||err));
@@ -16465,12 +16365,12 @@ window.v185Analyse=async()=>{
   finally{busy=false}
 };
 
-window.v185Apply=async()=>{
+window.v185Apply=async(skipConfirm=false)=>{
   if(busy)return;busy=true;
   try{
     const a=await analyse();
     if(!a.repair.length){show(render(a));return}
-    if(!confirm(`${a.c.name} : ${a.repair.length} TP ont une preuve certaine de correction.\n\nLe document Firebase V159 EXACT de chaque copie sera marqué corrected, puis le cache local sera aligné.\nContinuer ?`))return;
+    if(!skipConfirm && !confirm(`${a.c.name} : ${a.repair.length} TP ont une preuve certaine de correction.\n\nLe document Firebase V159 EXACT de chaque copie sera marqué corrected, puis le cache local sera aligné.\nContinuer ?`))return;
 
     const all=rows();let done=0,failed=0;
     try{
@@ -16520,14 +16420,25 @@ function inject(){
   </div>
   <div id="v185-report" class="v185-report"></div>`;
   host.insertBefore(sec,host.firstChild);
+  // V198 — réconciliation automatique uniquement des copies disposant d'une preuve certaine de correction.
+  if(!window.__v198AutoReconcileDone){
+    window.__v198AutoReconcileDone=true;
+    let tries=0;
+    const run=()=>{
+      tries++;
+      try{if(window.firebase?.auth?.().currentUser){window.v185Apply?.(true);return}}catch(_){}
+      if(tries<12)setTimeout(run,1000);
+    };
+    setTimeout(run,700);
+  }
 }
 
 /* Plus aucun timer de version.
    Le timer V175 a été supprimé directement dans le code source ci-dessus. */
 function setVersion(){
   const b=document.getElementById('build-version');
-  if(b)b.textContent='V197 — Évaluation · Charge Atelier · TP · Correction';
-  document.title='V197 — Évaluation · Charge Atelier · TP · Correction';
+  if(b)b.textContent='V198 — Évaluation · Charge Atelier · TP · Correction — Firebase optimisé';
+  document.title='V198 — Évaluation · Charge Atelier · TP · Correction — Firebase optimisé';
 }
 function install(){
   inject();
@@ -16542,24 +16453,22 @@ else install();
 </script>
 
 
-<!-- Chaîne graphique V198 passive, après démarrage -->
-<style id="tp-chain-v198-style">
-.tp-chain{--blue:#0d6596;--line:#9ec5d8;--pale:#eef7fb;color:#15384a;font-family:Inter,Segoe UI,Arial,sans-serif;max-width:1080px;margin:0 auto}.tp-chain *{box-sizing:border-box}.tp-chain .tp-header{display:grid;grid-template-columns:1fr auto;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#fff;margin-bottom:12px}.tp-chain .titles{padding:18px}.tp-chain .eyebrow{font-size:12px;font-weight:800;color:var(--blue);text-transform:uppercase}.tp-chain h1{margin:5px 0;color:#0a527d;font-size:25px}.tp-chain .code{background:var(--blue);color:#fff;display:flex;align-items:center;padding:18px;font-weight:900}.tp-chain .student{display:grid;grid-template-columns:2fr 1fr 1fr;gap:8px;background:var(--pale);border:1px solid var(--line);border-radius:10px;padding:10px;margin:10px 0}.tp-chain .brief{display:grid;grid-template-columns:1fr 1fr;gap:10px}.tp-chain .brief section,.tp-chain .question-card,.tp-chain .blk{background:#fff;border:1px solid var(--line);border-radius:10px;padding:13px;margin:10px 0;position:relative}.tp-chain .brief h2,.tp-chain .blk h3{margin:0 0 7px;color:#174d69}.tp-chain .section-title{font-size:19px;color:#123f58;border-bottom:2px solid var(--blue);padding-bottom:6px;margin:22px 0 8px}.tp-chain .qhead{display:flex;gap:10px}.tp-chain .qno{width:31px;height:31px;border-radius:50%;background:var(--blue);color:#fff;display:inline-flex;align-items:center;justify-content:center;flex:0 0 31px;font-weight:900}.tp-chain .qbody{min-width:0;flex:1}.tp-chain .qtext{font-weight:800;font-size:16px;line-height:1.45}.tp-chain .qmeta{font-size:12px;color:#56717f;margin-top:5px}.tp-chain .answer,.tp-chain .readonly{width:100%;min-height:58px;border:1px solid #a9c8d8;border-radius:7px;padding:8px 10px;margin-top:9px;font:inherit;background:#fff}.tp-chain .readonly{white-space:pre-wrap;background:#fbfdfe}.tp-chain img{max-width:100%;height:auto}.tp-chain figure{margin:10px 0;text-align:center}.tp-chain figcaption{font-size:12px;color:#5f7682}.tp-chain .image-grid,.tp-chain .match-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.tp-chain .tp-grid{width:100%;border-collapse:collapse;margin-top:8px}.tp-chain .tp-grid th,.tp-chain .tp-grid td{border:1px solid #9fc4d6;padding:8px;vertical-align:middle}.tp-chain .tp-grid th{background:#cfe4ef}.tp-chain .tp-grid textarea{width:100%;min-height:46px;border:1px solid #a9c8d8;border-radius:6px}.tp-chain .match-card{border:1px solid #cfe0e8;border-radius:9px;padding:8px;background:#fff}.tp-chain .match-answer{padding:7px;margin-top:6px;background:#eef7fb;border-radius:6px;font-weight:700}.tp-chain .stage{position:relative;display:inline-block;max-width:100%}.tp-chain .pin{position:absolute;transform:translate(-50%,-50%);background:#0d6596;color:white;border-radius:999px;padding:5px 8px;font-weight:900}.tp-chain .picto{width:42px;height:42px;object-fit:contain;float:right;margin:0 0 8px 8px}.tp-chain .cover-images{display:grid;gap:10px;margin:12px 0}.tp-chain .cover-extra{margin:10px 0}.tp-chain .corrbar{display:flex;gap:6px;justify-content:flex-end;margin-bottom:8px;flex-wrap:wrap}.tp-chain .corrbar button{border:1px solid #cbd5e1;background:#fff;border-radius:7px;padding:5px 8px;cursor:pointer}.tp-chain .footer{font-size:11px;color:#7d8e97;border-top:1px solid #e4ecef;padding-top:8px;margin-top:16px;display:flex;justify-content:space-between}@media(max-width:800px){.tp-chain .brief,.tp-chain .student,.tp-chain .image-grid,.tp-chain .match-grid{grid-template-columns:1fr}.tp-chain .tp-header{grid-template-columns:1fr}.tp-chain .code{justify-content:center}}@media print{.tp-chain .corrbar{display:none!important}}
-</style><script id="tp-chain-v198-professeur">function TPChainRenderer(){
- const E=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
- const img=x=>x?.data||x?.image||x?.src||''; const frame=x=>{let s='';if(/^#[0-9a-f]{6}$/i.test(String(x?.frameColor||'')))s+='border-color:'+x.frameColor+';';if(x?.frameWidthPx!==undefined)s+='border-width:'+Math.max(0,Math.min(10,+x.frameWidthPx||0))+'px;';return s};
- function sty(o,f,i){let z={...(o?._textDefaults?.[f]||{})};for(const r of (o?._textFormats?.[f]||[]))if(i>=+r.start&&i<+r.end)for(const k of ['bold','italic','strike','size','color'])if(r[k]!==undefined)z[k]=r[k];return z}
- function fmt(o,f){let v=String(o?.[f]??'');if(!v)return'';if(!o?._textFormats?.[f]?.length&&!o?._textDefaults?.[f])return E(v);let out='',a=0,last=sty(o,f,0),key=x=>JSON.stringify(x),flush=b=>{let t=E(v.slice(a,b));if(last.bold)t='<strong>'+t+'</strong>';if(last.italic)t='<em>'+t+'</em>';if(last.strike)t='<del>'+t+'</del>';if(last.size)t='<span style="font-size:'+Math.max(8,Math.min(48,+last.size||12))+'pt">'+t+'</span>';if(/^#[0-9a-f]{6}$/i.test(last.color||''))t='<span style="color:'+last.color+'">'+t+'</span>';out+=t};for(let i=1;i<v.length;i++){let n=sty(o,f,i);if(key(n)!==key(last)){flush(i);a=i;last=n}}flush(v.length);return out}
- const obj=(p,f)=>{let m={question:'questions',image:'imageBlocks',match:'matchBlocks',text:'textBlocks',table:'tableBlocks',placement:'placementBlocks'};return (p?.[m[f.type]]||[]).find(x=>String(x.id)===String(f.id))};
- const pic=(p,x)=>{let id=x?.pictogramId, z=(p.__pictograms||p.pictograms||[]).find(q=>String(q.id)===String(id));return z?.image?'<img class="picto" src="'+E(z.image)+'">':''};
- const photo=im=>'<figure style="'+(im?.widthPct?'width:'+Math.max(10,Math.min(100,+im.widthPct))+'%;':'')+(im?.align==='left'?'margin-left:0;margin-right:auto':im?.align==='right'?'margin-left:auto;margin-right:0':'margin-left:auto;margin-right:auto')+'"><img src="'+E(img(im))+'">'+(im?.caption?'<figcaption>'+E(im.caption)+'</figcaption>':'')+'</figure>';
- function meta(q){if(q.hideEvaluationCriteria)return'';let a=[q.competence,q.criterionId,q.criterion].filter(x=>x&&!/à\s+(préciser|définir|déterminer)/i.test(String(x)));return a.length?'<div class="qmeta">'+a.map(E).join(' · ')+'</div>':''}
- function block(p,f,a,ro){let x=obj(p,f);if(!x)return'';if(x.isSpacer)return '<div style="height:'+Math.max(2,Math.min(100,+x.heightMm||10))+'mm"></div>';let head=pic(p,x)+(x.title?'<h3>'+fmt(x,'title')+'</h3>':'')+(x.text?'<p>'+fmt(x,'text')+'</p>':'');if(f.type==='text')return '<section class="blk" style="'+frame(x)+'">'+head+'</section>';if(f.type==='image')return '<section class="blk" style="'+frame(x)+'">'+head+'<div class="image-grid">'+(x.images||[]).map(photo).join('')+'</div></section>';if(f.type==='table'){let av=a?.[x.id]||[];return '<section class="blk" style="'+frame(x)+'">'+head+'<table class="tp-grid"><tbody>'+Array.from({length:x.rows||0},(_,r)=>'<tr style="height:'+Math.max(25,Math.min(250,+x.rowHeights?.[r]||48))+'px">'+Array.from({length:x.cols||0},(_,c)=>{let z=x.cells?.[r]?.[c]||{},v=z.student?(av?.[r]?.[c]||''):fmt(z,'text');return '<'+(x.headerRow&&r===0?'th':'td')+'>'+(z.student?(ro?'<div class="readonly">'+E(v||'—')+'</div>':'<textarea data-chain-table="'+E(x.id)+'" data-r="'+r+'" data-c="'+c+'">'+E(v)+'</textarea>'):v)+'</'+(x.headerRow&&r===0?'th':'td')+'>'}).join('')+'</tr>').join('')+'</tbody></table></section>'}if(f.type==='match'){let av=a?.[x.id]||{}, labels={};(x.labels||[]).forEach(l=>labels[l.id]=l.name);return '<section class="blk" style="'+frame(x)+'">'+head+'<div class="match-grid">'+(x.targets||[]).map((t,i)=>'<div class="match-card">'+photo(t)+'<div class="match-answer">'+E(labels[String(av[String(t.id||i)]||'').split('@')[0]]||'Non répondu')+'</div></div>').join('')+'</div></section>'}if(f.type==='placement'){let av=a?.[x.id]||{};return '<section class="blk" style="'+frame(x)+'">'+head+'<div class="stage"><img src="'+E(img(x.image))+'">'+(x.tokens||[]).filter(t=>av[t.id]).map(t=>'<span class="pin" style="left:'+(+av[t.id].x||0)+'%;top:'+(+av[t.id].y||0)+'%">'+E(t.label)+'</span>').join('')+'</div></section>'}return''}
- function render(p,opt={}){let a=opt.answers||{},flow=Array.isArray(p.flow)?p.flow:(p.questions||[]).map(q=>({type:'question',id:q.id})),n=0,sec='',body='';for(const f of flow){if(f.type!=='question'){let x=obj(p,f);if(x?.parentQuestionId)continue;body+=block(p,f,a,opt.readonly);continue}let q=obj(p,f);if(!q||q.excluded)continue;if((q.section||'Activité')!==sec){sec=q.section||'Activité';body+='<h2 class="section-title">'+fmt(q,'section')+'</h2>'}let val=a[q.id]||'',corr=opt.correctionId?'<div class="corrbar" data-v131-mark="q_'+E(q.id)+'"><button onclick="tp131Mark(\''+E(opt.correctionId)+'\',\'q_'+E(q.id)+'\',\'correct\')">✓ Correct</button><button onclick="tp131Mark(\''+E(opt.correctionId)+'\',\'q_'+E(q.id)+'\',\'wrong\')">✕ Incorrect</button><button onclick="tp131Mark(\''+E(opt.correctionId)+'\',\'q_'+E(q.id)+'\',\'neutral\')">— Non évalué</button></div>':'';body+='<section class="question-card" style="'+frame(q)+'">'+corr+'<div class="qhead"><span class="qno">'+(++n)+'</span><div class="qbody">'+pic(p,q)+'<div class="qtext">'+fmt(q,'text')+'</div>'+meta(q)+(q.images||[]).map(photo).join('')+(q.answerType==='none'?'':opt.readonly?'<div class="readonly">'+E(val||'—')+'</div>':'<textarea class="answer" rows="'+Math.max(1,Math.min(20,+q.answerRows||2))+'" data-chain-answer="'+E(q.id)+'">'+E(val)+'</textarea>')+(flow.filter(z=>z.type!=='question'&&obj(p,z)?.parentQuestionId===q.id).map(z=>block(p,z,a,opt.readonly)).join(''))+'</div></div></section>'}
- let extras=(p.coverBlocks||[]).map(x=>x.type==='spacer'?'<div class="cover-extra" style="height:'+Math.max(2,Math.min(100,+x.heightMm||10))+'mm"></div>':'<div class="cover-extra">'+(x.title?'<h3>'+fmt(x,'title')+'</h3>':'')+(x.text?'<div>'+fmt(x,'text')+'</div>':'')+'</div>').join('');let covers=(p.coverImages||[]).length?'<div class="cover-images" style="grid-template-columns:repeat('+Math.max(1,Math.min(4,+p.coverColumns||2))+',minmax(0,1fr))">'+p.coverImages.map(photo).join('')+'</div>':'';
- return '<div class="tp-chain"><div class="tp-header"><div class="titles"><div class="eyebrow">Bac Pro Maintenance des véhicules · TP</div><h1>'+fmt(p,'publicTitle')+'</h1><div>Bac Pro MV · Durée : '+E(p.duration||'__________')+'</div></div><span class="code">'+E(p.publicId||p.id||'TP')+'</span></div>'+(opt.student?'<div class="student"><span>Nom et prénom : '+E(opt.student.name||'')+'</span><span>Classe : '+E(opt.student.classe||'')+'</span><span>Date : '+E(opt.student.date||'')+'</span></div>':'')+extras+covers+'<div class="brief"><section><h2>Situation professionnelle</h2><div>'+fmt(p,'intro')+'</div></section><section><h2>Objectifs</h2><div>'+fmt(p,'objectives')+'</div></section><section><h2>Support</h2><div>'+fmt(p,'support')+'</div></section><section><h2>Ressources et matériels</h2><div>'+fmt(p,'resources')+'</div></section></div>'+body+'<div class="footer"><span>'+E(p.publicId||p.id||'TP')+'</span><span>Chaîne graphique V198</span></div></div>'}
- return {render};} window.TPChainRenderer=TPChainRenderer;
-(function(){const R=TPChainRenderer(),KEY='tp_correction_local_v54';function rows(){try{return JSON.parse(localStorage.getItem(KEY)||'[]')||[]}catch(_){return[]}}function proj(d){let p=d?.tpProject||d?.sourceProject||d?.project||d?.projet;return p?.schema==='evaluation.tp.v1'&&p.data?p.data:p}function ans(d){return d?.reponses?.v117||d?.reponses?.v115||{}}const previous=window.tpCorrectionOpen;window.tpCorrectionOpen=function(id){let out=previous?.apply(this,arguments);setTimeout(()=>{let r=rows().find(x=>String(x.id)===String(id)),p=proj(r?.data),ed=document.querySelector('.tpc-editor'),left=ed?.firstElementChild;if(!r||!p||!left)return;left.innerHTML='<div class="tpc-card"><b>V198 — Chaîne graphique fidèle.</b> La copie reprend la présentation définie dans l’éditeur, avec les réponses de l’élève et les commandes de correction.</div>'+R.render(p,{answers:ans(r.data),readonly:true,correctionId:r.id,student:{name:[r.data?.eleve?.nom,r.data?.eleve?.prenom].filter(Boolean).join(' ')||r.data?.studentName||'',classe:r.data?.classe||'',date:r.data?.eleve?.date||''}})},80);return out};console.info('V198 chaîne graphique professeur chargée sans modification du démarrage.');})();</script>
+<!-- V198 — retrait fonctionnel RTA + optimisation Firebase -->
+<script id="v198-firebase-cleanup-rta-retired">
+(function(){
+  'use strict';
+  try{localStorage.setItem('evaluation_mode_rta_v190','0')}catch(_){}
+  window.addEventListener('load',()=>{try{if(window.__v51ExtendedSyncTimer){clearInterval(window.__v51ExtendedSyncTimer);window.__v51ExtendedSyncTimer=null}}catch(_){}},{once:true});
+  window.beginRtaEvaluation=function(){try{showWarningMessage('Le module RTA a été retiré du logiciel Professeur V198.')}catch(_){alert('Le module RTA a été retiré du logiciel Professeur V198.')}};
+  const clean=()=>{
+    document.querySelectorAll('.settings-rubric-title.rubric-ref, .settings-card.section-ref').forEach(el=>{if(/RTA/i.test(el.textContent||''))el.remove()});
+    document.querySelectorAll('button.eval-choice-card').forEach(el=>{if(/Évaluation sur RTA/i.test(el.textContent||''))el.remove()});
+    document.querySelectorAll('.v93-category-card').forEach(el=>{if(/Activités issues d.une RTA/i.test(el.textContent||''))el.remove()});
+  };
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',clean,{once:true});else clean();
+  new MutationObserver(()=>clean()).observe(document.documentElement,{childList:true,subtree:true});
+})();
+</script>
 </body>
 </html>
 <!-- V116 — TP projet unifié : diffusion fiable, aperçu et passerelle lecteur -->
@@ -17088,8 +16997,7 @@ const MODE_KEYS={
   free:'evaluation_mode_free_v190',
   professional:'evaluation_mode_professional_v190',
   rentree:'evaluation_mode_rentree_v190',
-  activity:'evaluation_mode_activity_v190',
-  rta:'evaluation_mode_rta_v190'
+  activity:'evaluation_mode_activity_v190'
 };
 const FIREBASE_DOC='evaluationModesV190';
 let userAccordionChange=false;
@@ -17099,8 +17007,7 @@ const MODE_META=[
   ['free','Évaluation libre sur critères','Afficher la création d’une évaluation construite librement à partir des compétences et critères.'],
   ['professional','Situation professionnelle','Afficher l’évaluation à partir d’une situation professionnelle de la bibliothèque.'],
   ['rentree','Évaluation de rentrée','Afficher les évaluations techniques de début d’année.'],
-  ['activity','Évaluation sur fiche d’activité','Afficher l’évaluation à partir des fiches et activités administrées.'],
-  ['rta','Évaluation sur RTA','Afficher l’évaluation à partir des bibliothèques RTA.']
+  ['activity','Évaluation sur fiche d’activité','Afficher l’évaluation à partir des fiches et activités administrées.']
 ];
 
 function modeOn(name){
@@ -17135,7 +17042,6 @@ async function pushModesFirebase(){
       source:'V190'
     },{merge:true});
   }catch(e){console.warn('V190 : synchronisation modes Firebase non disponible',e)}
-  try{window.firebaseSyncExtendedLocalData?.()}catch(_){}
 }
 async function pullModesFirebase(){
   try{
