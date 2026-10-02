@@ -17374,7 +17374,7 @@ console.info('V191 : Paramètres accordéon stable au clic + modes d’évaluati
 (function(){
 'use strict';
 
-const VERSION='V192 — Portail TP';
+const VERSION='V194 — Portail TP';
 const IMPORT_COL='tpImportedLibraryV192';
 const CHUNK_SIZE=350000;
 let tp192TempImported=null;
@@ -17778,13 +17778,400 @@ function relabelNavigation(){
 function setVersion(){
   const b=document.getElementById('build-version');
   if(b)b.textContent=VERSION;
-  document.title='V192 — Portail TP · Évaluation · Atelier · RTA';
+  document.title='V194 — Portail TP · Évaluation · Atelier · RTA';
 }
 relabelNavigation();
 setVersion();
 setTimeout(relabelNavigation,500);
 setTimeout(setVersion,800);
 
-console.info('V192 : ancien générateur remplacé par Portail TP — Diffusion & échanges.');
+console.info('V194 : Portail TP — Diffusion & échanges.');
+})();
+</script>
+
+
+
+
+
+<!-- V194 — Mes TP diffusés : ouverture stable + suppression Firebase persistante -->
+<style id="v194-diffusions-style">
+.v194-shell{max-width:1500px;margin:0 auto;padding:10px 18px 40px}
+.v194-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;margin-bottom:16px}
+.v194-head h1{margin:0;color:#123b6d;font-size:31px}
+.v194-head p{margin:6px 0 0;color:#64748b}
+.v194-toolbar{display:flex;gap:9px;flex-wrap:wrap;align-items:center;margin:12px 0}
+.v194-btn{border:1px solid #cbd5e1;border-radius:10px;background:#fff;padding:9px 12px;font-weight:800;color:#17365d;cursor:pointer}
+.v194-btn.primary{background:#1463df;color:#fff;border-color:#1463df}
+.v194-btn.danger{background:#b42318;color:#fff;border-color:#b42318}
+.v194-search{min-width:300px;flex:1;padding:10px 12px;border:1px solid #cbd5e1;border-radius:10px;font:inherit}
+.v194-source{display:inline-flex;align-items:center;padding:6px 10px;border-radius:999px;background:#ecfdf5;border:1px solid #86efac;color:#166534;font-weight:800;font-size:12px}
+.v194-list{display:grid;gap:11px;margin-top:12px}
+.v194-card{border:1px solid #d8e3ee;border-radius:15px;background:#fff;overflow:hidden;box-shadow:0 3px 12px #102a430d}
+.v194-card.open{border-color:#8fbce8;box-shadow:0 5px 18px #0f4c8118}
+.v194-line{width:100%;border:0;background:#fff;padding:17px 18px;display:flex;justify-content:space-between;align-items:center;gap:16px;text-align:left;cursor:pointer}
+.v194-line:hover,.v194-line:focus{background:#f5f9ff;outline:none}
+.v194-main{min-width:0;flex:1}
+.v194-title{color:#103b6f;font-size:18px;font-weight:850;line-height:1.25}
+.v194-sub{margin-top:5px;color:#64748b;font-size:13px}
+.v194-right{display:flex;gap:7px;flex-wrap:wrap;align-items:center;justify-content:flex-end}
+.v194-count{display:inline-flex;align-items:center;padding:5px 9px;border-radius:999px;font-size:12px;font-weight:850;border:1px solid transparent;white-space:nowrap}
+.v194-count.grey{background:#edf0f4;color:#4b5563;border-color:#d6dde5}
+.v194-count.yellow{background:#fff2bd;color:#875600;border-color:#f0ce63}
+.v194-count.green{background:#dff6e7;color:#17633c;border-color:#92d5ab}
+.v194-see{font-weight:850;color:#174e82;white-space:nowrap}
+.v194-arrow{display:inline-block;margin-left:4px;transition:transform .15s ease}
+.v194-card.open .v194-arrow{transform:rotate(90deg)}
+.v194-actions{display:flex;gap:8px;flex-wrap:wrap;padding:0 18px 13px}
+.v194-students{border-top:1px solid #e5edf5;background:#fbfdff;padding:14px 18px 17px}
+.v194-pills{display:flex;gap:9px;flex-wrap:wrap}
+.v194-pill{display:inline-flex;align-items:center;min-height:38px;padding:9px 14px;border-radius:999px;font-weight:850;border:1px solid transparent}
+.v194-pill.grey{background:#eef2f6;color:#4b5563;border-color:#d7dfe8}
+.v194-pill.yellow{background:#fff1b8;color:#865400;border-color:#f0cb5a}
+.v194-pill.green{background:#d9f5e3;color:#17633c;border-color:#8bd1a7}
+.v194-msg{padding:14px;border:1px solid #dbe4ee;border-radius:12px;background:#fff;color:#5b6b7d}
+.v194-warn{padding:11px 13px;border:1px solid #fde68a;background:#fffbeb;color:#92400e;border-radius:10px;margin-top:10px}
+@media(max-width:900px){.v194-line{align-items:flex-start;flex-direction:column}.v194-right{justify-content:flex-start}.v194-search{min-width:100%}.v194-head{flex-direction:column}}
+</style>
+
+<script id="v194-diffusions-runtime">
+(function(){
+'use strict';
+
+const WS='evaluation-mv-main';
+const DKEY='tp_generator_diffusions_v76';
+const DELKEY='tp_diffusions_deleted_v114';
+const TOMBS='tpDiffusionTombstonesV193';
+const V132='tpDiffusionsV132';
+const V106='tpDiffusionsV106';
+const CORR='tpCorrectionWorkV159';
+const EVAL='evaluations';
+
+let cacheStates=new Map();
+let cacheRows=[];
+let searchText='';
+let enforcing=false;
+let openDiffusionId=null;
+let lastRowsSignature='';
+
+const sv=v=>String(v??'').trim();
+const esc=s=>sv(s).replace(/[&<>"']/g,m=>({
+  '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+}[m]));
+const norm=s=>sv(s).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/[^A-Z0-9]+/g,'').trim();
+
+function tpCode(v){
+  const t=sv(v).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/[_–—]/g,'-');
+  const m=t.match(/\b([A-Z0-9]+(?:-[A-Z0-9]+)+-\d{3})\b/);
+  return m?m[1]:t.trim();
+}
+function fs(){try{return firebase.firestore()}catch(_){return null}}
+function user(){try{return firebase.auth?.().currentUser||null}catch(_){return null}}
+function root(){const d=fs();return d?d.collection('workspaces').doc(WS):null}
+
+function localRows(){
+  try{const a=JSON.parse(localStorage.getItem(DKEY)||'[]');return Array.isArray(a)?a:[]}
+  catch(_){return[]}
+}
+function localDeleted(){
+  try{const a=JSON.parse(localStorage.getItem(DELKEY)||'[]');return Array.isArray(a)?a.map(String):[]}
+  catch(_){return[]}
+}
+function writeRows(rows){localStorage.setItem(DKEY,JSON.stringify((rows||[]).slice(0,1000)))}
+function writeDeleted(ids){localStorage.setItem(DELKEY,JSON.stringify([...new Set(ids.map(String))].slice(-5000)))}
+function studentName(st){return sv(st?.name||[st?.nom,st?.prenom].filter(Boolean).join(' ')||'Élève')}
+function studentKeys(st,code){
+  const keys=[],id=sv(st?.id||st?.studentId),name=norm(studentName(st));
+  if(id)keys.push('I|'+id+'|'+code);
+  if(name)keys.push('N|'+name+'|'+code);
+  return keys;
+}
+function setState(map,key,state){
+  const rank={grey:0,yellow:1,green:2};
+  if(!key)return;
+  if(!map.has(key)||rank[state]>rank[map.get(key)])map.set(key,state);
+}
+function rowsSignature(rows){
+  return JSON.stringify((rows||[]).map(r=>[
+    String(r?.id||''),String(r?.diffusedAt||''),String(r?.tpCode||''),
+    Array.isArray(r?.students)?r.students.length:0
+  ]));
+}
+
+/* ----------- Firebase diffusion registry ----------- */
+async function readChunkedDoc(doc){
+  const m=doc.data()||{};
+  if(!Number(m.parts||0))return null;
+  const snap=await doc.ref.collection('chunks').orderBy(firebase.firestore.FieldPath.documentId()).get();
+  try{return JSON.parse(snap.docs.map(x=>x.data()?.data||'').join(''))}
+  catch(e){console.warn('V194 reconstruction diffusion',doc.id,e);return null}
+}
+async function cloudDiffusions(){
+  const r=root();if(!r||!user())return [];
+  const out=new Map();
+  try{
+    const snap=await r.collection(V132).get();
+    for(const doc of snap.docs){
+      const rec=await readChunkedDoc(doc);
+      if(rec?.id)out.set(String(rec.id),rec);
+    }
+  }catch(e){console.warn('V194 lecture V132',e)}
+  try{
+    const snap=await r.collection(V106).get();
+    snap.docs.forEach(doc=>{
+      const rec=doc.data()?.record;
+      if(rec?.id&&!out.has(String(rec.id)))out.set(String(rec.id),rec);
+    });
+  }catch(e){console.warn('V194 lecture V106',e)}
+  return [...out.values()];
+}
+async function tombstones(){
+  const ids=new Set(localDeleted());
+  const r=root();if(!r||!user())return ids;
+  try{
+    const snap=await r.collection(TOMBS).get();
+    snap.docs.forEach(d=>ids.add(String(d.id)));
+  }catch(e){console.warn('V194 lecture tombstones',e)}
+  return ids;
+}
+async function syncRegistry(){
+  const gone=await tombstones(),local=localRows(),remote=await cloudDiffusions(),map=new Map();
+  for(const x of local){
+    const id=sv(x?.id);
+    if(id&&!gone.has(id))map.set(id,x);
+  }
+  for(const x of remote){
+    const id=sv(x?.id);
+    if(id&&!gone.has(id)){
+      const old=map.get(id);
+      map.set(id,old?{...old,...x,students:x.students||old.students}:x);
+    }
+  }
+  const rows=[...map.values()].sort((a,b)=>sv(b.diffusedAt).localeCompare(sv(a.diffusedAt)));
+  writeRows(rows); writeDeleted([...gone]);
+  return rows;
+}
+
+/* ----------- Firebase status per student ----------- */
+function correctionIdentity(x){
+  const a=x?.archive||{},r=x?.record||{},d=r?.data||{},e=d?.identite||d?.eleve||{};
+  return {
+    code:tpCode(a.tpId||a.tpTitre||d.code||d.tp?.id||d.tpCode||d.titre||d.tp?.titre||r.fileName||x?.identity||''),
+    id:sv(a.studentId||d.studentId||e.id),
+    name:sv(a.nomEleve||[a.nom,a.prenom].filter(Boolean).join(' ')||[e.nom,e.prenom].filter(Boolean).join(' ')||d.studentName||r.studentName)
+  };
+}
+function evaluationIdentity(e){
+  return {
+    code:tpCode(e?.tpCode||e?.evaluationCode||e?.code||e?.title||e?.titre||e?.tpTitle||e?.tpTitre||''),
+    id:sv(e?.studentId||e?.eleveId),
+    name:sv(e?.studentName||e?.eleveNomComplet||[e?.nom,e?.prenom].filter(Boolean).join(' '))
+  };
+}
+async function buildStateMap(){
+  const map=new Map(),r=root();
+  if(!r||!user())return map;
+  try{
+    const snap=await r.collection(CORR).get();
+    for(const doc of snap.docs){
+      const x={id:doc.id,...doc.data()},z=correctionIdentity(x);
+      if(!z.code)continue;
+      const status=/corrected|corrig/i.test(sv(x.status||x.workflowState||x.archive?.status||x.record?.workflowState))?'green':'yellow';
+      if(z.id)setState(map,'I|'+z.id+'|'+z.code,status);
+      if(z.name)setState(map,'N|'+norm(z.name)+'|'+z.code,status);
+    }
+  }catch(e){console.warn('V194 états V159',e)}
+  try{
+    const snap=await r.collection(EVAL).get();
+    snap.docs.forEach(doc=>{
+      const z=evaluationIdentity(doc.data()||{});
+      if(!z.code)return;
+      if(z.id)setState(map,'I|'+z.id+'|'+z.code,'green');
+      if(z.name)setState(map,'N|'+norm(z.name)+'|'+z.code,'green');
+    });
+  }catch(e){console.warn('V194 évaluations',e)}
+  try{
+    const local=JSON.parse(localStorage.getItem('tp_correction_local_v54')||'[]');
+    if(Array.isArray(local))for(const row of local){
+      const d=row?.data||{},e=d?.identite||d?.eleve||{};
+      const code=tpCode(d.code||d.tp?.id||d.tpCode||d.titre||d.tp?.titre||row.fileName||'');
+      if(!code)continue;
+      const id=sv(d.studentId||e.id),name=sv([e.nom,e.prenom].filter(Boolean).join(' ')||d.studentName);
+      const status=(row.correctedAt||/corrig/i.test(sv(row.workflowState||d.status||d.statut)))?'green':'yellow';
+      if(id)setState(map,'I|'+id+'|'+code,status);
+      if(name)setState(map,'N|'+norm(name)+'|'+code,status);
+    }
+  }catch(_){}
+  return map;
+}
+function stateFor(diff,st){
+  const code=tpCode(diff?.tpCode||diff?.title||'');
+  for(const k of studentKeys(st,code)){if(cacheStates.has(k))return cacheStates.get(k)}
+  return 'grey';
+}
+function counts(diff){
+  const n={grey:0,yellow:0,green:0};
+  (Array.isArray(diff?.students)?diff.students:[]).forEach(st=>n[stateFor(diff,st)]++);
+  return n;
+}
+
+/* ----------- Stable page rendering ----------- */
+function cardHtml(r){
+  const id=sv(r?.id),sts=Array.isArray(r?.students)?r.students:[],c=counts(r);
+  const date=r?.diffusedAt?new Date(r.diffusedAt).toLocaleString('fr-FR'):'';
+  const isOpen=openDiffusionId===id;
+  const pills=sts.length?sts.map(st=>`<span class="v194-pill ${stateFor(r,st)}">${esc(studentName(st))}</span>`).join('')
+    :'<span class="muted">Liste nominative absente de cette diffusion.</span>';
+
+  return `<article class="v194-card${isOpen?' open':''}" id="v194-card-${esc(id)}">
+    <button type="button" class="v194-line" aria-expanded="${isOpen?'true':'false'}" onclick="tp194Toggle('${esc(id)}')">
+      <div class="v194-main">
+        <div class="v194-title">${esc(r.tpCode||'TP')} — ${esc(r.title||'')}</div>
+        <div class="v194-sub">${esc(r.className||'')} • ${sts.length} TP élève(s) • ${esc(date)}</div>
+      </div>
+      <div class="v194-right">
+        <span class="v194-count grey">Diffusé ${c.grey}</span>
+        <span class="v194-count yellow">Rendu ${c.yellow}</span>
+        <span class="v194-count green">Corrigé ${c.green}</span>
+        <span class="v194-see">Voir les élèves <span class="v194-arrow">▸</span></span>
+      </div>
+    </button>
+    <div class="v194-actions">
+      <button class="v194-btn primary" onclick="tpV76AddDiffusionToDay('${esc(id)}')">＋ Affecter au tableau du jour</button>
+      <button class="v194-btn danger" onclick="tp194DeleteDiffusion('${esc(id)}')">🗑 Supprimer</button>
+    </div>
+    <div class="v194-students" id="v194-students-${esc(id)}" ${isOpen?'':'hidden'}><div class="v194-pills">${pills}</div></div>
+  </article>`;
+}
+function drawRows(force=false){
+  const host=document.getElementById('v194-list');if(!host)return;
+  const q=norm(searchText);
+  const rows=cacheRows.filter(r=>!q||norm([r.tpCode,r.title,r.className,...((r.students||[]).map(studentName))].join(' ')).includes(q));
+  host.innerHTML=rows.length?rows.map(cardHtml).join(''):'<div class="v194-msg">Aucun TP diffusé correspondant.</div>';
+  const c=document.getElementById('v194-count');if(c)c.textContent=`${rows.length} diffusion(s)`;
+}
+window.tp194Toggle=function(id){
+  id=String(id||'');
+  openDiffusionId = openDiffusionId===id ? null : id;
+  drawRows(true);
+};
+window.tp194Search=function(v){searchText=v||'';drawRows(true)};
+
+window.tpV76DiffusionsPage=async function(){
+  window.setActive?.('tpGenerator');
+  const main=document.getElementById('main');if(!main)return false;
+
+  main.innerHTML=`<header class="app-top-header"></header><div class="v194-shell">
+    <div class="v194-head">
+      <div><h1>📋 Mes TP diffusés</h1><p>Registre Firebase : clique sur une ligne pour afficher les élèves. Gris = diffusé, jaune = rendu, vert = corrigé.</p></div>
+      <button class="v194-btn" onclick="tpGeneratorPage()">← Retour au Portail TP</button>
+    </div>
+    <div class="v194-toolbar">
+      <input class="v194-search" type="search" placeholder="Rechercher un TP, une classe ou un élève…" value="${esc(searchText)}" oninput="tp194Search(this.value)">
+      <button class="v194-btn" onclick="tpV76DiffusionsPage()">↻ Actualiser Firebase</button>
+      <span class="v194-source">☁ Firebase maître</span>
+      <span id="v194-count" class="v194-source">Chargement…</span>
+    </div>
+    <div id="v194-list"><div class="v194-msg">Synchronisation des diffusions et des états élèves…</div></div>
+  </div>`;
+
+  try{
+    const [rows,states]=await Promise.all([syncRegistry(),buildStateMap()]);
+    cacheRows=rows;cacheStates=states;lastRowsSignature=rowsSignature(rows);
+    drawRows(true);
+  }catch(e){
+    console.error('V194 page diffusions',e);
+    const el=document.getElementById('v194-list');
+    if(el)el.innerHTML=`<div class="v194-warn">Firebase indisponible ou synchronisation incomplète : ${esc(e?.message||e)}</div>`;
+  }
+  return true;
+};
+
+/* ----------- Persistent deletion ----------- */
+async function deleteCloudDoc(collection,id,chunked){
+  const r=root();if(!r)return;
+  const ref=r.collection(collection).doc(String(id));
+  if(chunked){
+    try{
+      const snap=await ref.collection('chunks').get();
+      for(let i=0;i<snap.docs.length;i+=350){
+        const b=fs().batch();
+        snap.docs.slice(i,i+350).forEach(d=>b.delete(d.ref));
+        await b.commit();
+      }
+    }catch(e){console.warn('V194 suppression chunks',collection,id,e)}
+  }
+  try{await ref.delete()}catch(e){console.warn('V194 suppression doc',collection,id,e)}
+}
+async function writeTombstone(r){
+  const rt=root();if(!rt||!user())throw new Error('Connexion Firebase requise pour garantir la suppression multiposte.');
+  await rt.collection(TOMBS).doc(String(r.id)).set({
+    id:String(r.id),tpCode:r.tpCode||'',title:r.title||'',classId:r.classId||'',className:r.className||'',
+    deletedAtClient:new Date().toISOString(),deletedBy:user()?.uid||'',
+    updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+  },{merge:true});
+}
+window.tp194DeleteDiffusion=async function(id){
+  id=String(id||'');
+  const r=cacheRows.find(x=>String(x.id)===id)||localRows().find(x=>String(x.id)===id);
+  if(!r)return false;
+  if(!confirm(`Supprimer définitivement ce TP de « Mes TP diffusés » ?\n\n${r.tpCode||'TP'} — ${r.title||''}\n\nLa diffusion sera supprimée de Firebase et un marqueur empêchera sa réapparition. Les copies rendues, corrections et évaluations seront conservées.`))return false;
+
+  try{
+    await writeTombstone(r);
+    const deleted=new Set(localDeleted());deleted.add(id);writeDeleted([...deleted]);
+    cacheRows=cacheRows.filter(x=>String(x.id)!==id);
+    writeRows(localRows().filter(x=>String(x.id)!==id));
+    if(openDiffusionId===id)openDiffusionId=null;
+    drawRows(true);
+    await Promise.allSettled([deleteCloudDoc(V132,id,true),deleteCloudDoc(V106,id,false)]);
+    window.dispatchEvent(new CustomEvent('tp-diffusions-changed',{detail:{deletedId:id,v:194}}));
+    window.showSuccessMessage?.('TP diffusé supprimé de Firebase. Il ne sera plus réinjecté par la synchronisation.');
+    return true;
+  }catch(e){
+    alert('Suppression non validée : '+(e?.message||e));
+    return false;
+  }
+};
+window.tp114DeleteDiffusion=window.tp194DeleteDiffusion;
+
+/* ----------- Tombstones enforcement WITHOUT collapsing UI ----------- */
+async function enforceTombstones(){
+  if(enforcing)return;
+  enforcing=true;
+  try{
+    const gone=await tombstones();
+    if(!gone.size)return;
+
+    const before=localRows();
+    const after=before.filter(x=>!gone.has(String(x.id)));
+    if(after.length!==before.length)writeRows(after);
+
+    const jobs=[];
+    for(const id of gone){
+      jobs.push(deleteCloudDoc(V132,id,true));
+      jobs.push(deleteCloudDoc(V106,id,false));
+    }
+    await Promise.allSettled(jobs);
+
+    if(document.getElementById('v194-list')){
+      const filtered=cacheRows.filter(x=>!gone.has(String(x.id)));
+      const sig=rowsSignature(filtered);
+      if(sig!==lastRowsSignature){
+        cacheRows=filtered;
+        lastRowsSignature=sig;
+        if(openDiffusionId && !cacheRows.some(x=>String(x.id)===openDiffusionId))openDiffusionId=null;
+        drawRows(true);
+      }
+      /* Si rien n'a changé : aucun rerender, donc la ligne ouverte reste ouverte. */
+    }
+  }catch(e){console.warn('V194 enforcement tombstones',e)}
+  finally{enforcing=false}
+}
+window.addEventListener('tp-v133-synced',()=>setTimeout(enforceTombstones,150));
+window.addEventListener('tp-diffusions-changed',()=>setTimeout(enforceTombstones,150));
+setTimeout(enforceTombstones,2500);
+setInterval(enforceTombstones,15000);
+
+console.info('V194 : ouverture Mes TP diffusés stable, état de ligne ouverte mémorisé.');
 })();
 </script>
