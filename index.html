@@ -2734,7 +2734,7 @@ body{background:#f7f9fc;color:var(--text)}
 <!-- V88 — DONNÉES DE RÉFÉRENCE RÉINTÉGRÉES DEPUIS V86.5
      Jeux embarqués repris : référentiel compétences, élèves par défaut, seconde classe fictive, situations professionnelles.
      Les données dynamiques (classes/élèves/évaluations réellement saisies) restent chargées par IndexedDB/localStorage et Firebase. -->
-<div id="build-version">V147 — Competences Rta Gestion atelier TP</div>
+<div id="build-version">V197 — Évaluation · Charge Atelier · TP · Correction</div>
 <div id="firebase-auth-overlay">
 <div class="firebase-login-card">
 <h2>☁️ Connexion Firebase — V89</h2>
@@ -4113,6 +4113,10 @@ function home(){
         </div>
       </section>
     </div>`;
+  /* Affichage de version de l'accueil : information uniquement, sans impact sur le bootstrap. */
+  const homeVersionBadge=document.getElementById("build-version");
+  if(homeVersionBadge)homeVersionBadge.textContent='V197 — Évaluation · Charge Atelier · TP · Correction';
+  document.title='V197 — Évaluation · Charge Atelier · TP · Correction';
 }
 
 function collapseAllCollectiveRows(){
@@ -16464,8 +16468,8 @@ function inject(){
    Le timer V175 a été supprimé directement dans le code source ci-dessus. */
 function setVersion(){
   const b=document.getElementById('build-version');
-  if(b)b.textContent=VERSION;
-  document.title='V186 — Firebase maître · Évaluation · Atelier · RTA · TP';
+  if(b)b.textContent='V197 — Évaluation · Charge Atelier · TP · Correction';
+  document.title='V197 — Évaluation · Charge Atelier · TP · Correction';
 }
 function install(){
   inject();
