@@ -16974,3 +16974,353 @@ function stamp(){}
 stamp();window.addEventListener('load',()=>{stamp();setTimeout(reconcile,300)},{once:true});
 })();
 </script>
+
+
+<!-- V190 — Paramètres accordéon stable + gestion complète des modes d'évaluation -->
+<style id="v190-settings-style">
+.v190-mode-category{border-color:#b9d7f0!important}
+.v190-mode-summary{background:#eef6ff!important;border-left:6px solid #2e75b6!important;color:#17365d!important}
+.v190-retro-category{border-color:#f2d29a!important}
+.v190-retro-summary{background:#fff8e8!important;border-left:6px solid #d97706!important;color:#17365d!important}
+.v190-mode-card{grid-column:1/-1!important}
+.v190-switch-row{display:flex;justify-content:space-between;gap:18px;align-items:center;padding:13px 14px;border:1px solid #d8e2ec;border-radius:12px;background:#fff;margin:9px 0}
+.v190-switch-title{font-weight:850;color:#17365d;font-size:15px}
+.v190-switch-help{margin-top:3px;color:#66788a;font-size:13px}
+.v190-switch{position:relative;width:54px;height:30px;flex:0 0 auto}
+.v190-switch input{opacity:0;width:0;height:0;position:absolute}
+.v190-slider{position:absolute;inset:0;background:#cbd5e1;border-radius:999px;cursor:pointer;transition:.18s;box-shadow:inset 0 0 0 1px #bac6d4}
+.v190-slider:before{content:'';position:absolute;width:24px;height:24px;left:3px;top:3px;background:#fff;border-radius:50%;box-shadow:0 1px 4px #0004;transition:.18s}
+.v190-switch input:checked + .v190-slider{background:#16834b;box-shadow:inset 0 0 0 1px #0d6c3b}
+.v190-switch input:checked + .v190-slider:before{transform:translateX(24px)}
+.v190-settings-note{padding:10px 12px;border-radius:10px;background:#eff6ff;border:1px solid #bfdbfe;color:#1e4d7b;font-size:13px;margin:8px 0 12px}
+#v190-eval-modes-category>.settings-rubric-collapse-body,
+#v190-retro-category>.settings-rubric-collapse-body,
+#v157-activities-category>.settings-rubric-collapse-body{padding:16px!important}
+</style>
+
+<script id="v190-settings-runtime">
+(function(){
+'use strict';
+
+const VERSION='V191 — Firebase maître';
+const MODE_KEYS={
+  free:'evaluation_mode_free_v190',
+  professional:'evaluation_mode_professional_v190',
+  rentree:'evaluation_mode_rentree_v190',
+  activity:'evaluation_mode_activity_v190',
+  rta:'evaluation_mode_rta_v190'
+};
+const FIREBASE_DOC='evaluationModesV190';
+let userAccordionChange=false;
+let layoutTimer=0;
+
+const MODE_META=[
+  ['free','Évaluation libre sur critères','Afficher la création d’une évaluation construite librement à partir des compétences et critères.'],
+  ['professional','Situation professionnelle','Afficher l’évaluation à partir d’une situation professionnelle de la bibliothèque.'],
+  ['rentree','Évaluation de rentrée','Afficher les évaluations techniques de début d’année.'],
+  ['activity','Évaluation sur fiche d’activité','Afficher l’évaluation à partir des fiches et activités administrées.'],
+  ['rta','Évaluation sur RTA','Afficher l’évaluation à partir des bibliothèques RTA.']
+];
+
+function modeOn(name){
+  const key=MODE_KEYS[name];
+  return !key || localStorage.getItem(key)!=='0';
+}
+function setModeLocal(name,on){
+  const key=MODE_KEYS[name];
+  if(!key)return;
+  localStorage.setItem(key,on?'1':'0');
+}
+function currentModes(){
+  const o={};
+  Object.keys(MODE_KEYS).forEach(k=>o[k]=modeOn(k));
+  return o;
+}
+
+async function firebaseModesRef(){
+  try{
+    if(typeof firebase==='undefined'||typeof firebase.firestore!=='function')return null;
+    return firebase.firestore()
+      .collection('workspaces').doc('evaluation-mv-main')
+      .collection('settings').doc(FIREBASE_DOC);
+  }catch(_){return null}
+}
+async function pushModesFirebase(){
+  try{
+    const ref=await firebaseModesRef(); if(!ref)return;
+    await ref.set({
+      modes:currentModes(),
+      updatedAt:firebase.firestore.FieldValue.serverTimestamp(),
+      source:'V190'
+    },{merge:true});
+  }catch(e){console.warn('V190 : synchronisation modes Firebase non disponible',e)}
+  try{window.firebaseSyncExtendedLocalData?.()}catch(_){}
+}
+async function pullModesFirebase(){
+  try{
+    const ref=await firebaseModesRef(); if(!ref)return false;
+    const snap=await ref.get();
+    if(!snap.exists){
+      await pushModesFirebase();
+      return false;
+    }
+    const modes=snap.data()?.modes;
+    if(!modes||typeof modes!=='object')return false;
+    Object.keys(MODE_KEYS).forEach(k=>{
+      if(typeof modes[k]==='boolean')setModeLocal(k,modes[k]);
+    });
+    return true;
+  }catch(e){
+    console.warn('V190 : lecture modes Firebase non disponible',e);
+    return false;
+  }
+}
+
+window.v190ToggleEvaluationMode=function(name,on){
+  setModeLocal(name,!!on);
+  pushModesFirebase();
+};
+
+function topGrid(){
+  const main=document.getElementById('main');
+  if(!main||typeof page==='undefined'||page!=='settings')return null;
+  return main.querySelector('.settings-grid');
+}
+function topDetails(){
+  const grid=topGrid(); if(!grid)return [];
+  return [...grid.children].filter(el=>el.matches?.('details.settings-rubric-collapse'));
+}
+
+function safeSetOpen(details,on){
+  userAccordionChange=true;
+  details.open=!!on;
+  queueMicrotask(()=>{userAccordionChange=false});
+}
+
+function closeAllExcept(keep){
+  topDetails().forEach(d=>{
+    if(d!==keep && d.open)safeSetOpen(d,false);
+  });
+}
+
+function installAccordionBehavior(){
+  const grid=topGrid(); if(!grid||grid.dataset.v190Accordion==='1')return;
+  grid.dataset.v190Accordion='1';
+
+  /* Fermé par défaut à chaque ouverture de Paramètres. */
+  topDetails().forEach(d=>safeSetOpen(d,false));
+
+  grid.addEventListener('click',e=>{
+    const summary=e.target.closest('details.settings-rubric-collapse > summary');
+    if(!summary||!grid.contains(summary))return;
+    const details=summary.parentElement;
+    if(details.parentElement!==grid)return;
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    const willOpen=!details.open;
+    userAccordionChange=true;
+
+    topDetails().forEach(d=>{
+      if(d===details) d.open=willOpen;
+      else d.open=false;
+    });
+
+    /* On maintient le verrou juste assez longtemps pour laisser passer
+       les éventuels rerenders synchrones de l'interface. */
+    setTimeout(()=>{userAccordionChange=false},80);
+  },true);
+
+  grid.addEventListener('keydown',e=>{
+    const summary=e.target.closest('details.settings-rubric-collapse > summary');
+    if(!summary||detailsParent(summary)!==grid)return;
+    if(e.key!=='Enter'&&e.key!==' ')return;
+    e.preventDefault();
+    summary.click();
+  },true);
+
+  const mo=new MutationObserver(records=>{
+    /* V191 : on observe uniquement les ajouts/reconstructions de rubriques.
+       Jamais l'attribut "open" : un clic utilisateur doit rester stable. */
+    if(userAccordionChange)return;
+    if(records.some(rec=>rec.type==='childList')) scheduleLayout();
+  });
+  mo.observe(grid,{subtree:true,childList:true});
+}
+function detailsParent(summary){return summary?.parentElement?.parentElement}
+
+function createModeCategory(){
+  const grid=topGrid(); if(!grid)return;
+  let d=document.getElementById('v190-eval-modes-category');
+  if(!d){
+    d=document.createElement('details');
+    d.id='v190-eval-modes-category';
+    d.className='settings-rubric-collapse v190-mode-category';
+    const s=document.createElement('summary');
+    s.className='settings-rubric-title v190-mode-summary';
+    s.innerHTML='📝 Gestion des modes d’évaluation';
+    const body=document.createElement('div');
+    body.className='settings-rubric-collapse-body';
+    const card=document.createElement('div');
+    card.className='settings-card v190-mode-card';
+    card.innerHTML=`<h3>Modes visibles dans « Nouvelle évaluation »</h3>
+      <div class="v190-settings-note">Chaque interrupteur pilote directement la carte correspondante. OFF = carte masquée ; ON = carte visible. Ces réglages sont administrateur et synchronisés vers Firebase lorsque la connexion est disponible.</div>
+      ${MODE_META.map(([k,title,help])=>`<div class="v190-switch-row">
+        <div><div class="v190-switch-title">${title}</div><div class="v190-switch-help">${help}</div></div>
+        <label class="v190-switch"><input type="checkbox" data-v190-mode="${k}" ${modeOn(k)?'checked':''} onchange="v190ToggleEvaluationMode('${k}',this.checked)"><span class="v190-slider"></span></label>
+      </div>`).join('')}`;
+    body.appendChild(card);
+    d.append(s,body);
+
+    /* Place la rubrique avant les évaluations rétroactives / administration. */
+    const admin=[...grid.children].find(x=>x.matches?.('details.settings-rubric-collapse') && /Administration/i.test(x.querySelector(':scope > summary')?.textContent||''));
+    grid.insertBefore(d,admin||null);
+  }
+  if(!d.dataset.v191Initialized){
+    d.open=false;
+    d.dataset.v191Initialized='1';
+  }
+  d.querySelectorAll('[data-v190-mode]').forEach(i=>{i.checked=modeOn(i.dataset.v190Mode)});
+}
+
+function moveActivitiesCategory(){
+  const grid=topGrid();if(!grid)return;
+  const d=document.getElementById('v157-activities-category');
+  if(!d)return;
+  if(d.parentElement!==grid){
+    const rta=[...grid.children].find(x=>x.matches?.('details.settings-rubric-collapse') && /Intégration RTA/i.test(x.querySelector(':scope > summary')?.textContent||''));
+    grid.insertBefore(d,rta||null);
+  }
+  d.classList.add('v190-activities-top');
+  if(!d.dataset.v191Initialized){
+    d.open=false;
+    d.dataset.v191Initialized='1';
+  }
+  const summary=d.querySelector(':scope > summary');
+  if(summary)summary.innerHTML='🗂️ Gestion des fiches et activités d’évaluation';
+}
+
+function moveRetroCategory(){
+  const grid=topGrid();if(!grid)return;
+  const card=document.getElementById('v118-retro-settings');
+  if(!card)return;
+
+  let d=document.getElementById('v190-retro-category');
+  if(!d){
+    d=document.createElement('details');
+    d.id='v190-retro-category';
+    d.className='settings-rubric-collapse v190-retro-category';
+    const s=document.createElement('summary');
+    s.className='settings-rubric-title v190-retro-summary';
+    s.innerHTML='🕘 Évaluations rétroactives';
+    const body=document.createElement('div');
+    body.className='settings-rubric-collapse-body';
+    d.append(s,body);
+
+    const mode=document.getElementById('v190-eval-modes-category');
+    if(mode?.parentElement===grid)mode.after(d);
+    else grid.appendChild(d);
+  }
+
+  const body=d.querySelector(':scope > .settings-rubric-collapse-body');
+  if(card.parentElement!==body)body.appendChild(card);
+  card.classList.add('v190-mode-card');
+  const h=card.querySelector(':scope > h3');
+  if(h)h.textContent='Réglages des évaluations rétroactives';
+  if(!d.dataset.v191Initialized){
+    d.open=false;
+    d.dataset.v191Initialized='1';
+  }
+}
+
+function refreshModeSwitches(){
+  document.querySelectorAll('[data-v190-mode]').forEach(i=>{
+    i.checked=modeOn(i.dataset.v190Mode);
+  });
+}
+
+function normalizeTopLevel(){
+  const grid=topGrid();if(!grid)return;
+
+  moveActivitiesCategory();
+  createModeCategory();
+  moveRetroCategory();
+
+  /* Toute NOUVELLE rubrique de premier niveau arrive fermée,
+     mais les rubriques déjà connues conservent leur état ouvert/fermé. */
+  topDetails().forEach(d=>{
+    if(!d.hasAttribute('data-v190-seen')){
+      d.setAttribute('data-v190-seen','1');
+      safeSetOpen(d,false);
+    }
+  });
+  installAccordionBehavior();
+  refreshModeSwitches();
+}
+
+function scheduleLayout(){
+  clearTimeout(layoutTimer);
+  layoutTimer=setTimeout(normalizeTopLevel,40);
+}
+
+function filterEvaluationCards(){
+  const cards=[...document.querySelectorAll('.eval-choice-card')];
+  cards.forEach(c=>{
+    const t=(c.textContent||'').trim();
+    if(/Évaluation libre sur critères/i.test(t) && !modeOn('free'))c.remove();
+    else if(/Évaluation sur situation professionnelle/i.test(t) && !modeOn('professional'))c.remove();
+    else if(/Évaluation de rentrée/i.test(t) && !modeOn('rentree'))c.remove();
+    else if(/Évaluation sur fiche d’activités/i.test(t) && !modeOn('activity'))c.remove();
+    else if(/Évaluation sur RTA/i.test(t) && !modeOn('rta'))c.remove();
+  });
+}
+
+/* Applique les modes sur la page Nouvelle évaluation après le wrapper rétroactif V118. */
+const baseChoice=window.evaluationChoicePage;
+if(typeof baseChoice==='function'){
+  window.evaluationChoicePage=function(){
+    const r=baseChoice.apply(this,arguments);
+    filterEvaluationCards();
+    setTimeout(filterEvaluationCards,0);
+    return r;
+  };
+}
+
+/* Paramètres : on laisse le moteur natif faire son rendu, puis on stabilise l'accordéon. */
+const baseSettings=window.renderSettingsPage;
+if(typeof baseSettings==='function'){
+  window.renderSettingsPage=function(){
+    const r=baseSettings.apply(this,arguments);
+    setTimeout(async()=>{
+      await pullModesFirebase();
+      normalizeTopLevel();
+      /* Tous fermés à l'ouverture, quoi qu'ait fait une synchronisation précédente. */
+      topDetails().forEach(d=>safeSetOpen(d,false));
+    },80);
+    return r;
+  };
+}
+
+/* Observe uniquement l'interface Paramètres pour attraper les rubriques injectées tardivement V118/V157. */
+const pageObserver=new MutationObserver(()=>{
+  if(typeof page==='undefined'||page!=='settings')return;
+  scheduleLayout();
+});
+pageObserver.observe(document.documentElement,{childList:true,subtree:true});
+
+/* Précharge les réglages multiposte sans bloquer le démarrage. */
+setTimeout(()=>{pullModesFirebase().catch(()=>{})},3500);
+
+function setVersion(){
+  const b=document.getElementById('build-version');
+  if(b)b.textContent=VERSION;
+  document.title='V191 — Évaluation · Atelier · RTA · TP';
+}
+setVersion();
+setTimeout(setVersion,500);
+setTimeout(setVersion,1800);
+
+console.info('V191 : Paramètres accordéon stable au clic + modes d’évaluation activables/désactivables.');
+})();
+</script>
