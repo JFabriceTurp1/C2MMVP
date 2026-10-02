@@ -2782,7 +2782,7 @@ body{background:#f7f9fc;color:var(--text)}
 <button id="nav-home" onclick="go('home')">🏠 <span>Accueil</span></button>
 <button id="nav-students" onclick="go('students')">👨‍🎓 <span>Élèves</span></button>
 <button id="nav-eval" onclick="startEvaluation()">📝 <span>Nouvelle évaluation</span></button>
-<button id="nav-tpGenerator" onclick="go('tpGenerator')">🧰 <span>Générateur de TP</span></button>
+<button id="nav-tpGenerator" onclick="go('tpGenerator')">📤 <span>Portail TP</span></button>
 <button id="nav-correctionTp" onclick="go('correctionTp')">🖍️ <span>Correction des TP</span></button>
 <button class="nav-history-home-row" id="nav-history" onclick="go('history')">📈 <span>Historique</span></button>
 <button id="nav-bilans" onclick="go('bilans')">📋 <span>Bilans</span></button>
@@ -4071,8 +4071,8 @@ function home(){
 
         <div class="home-shortcut home-shortcut-tpgen" onclick="go('tpGenerator')">
           <div class="home-modern-icon home-modern-icon-tpgen" aria-hidden="true">🧰</div>
-          <div class="home-modern-copy"><h3>Générateur de TP</h3><p>Créer un TP à partir de la base enseignant validée, du véhicule et de la RTA</p></div>
-          <button type="button" class="home-modern-action">Créer un TP</button>
+          <div class="home-modern-copy"><h3>Portail TP</h3><p>Diffuser, importer et suivre les travaux pratiques des élèves</p></div>
+          <button type="button" class="home-modern-action">Ouvrir le portail</button>
         </div>
 
         <div class="home-shortcut home-shortcut-corrector" onclick="go('correctionTp')">
@@ -17322,5 +17322,469 @@ setTimeout(setVersion,500);
 setTimeout(setVersion,1800);
 
 console.info('V191 : Paramètres accordéon stable au clic + modes d’évaluation activables/désactivables.');
+})();
+</script>
+
+
+<!-- V192 — Portail TP : diffusion, imports Firebase, suivi -->
+<style id="v192-portal-style">
+.v192-shell{max-width:1420px;margin:0 auto;padding:10px 18px 40px}
+.v192-head{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;margin-bottom:18px}
+.v192-head h1{margin:0;color:#123b6d;font-size:31px}
+.v192-head p{margin:6px 0 0;color:#65758a}
+.v192-status{display:inline-flex;align-items:center;gap:7px;padding:8px 12px;border-radius:999px;background:#ecfdf5;color:#166534;border:1px solid #86efac;font-weight:800;font-size:13px}
+.v192-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px}
+.v192-action{border:1px solid #d8e3ee;border-radius:16px;background:#fff;padding:20px;min-height:175px;display:flex;flex-direction:column;align-items:flex-start;text-align:left;cursor:pointer;box-shadow:0 4px 14px #102a4310;transition:.15s}
+.v192-action:hover{transform:translateY(-2px);box-shadow:0 8px 20px #102a4318;border-color:#9ec4eb}
+.v192-action .ico{font-size:34px;margin-bottom:14px}
+.v192-action h3{margin:0 0 7px;color:#123b6d;font-size:18px}
+.v192-action p{margin:0;color:#65758a;line-height:1.35;font-size:13px}
+.v192-action.primary{background:#eef6ff;border-color:#a9ccef}
+.v192-action.firebase{background:#f2fbf6;border-color:#9ed9b8}
+.v192-panel{margin-top:18px;border:1px solid #d8e3ee;border-radius:16px;background:#fff;padding:18px}
+.v192-panel h2{margin:0 0 8px;color:#123b6d}
+.v192-note{padding:11px 13px;border-radius:11px;background:#f8fafc;border:1px solid #e1e8f0;color:#596b7d}
+.v192-toolbar{display:flex;gap:9px;flex-wrap:wrap;margin:12px 0}
+.v192-btn{border:1px solid #cbd5e1;border-radius:10px;background:#fff;padding:10px 13px;font-weight:800;color:#17365d;cursor:pointer}
+.v192-btn.primary{background:#1463df;color:#fff;border-color:#1463df}
+.v192-btn.green{background:#087f5b;color:#fff;border-color:#087f5b}
+.v192-btn.danger{background:#b42318;color:#fff;border-color:#b42318}
+.v192-btn:disabled{opacity:.45;cursor:not-allowed}
+.v192-list{display:grid;gap:10px;margin-top:12px}
+.v192-item{display:flex;justify-content:space-between;gap:16px;align-items:center;padding:14px;border:1px solid #e1e8f0;border-radius:12px;background:#fbfdff}
+.v192-item-title{font-weight:850;color:#123b6d}
+.v192-item-sub{margin-top:4px;color:#64748b;font-size:13px}
+.v192-item-actions{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}
+.v192-progress{display:none;margin-top:12px;padding:11px 13px;border-radius:10px;background:#eff6ff;border:1px solid #bfdbfe;color:#174e82;font-weight:750}
+.v192-progress.show{display:block}
+.v192-codes{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:9px;margin-top:12px}
+.v192-code-row{display:grid;grid-template-columns:1fr 90px;gap:10px;align-items:center;border:1px solid #e1e8f0;border-radius:10px;padding:10px;background:#fff}
+.v192-code-row input{text-align:center;font-weight:900;letter-spacing:2px}
+.v192-modal{position:fixed;inset:0;background:#0f172a99;display:flex;align-items:center;justify-content:center;padding:20px;z-index:20000}
+.v192-dialog{width:min(900px,96vw);max-height:90vh;overflow:auto;background:#fff;border-radius:16px;padding:20px;box-shadow:0 22px 60px #0005}
+.v192-dialog-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.v192-dialog h2{margin:0;color:#123b6d}
+.v192-meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:9px;margin-top:14px}
+.v192-meta div{padding:10px;border:1px solid #e1e8f0;border-radius:10px;background:#f8fafc}
+@media(max-width:1100px){.v192-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:650px){.v192-grid{grid-template-columns:1fr}.v192-head{flex-direction:column}.v192-item{flex-direction:column;align-items:flex-start}.v192-item-actions{justify-content:flex-start}}
+</style>
+
+<script id="v192-portal-runtime">
+(function(){
+'use strict';
+
+const VERSION='V192 — Portail TP';
+const IMPORT_COL='tpImportedLibraryV192';
+const CHUNK_SIZE=350000;
+let tp192TempImported=null;
+
+const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({
+  '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+}[m]));
+const clone=o=>JSON.parse(JSON.stringify(o||{}));
+
+function fs(){
+  try{
+    if(typeof firebase==='undefined'||typeof firebase.firestore!=='function')return null;
+    return firebase.firestore();
+  }catch(_){return null}
+}
+function authUser(){
+  try{return firebase.auth?.().currentUser||null}catch(_){return null}
+}
+function importedCol(){
+  const db=fs();
+  return db?db.collection('workspaces').doc('evaluation-mv-main').collection(IMPORT_COL):null;
+}
+function pdata(o){
+  if(o?.schema==='evaluation.tp.v1'&&o.data)return o.data;
+  if(o?.tpProject?.schema==='evaluation.tp.v1')return o.tpProject.data;
+  if(o?.data?.publicId&&(o.data.questions||o.data.flow))return o.data;
+  if(o?.publicId&&(o.questions||o.flow))return o;
+  return null;
+}
+function snapshot(o,p){
+  return {
+    schema:'tp-temp-v192',
+    importedProject:true,
+    importedPublicId:p.publicId||p.id||'',
+    rawProject:clone(o),
+    schoolYear:(window.tpGenSchoolYear?.()||''),
+    className:(window.activeClassName?.()||''),
+    teacher:(window.getSchoolSettings?.()?.teacherName||''),
+    level:'BAC PRO',
+    activityId:p.publicId||p.id||'TP',
+    planId:p.id||p.publicId||'TP',
+    family:'TP importé Firebase',
+    activity:p.publicTitle||p.title||'TP',
+    type:'TP',
+    client:p.intro||'',
+    mission:p.intro||'',
+    duration:p.duration||'',
+    support:{type:'vehicle',label:p.support||'',reference:'',details:''},
+    vehicle:{},
+    resources:p.resources||'',
+    technicalData:'',
+    risks:'',
+    controls:'',
+    environment:'',
+    criteria:(p.questions||[]).map(q=>q.criterion).filter(Boolean).join('\n'),
+    competencies:[...new Set((p.questions||[]).map(q=>q.competence).filter(Boolean))].join('\n')
+  };
+}
+async function sha256(text){
+  if(crypto?.subtle){
+    const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(text));
+    return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('');
+  }
+  let h=2166136261;
+  for(let i=0;i<text.length;i++){h^=text.charCodeAt(i);h=Math.imul(h,16777619)}
+  return (h>>>0).toString(16).padStart(8,'0');
+}
+function fmtBytes(n){
+  n=Number(n||0);
+  if(n<1024)return n+' o';
+  if(n<1024*1024)return (n/1024).toFixed(1)+' Ko';
+  return (n/1024/1024).toFixed(2)+' Mo';
+}
+function currentClassLabel(){
+  try{return window.activeClassName?.()||''}catch(_){return''}
+}
+
+window.tpGeneratorPage=function(){
+  window.setActive?.('tpGenerator');
+  const main=document.getElementById('main');
+  if(!main)return false;
+
+  main.innerHTML=`<header class="app-top-header"></header>
+  <div class="v192-shell">
+    <div class="v192-head">
+      <div>
+        <h1>📤 Portail TP — Diffusion & échanges</h1>
+        <p>Distribuer, importer et suivre les travaux pratiques créés dans l’éditeur TP.</p>
+      </div>
+      <span class="v192-status">☁ Firebase multiposte</span>
+    </div>
+
+    <div class="v192-grid">
+      <button class="v192-action primary" onclick="tp139SelectForDiffusion()">
+        <span class="ico">📤</span>
+        <h3>Diffuser un TP</h3>
+        <p>Sélectionner un TP produit par l’éditeur, choisir la classe et les élèves puis générer les fichiers de diffusion.</p>
+      </button>
+
+      <button class="v192-action" onclick="tpV76DiffusionsPage()">
+        <span class="ico">📋</span>
+        <h3>Mes TP diffusés</h3>
+        <p>Consulter les diffusions déjà réalisées et suivre leur état par élève.</p>
+      </button>
+
+      <button class="v192-action" onclick="tp192CodesPage()">
+        <span class="ico">🔐</span>
+        <h3>Codes élèves</h3>
+        <p>Gérer les codes individuels nécessaires à l’ouverture des TP diffusés.</p>
+      </button>
+
+      <button class="v192-action firebase" onclick="tp192ImportToFirebase()">
+        <span class="ico">📥</span>
+        <h3>Importer des TP</h3>
+        <p>Importer exceptionnellement un ou plusieurs TP et les conserver directement dans Firebase.</p>
+      </button>
+
+      <button class="v192-action firebase" onclick="tp192ImportedPage()">
+        <span class="ico">📚</span>
+        <h3>Mes TP importés</h3>
+        <p>Bibliothèque Firebase des TP importés : consulter, diffuser ou supprimer.</p>
+      </button>
+    </div>
+
+    <div class="v192-panel">
+      <h2>Principe de fonctionnement</h2>
+      <div class="v192-note">
+        La création de TP n’est plus réalisée dans ce logiciel. Le TP est créé dans l’éditeur TP, puis ce portail assure uniquement sa diffusion, son import ponctuel dans Firebase et son suivi.
+      </div>
+    </div>
+  </div>`;
+  return true;
+};
+
+/* Les anciens accès de création/management sont neutralisés. */
+window.tpGenManagementPage=function(){return window.tpGeneratorPage()};
+window.tpGenDraftsPage=function(){return window.tpGeneratorPage()};
+window.tpGenSavedPage=function(){return window.tpGeneratorPage()};
+
+/* -------------------- CODES ÉLÈVES -------------------- */
+function visibleCode(st){
+  try{
+    const c=window.tp45ResolveCode?.(st);
+    if(c)return String(c);
+  }catch(_){}
+  try{
+    const raw=JSON.parse(localStorage.getItem('tp_generator_student_codes_v8')||'{}')||{};
+    return String(raw[String(st.id)]||'');
+  }catch(_){return''}
+}
+window.tp192CodesPage=function(){
+  window.setActive?.('tpGenerator');
+  const main=document.getElementById('main');if(!main)return;
+  const students=window.tpGenClassStudents?.()||[];
+  main.innerHTML=`<header class="app-top-header"></header>
+  <div class="v192-shell">
+    <div class="v192-head">
+      <div><h1>🔐 Codes élèves</h1><p>Classe : <b>${esc(currentClassLabel()||'—')}</b> • codes individuels à 4 chiffres.</p></div>
+      <button class="v192-btn" onclick="tpGeneratorPage()">← Retour au Portail TP</button>
+    </div>
+    <div class="v192-panel">
+      <div class="v192-toolbar">
+        <button class="v192-btn primary" onclick="tp192GenerateMissingCodes(false)">Générer les codes manquants</button>
+        <button class="v192-btn" onclick="tp192GenerateMissingCodes(true)">Régénérer toute la classe</button>
+        <button class="v192-btn" onclick="tpGenDownloadCodesTxt()">⬇ Fiche codes professeur</button>
+      </div>
+      <div class="v192-codes">
+        ${students.map(st=>`<div class="v192-code-row"><span>${esc(st.name||[st.nom,st.prenom].filter(Boolean).join(' '))}</span><input inputmode="numeric" maxlength="4" value="${esc(visibleCode(st))}" placeholder="0000" onchange="tpGenSetStudentCode('${esc(String(st.id))}',this.value)"></div>`).join('')||'<div class="muted">Aucun élève dans la classe active.</div>'}
+      </div>
+    </div>
+  </div>`;
+};
+window.tp192GenerateMissingCodes=function(all){
+  const students=window.tpGenClassStudents?.()||[];
+  const used=new Set(students.map(visibleCode).filter(x=>/^\d{4}$/.test(x)));
+  for(const st of students){
+    if(!all && /^\d{4}$/.test(visibleCode(st)))continue;
+    let c='';
+    do{
+      const a=new Uint32Array(1);
+      if(crypto?.getRandomValues)crypto.getRandomValues(a);
+      c=String(1000+((a[0]||Math.floor(Math.random()*999999))%9000));
+    }while(used.has(c));
+    used.add(c);
+    window.tpGenSetStudentCode?.(String(st.id),c);
+  }
+  window.tp192CodesPage();
+};
+
+/* -------------------- IMPORT FIREBASE -------------------- */
+function ensureImportInput(){
+  let input=document.getElementById('tp192-import-files');
+  if(!input){
+    input=document.createElement('input');
+    input.id='tp192-import-files';
+    input.type='file';
+    input.multiple=true;
+    input.accept='.tp,.json,.tpjson,application/json';
+    input.hidden=true;
+    document.body.appendChild(input);
+  }
+  return input;
+}
+function showProgress(text){
+  let e=document.getElementById('tp192-progress-global');
+  if(!e){
+    e=document.createElement('div');
+    e.id='tp192-progress-global';
+    e.style.cssText='position:fixed;right:18px;bottom:18px;z-index:25000;max-width:460px;padding:12px 15px;border-radius:12px;background:#17365d;color:#fff;font-weight:800;box-shadow:0 7px 24px #0004';
+    document.body.appendChild(e);
+  }
+  e.textContent=text;
+  clearTimeout(e.__t);
+  e.__t=setTimeout(()=>e.remove(),5000);
+}
+async function deleteChunks(ref){
+  const snap=await ref.collection('chunks').get();
+  for(let i=0;i<snap.docs.length;i+=400){
+    const batch=fs().batch();
+    snap.docs.slice(i,i+400).forEach(d=>batch.delete(d.ref));
+    await batch.commit();
+  }
+}
+async function uploadOne(file,index,total){
+  const col=importedCol();
+  if(!col)throw new Error('Firebase n’est pas disponible.');
+  if(!authUser())throw new Error('Connexion Firebase requise pour importer.');
+
+  const text=await file.text();
+  let obj;
+  try{obj=JSON.parse(text)}catch(_){throw new Error(`${file.name} : JSON invalide.`)}
+  const p=pdata(obj);
+  if(!p)throw new Error(`${file.name} : format TP de l’éditeur non reconnu.`);
+
+  const digest=await sha256(text);
+  const docId='imp_'+digest.slice(0,28);
+  const ref=col.doc(docId);
+  const chunks=[];
+  for(let i=0;i<text.length;i+=CHUNK_SIZE)chunks.push(text.slice(i,i+CHUNK_SIZE));
+
+  showProgress(`Import ${index+1}/${total} — ${file.name}`);
+  await deleteChunks(ref);
+
+  await ref.set({
+    id:docId,
+    hash:digest,
+    fileName:file.name,
+    code:p.publicId||p.id||'TP',
+    title:p.publicTitle||p.title||'TP',
+    duration:p.duration||'',
+    support:p.support||'',
+    questionCount:Array.isArray(p.questions)?p.questions.length:0,
+    byteSize:new Blob([text]).size,
+    chunks:chunks.length,
+    schema:p.schema||obj.schema||'evaluation.tp.v1',
+    importedAtClient:new Date().toISOString(),
+    importedBy:authUser()?.uid||'',
+    source:'Portail TP V192',
+    updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+  },{merge:true});
+
+  for(let i=0;i<chunks.length;i++){
+    await ref.collection('chunks').doc(String(i).padStart(5,'0')).set({
+      index:i,
+      data:chunks[i]
+    });
+  }
+  return {docId,title:p.publicTitle||p.title||'TP'};
+}
+window.tp192ImportToFirebase=function(){
+  const input=ensureImportInput();
+  input.value='';
+  input.onchange=async()=>{
+    const files=[...(input.files||[])];
+    if(!files.length)return;
+    let ok=0,errors=[];
+    for(let i=0;i<files.length;i++){
+      try{await uploadOne(files[i],i,files.length);ok++}
+      catch(e){errors.push(e?.message||String(e))}
+    }
+    showProgress(`${ok} TP importé(s) dans Firebase${errors.length?` • ${errors.length} erreur(s)`:''}`);
+    if(errors.length)alert(`Import terminé avec erreurs :\n\n${errors.join('\n')}`);
+    if(document.getElementById('v192-imported-list'))window.tp192ImportedPage();
+  };
+  input.click();
+};
+
+/* -------------------- BIBLIOTHÈQUE IMPORTÉE -------------------- */
+async function listImported(){
+  const col=importedCol();
+  if(!col)return [];
+  const snap=await col.get();
+  return snap.docs.map(d=>({id:d.id,...d.data()}))
+    .sort((a,b)=>String(b.importedAtClient||'').localeCompare(String(a.importedAtClient||'')));
+}
+async function rawImported(id){
+  const col=importedCol();if(!col)throw new Error('Firebase indisponible.');
+  const ref=col.doc(String(id));
+  const meta=await ref.get();
+  if(!meta.exists)throw new Error('TP importé introuvable.');
+  const snap=await ref.collection('chunks').get();
+  const docs=snap.docs.map(d=>d.data()).sort((a,b)=>(a.index||0)-(b.index||0));
+  return {meta:{id:meta.id,...meta.data()},text:docs.map(x=>x.data||'').join('')};
+}
+window.tp192ImportedPage=async function(){
+  window.setActive?.('tpGenerator');
+  const main=document.getElementById('main');if(!main)return;
+  main.innerHTML=`<header class="app-top-header"></header><div class="v192-shell"><div class="v192-head"><div><h1>📚 Mes TP importés</h1><p>Bibliothèque Firebase multiposte.</p></div><button class="v192-btn" onclick="tpGeneratorPage()">← Retour au Portail TP</button></div><div class="v192-panel"><div id="v192-imported-list" class="v192-note">Chargement depuis Firebase…</div></div></div>`;
+  try{
+    const rows=await listImported();
+    const el=document.getElementById('v192-imported-list');
+    if(!el)return;
+    el.className='v192-list';
+    el.innerHTML=rows.length?rows.map(r=>`<div class="v192-item">
+      <div>
+        <div class="v192-item-title">${esc(r.code||'TP')} — ${esc(r.title||'')}</div>
+        <div class="v192-item-sub">${esc(r.fileName||'')} • ${fmtBytes(r.byteSize)} • ${Number(r.questionCount||0)} question(s) • importé le ${r.importedAtClient?new Date(r.importedAtClient).toLocaleString('fr-FR'):'—'}</div>
+      </div>
+      <div class="v192-item-actions">
+        <button class="v192-btn" onclick="tp192ViewImported('${esc(r.id)}')">👁 Voir</button>
+        <button class="v192-btn primary" onclick="tp192DiffuseImported('${esc(r.id)}')">📤 Diffuser</button>
+        <button class="v192-btn danger" onclick="tp192DeleteImported('${esc(r.id)}')">🗑 Supprimer</button>
+      </div>
+    </div>`).join(''):'<div class="v192-note">Aucun TP importé dans Firebase.</div>';
+  }catch(e){
+    const el=document.getElementById('v192-imported-list');
+    if(el){el.className='v192-note';el.textContent='Lecture Firebase impossible : '+(e?.message||e)}
+  }
+};
+window.tp192ViewImported=async function(id){
+  try{
+    const {meta,text}=await rawImported(id);
+    const obj=JSON.parse(text),p=pdata(obj);
+    const modal=document.createElement('div');
+    modal.className='v192-modal';
+    modal.innerHTML=`<div class="v192-dialog">
+      <div class="v192-dialog-head">
+        <div><h2>${esc(meta.code||'TP')} — ${esc(meta.title||'')}</h2><div class="muted">${esc(meta.fileName||'')}</div></div>
+        <button class="v192-btn" onclick="this.closest('.v192-modal').remove()">✕ Fermer</button>
+      </div>
+      <div class="v192-meta">
+        <div><b>Code</b><br>${esc(meta.code||'—')}</div>
+        <div><b>Questions</b><br>${Number(meta.questionCount||0)}</div>
+        <div><b>Taille</b><br>${fmtBytes(meta.byteSize)}</div>
+        <div><b>Durée</b><br>${esc(meta.duration||p?.duration||'—')}</div>
+      </div>
+      <div class="v192-panel" style="margin-top:14px">
+        <b>Situation professionnelle</b><p>${esc(p?.intro||'—')}</p>
+        <b>Support</b><p>${esc(p?.support||'—')}</p>
+        <b>Objectifs</b><p>${esc(p?.objectives||'—')}</p>
+      </div>
+      <div class="v192-toolbar">
+        <button class="v192-btn primary" onclick="this.closest('.v192-modal').remove();tp192DiffuseImported('${esc(id)}')">📤 Diffuser ce TP</button>
+      </div>
+    </div>`;
+    document.body.appendChild(modal);
+  }catch(e){alert('Impossible d’ouvrir ce TP : '+(e?.message||e))}
+};
+
+const priorLocked=window.tpGenLockedSnapshot;
+window.tpGenLockedSnapshot=function(){
+  if(tp192TempImported?.snap)return clone(tp192TempImported.snap);
+  return priorLocked?.apply(this,arguments);
+};
+
+window.tp192DiffuseImported=async function(id){
+  try{
+    const {text}=await rawImported(id);
+    const obj=JSON.parse(text),p=pdata(obj);
+    if(!p)throw new Error('Projet TP incompatible.');
+    tp192TempImported={obj,p,snap:snapshot(obj,p)};
+    window.__v117Project=clone(p);
+    window.__v116CurrentProject=clone(p);
+    window.tpGenState=window.tpGenState||{};
+    window.tpGenState.diffusionClassId=String(window.getActiveClassId?.()||'');
+    window.tpGenOpenClassExport?.();
+  }catch(e){alert('Diffusion impossible : '+(e?.message||e))}
+};
+
+window.tp192DeleteImported=async function(id){
+  if(!confirm('Supprimer ce TP de la bibliothèque Firebase importée ?'))return;
+  try{
+    const col=importedCol();if(!col)throw new Error('Firebase indisponible.');
+    const ref=col.doc(String(id));
+    await deleteChunks(ref);
+    await ref.delete();
+    window.tp192ImportedPage();
+  }catch(e){alert('Suppression impossible : '+(e?.message||e))}
+};
+
+/* -------------------- HABILLAGE / NAVIGATION -------------------- */
+function relabelNavigation(){
+  const nav=document.querySelector('#nav-tpGenerator span');
+  if(nav)nav.textContent='Portail TP';
+  document.querySelectorAll('.home-shortcut-tpgen').forEach(card=>{
+    const h=card.querySelector('h3');if(h)h.textContent='Portail TP';
+    const p=card.querySelector('p');if(p)p.textContent='Diffuser, importer et suivre les travaux pratiques des élèves';
+    const b=card.querySelector('.home-modern-action');if(b)b.textContent='Ouvrir le portail';
+  });
+}
+function setVersion(){
+  const b=document.getElementById('build-version');
+  if(b)b.textContent=VERSION;
+  document.title='V192 — Portail TP · Évaluation · Atelier · RTA';
+}
+relabelNavigation();
+setVersion();
+setTimeout(relabelNavigation,500);
+setTimeout(setVersion,800);
+
+console.info('V192 : ancien générateur remplacé par Portail TP — Diffusion & échanges.');
 })();
 </script>
