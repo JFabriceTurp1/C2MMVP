@@ -11841,7 +11841,12 @@ window.firebaseSaveCurrentConfig=async()=>{await saveFullConfig(firebaseBuildApp
     if(!auth?.currentUser)return {connected:false};
     const cfgRef=userRoot().collection(FIREBASE_CONFIG_COLLECTION);
     // Générateur TP : brouillons, TP enregistrés/verrouillés, codes et personnalisations.
-    const tpRef=cfgRef.doc(FIREBASE_TPGEN_DOC),tpSnap=await tpRef.get(),remote=tpSnap.exists?(tpSnap.data()||{}):{};
+    const tpRef=cfgRef.doc(FIREBASE_TPGEN_DOC);
+    let tpSnap=null,remote={};
+    try{
+      tpSnap=await firebaseTimeout(tpRef.get(),7000,'Lecture Générateur TP');
+      remote=tpSnap&&tpSnap.exists?(tpSnap.data()||{}):{};
+    }catch(e){console.warn('V198.4 — Générateur TP distant différé :',e);remote={};}
     const localDrafts=v51Json('evaluation_tp_generator_drafts_v2',[]),localSaved=v51Json('tp_generator_saved_v8',[]);
     // V53 — tombstones de suppression : un TP supprimé sur un poste ne doit jamais être
     // ressuscité par une ancienne copie encore présente dans Firebase ou sur un autre poste.
@@ -11863,17 +11868,26 @@ window.firebaseSaveCurrentConfig=async()=>{await saveFullConfig(firebaseBuildApp
     safeLocalSetItem('tp_generator_student_codes_v8',JSON.stringify(codes));
     safeLocalSetItem('tp_v45_codes_by_student_v1',JSON.stringify(stableCodes));
     safeLocalSetItem('evaluation_tp_generator_catalog_overrides_v1',JSON.stringify(overrides));
-    await tpRef.set({drafts,saved,deletedSaved,codes,stableCodes,overrides,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:false});
+    try{
+      await firebaseTimeout(tpRef.set({drafts,saved,deletedSaved,codes,stableCodes,overrides,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:false}),7000,'Envoi Générateur TP');
+    }catch(e){console.warn('V198.4 — envoi Générateur TP différé :',e);}
 
     // RTA : bibliothèque dédiée, fusionnée par id. Elle reste aussi dans configuration/application
     // pour compatibilité avec les versions antérieures.
-    const rtaRef=cfgRef.doc('rtaLibraries'),rtaSnap=await rtaRef.get(),rtaRemote=rtaSnap.exists?(rtaSnap.data()?.items||[]):[];
+    const rtaRef=cfgRef.doc('rtaLibraries');
+    let rtaSnap=null,rtaRemote=[];
+    try{
+      rtaSnap=await firebaseTimeout(rtaRef.get(),7000,'Lecture bibliothèque RTA');
+      rtaRemote=rtaSnap&&rtaSnap.exists?(rtaSnap.data()?.items||[]):[];
+    }catch(e){console.warn('V198.4 — RTA distant différé :',e);rtaRemote=[];}
     const rta=v51MergeRows(v51Json('evaluation_rta_libraries_v1',[]),rtaRemote,['id','libraryId','name']);
     // La clé exacte est fournie par RTA_LIBRARY_KEY ; utiliser le contenu courant si différent.
     let currentRta=[];try{currentRta=getRtaLibraries?.()||[]}catch(e){}
     const mergedRta=v51MergeRows(currentRta,rta,['id','libraryId','name']);
     try{safeLocalSetItem(RTA_LIBRARY_KEY,JSON.stringify(mergedRta));safeLocalSetItem(RTA_LIBRARY_INIT_KEY,'1')}catch(e){}
-    await rtaRef.set({items:mergedRta,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:false});
+    try{
+      await firebaseTimeout(rtaRef.set({items:mergedRta,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:false}),7000,'Envoi bibliothèque RTA');
+    }catch(e){console.warn('V198.4 — envoi RTA différé :',e);}
 
     // V73 — Les corrections TP ne sont plus renvoyées en bloc dans configuration/tpCorrections.
     // Elles sont synchronisées événement par événement dans la collection tpCorrectionsV73
@@ -11894,18 +11908,39 @@ window.firebaseSaveCurrentConfig=async()=>{await saveFullConfig(firebaseBuildApp
     setSyncProgress(8,'Connexion au serveur Firebase V86.5…');
     try{
       setSyncProgress(12,'Ouverture de la base centrale multiposte…');
-      await migrateLegacyFirebaseWorkspaceIfNeeded();
+      await firebaseTimeout(migrateLegacyFirebaseWorkspaceIfNeeded(),10000,'Ouverture de la base centrale');
       setSyncProgress(15,'Envoi des modifications locales en attente…');
-      const pendingResult=await flushPendingFirebaseOps();
+      let pendingResult={}; try{pendingResult=await firebaseTimeout(flushPendingFirebaseOps(),10000,'Envoi des modifications locales');}catch(e){console.warn('V198.3 — envoi différé :',e);}
       setSyncProgress(18,'Lecture des classes centrales…');
-      let cloudClasses=await cloudDocs('classes');
+      let cloudClasses=await firebaseTimeout(cloudDocs('classes'),8000,'Lecture des classes Firebase');
       setSyncProgress(30,'Lecture des élèves V86.5…');
-      let cloudStudents=await cloudDocs('students');
+      let cloudStudents=await firebaseTimeout(cloudDocs('students'),8000,'Lecture des élèves Firebase');
       setSyncProgress(44,'Lecture des évaluations V86.5…');
-      let cloudEvaluations=await cloudDocs('evaluations');
+      // V198.3 — lecture protégée. Le SDK Firestore peut rester en attente
+      // indéfiniment dans certains états réseau/cache : le démarrage ne doit pas
+      // dépendre de cette promesse.
+      let cloudEvaluations=[];
+      let evaluationsReadDeferred=false;
+      try{
+        cloudEvaluations=await firebaseTimeout(cloudDocs('evaluations'),8000,'Lecture des évaluations Firebase');
+      }catch(e){
+        evaluationsReadDeferred=true;
+        console.warn('V198.3 — évaluations Firebase différées :',e);
+        setSyncProgress(48,'Évaluations Firebase différées — poursuite du démarrage…');
+      }
+
+      // La lecture du document racine pouvait également figer l'écran alors que
+      // le dernier texte affiché restait "Lecture des évaluations" à 44 %.
+      setSyncProgress(50,'Lecture de la configuration Firebase…');
       const rootRef=userRoot();
-      const rootSnap=await rootRef.get();
-      const rootData=rootSnap.exists?(rootSnap.data()||{}):{};
+      let rootSnap=null,rootData={};
+      try{
+        rootSnap=await firebaseTimeout(rootRef.get(),8000,'Lecture de la configuration Firebase');
+        rootData=rootSnap&&rootSnap.exists?(rootSnap.data()||{}):{};
+      }catch(e){
+        console.warn('V198.3 — configuration Firebase différée :',e);
+        rootData={};
+      }
 
       // V88 — compatibilité stricte V86.5 :
       // une collection "classes" vide ne doit jamais empêcher le rapatriement
@@ -11945,9 +11980,17 @@ window.firebaseSaveCurrentConfig=async()=>{await saveFullConfig(firebaseBuildApp
         try{localStorage.removeItem(STUDENT_PURGE_MARKER_KEY);}catch(e){}
       }
       await replaceLocalStudents(cloudStudents);
-      await replaceLocalEvaluations(cloudEvaluations);
+      if(!evaluationsReadDeferred){
+        await replaceLocalEvaluations(cloudEvaluations);
+      }else{
+        console.warn('V198.3 — évaluations locales conservées : aucune réponse Firebase fiable reçue.');
+      }
       setPendingStudentSyncIds([]);
-      await rootRef.set({centralSyncInitialized:true,workspace:FIREBASE_SHARED_WORKSPACE_ID,evaluationsInitialized:true,lastSyncAt:firebase.firestore.FieldValue.serverTimestamp(),lastSyncBy:auth.currentUser.email||auth.currentUser.uid||''},{merge:true});
+      try{
+        await firebaseTimeout(rootRef.set({centralSyncInitialized:true,workspace:FIREBASE_SHARED_WORKSPACE_ID,evaluationsInitialized:true,lastSyncAt:firebase.firestore.FieldValue.serverTimestamp(),lastSyncBy:auth.currentUser.email||auth.currentUser.uid||''},{merge:true}),8000,'Mise à jour Firebase');
+      }catch(e){
+        console.warn('V198.3 — mise à jour racine différée :',e);
+      }
 
       setSyncProgress(58,'Synchronisation de l’Atelier du jour…');
       let atelierSessionsCount=0;
@@ -11962,24 +12005,39 @@ window.firebaseSaveCurrentConfig=async()=>{await saveFullConfig(firebaseBuildApp
         setSyncProgress(64,'Atelier du jour différé — poursuite de la synchronisation…');
       }
       setSyncProgress(66,'Synchronisation RTA et générateur de TP…');
-      let extendedSync={};try{extendedSync=await synchronizeExtendedLocalData()}catch(e){console.warn('RTA / TP non bloquant :',e)}
+      let extendedSync={};
+      try{
+        extendedSync=await firebaseTimeout(synchronizeExtendedLocalData(),18000,'Synchronisation RTA et générateur de TP');
+      }catch(e){
+        console.warn('V198.4 — RTA / TP différé, démarrage poursuivi :',e);
+        setSyncProgress(70,'RTA / TP différé — poursuite du démarrage…');
+      }
       setSyncProgress(72,'Synchronisation des paramètres…');
-      let cfg=await cloudGetOne(FIREBASE_CONFIG_COLLECTION,FIREBASE_CONFIG_DOC);
+      let cfg=null;
+      try{
+        cfg=await firebaseTimeout(cloudGetOne(FIREBASE_CONFIG_COLLECTION,FIREBASE_CONFIG_DOC),8000,'Lecture des paramètres Firebase');
+      }catch(e){
+        console.warn('V198.4 — paramètres Firebase différés :',e);
+        cfg=null;
+      }
       if(cfg){
         firebaseApplyApplicationConfig(cfg);
         // V51 : la configuration historique peut contenir une ancienne copie RTA.
         // On refait la fusion dédiée puis on sauvegarde l'union, jamais une copie locale seule.
-        try{extendedSync=await synchronizeExtendedLocalData();await saveFullConfig(firebaseBuildApplicationConfig())}catch(e){console.warn('Consolidation RTA / TP :',e)}
+        try{
+          extendedSync=await firebaseTimeout(synchronizeExtendedLocalData(),18000,'Consolidation RTA / TP');
+          await firebaseTimeout(saveFullConfig(firebaseBuildApplicationConfig()),8000,'Enregistrement des paramètres');
+        }catch(e){console.warn('V198.4 — consolidation RTA / TP différée :',e)}
       }else{
         // Première initialisation : publier uniquement après fusion des données locales dédiées.
-        try{await saveFullConfig(firebaseBuildApplicationConfig())}catch(e){console.warn('Configuration initiale :',e)}
+        try{await firebaseTimeout(saveFullConfig(firebaseBuildApplicationConfig()),8000,'Configuration initiale')}catch(e){console.warn('V198.4 — configuration initiale différée :',e)}
       }
 
       // Professeurs/comptes : priorité absolue à la collection V86.5 "comptes".
       // À défaut, la liste éventuellement contenue dans configuration/application reste appliquée.
       try{
         setSyncProgress(76,'Synchronisation des professeurs et comptes V86.5…');
-        const cloudAccounts=await cloudDocs('comptes');
+        const cloudAccounts=await firebaseTimeout(cloudDocs('comptes'),8000,'Lecture des comptes Firebase');
         if(cloudAccounts.length){
           const accounts=cloudAccounts.map(a=>({
             id:a.id||'',
@@ -16484,7 +16542,7 @@ else install();
 </script>
 
 
-<!-- Couche graphique V198 ajoutée après le démarrage stable V197 -->
+<!-- Chaîne graphique V198 passive, après démarrage -->
 <style id="tp-chain-v198-style">
 .tp-chain{--blue:#0d6596;--line:#9ec5d8;--pale:#eef7fb;color:#15384a;font-family:Inter,Segoe UI,Arial,sans-serif;max-width:1080px;margin:0 auto}.tp-chain *{box-sizing:border-box}.tp-chain .tp-header{display:grid;grid-template-columns:1fr auto;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#fff;margin-bottom:12px}.tp-chain .titles{padding:18px}.tp-chain .eyebrow{font-size:12px;font-weight:800;color:var(--blue);text-transform:uppercase}.tp-chain h1{margin:5px 0;color:#0a527d;font-size:25px}.tp-chain .code{background:var(--blue);color:#fff;display:flex;align-items:center;padding:18px;font-weight:900}.tp-chain .student{display:grid;grid-template-columns:2fr 1fr 1fr;gap:8px;background:var(--pale);border:1px solid var(--line);border-radius:10px;padding:10px;margin:10px 0}.tp-chain .brief{display:grid;grid-template-columns:1fr 1fr;gap:10px}.tp-chain .brief section,.tp-chain .question-card,.tp-chain .blk{background:#fff;border:1px solid var(--line);border-radius:10px;padding:13px;margin:10px 0;position:relative}.tp-chain .brief h2,.tp-chain .blk h3{margin:0 0 7px;color:#174d69}.tp-chain .section-title{font-size:19px;color:#123f58;border-bottom:2px solid var(--blue);padding-bottom:6px;margin:22px 0 8px}.tp-chain .qhead{display:flex;gap:10px}.tp-chain .qno{width:31px;height:31px;border-radius:50%;background:var(--blue);color:#fff;display:inline-flex;align-items:center;justify-content:center;flex:0 0 31px;font-weight:900}.tp-chain .qbody{min-width:0;flex:1}.tp-chain .qtext{font-weight:800;font-size:16px;line-height:1.45}.tp-chain .qmeta{font-size:12px;color:#56717f;margin-top:5px}.tp-chain .answer,.tp-chain .readonly{width:100%;min-height:58px;border:1px solid #a9c8d8;border-radius:7px;padding:8px 10px;margin-top:9px;font:inherit;background:#fff}.tp-chain .readonly{white-space:pre-wrap;background:#fbfdfe}.tp-chain img{max-width:100%;height:auto}.tp-chain figure{margin:10px 0;text-align:center}.tp-chain figcaption{font-size:12px;color:#5f7682}.tp-chain .image-grid,.tp-chain .match-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.tp-chain .tp-grid{width:100%;border-collapse:collapse;margin-top:8px}.tp-chain .tp-grid th,.tp-chain .tp-grid td{border:1px solid #9fc4d6;padding:8px;vertical-align:middle}.tp-chain .tp-grid th{background:#cfe4ef}.tp-chain .tp-grid textarea{width:100%;min-height:46px;border:1px solid #a9c8d8;border-radius:6px}.tp-chain .match-card{border:1px solid #cfe0e8;border-radius:9px;padding:8px;background:#fff}.tp-chain .match-answer{padding:7px;margin-top:6px;background:#eef7fb;border-radius:6px;font-weight:700}.tp-chain .stage{position:relative;display:inline-block;max-width:100%}.tp-chain .pin{position:absolute;transform:translate(-50%,-50%);background:#0d6596;color:white;border-radius:999px;padding:5px 8px;font-weight:900}.tp-chain .picto{width:42px;height:42px;object-fit:contain;float:right;margin:0 0 8px 8px}.tp-chain .cover-images{display:grid;gap:10px;margin:12px 0}.tp-chain .cover-extra{margin:10px 0}.tp-chain .corrbar{display:flex;gap:6px;justify-content:flex-end;margin-bottom:8px;flex-wrap:wrap}.tp-chain .corrbar button{border:1px solid #cbd5e1;background:#fff;border-radius:7px;padding:5px 8px;cursor:pointer}.tp-chain .footer{font-size:11px;color:#7d8e97;border-top:1px solid #e4ecef;padding-top:8px;margin-top:16px;display:flex;justify-content:space-between}@media(max-width:800px){.tp-chain .brief,.tp-chain .student,.tp-chain .image-grid,.tp-chain .match-grid{grid-template-columns:1fr}.tp-chain .tp-header{grid-template-columns:1fr}.tp-chain .code{justify-content:center}}@media print{.tp-chain .corrbar{display:none!important}}
 </style><script id="tp-chain-v198-professeur">function TPChainRenderer(){
