@@ -2734,7 +2734,7 @@ body{background:#f7f9fc;color:var(--text)}
 <!-- V88 — DONNÉES DE RÉFÉRENCE RÉINTÉGRÉES DEPUIS V86.5
      Jeux embarqués repris : référentiel compétences, élèves par défaut, seconde classe fictive, situations professionnelles.
      Les données dynamiques (classes/élèves/évaluations réellement saisies) restent chargées par IndexedDB/localStorage et Firebase. -->
-<div id="build-version">V202 — Évaluation · Charge Atelier · TP · Correction</div>
+<div id="build-version">V205 — Évaluation · Charge Atelier · TP · Correction</div>
 <div id="firebase-auth-overlay">
 <div class="firebase-login-card">
 <h2>☁️ Connexion Firebase — V89</h2>
@@ -4102,8 +4102,8 @@ function home(){
     </div>`;
   /* Affichage de version de l'accueil : information uniquement, sans impact sur le bootstrap. */
   const homeVersionBadge=document.getElementById("build-version");
-  if(homeVersionBadge)homeVersionBadge.textContent='V202 — Évaluation · Charge Atelier · TP · Correction';
-  document.title='V202 — Évaluation · Charge Atelier · TP · Correction';
+  if(homeVersionBadge)homeVersionBadge.textContent='V205 — Évaluation · Charge Atelier · TP · Correction';
+  document.title='V205 — Évaluation · Charge Atelier · TP · Correction';
 }
 
 function collapseAllCollectiveRows(){
@@ -13300,6 +13300,9 @@ function renderAutoEvaluation(){const d=database(),t=today(d),eligible=pupils().
  const assignment=t.assignments[s.id],key=activePendingKey(t,s.id),pending=key?t.pending?.[key]:null;
  if(!assignment||isAtAbsent(t,s.id)||!key||!pending)return false;
  if(pending.status==='validated')return false;
+ const pub=String(assignment)===String(TEAM_ID)?null:publicationById(t,assignment);
+ const act=activityById(pub?.activityId||assignment);
+ if(pub?.tpDiffusionId||act?.tpDiffusionId)return false; /* V205 : auto-évaluation réalisée uniquement dans le Lecteur TP */
  return true;
 }),chosen=eligible.find(s=>s.id===state.autoStudent);if(!chosen&&eligible.length)state.autoStudent=eligible[0].id;const pupil=eligible.find(s=>s.id===state.autoStudent),pendingKey=pupil?activePendingKey(t,pupil.id):'',pending=pendingKey?t.pending[pendingKey]:null,existing=pendingKey?t.selfEvals[pendingKey]:null;if(pupil&&(!state.autoAnswers||state.autoAnswers.studentId!==pupil.id||state.autoAnswers.pendingKey!==pendingKey))state.autoAnswers={studentId:pupil.id,pendingKey,organisation:existing?.organisation||0,resultats:existing?.resultats||0,confiance:existing?.confiance||0};const aid=pupil?t.assignments[pupil.id]:null,pub=aid===TEAM_ID?{publicationId:TEAM_ID,activityId:TEAM_ID,support:"Gestion de l’atelier pédagogique"}:publicationById(t,aid),a=activityById(pub?.activityId||aid);document.getElementById('at-main').innerHTML=`<section class="at-panel"><div class="at-toolbar"><h2>Auto-évaluation des élèves</h2><span class="at-pill">${eligible.length} élève(s) avec un travail actif</span></div>${eligible.length?`<div class="at-auto-students">${eligible.map(s=>{const k=activePendingKey(t,s.id),self=k?t.selfEvals[k]:null;const leader=String(t.assignments?.[s.id]||"")===TEAM_ID;return `<button type="button" class="${self?'done':''} ${s.id===state.autoStudent?'active':''} ${leader?'team-leader':''}" onclick="selectAtAutoStudent('${e(encodeURIComponent(s.id))}')">${e(s.name)}${leader?' — Chef d’équipe':''}${self?.locked?' 🔒':self?' ✓':''}</button>`}).join('')}</div>`:'<div class="at-empty">Aucun élève n’a actuellement de travail à auto-évaluer.</div>'}</section>${pupil?`<section class="at-panel at-auto-form"><h2 class="${String(aid)===TEAM_ID?'at-team-leader-title':''}">${e(pupil.name)}${String(aid)===TEAM_ID?' — Chef d’équipe':''}</h2><div class="at-notice"><b>Activité :</b> ${e(a?.title||aid)}${pending?.sequence?` — tâche n°${e(pending.sequence)}`:''}<br><b>Support :</b> ${e(pub?.support||'Non renseigné')}</div>${existing?.locked?`<div class="at-self-lock"><strong>🔒 Auto-évaluation enregistrée et verrouillée.</strong><br>L’élève ne peut plus la modifier. Un professeur peut lui redonner la main depuis « Évaluations du jour ».</div>${state.studentView?'':`<div style="margin-top:10px">${studentSelfEvalCard(existing)}</div>`}`:`${autoQuestion('organisation','Organisation',['À revoir','Moyen','Bien','Très bien'],state.autoAnswers.organisation)}${autoQuestion('resultats',"Résultat de l’intervention",['À revoir','Moyen','Bien','Très bien'],state.autoAnswers.resultats)}${autoQuestion('confiance','Confiance / autonomie',['Non autonome','Avec aide','Presque autonome','Autonome'],state.autoAnswers.confiance)}<label><b>Note estimée /20 <span style="color:#b42318">*</span></b></label><input id="atAutoNote" type="number" min="0" max="20" step="0.5" required value="${e(existing?.note??'')}" style="width:100%;padding:10px;margin:6px 0 10px"><div class="muted" style="margin:-4px 0 10px">La note est obligatoire pour enregistrer l’auto-évaluation.</div><label><b>Commentaire de l’élève</b></label><textarea id="atAutoComment" rows="3" style="width:100%;box-sizing:border-box;padding:10px;margin-top:6px">${e(existing?.comment||'')}</textarea><div class="at-admin-actions" style="margin-top:12px"><button class="at-btn at-success" onclick="saveAtAutoEvaluation()">Valider mon auto-évaluation</button></div>`}</section>`:''}`}
 window.selectAtAutoStudent=function(encoded){state.autoStudent=decodeURIComponent(encoded);state.autoAnswers=null;renderAutoEvaluation()}
@@ -14609,7 +14612,24 @@ function pool(){const a=[];let src=[];try{if(typeof allStudents!=='undefined'&&A
 function className(st){try{const c=(getClasses?.()||[]).find(x=>String(x.id)===String(st?.classId));return c?.name||''}catch(e){return''}}
 function match(r){const d=r.data||{},id=sv(d.studentId||d?.meta?.studentId||d?.eleve?.id);let st=pool().find(x=>sv(x.id)===id);if(st)return st;const target=norm(nm(d)),cl=norm(d.classe);let cand=pool().filter(x=>norm(x.name)===target);if(cl){const cc=cand.filter(x=>norm(className(x))===cl);if(cc.length===1)return cc[0]}if(cand.length===1)return cand[0];const words=target.split(' ').filter(Boolean).sort().join(' ');cand=pool().filter(x=>norm(x.name).split(' ').filter(Boolean).sort().join(' ')===words);if(cl){const cc=cand.filter(x=>norm(className(x))===cl);if(cc.length===1)return cc[0]}return cand.length===1?cand[0]:null}
 function dkey(d){const v=d?.eleve?.date||d?.date||d?.meta?.submittedAt||d?.meta?.savedAt||d?.meta?.generatedAt||'';const z=new Date(v);if(!isNaN(z))return z.toISOString().slice(0,10);const m=String(v).match(/(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})/);return m?`${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`:''}
-function selfEval(r,st){if(!st)return null;try{const db=JSON.parse(localStorage.getItem(ATKEY)||'{}'),days=db.classDays||{},sid=String(st.id),targetDay=dkey(r.data),title=norm(r.data?.titre||r.data?.code);let found=[];for(const [cid,ds] of Object.entries(days))for(const [day,sess] of Object.entries(ds||{}))for(const se of Object.values(sess?.selfEvals||{})){if(String(se?.studentId)!==sid)continue;let score=0;if(day===targetDay)score+=10;const at=norm(se.activityTitle||se.activityId);if(title&&at&&(title.includes(at)||at.includes(title)))score+=5;found.push({se,score,day})}found.sort((a,b)=>b.score-a.score||String(b.se.savedAt||'').localeCompare(String(a.se.savedAt||'')));return found[0]?.se||null}catch(e){return null}}
+function selfEval(r,st){
+ const d=r?.data||{};
+ const a=d.autoEvaluation||d.auto_evaluation||null;
+ if(!a||typeof a!=='object')return null;
+ const noteCalc=Number(a.noteCalculee??a.calculatedNote??a.autoNoteCalculated??a.autoNote??a.note??NaN);
+ const noteEleve=Number(a.noteEleve??a.studentNote??a.autoNote??a.note??noteCalc);
+ return {
+   note:Number.isFinite(noteEleve)?noteEleve:(Number.isFinite(noteCalc)?noteCalc:null),
+   noteCalculee:Number.isFinite(noteCalc)?noteCalc:null,
+   noteEleve:Number.isFinite(noteEleve)?noteEleve:null,
+   noteModifieeParEleve:!!(a.noteModifieeParEleve??a.studentNoteModified??false),
+   organisation:Number(a.organisation??0)||null,
+   resultats:Number(a.resultats??0)||null,
+   confiance:Number(a.autonomie??a.confiance??0)||null,
+   comment:String(a.commentaire??a.comment??'').trim(),
+   completedAt:a.completedAt||a.dateValidation||''
+ };
+}
 function mark(r,k){return r.marks?.[k]||''}
 window.tp55Mark=function(k,v){const rows=rd(),r=rows.find(x=>x.id===cur);if(!r)return;r.marks=r.marks||{};r.marks[k]=r.marks[k]===v?'':v;wr(rows);const bar=window.event?.target?.closest?.('.tpc-markbar');if(bar){bar.querySelectorAll('.tpc-markbtn').forEach(btn=>btn.classList.toggle('active',btn.classList.contains(r.marks[k]==='ok'?'ok':'bad')&&!!r.marks[k]));return}const y=window.scrollY;window.tpCorrectionOpen(cur);window.scrollTo(0,y)};
 function markbar(r,k){const v=mark(r,k);return `<div class="tpc-markbar"><span class="muted">Correction :</span><button class="tpc-markbtn ok ${v==='ok'?'active':''}" title="Correct" onclick="tp55Mark('${k}','ok')">✓</button><button class="tpc-markbtn bad ${v==='bad'?'active':''}" title="À corriger" onclick="tp55Mark('${k}','bad')">✕</button></div>`}
@@ -16496,8 +16516,8 @@ function inject(){
    Le timer V175 a été supprimé directement dans le code source ci-dessus. */
 function setVersion(){
   const b=document.getElementById('build-version');
-  if(b)b.textContent='V202 — Évaluation · Charge Atelier · TP · Correction';
-  document.title='V202 — Évaluation · Charge Atelier · TP · Correction';
+  if(b)b.textContent='V205 — Évaluation · Charge Atelier · TP · Correction';
+  document.title='V205 — Évaluation · Charge Atelier · TP · Correction';
 }
 function install(){
   inject();
@@ -16811,7 +16831,7 @@ else install();
 <script id="v157-activities-runtime">
 (function(){
 'use strict';
-const APP='V202'; let currentId=null; let v202ActivitySearch='';
+const APP='V205'; let currentId=null; let v202ActivitySearch='';
 const E=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const rows=()=>window.getManagedEvaluationActivities?.()||[];
 const sortRows=a=>a.slice().sort((x,y)=>(Number(x.numero)||99999)-(Number(y.numero)||99999));
@@ -17007,7 +17027,18 @@ async function validate(){
   const db=await open();const st=await student(db,r);if(!st){db.close();throw Error('Élève non reconnu : '+([r.data?.eleve?.nom,r.data?.eleve?.prenom].filter(Boolean).join(' ')||'identité absente')+'.');}
   const levels={},disabledCriteria={};cs.forEach(c=>{const cp=(window.competencies||[]).find(x=>x.id===c),count=Math.max(1,cp?.criteria?.length||1);for(let i=0;i<count;i++)levels[c+'-'+i]=r.levels[c]});
   const evId=r.savedEvaluationId||('EVAL_TP_'+(crypto?.randomUUID?.()||Date.now()+'_'+Math.random().toString(36).slice(2)));
-  const ev={id:evId,studentId:st.id,date:dateFr(r.data),title:`${r.data?.code||'TP'} — ${r.data?.titre||'TP corrigé'}`,place:'Lycée',type:'TP',comps:cs,levels,obs:{},disabledCriteria,evaluationObservation:r.appreciation||'',activitySupport:r.data?.vehicule?.modele||r.data?.support?.label||'',sourceNote20:n,noteDrivenEvaluation:true,noteDrivenRequested:n,noteDrivenExact:n,tpCorrection:true,tpCode:r.data?.code||'',tpActivityId:r.data?.meta?.activityId||r.data?.activityId||'',tpPendingKey:r.data?.meta?.pendingKey||'',tpCorrectionId:r.id,tpImportedFile:r.fileName,createdAt:r.correctedAt?new Date(r.correctedAt).getTime():Date.now(),modifiedAt:r.correctedAt?Date.now():null};
+  const aeRaw=r.data?.autoEvaluation||r.data?.auto_evaluation||null;
+  const studentSelfEvaluation=aeRaw?{
+    organisation:Number(aeRaw.organisation??0)||null,
+    resultats:Number(aeRaw.resultats??0)||null,
+    confiance:Number(aeRaw.autonomie??aeRaw.confiance??0)||null,
+    note:Number(aeRaw.noteEleve??aeRaw.studentNote??aeRaw.autoNote??aeRaw.note??aeRaw.noteCalculee??0),
+    noteCalculee:Number(aeRaw.noteCalculee??aeRaw.calculatedNote??aeRaw.autoNoteCalculated??aeRaw.autoNote??aeRaw.note??0),
+    noteModifieeParEleve:!!(aeRaw.noteModifieeParEleve??aeRaw.studentNoteModified??false),
+    comment:String(aeRaw.commentaire??aeRaw.comment??''),
+    completedAt:aeRaw.completedAt||aeRaw.dateValidation||''
+  }:null;
+  const ev={id:evId,studentId:st.id,date:dateFr(r.data),title:`${r.data?.code||'TP'} — ${r.data?.titre||'TP corrigé'}`,place:'Lycée',type:'TP',comps:cs,levels,obs:{},disabledCriteria,evaluationObservation:r.appreciation||'',activitySupport:r.data?.vehicule?.modele||r.data?.support?.label||'',sourceNote20:n,noteDrivenEvaluation:true,noteDrivenRequested:n,noteDrivenExact:n,tpCorrection:true,tpCode:r.data?.code||'',tpActivityId:r.data?.meta?.activityId||r.data?.activityId||'',tpPendingKey:r.data?.meta?.pendingKey||'',tpCorrectionId:r.id,tpImportedFile:r.fileName,studentSelfEvaluation,createdAt:r.correctedAt?new Date(r.correctedAt).getTime():Date.now(),modifiedAt:r.correctedAt?Date.now():null};
   await new Promise((ok,no)=>{const tx=db.transaction('evaluations','readwrite'),q=tx.objectStore('evaluations').put(ev);q.onerror=()=>no(q.error);tx.oncomplete=()=>ok();tx.onerror=()=>no(tx.error)});db.close();
   r.savedEvaluationId=evId;r.correctedAt=r.correctedAt||new Date().toISOString();r.workflowState='CORRIGE';if(r.data){r.data.statut='CORRIGE';r.data.status='CORRIGE';r.data.correction={...(r.data.correction||{}),note:n,appreciation:r.appreciation||'',competences:r.levels,date:r.correctedAt,evaluationId:evId}}write(rows);
   try{await window.loadData?.()}catch(e){console.warn('V172 loadData',e)}
@@ -17119,7 +17150,7 @@ stamp();window.addEventListener('load',()=>{stamp();setTimeout(reconcile,300)},{
 (function(){
 'use strict';
 
-const VERSION='V202 — Évaluation · Charge Atelier · TP · Correction';
+const VERSION='V205 — Évaluation · Charge Atelier · TP · Correction';
 const MODE_KEYS={
   free:'evaluation_mode_free_v190',
   professional:'evaluation_mode_professional_v190',
@@ -17428,7 +17459,7 @@ setTimeout(()=>{pullModesFirebase().catch(()=>{})},3500);
 function setVersion(){
   const b=document.getElementById('build-version');
   if(b)b.textContent=VERSION;
-  document.title='V202 — Évaluation · Charge Atelier · TP · Correction';
+  document.title='V205 — Évaluation · Charge Atelier · TP · Correction';
 }
 setVersion();
 setTimeout(setVersion,500);
@@ -17891,7 +17922,7 @@ function relabelNavigation(){
 function setVersion(){
   const b=document.getElementById('build-version');
   if(b)b.textContent=VERSION;
-  document.title='V202 — Évaluation · Charge Atelier · TP · Correction';
+  document.title='V205 — Évaluation · Charge Atelier · TP · Correction';
 }
 relabelNavigation();
 setVersion();
@@ -18008,6 +18039,56 @@ function rowsSignature(rows){
     String(r?.id||''),String(r?.diffusedAt||''),String(r?.tpCode||''),
     Array.isArray(r?.students)?r.students.length:0
   ]));
+}
+
+function activeClassContext(){
+  try{
+    const id=String(window.getActiveClassId?.()||'');
+    const cls=(window.getClasses?.()||[]).find(c=>String(c.id)===id);
+    return {id,name:String(cls?.name||window.activeClassName?.()||'')};
+  }catch(_){
+    return {id:'',name:String(window.activeClassName?.()||'')};
+  }
+}
+function sameClassName(a,b){return norm(a)===norm(b)}
+function belongsToActiveClass(r){
+  const ctx=activeClassContext();
+  if(!ctx.id&&!ctx.name)return false;
+
+  const rid=sv(r?.classId);
+  const rn=sv(r?.className);
+
+  /* V204 : dès qu'une information de classe existe, elle doit être cohérente
+     avec la classe active. Un ancien classId incorrect ne peut plus faire
+     passer une diffusion dont le nom de classe indique BETA, CAP, etc. */
+  if(rid && rid!==ctx.id)return false;
+  if(rn && ctx.name && !sameClassName(rn,ctx.name))return false;
+
+  /* Si au moins une des deux informations de classe est présente et cohérente,
+     la diffusion appartient bien à la classe active. */
+  if(rid || rn)return true;
+
+  /* Très anciennes diffusions sans classId ET sans className :
+     rattachement uniquement par les identifiants élèves de la classe active.
+     Les cas indéterminés restent masqués. */
+  try{
+    const pool=Array.isArray(window.allStudents)?window.allStudents:[];
+    const activeIds=new Set(
+      pool
+        .filter(st=>String(st?.classId||'')===ctx.id)
+        .map(st=>String(st?.id||''))
+        .filter(Boolean)
+    );
+    const ids=(Array.isArray(r?.studentIds)?r.studentIds:[])
+      .concat((Array.isArray(r?.students)?r.students:[]).map(st=>st?.id))
+      .map(String)
+      .filter(Boolean);
+
+    if(ids.length && activeIds.size){
+      return ids.every(id=>activeIds.has(id));
+    }
+  }catch(_){}
+  return false;
 }
 
 /* ----------- Firebase diffusion registry ----------- */
@@ -18157,10 +18238,14 @@ function cardHtml(r){
 }
 function drawRows(force=false){
   const host=document.getElementById('v194-list');if(!host)return;
-  const q=norm(searchText);
-  const rows=cacheRows.filter(r=>!q||norm([r.tpCode,r.title,r.className,...((r.students||[]).map(studentName))].join(' ')).includes(q));
-  host.innerHTML=rows.length?rows.map(cardHtml).join(''):'<div class="v194-msg">Aucun TP diffusé correspondant.</div>';
-  const c=document.getElementById('v194-count');if(c)c.textContent=`${rows.length} diffusion(s)`;
+  const q=norm(searchText),ctx=activeClassContext();
+  const classRows=cacheRows.filter(belongsToActiveClass);
+  const rows=classRows.filter(r=>!q||norm([r.tpCode,r.title,...((r.students||[]).map(studentName))].join(' ')).includes(q));
+  host.innerHTML=rows.length
+    ?rows.map(cardHtml).join('')
+    :`<div class="v194-msg">Aucun TP diffusé pour la classe active <b>${esc(ctx.name||'—')}</b>${q?' avec cette recherche.':'.'}</div>`;
+  const c=document.getElementById('v194-count');
+  if(c)c.textContent=`${rows.length} diffusion(s) · ${ctx.name||'classe active'}`;
 }
 window.tp194Toggle=function(id){
   id=String(id||'');
@@ -18175,11 +18260,11 @@ window.tpV76DiffusionsPage=async function(){
 
   main.innerHTML=`<header class="app-top-header"></header><div class="v194-shell">
     <div class="v194-head">
-      <div><h1>📋 Mes TP diffusés</h1><p>Registre Firebase : clique sur une ligne pour afficher les élèves. Gris = diffusé, jaune = rendu, vert = corrigé.</p></div>
+      <div><h1>📋 Mes TP diffusés</h1><p>Classe active : <b>${esc(activeClassContext().name||'—')}</b> • Gris = diffusé, jaune = rendu, vert = corrigé.</p></div>
       <button class="v194-btn" onclick="tpGeneratorPage()">← Retour au Portail TP</button>
     </div>
     <div class="v194-toolbar">
-      <input class="v194-search" type="search" placeholder="Rechercher un TP, une classe ou un élève…" value="${esc(searchText)}" oninput="tp194Search(this.value)">
+      <input class="v194-search" type="search" placeholder="Rechercher un TP ou un élève dans la classe active…" value="${esc(searchText)}" oninput="tp194Search(this.value)">
       <button class="v194-btn" onclick="tpV76DiffusionsPage()">↻ Actualiser Firebase</button>
       <span class="v194-source">☁ Firebase maître</span>
       <span id="v194-count" class="v194-source">Chargement…</span>
@@ -18296,13 +18381,13 @@ console.info('V194 : ouverture Mes TP diffusés stable, état de ligne ouverte m
 'use strict';
 const SUITE={
   suite:'Évaluation · Charge Atelier · TP · Correction',
-  version:'V197',
+  version:'V205',
   role:'PLATEFORME_PROFESSEUR',
   projectSchema:'evaluation.tp.v1',
   fileSignature:'FDMAHY_TP_SYSTEM',
   formatVersion:'4.1',
-  editor:'Editeur_TP_BacPro_MV_V55_Suite_V197.html',
-  reader:'Lecteur_TP_Eleve_V197.html',
+  editor:'Editeur_TP_BacPro_MV_V74_Suite_V205.html',
+  reader:'Lecteur_TP_Eleve_V205.html',
   usb:'RECUPERER_LES_TP.cmd'
 };
 window.TP_SUITE_V196=SUITE;
@@ -18331,9 +18416,9 @@ function enrichStudentPackage(m,st,d){
   m.transmission={...(m.transmission||{}),etat:m.transmission?.etat||'A_DIFFUSER',mode:m.transmission?.mode||'fichier'};
   m.meta={...(m.meta||{}),
     suiteName:'Évaluation · Charge Atelier · TP · Correction',
-    suiteVersion:'V197',
+    suiteVersion:'V205',
     projectSchema:m.tpProject?'evaluation.tp.v1':(m.meta?.projectSchema||''),
-    readerRequired:'V197'
+    readerRequired:'V205'
   };
   if(m.tpProject){
     m.meta.projectPublicId=m.tpProject.publicId||m.tpProject.id||code;
@@ -18363,9 +18448,9 @@ if(typeof window.tpCorrectionImport==='function'){
 /* Habillage du Portail TP seulement : la fonction RTA existante reste disponible
    ailleurs dans le logiciel, elle n'est simplement plus dans le nom de la suite. */
 function stamp(){
-  document.title='V202 — Évaluation · Charge Atelier · TP · Correction';
+  document.title='V205 — Évaluation · Charge Atelier · TP · Correction';
   const bv=document.getElementById('build-version');
-  if(bv)bv.textContent='V202 — Évaluation · Charge Atelier · TP · Correction';
+  if(bv)bv.textContent='V205 — Évaluation · Charge Atelier · TP · Correction';
 }
 stamp();
 setTimeout(stamp,700);
@@ -18533,8 +18618,8 @@ document.addEventListener('visibilitychange',()=>{
 /* Affichage de version seulement, sans timer périodique ni MutationObserver. */
 function stampVersion(){
   const b=document.getElementById('build-version');
-  if(b)b.textContent='V202 — Évaluation · Charge Atelier · TP · Correction';
-  document.title='V202 — Évaluation · Charge Atelier · TP · Correction';
+  if(b)b.textContent='V205 — Évaluation · Charge Atelier · TP · Correction';
+  document.title='V205 — Évaluation · Charge Atelier · TP · Correction';
 }
 stampVersion();
 
@@ -18620,8 +18705,8 @@ if(typeof settings==='function'&&!settings.__v200){
 cleanUi(document);
 
 const bv=document.getElementById('build-version');
-if(bv)bv.textContent='V202 — Évaluation · Charge Atelier · TP · Correction';
-document.title='V202 — Évaluation · Charge Atelier · TP · Correction';
+if(bv)bv.textContent='V205 — Évaluation · Charge Atelier · TP · Correction';
+document.title='V205 — Évaluation · Charge Atelier · TP · Correction';
 
 console.info('V200 : RTA retirée de l’interface et des évaluations ; ancien générateur TP neutralisé au profit du Portail TP.');
 })();
@@ -19006,8 +19091,8 @@ ensureMobileMenu();
 
 /* Version : affichage uniquement, aucun timer et aucun MutationObserver. */
 const bv=document.getElementById('build-version');
-if(bv)bv.textContent='V202 — Évaluation · Charge Atelier · TP · Correction';
-document.title='V202 — Évaluation · Charge Atelier · TP · Correction';
+if(bv)bv.textContent='V205 — Évaluation · Charge Atelier · TP · Correction';
+document.title='V205 — Évaluation · Charge Atelier · TP · Correction';
 
 console.info('V201 : barre latérale scrollable + menu iPhone permanent + suppression TP V73/V159 persistante.');
 })();
@@ -19028,8 +19113,409 @@ window.V202_SETTINGS_POLICY={
   ephemeralUiLocalOnly:true
 };
 const bv=document.getElementById('build-version');
-if(bv)bv.textContent='V202 — Évaluation · Charge Atelier · TP · Correction';
-document.title='V202 — Évaluation · Charge Atelier · TP · Correction';
+if(bv)bv.textContent='V205 — Évaluation · Charge Atelier · TP · Correction';
+document.title='V205 — Évaluation · Charge Atelier · TP · Correction';
 console.info('V202 : recherche/compteur fiches + paramètres fonctionnels multiposte, démarrage inchangé.');
+})();
+</script>
+
+
+<!-- V203 — Portail TP strictement lié à la classe active -->
+<style id="v203-tp-active-class-style">
+.v203-class-badge{
+  display:inline-flex;align-items:center;gap:6px;
+  margin-top:7px;padding:6px 10px;border-radius:999px;
+  background:#eaf4ff;border:1px solid #b7d6f3;color:#174e82;
+  font-size:12px;font-weight:850
+}
+#tp26-diff-class[disabled]{opacity:1;background:#f1f5f9;color:#17365d;font-weight:800}
+.v203-class-lock-note{font-size:11px;color:#166534;font-weight:800;margin-left:7px}
+</style>
+
+<script id="v203-tp-active-class-runtime">
+(function(){
+'use strict';
+
+const esc203=v=>String(v??'').replace(/[&<>"']/g,c=>({
+  '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+}[c]));
+
+function activeCtx(){
+  try{
+    const id=String(window.getActiveClassId?.()||'');
+    const cls=(window.getClasses?.()||[]).find(c=>String(c.id)===id);
+    return {id,name:String(cls?.name||window.activeClassName?.()||'')};
+  }catch(_){
+    return {id:'',name:String(window.activeClassName?.()||'')};
+  }
+}
+function forceActiveTpClass(){
+  const c=activeCtx();
+  window.tpGenState=window.tpGenState||{};
+  window.tpGenState.contextClassId=c.id;
+  window.tpGenState.diffusionClassId=c.id;
+  return c;
+}
+function studentPool(){
+  try{
+    if(Array.isArray(window.allStudents))return window.allStudents;
+    if(typeof allStudents!=='undefined'&&Array.isArray(allStudents))return allStudents;
+    if(typeof students!=='undefined'&&Array.isArray(students))return students;
+  }catch(_){}
+  return [];
+}
+function activeStudents(){
+  const c=forceActiveTpClass();
+  const list=studentPool().filter(st=>String(st?.classId||'')===c.id);
+  try{return typeof sortStudentsAlpha==='function'?sortStudentsAlpha(list):list}catch(_){return list}
+}
+function addPortalClassBadge(){
+  const shell=document.querySelector('.v192-shell');
+  if(!shell)return;
+  const head=shell.querySelector('.v192-head > div');
+  if(!head)return;
+  let b=head.querySelector('.v203-class-badge');
+  if(!b){
+    b=document.createElement('div');
+    b.className='v203-class-badge';
+    head.appendChild(b);
+  }
+  b.textContent='🏫 Classe active : '+(activeCtx().name||'—');
+}
+function lockDiffusionClass(){
+  const c=forceActiveTpClass();
+  const sel=document.getElementById('tp26-diff-class');
+  if(sel){
+    sel.innerHTML=`<option value="${esc203(c.id)}">${esc203(c.name||'Classe active')}</option>`;
+    sel.value=c.id;
+    sel.disabled=true;
+    sel.setAttribute('aria-label','Classe active du logiciel');
+    const row=sel.closest('.tp26-class-select');
+    if(row&&!row.querySelector('.v203-class-lock-note')){
+      const n=document.createElement('span');
+      n.className='v203-class-lock-note';
+      n.textContent='🔒 classe active du logiciel';
+      row.appendChild(n);
+    }
+  }
+  try{window.tp26RenderStudents?.()}catch(_){}
+}
+
+/* Source unique des élèves pour le Portail TP : la classe active du logiciel. */
+window.tpGenClassStudents=function(){
+  return activeStudents();
+};
+
+/* Un ancien sélecteur de classe ne peut plus modifier le contexte TP. */
+window.tp26ChangeClass=function(){
+  forceActiveTpClass();
+  const sel=document.getElementById('tp26-diff-class');
+  if(sel)sel.value=activeCtx().id;
+  window.tp26RenderStudents?.();
+};
+
+/* Le snapshot utilisé pour la diffusion reçoit toujours la classe active,
+   sans modifier le fichier TP source ni la bibliothèque importée. */
+const oldLocked=window.tpGenLockedSnapshot;
+if(typeof oldLocked==='function'&&!oldLocked.__v203){
+  const wrapped=function(){
+    const d=oldLocked.apply(this,arguments);
+    if(!d)return d;
+    const c=forceActiveTpClass();
+    let copy;
+    try{copy=JSON.parse(JSON.stringify(d))}catch(_){copy={...d}}
+    copy.classId=c.id;
+    copy.className=c.name;
+    return copy;
+  };
+  wrapped.__v203=true;
+  window.tpGenLockedSnapshot=wrapped;
+}
+
+/* Portail principal : contexte forcé + indication de la classe active. */
+const oldPortal=window.tpGeneratorPage;
+if(typeof oldPortal==='function'&&!oldPortal.__v203){
+  const wrapped=function(){
+    forceActiveTpClass();
+    const r=oldPortal.apply(this,arguments);
+    addPortalClassBadge();
+    return r;
+  };
+  wrapped.__v203=true;
+  window.tpGeneratorPage=wrapped;
+}
+
+/* Codes élèves : uniquement ceux de la classe active. */
+const oldCodes=window.tp192CodesPage;
+if(typeof oldCodes==='function'&&!oldCodes.__v203){
+  const wrapped=function(){
+    forceActiveTpClass();
+    return oldCodes.apply(this,arguments);
+  };
+  wrapped.__v203=true;
+  window.tp192CodesPage=wrapped;
+}
+
+/* Sélection et diffusion locale : le contexte est fixé AVANT l'ouverture. */
+const oldSelect=window.tp139SelectForDiffusion;
+if(typeof oldSelect==='function'&&!oldSelect.__v203){
+  const wrapped=function(){
+    forceActiveTpClass();
+    return oldSelect.apply(this,arguments);
+  };
+  wrapped.__v203=true;
+  window.tp139SelectForDiffusion=wrapped;
+}
+const oldOpenDiff=window.tp139OpenDiffusion;
+if(typeof oldOpenDiff==='function'&&!oldOpenDiff.__v203){
+  const wrapped=function(){
+    forceActiveTpClass();
+    return oldOpenDiff.apply(this,arguments);
+  };
+  wrapped.__v203=true;
+  window.tp139OpenDiffusion=wrapped;
+}
+
+/* Même règle pour un TP venant de la bibliothèque Firebase commune. */
+const oldImportedDiff=window.tp192DiffuseImported;
+if(typeof oldImportedDiff==='function'&&!oldImportedDiff.__v203){
+  const wrapped=function(){
+    forceActiveTpClass();
+    return oldImportedDiff.apply(this,arguments);
+  };
+  wrapped.__v203=true;
+  window.tp192DiffuseImported=wrapped;
+}
+
+/* Fenêtre de diffusion : une seule classe, celle qui est active.
+   Le délai est ponctuel uniquement pour passer après les anciennes couches UI. */
+const oldExport=window.tpGenOpenClassExport;
+if(typeof oldExport==='function'&&!oldExport.__v203){
+  const wrapped=function(){
+    forceActiveTpClass();
+    const r=oldExport.apply(this,arguments);
+    setTimeout(lockDiffusionClass,90);
+    return r;
+  };
+  wrapped.__v203=true;
+  window.tpGenOpenClassExport=wrapped;
+}
+
+/* Après un changement de classe volontaire, la page TP actuellement visible
+   est simplement redessinée dans le nouveau contexte. Aucun timer permanent. */
+const oldSetActive=window.setActiveClass;
+if(typeof oldSetActive==='function'&&!oldSetActive.__v203){
+  const wrapped=async function(){
+    const r=await oldSetActive.apply(this,arguments);
+    forceActiveTpClass();
+
+    const main=document.getElementById('main');
+    if(main?.querySelector('.v194-shell')){
+      await window.tpV76DiffusionsPage?.();
+    }else if(main?.querySelector('.v192-shell')){
+      const h=main.querySelector('h1')?.textContent||'';
+      if(/Codes élèves/i.test(h))window.tp192CodesPage?.();
+      else if(/Mes TP importés/i.test(h)){} /* bibliothèque commune */
+      else window.tpGeneratorPage?.();
+    }else if(/Diffuser un TP/i.test(main?.querySelector('h1')?.textContent||'')){
+      window.tp139ShowSelected?.();
+    }
+    return r;
+  };
+  wrapped.__v203=true;
+  window.setActiveClass=wrapped;
+}
+
+forceActiveTpClass();
+addPortalClassBadge();
+
+const bv=document.getElementById('build-version');
+if(bv)bv.textContent='V205 — Évaluation · Charge Atelier · TP · Correction';
+document.title='V205 — Évaluation · Charge Atelier · TP · Correction';
+
+console.info('V204 : Portail TP filtré strictement par classe active ; classId et className doivent être cohérents.');
+})();
+</script>
+
+
+<!-- V204 — filtrage strict Mes TP diffusés par classe active -->
+<script id="v204-strict-class-filter-marker">
+(function(){
+'use strict';
+window.V204_TP_CLASS_FILTER_POLICY={
+  classIdMustMatch:true,
+  classNameMustMatch:true,
+  bothMustBeConsistent:true,
+  legacyFallbackOnlyWhenNoClassMetadata:true,
+  legacyStudentIdsMustAllBelongToActiveClass:true
+};
+const bv=document.getElementById('build-version');
+if(bv)bv.textContent='V205 — Évaluation · Charge Atelier · TP · Correction';
+document.title='V205 — Évaluation · Charge Atelier · TP · Correction';
+console.info('V204 : filtrage strict des TP diffusés sur la classe active, démarrage inchangé.');
+})();
+</script>
+
+
+<!-- V205 — auto-évaluation TP embarquée + sélection du rendu le plus récent -->
+<style id="v205-tp-correction-style">
+.v205-ae-card{border-left:5px solid #2563eb!important}
+.v205-ae-grid{display:grid;grid-template-columns:repeat(4,minmax(120px,1fr));gap:8px;margin:10px 0}
+.v205-ae-cell{background:#f8fafc;border:1px solid #dbe4ee;border-radius:10px;padding:9px}
+.v205-ae-note{font-size:20px;font-weight:900;color:#17365d}
+.v205-ae-warning{margin-top:9px;padding:8px 10px;border-radius:9px;background:#fff7ed;border:1px solid #fdba74;color:#9a3412;font-weight:800}
+.v205-new-render{margin-bottom:10px;padding:9px 11px;border-radius:10px;background:#fff7ed;border:1px solid #fdba74;color:#9a3412;font-weight:800}
+@media(max-width:760px){.v205-ae-grid{grid-template-columns:1fr 1fr}}
+</style>
+<script id="v205-tp-correction-runtime">
+(function(){
+'use strict';
+
+const KEY='tp_correction_local_v54';
+const ARCH='tp_correction_versions_v205';
+
+const read=()=>{try{const a=JSON.parse(localStorage.getItem(KEY)||'[]');return Array.isArray(a)?a:[]}catch(_){return[]}};
+const write=a=>localStorage.setItem(KEY,JSON.stringify((a||[]).slice(0,2000)));
+const archiveRead=()=>{try{const a=JSON.parse(localStorage.getItem(ARCH)||'[]');return Array.isArray(a)?a:[]}catch(_){return[]}};
+const archiveWrite=a=>localStorage.setItem(ARCH,JSON.stringify((a||[]).slice(0,4000)));
+const norm=v=>String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+function studentKey(d){
+  const sid=String(d?.studentId||d?.meta?.studentId||d?.eleve?.id||'').trim();
+  const nm=norm([d?.eleve?.nom,d?.eleve?.prenom].filter(Boolean).join(' ')||d?.studentName||'');
+  return sid||nm;
+}
+function tpKey(d){return norm(d?.tp?.id||d?.code||d?.tpCode||d?.titre||d?.tp?.titre||'')}
+function groupKey(r){const d=r?.data||{};return [studentKey(d),norm(d?.classe||d?.identite?.classe||''),tpKey(d)].join('|')}
+function renderedAt(r){
+  const d=r?.data||{};
+  const v=d?.dates?.rendu||d?.submission?.submittedAt||d?.meta?.submittedAt||r?.importedAt||r?.importedAtClient||'';
+  const t=Date.parse(v||'');
+  return Number.isFinite(t)?t:0;
+}
+function compactLatest(){
+  const rows=read();
+  const groups=new Map();
+  rows.forEach(r=>{
+    const k=groupKey(r);
+    if(!k.replace(/\|/g,''))return;
+    (groups.get(k)||groups.set(k,[]).get(k)).push(r);
+  });
+  const keep=new Set(), moved=[];
+  for(const arr of groups.values()){
+    arr.sort((a,b)=>renderedAt(b)-renderedAt(a)||String(b.importedAt||'').localeCompare(String(a.importedAt||'')));
+    const latest=arr[0]; if(latest)keep.add(String(latest.id));
+    const older=arr.slice(1);
+    if(older.length){
+      const prevCorrected=older.find(x=>x.correctedAt||String(x.workflowState||'').toUpperCase()==='CORRIGE');
+      if(prevCorrected&&!latest.previousCorrectedVersion){
+        latest.previousCorrectedVersion={
+          id:prevCorrected.id,
+          correctedAt:prevCorrected.correctedAt||'',
+          note:prevCorrected.note??'',
+          fileName:prevCorrected.fileName||'',
+          renderedAt:new Date(renderedAt(prevCorrected)||0).toISOString()
+        };
+      }
+      older.forEach(x=>moved.push({...x,v205Superseded:true,v205ArchivedAt:new Date().toISOString()}));
+    }
+  }
+  const untouched=rows.filter(r=>!groups.has(groupKey(r)));
+  const active=rows.filter(r=>keep.has(String(r.id))).concat(untouched);
+  if(moved.length){
+    const arch=archiveRead();
+    const seen=new Set(arch.map(x=>String(x.id)));
+    moved.forEach(x=>{if(!seen.has(String(x.id)))arch.unshift(x)});
+    archiveWrite(arch);
+  }
+  if(active.length!==rows.length||JSON.stringify(active)!==JSON.stringify(rows))write(active);
+  return {active:active.length,archived:moved.length};
+}
+window.tpV205CompactLatest=compactLatest;
+
+function aeFrom(r){
+  const a=r?.data?.autoEvaluation||r?.data?.auto_evaluation;
+  if(!a||typeof a!=='object')return null;
+  const calc=Number(a.noteCalculee??a.calculatedNote??a.autoNoteCalculated??a.autoNote??a.note??NaN);
+  const student=Number(a.noteEleve??a.studentNote??a.autoNote??a.note??calc);
+  return {
+    organisation:Number(a.organisation??0)||null,
+    resultats:Number(a.resultats??0)||null,
+    autonomie:Number(a.autonomie??a.confiance??0)||null,
+    calc:Number.isFinite(calc)?calc:null,
+    note:Number.isFinite(student)?student:(Number.isFinite(calc)?calc:null),
+    modified:!!(a.noteModifieeParEleve??a.studentNoteModified??false),
+    comment:String(a.commentaire??a.comment??'').trim()
+  };
+}
+function injectAE(id){
+  const r=read().find(x=>String(x.id)===String(id));if(!r)return;
+  const left=document.querySelector('.tpc-editor')?.firstElementChild;if(!left)return;
+  left.querySelector('.v205-ae-card')?.remove();
+  left.querySelector('.v205-new-render')?.remove();
+
+  if(r.previousCorrectedVersion){
+    const n=document.createElement('div');
+    n.className='v205-new-render';
+    n.textContent='↻ Nouveau rendu plus récent : une version précédente de ce TP avait déjà été corrigée.';
+    left.prepend(n);
+  }
+
+  const a=aeFrom(r);
+  const card=document.createElement('div');
+  card.className='tpc-card v205-ae-card';
+  if(!a){
+    card.innerHTML='<h2>👤 Auto-évaluation de l’élève</h2><p class="muted">Aucune auto-évaluation embarquée dans ce TP rendu.</p>';
+  }else{
+    const note=a.note==null?'—':String(Math.round(a.note*10)/10).replace('.',',');
+    const calc=a.calc==null?'—':String(Math.round(a.calc*10)/10).replace('.',',');
+    card.innerHTML=`<h2>👤 Auto-évaluation de l’élève</h2>
+      <div class="v205-ae-grid">
+        <div class="v205-ae-cell"><b>Organisation</b><br>${esc(a.organisation??'—')} / 4</div>
+        <div class="v205-ae-cell"><b>Résultats</b><br>${esc(a.resultats??'—')} / 4</div>
+        <div class="v205-ae-cell"><b>Autonomie</b><br>${esc(a.autonomie??'—')} / 4</div>
+        <div class="v205-ae-cell"><b>Note élève</b><br><span class="v205-ae-note">${esc(note)} / 20</span></div>
+      </div>
+      ${a.modified?`<div class="v205-ae-warning">⚠ Note modifiée par l’élève · note calculée automatiquement : ${esc(calc)} / 20</div>`:`<div class="muted">Note calculée automatiquement : ${esc(calc)} / 20</div>`}
+      ${a.comment?`<div style="margin-top:10px"><b>Commentaire élève</b><div style="white-space:pre-wrap;margin-top:4px">${esc(a.comment)}</div></div>`:''}`;
+  }
+  left.prepend(card);
+}
+
+compactLatest();
+
+/* Le filtre/page existant reste intact : on réduit simplement la base active
+   aux rendus les plus récents avant son affichage. */
+const oldPage=window.tpCorrectionPage;
+if(typeof oldPage==='function'&&!oldPage.__v205){
+  const w=function(){compactLatest();return oldPage.apply(this,arguments)};
+  w.__v205=true;window.tpCorrectionPage=w;
+}
+const oldImport=window.tpCorrectionImport;
+if(typeof oldImport==='function'&&!oldImport.__v205){
+  const w=async function(){
+    const out=await oldImport.apply(this,arguments);
+    compactLatest();
+    try{window.tpCorrectionPage?.()}catch(_){}
+    return out;
+  };
+  w.__v205=true;window.tpCorrectionImport=w;
+}
+const oldOpen=window.tpCorrectionOpen;
+if(typeof oldOpen==='function'&&!oldOpen.__v205){
+  const w=function(id){
+    const out=oldOpen.apply(this,arguments);
+    [0,120,450,1000].forEach(ms=>setTimeout(()=>injectAE(id),ms));
+    return out;
+  };
+  w.__v205=true;window.tpCorrectionOpen=w;
+}
+
+const bv=document.getElementById('build-version');
+if(bv)bv.textContent='V205 — Évaluation · Charge Atelier · TP · Correction';
+document.title='V205 — Évaluation · Charge Atelier · TP · Correction';
+
+console.info('V205 : auto-évaluation TP lue depuis le JSON rendu ; Tableau du jour exclut les TP diffusés ; rendu le plus récent privilégié.');
 })();
 </script>
