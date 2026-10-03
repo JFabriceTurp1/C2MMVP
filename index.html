@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1" name="viewport"/>
-<title>V147 Competences Rta Gestion atelier TP</title>
+<title>V147 Évaluation · Charge Atelier · TP · Correction</title>
 <style>
 *{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f5f7fa;color:#172033}
 .app{display:flex;min-height:100vh}.side{width:235px;background:#172033;color:#fff;padding:22px 14px}.logo{font-size:19px;font-weight:700;padding:8px 10px 24px}
@@ -2734,7 +2734,7 @@ body{background:#f7f9fc;color:var(--text)}
 <!-- V88 — DONNÉES DE RÉFÉRENCE RÉINTÉGRÉES DEPUIS V86.5
      Jeux embarqués repris : référentiel compétences, élèves par défaut, seconde classe fictive, situations professionnelles.
      Les données dynamiques (classes/élèves/évaluations réellement saisies) restent chargées par IndexedDB/localStorage et Firebase. -->
-<div id="build-version">V198 — Évaluation · Charge Atelier · TP · Correction</div>
+<div id="build-version">V201 — Évaluation · Charge Atelier · TP · Correction</div>
 <div id="firebase-auth-overlay">
 <div class="firebase-login-card">
 <h2>☁️ Connexion Firebase — V89</h2>
@@ -2777,7 +2777,7 @@ body{background:#f7f9fc;color:var(--text)}
 <div class="app">
 <button aria-expanded="true" aria-label="Masquer la barre latérale" class="sidebar-toggle" id="sidebar-toggle" onclick="toggleSidebar()" title="Masquer la barre latérale" type="button">◀</button>
 <aside class="side">
-<div class="logo">COMPÉTENCES MV<br/><small style="font-size:11px;font-weight:400">V10 — Évaluation • Atelier • RTA • TP</small></div>
+<div class="logo">COMPÉTENCES MV<br/><small style="font-size:11px;font-weight:400">V10 — Évaluation · Charge Atelier · TP · Correction</small></div>
 <div class="nav">
 <button id="nav-home" onclick="go('home')">🏠 <span>Accueil</span></button>
 <button id="nav-students" onclick="go('students')">👨‍🎓 <span>Élèves</span></button>
@@ -2921,19 +2921,6 @@ body{background:#f7f9fc;color:var(--text)}
 <span class="pill" id="settings-activities-count"></span>
 </div>
 <div class="settings-list" id="settings-activities-list" style="margin-top:14px"></div>
-</div>
-<div class="settings-rubric-title rubric-ref">📚 Intégration RTA</div>
-<div class="settings-card settings-section section-ref" style="grid-column:1/-1">
-<h3>📚 Bibliothèques RTA — intégration contrôlée</h3>
-<p class="muted">Les 63 fiches d’activités restent indépendantes. Chaque RTA constitue une bibliothèque d’évaluation séparée. La source de référence est une synthèse structurée et validée (activités + compétences CAP/Bac Pro). Plusieurs RTA et plusieurs véhicules pourront coexister.</p>
-<div class="at-notice"><b>Version d’essai :</b> la bibliothèque « RTA 848 — Renault Clio IV Phase 2 » est préchargée avec les 270 activités du tableau de synthèse fourni. Pour les futures RTA, importe une synthèse RTA validée au format JSON. Chaque nouvelle bibliothèque reste indépendante, peut être archivée ou supprimée, et peut concerner un autre véhicule.</div>
-<div class="row" style="gap:8px;flex-wrap:wrap">
-<button class="primary" onclick="installBuiltInRta848(true)" type="button">📚 Charger / restaurer la RTA 848</button>
-<button class="secondary" onclick="document.getElementById('rta-json-input').click()" type="button">🧩 Importer une synthèse RTA JSON</button>
-<span class="pill" id="settings-rta-count"></span>
-<input accept=".json,application/json" hidden="" id="rta-json-input" onchange="importRtaJson(this.files[0]);this.value=''" type="file"/>
-</div>
-<div class="settings-list" id="settings-rta-list" style="margin-top:14px"></div>
 </div>
 <div class="settings-rubric-title rubric-other">🛠️ Administration / Développement</div>
 <details class="settings-card settings-sub-collapse section-other">
@@ -4115,8 +4102,8 @@ function home(){
     </div>`;
   /* Affichage de version de l'accueil : information uniquement, sans impact sur le bootstrap. */
   const homeVersionBadge=document.getElementById("build-version");
-  if(homeVersionBadge)homeVersionBadge.textContent='V197 — Évaluation · Charge Atelier · TP · Correction';
-  document.title='V197 — Évaluation · Charge Atelier · TP · Correction';
+  if(homeVersionBadge)homeVersionBadge.textContent='V201 — Évaluation · Charge Atelier · TP · Correction';
+  document.title='V201 — Évaluation · Charge Atelier · TP · Correction';
 }
 
 function collapseAllCollectiveRows(){
@@ -4835,8 +4822,8 @@ function getRtaLibraries(){
   }
 }
 function saveRtaLibraries(list){
+  // V199 : RTA conservée uniquement en local. Aucune synchronisation Firebase.
   localStorage.setItem(RTA_LIBRARY_KEY,JSON.stringify(list||[]));
-  try{syncFirebaseApplicationConfigSoon()}catch(e){}
 }
 function rtaLibraryById(id){return getRtaLibraries().find(x=>String(x.id)===String(id))||null}
 function rtaActivityByCompositeId(id){
@@ -5409,12 +5396,7 @@ function evaluationChoicePage(){
           <p>Choisir une fiche pratique parmi les 63 activités. Les 10 critères et uniquement les compétences du diplôme de l’élève sont chargés automatiquement.</p>
           <div class="eval-choice-action">Choisir une fiche d’activités →</div>
         </button>
-        <button type="button" class="eval-choice-card professional" onclick="beginRtaEvaluation()">
-          <div class="eval-choice-icon">📚</div>
-          <h2>Évaluation sur RTA</h2>
-          <p>Choisir une revue technique automobile, puis une activité issue de cette RTA. Plusieurs bibliothèques RTA peuvent coexister.</p>
-          <div class="eval-choice-action">Choisir une RTA →</div>
-        </button>
+        
         ${isAdminTeacher()?`<button type="button" class="eval-choice-card retroactive" onclick="beginRetrospectiveEvaluation()">
           <div class="eval-choice-icon">🕘</div>
           <h2>Positionnement rétroactif</h2>
@@ -11163,7 +11145,6 @@ function openAssistanceMail(){
       multiReferentials:(()=>{try{return JSON.parse(JSON.stringify(window.multiReferentialsCache||multiReferentialsCache||null))}catch(e){return null}})(),
       professionalSituations:situations,
       managedEvaluationActivities:getManagedEvaluationActivities(),
-      rtaLibraries:getRtaLibraries(),
       bilanPeriods:(()=>{try{return JSON.parse(localStorage.getItem("evaluation_bilan_periods_v91")||"[]")||[]}catch(e){return[]}})(),
       bilanRecords:(()=>{try{return JSON.parse(localStorage.getItem("evaluation_bilan_records_v92")||"[]")||[]}catch(e){return[]}})(),
       savedReports:(()=>{try{return JSON.parse(localStorage.getItem("evaluation_saved_reports_v90")||"[]")||[]}catch(e){return[]}})(),
@@ -11196,10 +11177,6 @@ function openAssistanceMail(){
     if(Array.isArray(cfg.managedEvaluationActivities)){
       try{safeLocalSetItem(MANAGED_EVALUATION_ACTIVITIES_KEY,JSON.stringify(cfg.managedEvaluationActivities));}
       catch(e){console.warn("Fiches d'évaluation non conservées en local",e);}
-    }
-    if(Array.isArray(cfg.rtaLibraries)){
-      try{safeLocalSetItem(RTA_LIBRARY_KEY,JSON.stringify(cfg.rtaLibraries));}
-      catch(e){console.warn("Bibliothèques RTA non conservées en local",e);}
     }
     if(Array.isArray(cfg.professionalSituations)&&cfg.professionalSituations.length){
       try{
@@ -11838,51 +11815,65 @@ window.firebaseSaveCurrentConfig=async()=>{await saveFullConfig(firebaseBuildApp
     return [...m.values()];
   }
   async function synchronizeExtendedLocalData(){
-    if(!auth?.currentUser)return {connected:false};
+    if(!auth?.currentUser)return {connected:false,codes:0,stableCodes:0};
+
     const cfgRef=userRoot().collection(FIREBASE_CONFIG_COLLECTION);
-    // Générateur TP : brouillons, TP enregistrés/verrouillés, codes et personnalisations.
-    const tpRef=cfgRef.doc(FIREBASE_TPGEN_DOC),tpSnap=await tpRef.get(),remote=tpSnap.exists?(tpSnap.data()||{}):{};
-    const localDrafts=v51Json('evaluation_tp_generator_drafts_v2',[]),localSaved=v51Json('tp_generator_saved_v8',[]);
-    // V53 — tombstones de suppression : un TP supprimé sur un poste ne doit jamais être
-    // ressuscité par une ancienne copie encore présente dans Firebase ou sur un autre poste.
-    const localDeletedSaved=v51Json('tp_generator_deleted_saved_v1',{});
-    const remoteDeletedSaved=(remote.deletedSaved&&typeof remote.deletedSaved==='object')?remote.deletedSaved:{};
-    const deletedSaved={...remoteDeletedSaved,...localDeletedSaved};
-    for(const [id,ts] of Object.entries(remoteDeletedSaved)){
-      const l=localDeletedSaved[id];
-      if(!l || v51Time({updatedAt:ts})>v51Time({updatedAt:l})) deletedSaved[id]=ts;
+    const codesRef=cfgRef.doc('tpStudentCodesV199');
+
+    let remote={};
+    try{
+      const snap=await codesRef.get();
+      if(snap.exists){
+        remote=snap.data()||{};
+      }else{
+        // V199 : migration UNE SEULE FOIS depuis l'ancien document du générateur.
+        // Dès que tpStudentCodesV199 existe, le lourd document tpGenerator n'est plus lu.
+        try{
+          const legacySnap=await cfgRef.doc(FIREBASE_TPGEN_DOC).get();
+          const legacy=legacySnap.exists?(legacySnap.data()||{}):{};
+          remote={
+            codes:(legacy.codes&&typeof legacy.codes==='object')?legacy.codes:{},
+            stableCodes:(legacy.stableCodes&&typeof legacy.stableCodes==='object')?legacy.stableCodes:{}
+          };
+        }catch(e){
+          console.warn('V199 : migration ponctuelle des codes depuis l’ancien générateur indisponible',e);
+        }
+      }
+    }catch(e){
+      console.warn('V199 : lecture des codes élèves Firebase indisponible',e);
     }
-    const drafts=v51MergeRows(localDrafts,remote.drafts||[],['draftId','id']);
-    const saved=v51MergeRows(localSaved,remote.saved||[],['savedId','id']).filter(x=>!deletedSaved[String(x.savedId||x.id||'')]);
-    const codes={...(remote.codes||{}),...v51Json('tp_generator_student_codes_v8',{})};
-    const stableCodes={...(remote.stableCodes||{}),...v51Json('tp_v45_codes_by_student_v1',{})};
-    const overrides={...(remote.overrides||{}),...v51Json('evaluation_tp_generator_catalog_overrides_v1',{})};
-    safeLocalSetItem('evaluation_tp_generator_drafts_v2',JSON.stringify(drafts));
-    safeLocalSetItem('tp_generator_saved_v8',JSON.stringify(saved));
-    safeLocalSetItem('tp_generator_deleted_saved_v1',JSON.stringify(deletedSaved));
+
+    const localCodes=v51Json('tp_generator_student_codes_v8',{});
+    const localStable=v51Json('tp_v45_codes_by_student_v1',{});
+    const codes={...((remote.codes&&typeof remote.codes==='object')?remote.codes:{}),...localCodes};
+    const stableCodes={...((remote.stableCodes&&typeof remote.stableCodes==='object')?remote.stableCodes:{}),...localStable};
+
     safeLocalSetItem('tp_generator_student_codes_v8',JSON.stringify(codes));
     safeLocalSetItem('tp_v45_codes_by_student_v1',JSON.stringify(stableCodes));
-    safeLocalSetItem('evaluation_tp_generator_catalog_overrides_v1',JSON.stringify(overrides));
-    await tpRef.set({drafts,saved,deletedSaved,codes,stableCodes,overrides,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:false});
 
-    // RTA : bibliothèque dédiée, fusionnée par id. Elle reste aussi dans configuration/application
-    // pour compatibilité avec les versions antérieures.
-    const rtaRef=cfgRef.doc('rtaLibraries'),rtaSnap=await rtaRef.get(),rtaRemote=rtaSnap.exists?(rtaSnap.data()?.items||[]):[];
-    const rta=v51MergeRows(v51Json('evaluation_rta_libraries_v1',[]),rtaRemote,['id','libraryId','name']);
-    // La clé exacte est fournie par RTA_LIBRARY_KEY ; utiliser le contenu courant si différent.
-    let currentRta=[];try{currentRta=getRtaLibraries?.()||[]}catch(e){}
-    const mergedRta=v51MergeRows(currentRta,rta,['id','libraryId','name']);
-    try{safeLocalSetItem(RTA_LIBRARY_KEY,JSON.stringify(mergedRta));safeLocalSetItem(RTA_LIBRARY_INIT_KEY,'1')}catch(e){}
-    await rtaRef.set({items:mergedRta,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:false});
+    await codesRef.set({
+      codes,
+      stableCodes,
+      source:'V199 — codes élèves uniquement',
+      updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+    },{merge:true});
 
-    // V73 — Les corrections TP ne sont plus renvoyées en bloc dans configuration/tpCorrections.
-    // Elles sont synchronisées événement par événement dans la collection tpCorrectionsV73
-    // par le module temps réel chargé en fin de page. Cela évite de retransmettre toute la file
-    // à chaque frappe/correction et supprime la limite pratique du document Firestore unique.
-    const corrLocalCount=v51Json('tp_correction_local_v54',[]).length;
-    return {connected:true,drafts:drafts.length,saved:saved.length,rta:mergedRta.length,corrections:corrLocalCount};
+    return {
+      connected:true,
+      codes:Object.keys(codes).length,
+      stableCodes:Object.keys(stableCodes).length
+    };
   }
-  window.firebaseSyncExtendedLocalData=synchronizeExtendedLocalData;
+
+  // Nouveau point d'entrée utile.
+  window.firebaseSyncTpStudentCodes=synchronizeExtendedLocalData;
+
+  // Compatibilité avec les anciennes couches : volontairement SANS réseau.
+  // Ainsi les anciens appels présents dans des modules historiques (correction,
+  // diffusion, etc.) ne déclenchent plus aucune synchro RTA/générateur.
+  window.firebaseSyncExtendedLocalData=async function(){
+    return {connected:!!auth?.currentUser,disabled:true,reason:'V199 — ancienne synchro RTA/générateur désactivée'};
+  };
 
   async function synchronizeCloud({forceUpload=false}={}){
     if(syncing || !auth.currentUser) return;
@@ -11961,18 +11952,24 @@ window.firebaseSaveCurrentConfig=async()=>{await saveFullConfig(firebaseBuildApp
         console.warn('Atelier du jour non bloquant :',e);
         setSyncProgress(64,'Atelier du jour différé — poursuite de la synchronisation…');
       }
-      setSyncProgress(66,'Synchronisation RTA et générateur de TP…');
-      let extendedSync={};try{extendedSync=await synchronizeExtendedLocalData()}catch(e){console.warn('RTA / TP non bloquant :',e)}
+      setSyncProgress(66,'Synchronisation des codes élèves TP…');
+      let tpCodesSync={};
+      try{
+        tpCodesSync=await synchronizeExtendedLocalData();
+      }catch(e){
+        console.warn('V199 : codes élèves TP non bloquants :',e);
+      }
+
       setSyncProgress(72,'Synchronisation des paramètres…');
       let cfg=await cloudGetOne(FIREBASE_CONFIG_COLLECTION,FIREBASE_CONFIG_DOC);
       if(cfg){
         firebaseApplyApplicationConfig(cfg);
-        // V51 : la configuration historique peut contenir une ancienne copie RTA.
-        // On refait la fusion dédiée puis on sauvegarde l'union, jamais une copie locale seule.
-        try{extendedSync=await synchronizeExtendedLocalData();await saveFullConfig(firebaseBuildApplicationConfig())}catch(e){console.warn('Consolidation RTA / TP :',e)}
+        // V199 : configuration générale sans RTA et sans ancien générateur TP.
+        try{await saveFullConfig(firebaseBuildApplicationConfig())}
+        catch(e){console.warn('V199 : consolidation des paramètres :',e)}
       }else{
-        // Première initialisation : publier uniquement après fusion des données locales dédiées.
-        try{await saveFullConfig(firebaseBuildApplicationConfig())}catch(e){console.warn('Configuration initiale :',e)}
+        try{await saveFullConfig(firebaseBuildApplicationConfig())}
+        catch(e){console.warn('Configuration initiale :',e)}
       }
 
       // Professeurs/comptes : priorité absolue à la collection V86.5 "comptes".
@@ -12012,7 +12009,7 @@ window.firebaseSaveCurrentConfig=async()=>{await saveFullConfig(firebaseBuildApp
         evaluations:cloudEvaluations.length,
         teachers:teacherCount,
         configuration:!!cfg,
-        tpDrafts:Number(extendedSync?.drafts||0),tpSaved:Number(extendedSync?.saved||0),rtaLibraries:Number(extendedSync?.rta||0),
+        tpStudentCodes:Number(tpCodesSync?.codes||0),tpStableCodes:Number(tpCodesSync?.stableCodes||0),
         workspace:FIREBASE_SHARED_WORKSPACE_ID,
         pendingOps:readPendingFirebaseOps().length,
         atelierSessions:atelierSessionsCount,
@@ -12028,8 +12025,8 @@ window.firebaseSaveCurrentConfig=async()=>{await saveFullConfig(firebaseBuildApp
       if(reconnectPushPending)localStorage.removeItem("evaluation_firebase_reconnect_push_pending");
       startRealtimeListeners();
       startAccountsRealtime();
-      // V51 : filet de sécurité multiposte pour les modules encore basés sur localStorage.
-      if(!window.__v51ExtendedSyncTimer) window.__v51ExtendedSyncTimer=setInterval(()=>{const tpBusy=!!document.querySelector('.tpgen-page,.tpgen-saved-page,.tpgen-manager-shell,.tpgen-shell,[id^="tpgen-"]');if(auth?.currentUser&&!syncing&&!tpBusy)synchronizeExtendedLocalData().catch(e=>console.warn('Sync périodique RTA/TP',e))},30000);
+      // V199 : aucun timer RTA/générateur. Les codes élèves sont synchronisés
+      // au démarrage, lors d'une synchronisation manuelle et lorsqu'un code change.
     }catch(err){
       console.error('Synchronisation Firebase V86.5 → V88',err);
       setStatus('Synchronisation : '+friendlyError(err),'bad');
@@ -12098,7 +12095,7 @@ window.firebaseSaveCurrentConfig=async()=>{await saveFullConfig(firebaseBuildApp
     realtimeRenderTimer=setTimeout(async()=>{
       try{
         /* V52 — Ne jamais reconstruire l'écran pendant que l'utilisateur travaille
-           dans le générateur de TP ou la liste des TP enregistrés. loadData() appelle
+           dans le Portail TP ou la liste des TP enregistrés. loadData() appelle
            render() et détruisait/recréait les menus à chaque événement Firebase. */
         const tpScreen=!!(
           document.getElementById('tpgen-root') ||
@@ -12510,7 +12507,7 @@ window.addEventListener("resize",function(){
 .at-custom-create input{padding:10px;border:1px solid #bac7d8;border-radius:8px;box-sizing:border-box;width:100%}@media(max-width:1050px){.at-custom-create{grid-template-columns:1fr 1fr}.at-custom-create .at-btn{grid-column:1/-1}}@media(max-width:650px){.at-custom-create{grid-template-columns:1fr}}
 </style>
 <section aria-label="Evaluation et charge atelier" class="hidden" id="atelier-app">
-<header class="at-head"><h1>Evaluation &amp; Charge atelier Évaluation, charge atelier et intégration RTA — TEST 14 RECHERCHE POSITIONNEMENT RTA — Firebase</h1><span id="at-active-class"></span><button id="at-view-mode-btn" onclick="toggleAtelierViewMode()" type="button">Vue élève</button><button id="at-change-class-btn" onclick="openClassPicker()" type="button">⇄ Changer de classe</button><button id="at-return-main-btn" onclick="closeAtelierUnified()" type="button">Retour Accueil</button></header>
+<header class="at-head"><h1>Évaluation &amp; Charge atelier — Firebase</h1><span id="at-active-class"></span><button id="at-view-mode-btn" onclick="toggleAtelierViewMode()" type="button">Vue élève</button><button id="at-change-class-btn" onclick="openClassPicker()" type="button">⇄ Changer de classe</button><button id="at-return-main-btn" onclick="closeAtelierUnified()" type="button">Retour Accueil</button></header>
 <nav class="at-nav" id="at-nav"></nav><main class="at-main" id="at-main"></main>
 </section>
 <script id="atelier-unifie-v5-script">
@@ -13634,7 +13631,7 @@ function tpGenDuplicateDraft(id){const src=tpGenDrafts().find(x=>x.draftId===id)
 function tpGenOpenDraft(id){const d=tpGenDrafts().find(x=>x.draftId===id);if(!d)return;tpGenState.level=d.level||'SECONDE';tpGenState.selectedId=d.activityId||'';tpGenState.clientIndex=Math.max(0,(tpGenSelected()?.ressentis||[]).indexOf(d.client));tpGenState.rtaLibraryId=d.rta?.libraryId||'';tpGenState.rtaActivityId=d.rta?.activityId||'';tpGenState.practicalCode=d.practicalSheet?.code||'';tpGenState.practicalSearch='';tpGenState.currentDraftId=d.draftId;tpGeneratorPage();setTimeout(()=>{const set=(id,v)=>{const e=document.getElementById(id);if(e)e.value=v||''};set('tpgen-marque',d.vehicle?.marque);set('tpgen-modele',d.vehicle?.modele);set('tpgen-motor',d.vehicle?.motorisation);set('tpgen-year',d.vehicle?.annee);set('tpgen-km',d.vehicle?.kilometrage);set('tpgen-immat',d.vehicle?.immatriculation);set('tpgen-duration',d.duration);set('tpgen-mission',d.mission);set('tpgen-resources',d.resources);set('tpgen-data',d.technicalData);set('tpgen-risks',d.risks);set('tpgen-controls',d.controls);set('tpgen-env',d.environment);set('tpgen-criteria',d.criteria);tpGenRenderPracticalSheets();},50)}
 function tpGenDraftCard(d){return `<div class="tpgen-draft ${d.draftId===tpGenState.currentDraftId?'is-open':''}"><div><div class="tpgen-draft-title">${esc(d.activity)}${d.draftId===tpGenState.currentDraftId?'<span class="tpgen-draft-badge">OUVERT</span>':''}</div><div class="tpgen-draft-sub">${esc(d.level)} • ${esc(d.className||'Classe non renseignée')} • ${esc(d.vehicle?.marque||'')} ${esc(d.vehicle?.modele||'')} • ${new Date(d.updatedAt||d.createdAt).toLocaleString('fr-FR')}</div></div><div class="tpgen-draft-actions"><button class="tpgen-btn primary" onclick="tpGenOpenDraft('${d.draftId}')">Ouvrir / Modifier</button><button class="tpgen-btn secondary" onclick="tpGenDuplicateDraft('${d.draftId}')">Dupliquer</button><button class="tpgen-btn secondary" onclick="tpGenDeleteDraft('${d.draftId}')">Supprimer</button></div></div>`}
 function tpGenRenderDrafts(){const b=document.getElementById('tpgen-drafts');if(!b)return;const rows=tpGenDrafts();b.innerHTML=rows.length?rows.slice(0,3).map(tpGenDraftCard).join('')+`<div class="tpgen-actions" style="margin-top:10px"><button class="tpgen-btn secondary" onclick="tpGenDraftsPage()">📂 Gérer tous mes brouillons (${rows.length})</button></div>`:'<div class="muted">Aucun brouillon enregistré sur cet appareil.</div>'}
-function tpGenDraftsPage(){setActive('tpGenerator');const rows=tpGenDrafts();document.getElementById('main').innerHTML=`<header class="app-top-header"></header><div class="tpgen-manager-shell"><div class="tpgen-head"><div><h1>📂 Mes TP / Brouillons</h1><p class="muted">Gestion des brouillons enregistrés localement sur cet appareil.</p></div><button class="tpgen-btn secondary" onclick="tpGeneratorPage()">← Retour au générateur</button></div><div class="tpgen-card"><div class="tpgen-meta"><span class="tpgen-pill ok">${rows.length} brouillon(s)</span></div><div style="margin-top:12px">${rows.length?rows.map(tpGenDraftCard).join(''):'<div class="muted">Aucun brouillon enregistré.</div>'}</div></div></div>`}
+function tpGenDraftsPage(){setActive('tpGenerator');const rows=tpGenDrafts();document.getElementById('main').innerHTML=`<header class="app-top-header"></header><div class="tpgen-manager-shell"><div class="tpgen-head"><div><h1>📂 Mes TP / Brouillons</h1><p class="muted">Gestion des brouillons enregistrés localement sur cet appareil.</p></div><button class="tpgen-btn secondary" onclick="tpGeneratorPage()">← Retour au Portail TP</button></div><div class="tpgen-card"><div class="tpgen-meta"><span class="tpgen-pill ok">${rows.length} brouillon(s)</span></div><div style="margin-top:12px">${rows.length?rows.map(tpGenDraftCard).join(''):'<div class="muted">Aucun brouillon enregistré.</div>'}</div></div></div>`}
 function tpGenReset(){tpGenState={level:'SECONDE',search:'',family:'',selectedId:'',clientIndex:0,rtaLibraryId:'',rtaSearch:'',rtaActivityId:'',practicalSearch:'',practicalCode:'',preview:false,currentDraftId:''};tpGeneratorPage()}
 function tpGenPreview(){const d=tpGenCurrentDraft();if(!d){showWarningMessage?.('Choisis d’abord une activité dans la base enseignant validée.');return}tpGenState.preview=true;const box=document.getElementById('tpgen-preview');if(!box)return;box.classList.add('open');box.innerHTML=tpGenPreviewHtml(d);box.scrollIntoView({behavior:'smooth',block:'start'})}
 function tpGenSafeFilename(s){return String(s||'TP').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[<>:"/\\|?*]+/g,' ').replace(/\s+/g,' ').trim().replace(/\.+$/,'').slice(0,180)||'TP'}
@@ -13649,11 +13646,11 @@ function tpGenPreviewHtml(d){const v=d.vehicle||{},rta=d.rta,ps=d.practicalSheet
 <div class="tpgen-sheet charte">${head()}${title(6,'Travail demandé - Bilan de l’intervention à réaliser')}<div class="tpgen-box">À l’aide des documents techniques et des données constructeur, analyser puis justifier les opérations à prévoir.<div class="tpgen-fill tpgen-pdf-marker" data-pdf-field="travail_demande" data-pdf-multiline="1"></div></div><div class="tpgen-wide-block">${title(7,'Données techniques à relever')}<div class="tpgen-box">${esc(d.technicalData)}<div class="tpgen-fill tpgen-pdf-marker" data-pdf-field="donnees_techniques" data-pdf-multiline="1"></div></div></div><div class="tpgen-wide-block">${title(8,"Préparation de l'intervention - Risques")}<div class="tpgen-box">${esc(d.risks)}<div class="tpgen-fill tpgen-pdf-marker" data-pdf-field="preparation_risques" data-pdf-multiline="1"></div></div></div><div class="tpgen-wide-block">${title(9,'Mesure et Contrôle')}<table class="tpgen-table tpgen-wide-table"><thead><tr><th>Contrôle</th><th>Valeur mesurée</th><th>Référence</th><th>Conclusion</th></tr></thead><tbody>${[1,2,3].map((_,ri)=>`<tr>${[1,2,3,4].map((_,ci)=>`<td class="blank tpgen-pdf-marker" data-pdf-field="controle_${ri+1}_${ci+1}"></td>`).join('')}</tr>`).join('')}</tbody></table></div><div class="tpgen-wide-block">${title(10,'Gestion des déchets et environnement')}<div class="tpgen-box">${esc(d.environment||'À compléter selon l’intervention.')}<table class="tpgen-table" style="margin-top:8px"><thead><tr><th>Type de déchet</th><th>Mode de traitement / Filière</th></tr></thead><tbody><tr><td class="blank tpgen-pdf-marker" data-pdf-field="dechet_1_type"></td><td class="blank tpgen-pdf-marker" data-pdf-field="dechet_1_filiere"></td></tr><tr><td class="blank tpgen-pdf-marker" data-pdf-field="dechet_2_type"></td><td class="blank tpgen-pdf-marker" data-pdf-field="dechet_2_filiere"></td></tr></tbody></table></div></div>${foot(2)}</div>
 <div class="tpgen-sheet charte">${head()}${title(11,"Bilan / conclusion de l'élève")}<div class="tpgen-box"><div class="tpgen-fill tpgen-pdf-marker" data-pdf-field="bilan_eleve" data-pdf-multiline="1" style="min-height:120px"></div></div>${title(12,'Appréciation du professeur')}<div class="tpgen-box"><div class="tpgen-fill tpgen-pdf-marker" data-pdf-field="prof_appreciation" data-pdf-multiline="1" data-pdf-readonly="1" style="min-height:95px"></div></div>${title(13,'Évaluation des compétences - professeur')}<table class="tpgen-eval-table"><thead><tr><th>Compétence</th><th class="level l1"></th><th class="level l2"></th><th class="level l3"></th><th class="level l4"></th><th>Observations</th></tr></thead><tbody>${evalRows}</tbody></table><div style="margin-top:10px;font-size:11px"><b>Critères observables :</b> ${esc(d.criteria)}</div><div style="margin-top:8px;font-size:9px;color:#64748b">Les zones professeur sont verrouillées dans le PDF élève et sont destinées à être renseignées depuis le mode enseignant.</div>${foot(3)}</div>`}
 function tpGenStatusClass(s){return s==='Validé enseignant'?'valid':s==='Archivé'?'arch':s==='À modifier'?'edit':'pending'}
-function tpGenManagementPage(){setActive('tpGenerator');const all=tpGenCatalog(),q=tpGenNorm(tpGenManagerState.search),rows=all.filter(x=>!q||tpGenNorm([x.activityId,x.activite,x.famille,x.sequence,x.statut].join(' ')).includes(q));if(!tpGenManagerState.selectedId&&rows[0])tpGenManagerState.selectedId=rows[0].activityId;const a=all.find(x=>x.activityId===tpGenManagerState.selectedId)||rows[0]||null;document.getElementById('main').innerHTML=`<header class="app-top-header"></header><div class="tpgen-manager-shell"><div class="tpgen-head"><div><h1>⚙️ Management du générateur TP</h1><p class="muted">Paramétrage local de la base enseignant. Aucun code de protection dans cette version test.</p></div><div class="tpgen-top-actions"><button class="tpgen-btn secondary" onclick="tpGeneratorPage()">← Retour au générateur</button></div></div><div class="tpgen-manager-grid"><div class="tpgen-card"><h2>Activités de la base enseignant</h2><input style="width:100%;box-sizing:border-box;padding:10px;border:1px solid #cbd5e1;border-radius:9px;margin-bottom:10px" placeholder="Rechercher une activité…" value="${esc(tpGenManagerState.search)}" oninput="tpGenManagerState.search=this.value;tpGenManagementPage()"><div class="tpgen-list" style="max-height:72vh">${rows.map(x=>`<button class="tpgen-item ${a&&x.activityId===a.activityId?'active':''}" onclick="tpGenManagerState.selectedId='${x.activityId}';tpGenManagementPage()"><div class="tpgen-item-title">${esc(x.activite)}</div><div class="tpgen-item-sub">${esc(x.activityId)} • ${esc(x.niveau)} • <span class="tpgen-status ${tpGenStatusClass(x.statut)}">${esc(x.statut)}</span></div></button>`).join('')}</div></div><div>${a?tpGenManagementForm(a):'<div class="tpgen-empty">Aucune activité.</div>'}</div></div></div>`}
+function tpGenManagementPage(){setActive('tpGenerator');const all=tpGenCatalog(),q=tpGenNorm(tpGenManagerState.search),rows=all.filter(x=>!q||tpGenNorm([x.activityId,x.activite,x.famille,x.sequence,x.statut].join(' ')).includes(q));if(!tpGenManagerState.selectedId&&rows[0])tpGenManagerState.selectedId=rows[0].activityId;const a=all.find(x=>x.activityId===tpGenManagerState.selectedId)||rows[0]||null;document.getElementById('main').innerHTML=`<header class="app-top-header"></header><div class="tpgen-manager-shell"><div class="tpgen-head"><div><h1>📤 Portail TP</h1><p class="muted">Paramétrage local de la base enseignant. Aucun code de protection dans cette version test.</p></div><div class="tpgen-top-actions"><button class="tpgen-btn secondary" onclick="tpGeneratorPage()">← Retour au Portail TP</button></div></div><div class="tpgen-manager-grid"><div class="tpgen-card"><h2>Activités de la base enseignant</h2><input style="width:100%;box-sizing:border-box;padding:10px;border:1px solid #cbd5e1;border-radius:9px;margin-bottom:10px" placeholder="Rechercher une activité…" value="${esc(tpGenManagerState.search)}" oninput="tpGenManagerState.search=this.value;tpGenManagementPage()"><div class="tpgen-list" style="max-height:72vh">${rows.map(x=>`<button class="tpgen-item ${a&&x.activityId===a.activityId?'active':''}" onclick="tpGenManagerState.selectedId='${x.activityId}';tpGenManagementPage()"><div class="tpgen-item-title">${esc(x.activite)}</div><div class="tpgen-item-sub">${esc(x.activityId)} • ${esc(x.niveau)} • <span class="tpgen-status ${tpGenStatusClass(x.statut)}">${esc(x.statut)}</span></div></button>`).join('')}</div></div><div>${a?tpGenManagementForm(a):'<div class="tpgen-empty">Aucune activité.</div>'}</div></div></div>`}
 function tpGenManagementForm(a){const r=a.ressentis||['','',''];return `<div class="tpgen-card"><div class="tpgen-meta"><span class="tpgen-pill">${esc(a.activityId)}</span><span class="tpgen-pill">${esc(a.planId)}</span></div><h2 style="margin-top:10px">Modifier l’activité</h2><div class="tpgen-form"><label>Statut<select id="tpm-status"><option ${a.statut==='Validé enseignant'?'selected':''}>Validé enseignant</option><option ${a.statut==='À valider enseignant'?'selected':''}>À valider enseignant</option><option ${a.statut==='À modifier'?'selected':''}>À modifier</option><option ${a.statut==='Archivé'?'selected':''}>Archivé</option></select></label><label>Niveau<input id="tpm-level" value="${esc(a.niveau)}"></label><label class="full">Intitulé<input id="tpm-title" value="${esc(a.activite)}"></label><label>Famille<input id="tpm-family" value="${esc(a.famille)}"></label><label>Type de TP<input id="tpm-type" value="${esc(a.type)}"></label><label>Durée<input id="tpm-duration" value="${esc(a.duree)}"></label><label>Séquence<input id="tpm-sequence" value="${esc(a.sequence)}"></label><label class="full">Ressenti client 1<textarea id="tpm-r1">${esc(r[0]||'')}</textarea></label><label class="full">Ressenti client 2<textarea id="tpm-r2">${esc(r[1]||'')}</textarea></label><label class="full">Ressenti client 3<textarea id="tpm-r3">${esc(r[2]||'')}</textarea></label><label class="full">Mission élève<textarea id="tpm-mission">${esc(a.mission)}</textarea></label><label class="full">Ressources<textarea id="tpm-resources">${esc(a.ressources)}</textarea></label><label class="full">Données techniques<textarea id="tpm-data">${esc(a.donnees)}</textarea></label><label class="full">Sécurité / risques<textarea id="tpm-risks">${esc(a.risques)}</textarea></label><label class="full">Contrôles attendus<textarea id="tpm-controls">${esc(a.controles)}</textarea></label><label class="full">Déchets / environnement<textarea id="tpm-env">${esc(a.environnement||'')}</textarea></label><label class="full">Critères observables<textarea id="tpm-criteria">${esc(a.criteres)}</textarea></label><label class="full">Compétences 2025<textarea id="tpm-comps">${esc(a.competences)}</textarea></label></div><div class="tpgen-actions" style="margin-top:12px"><button class="tpgen-btn secondary" onclick="tpGenManagementRestore('${a.activityId}')">Restaurer la base</button><button class="tpgen-btn green" onclick="tpGenManagementSave('${a.activityId}')">💾 Enregistrer les modifications</button></div></div>`}
 function tpGenManagementSave(id){try{const val=x=>document.getElementById(x)?.value??'';const o=tpGenOverrides();o[id]={statut:val('tpm-status'),niveau:val('tpm-level'),activite:val('tpm-title'),famille:val('tpm-family'),type:val('tpm-type'),duree:val('tpm-duration'),sequence:val('tpm-sequence'),ressentis:[val('tpm-r1'),val('tpm-r2'),val('tpm-r3')],mission:val('tpm-mission'),ressources:val('tpm-resources'),donnees:val('tpm-data'),risques:val('tpm-risks'),controles:val('tpm-controls'),environnement:val('tpm-env'),criteres:val('tpm-criteria'),competences:val('tpm-comps')};localStorage.setItem(TPGEN_OVERRIDE_KEY,JSON.stringify(o));const check=tpGenOverrides()[id];if(!check||check.activite!==o[id].activite||check.statut!==o[id].statut)throw new Error('La modification n’a pas pu être relue après enregistrement.');showSuccessMessage?.('Modifications enregistrées durablement sur cet appareil.');setTimeout(()=>tpGenManagementPage(),250)}catch(e){console.error(e);alert('Impossible d’enregistrer les modifications : '+(e?.message||e))}}
 function tpGenManagementRestore(id){if(!confirm('Restaurer cette activité telle qu’elle se trouve dans la base enseignant d’origine ?'))return;const o=tpGenOverrides();delete o[id];localStorage.setItem(TPGEN_OVERRIDE_KEY,JSON.stringify(o));tpGenManagementPage()}
-function tpGeneratorPage(){setActive('tpGenerator');const cls=typeof activeClassName==='function'?activeClassName():(getSchoolSettings?.().className||'');const teacher=getSchoolSettings?.().teacherName||'';const activeRef=typeof getActiveReferentialId==='function'?getActiveReferentialId():'';const isBac=String(activeRef).toLowerCase().includes('bac');const a=tpGenSelected();const families=tpGenUnique('famille',tpGenState.level);const libs=tpGenRtaLibraries();const validated=tpGenCatalog().filter(x=>x.statut==='Validé enseignant').length;document.getElementById('main').innerHTML=`<header class="app-top-header"></header><div class="tpgen-shell"><div class="tpgen-head"><div><h1>🧰 Génération de TP</h1><p class="muted">Création guidée depuis la base maître enseignant, avec ressources RTA ou fiches pratiques et compétences Bac Pro MV 2025.</p></div><div class="tpgen-top-actions"><button class="tpgen-btn secondary" onclick="tpGenManagementPage()">⚙️ Management du générateur TP</button><div class="tpgen-local">☁ FIREBASE MULTIPOSTE • sauvegarde locale conservée</div></div></div><div class="tpgen-stepbar"><div class="tpgen-step"><b>1</b>Contexte</div><div class="tpgen-step"><b>2</b>Activité validée</div><div class="tpgen-step"><b>3</b>Ressenti client</div><div class="tpgen-step"><b>4</b>Véhicule / Ressource</div><div class="tpgen-step"><b>5</b>Aperçu TP</div></div>${!isBac?`<div class="tpgen-card" style="border-left:5px solid #d97706"><b>⚠ Base disponible dans cette version test : Bac Pro Maintenance des Véhicules 2025.</b></div>`:''}<div class="tpgen-grid"><div class="tpgen-editor"><div class="tpgen-card"><h2>1. Contexte</h2><div class="tpgen-meta"><span class="tpgen-pill">Classe : ${esc(cls||'—')}</span><span class="tpgen-pill">Professeur : ${esc(teacher||'—')}</span><span class="tpgen-pill">Année scolaire : ${tpGenSchoolYear()}</span><span class="tpgen-pill ok">${validated} activités validées enseignant</span></div><div class="tpgen-form" style="margin-top:12px"><label>Niveau<select onchange="tpGenSetLevel(this.value)"><option value="DEBUTANT" ${tpGenState.level==='DEBUTANT'?'selected':''}>Débutant</option><option value="SECONDE" ${tpGenState.level==='SECONDE'?'selected':''}>Seconde</option><option value="PREMIERE" ${tpGenState.level==='PREMIERE'?'selected':''}>Première</option><option value="TERMINALE" ${tpGenState.level==='TERMINALE'?'selected':''}>Terminale</option></select></label><label>Diplôme<input value="${tpGenState.level==='DEBUTANT'?'CAP / Bac Pro — Positionnement de rentrée':'Bac Pro Maintenance des Véhicules — Référentiel 2025'}" readonly></label></div></div><div class="tpgen-card"><h2>2. Activité issue de la base enseignant</h2><div class="tpgen-searchrow"><input id="tpgen-search" placeholder="Rechercher : vidange, freinage, diagnostic…" value="${esc(tpGenState.search)}" oninput="tpGenSetSearch(this.value)"><select onchange="tpGenSetFamily(this.value)"><option value="">Toutes les familles</option>${families.map(f=>`<option value="${esc(f)}" ${f===tpGenState.family?'selected':''}>${esc(f)}</option>`).join('')}</select><select disabled><option>Statut : Validé enseignant</option></select></div><div id="tpgen-count" class="tpgen-count"></div><div id="tpgen-activity-list" class="tpgen-list"></div></div></div><div>${a?`<div class="tpgen-card"><div class="tpgen-meta"><span class="tpgen-pill ok">✓ ${esc(a.statut)}</span><span class="tpgen-pill">${esc(a.sequence)}</span><span class="tpgen-pill">${esc(a.type)}</span><span class="tpgen-pill">${esc(a.duree)}</span></div><h2 style="margin-top:10px">${esc(a.activite)}</h2><div class="muted">Source plan : ${esc(a.source)} • ${esc(a.planId)} • ${esc(a.activityId)}</div></div><div class="tpgen-card"><h2>3. Ressenti client</h2><p class="muted">Clique directement sur la formulation souhaitée.</p><div class="tpgen-client">${a.ressentis.map((r,i)=>`<label class="${i===tpGenState.clientIndex?'selected':''}" onclick="tpGenSelectClient(${i})"><input type="radio" name="tpgen-client" ${i===tpGenState.clientIndex?'checked':''}><span><b>Proposition ${i+1}</b><br>${esc(r)}</span></label>`).join('')}</div></div><div class="tpgen-card"><h2>4. Véhicule support et ressource</h2><div class="tpgen-form"><label>Marque<input id="tpgen-marque" placeholder="Ex. Renault"></label><label>Modèle<input id="tpgen-modele" placeholder="Ex. Clio IV"></label><label>Immatriculation<input id="tpgen-immat" placeholder="AA-123-BB"></label><label>Année<input id="tpgen-year" placeholder="Ex. 2018"></label><label>Motorisation<input id="tpgen-motor" placeholder="Ex. 1.5 dCi K9K"></label><label>Kilométrage<input id="tpgen-km" placeholder="Ex. 86 500 km"></label><label>Durée<input id="tpgen-duration" value="${esc(a.duree)}"></label><label>Bibliothèque RTA<select onchange="tpGenSetRtaLibrary(this.value)"><option value="">— Sans RTA —</option>${libs.map(l=>`<option value="${esc(l.id)}" ${String(l.id)===String(tpGenState.rtaLibraryId)?'selected':''}>${esc(l.name)}</option>`).join('')}</select></label>${tpGenState.rtaLibraryId?`<label class="full">Recherche dans la RTA<input id="tpgen-rta-search" placeholder="Ex. vidange K9K, freinage, alternateur…" value="${esc(tpGenState.rtaSearch)}" oninput="tpGenSetRtaSearch(this.value)"></label><label class="full">Rubrique / activité RTA<select id="tpgen-rta-activity" onchange="tpGenSetRtaActivity(this.value)"></select><span id="tpgen-rta-count" class="tpgen-count"></span></label>`:''}</div><div id="tpgen-rta-info"></div>${!tpGenState.rtaLibraryId?`<div class="tpgen-resource-panel"><h3 style="margin:0 0 8px">📘 Ressource de remplacement — 63 fiches pratiques</h3><div class="muted" style="margin-bottom:8px">Si aucune RTA adaptée n’est disponible, sélectionne une fiche pratique comme ressource pédagogique.</div><div class="tpgen-resource-row"><label>Rechercher une fiche<input value="${esc(tpGenState.practicalSearch)}" placeholder="Ex. vidange, multimètre, freinage…" oninput="tpGenSetPracticalSearch(this.value)"></label><label>Fiche pratique<select id="tpgen-practical-sheet" onchange="tpGenSetPracticalSheet(this.value)"></select><span id="tpgen-practical-count" class="tpgen-count"></span></label></div><div id="tpgen-practical-info" class="tpgen-resource-info"></div></div>`:''}</div><div class="tpgen-card"><h2>5. Contenu pédagogique généré</h2><div class="tpgen-form"><label class="full">Mission élève<textarea id="tpgen-mission">${esc(a.mission)}</textarea></label><label class="full">Ressources à associer<textarea id="tpgen-resources">${esc(a.ressources)}</textarea></label><label class="full">Données techniques à rechercher<textarea id="tpgen-data">${esc(a.donnees)}</textarea></label><label class="full">Sécurité / risques<textarea id="tpgen-risks">${esc(a.risques)}</textarea></label><label class="full">Contrôles attendus<textarea id="tpgen-controls">${esc(a.controles)}</textarea></label><label class="full">Déchets / environnement<textarea id="tpgen-env">${esc(a.environnement||'')}</textarea></label><label class="full">Critères observables<textarea id="tpgen-criteria">${esc(a.criteres)}</textarea></label></div><h3 style="margin-top:14px">Compétences rattachées — Référentiel Bac Pro MV 2025</h3><div class="tpgen-comp-list">${tpGenCompetenceCards(a.competences)}</div></div><div class="tpgen-card"><div class="tpgen-actions"><button class="tpgen-btn secondary" onclick="tpGenReset()">Réinitialiser</button><button class="tpgen-btn green" onclick="tpGenSaveDraft('new')">💾 Enregistrer comme nouveau brouillon</button>${tpGenState.currentDraftId?`<button class="tpgen-btn secondary" onclick="tpGenSaveDraft('update')">↻ Mettre à jour ce brouillon</button>`:''}<button class="tpgen-btn primary" onclick="tpGenPreview()">👁️ Générer l’aperçu du TP</button><button class="tpgen-btn purple" onclick="tpGenOpenClassExport()">📦 Générer les TP de la classe</button></div></div><div class="tpgen-card"><h2>Derniers TP / Brouillons</h2><p class="muted">Les 3 derniers brouillons sont affichés ici. Utilise la vue dédiée pour gérer l’ensemble.</p><div id="tpgen-drafts" class="tpgen-drafts"></div></div>`:`<div class="tpgen-empty"><h3>Choisis une activité validée</h3><p>La partie droite affichera automatiquement le contexte pédagogique, les ressources et les compétences 2025.</p></div>`}</div></div><div id="tpgen-preview" class="tpgen-preview"></div></div>`;tpGenRenderActivityList();setTimeout(()=>{if(a){if(tpGenState.rtaLibraryId){tpGenRenderRtaActivities();tpGenRenderRtaActivityInfo()}else{tpGenRenderRtaActivityInfo();tpGenRenderPracticalSheets()}}tpGenRenderDrafts()},0)}
+function tpGeneratorPage(){setActive('tpGenerator');const cls=typeof activeClassName==='function'?activeClassName():(getSchoolSettings?.().className||'');const teacher=getSchoolSettings?.().teacherName||'';const activeRef=typeof getActiveReferentialId==='function'?getActiveReferentialId():'';const isBac=String(activeRef).toLowerCase().includes('bac');const a=tpGenSelected();const families=tpGenUnique('famille',tpGenState.level);const libs=tpGenRtaLibraries();const validated=tpGenCatalog().filter(x=>x.statut==='Validé enseignant').length;document.getElementById('main').innerHTML=`<header class="app-top-header"></header><div class="tpgen-shell"><div class="tpgen-head"><div><h1>📤 Portail TP</h1><p class="muted">Diffusion, import et suivi des travaux pratiques.</p></div><div class="tpgen-top-actions"><button class="tpgen-btn secondary" onclick="tpGenManagementPage()">📤 Portail TP</button><div class="tpgen-local">☁ FIREBASE MULTIPOSTE • sauvegarde locale conservée</div></div></div><div class="tpgen-stepbar"><div class="tpgen-step"><b>1</b>Contexte</div><div class="tpgen-step"><b>2</b>Activité validée</div><div class="tpgen-step"><b>3</b>Ressenti client</div><div class="tpgen-step"><b>4</b>Véhicule / Ressource</div><div class="tpgen-step"><b>5</b>Aperçu TP</div></div>${!isBac?`<div class="tpgen-card" style="border-left:5px solid #d97706"><b>⚠ Base disponible dans cette version test : Bac Pro Maintenance des Véhicules 2025.</b></div>`:''}<div class="tpgen-grid"><div class="tpgen-editor"><div class="tpgen-card"><h2>1. Contexte</h2><div class="tpgen-meta"><span class="tpgen-pill">Classe : ${esc(cls||'—')}</span><span class="tpgen-pill">Professeur : ${esc(teacher||'—')}</span><span class="tpgen-pill">Année scolaire : ${tpGenSchoolYear()}</span><span class="tpgen-pill ok">${validated} activités validées enseignant</span></div><div class="tpgen-form" style="margin-top:12px"><label>Niveau<select onchange="tpGenSetLevel(this.value)"><option value="DEBUTANT" ${tpGenState.level==='DEBUTANT'?'selected':''}>Débutant</option><option value="SECONDE" ${tpGenState.level==='SECONDE'?'selected':''}>Seconde</option><option value="PREMIERE" ${tpGenState.level==='PREMIERE'?'selected':''}>Première</option><option value="TERMINALE" ${tpGenState.level==='TERMINALE'?'selected':''}>Terminale</option></select></label><label>Diplôme<input value="${tpGenState.level==='DEBUTANT'?'CAP / Bac Pro — Positionnement de rentrée':'Bac Pro Maintenance des Véhicules — Référentiel 2025'}" readonly></label></div></div><div class="tpgen-card"><h2>2. Activité issue de la base enseignant</h2><div class="tpgen-searchrow"><input id="tpgen-search" placeholder="Rechercher : vidange, freinage, diagnostic…" value="${esc(tpGenState.search)}" oninput="tpGenSetSearch(this.value)"><select onchange="tpGenSetFamily(this.value)"><option value="">Toutes les familles</option>${families.map(f=>`<option value="${esc(f)}" ${f===tpGenState.family?'selected':''}>${esc(f)}</option>`).join('')}</select><select disabled><option>Statut : Validé enseignant</option></select></div><div id="tpgen-count" class="tpgen-count"></div><div id="tpgen-activity-list" class="tpgen-list"></div></div></div><div>${a?`<div class="tpgen-card"><div class="tpgen-meta"><span class="tpgen-pill ok">✓ ${esc(a.statut)}</span><span class="tpgen-pill">${esc(a.sequence)}</span><span class="tpgen-pill">${esc(a.type)}</span><span class="tpgen-pill">${esc(a.duree)}</span></div><h2 style="margin-top:10px">${esc(a.activite)}</h2><div class="muted">Source plan : ${esc(a.source)} • ${esc(a.planId)} • ${esc(a.activityId)}</div></div><div class="tpgen-card"><h2>3. Ressenti client</h2><p class="muted">Clique directement sur la formulation souhaitée.</p><div class="tpgen-client">${a.ressentis.map((r,i)=>`<label class="${i===tpGenState.clientIndex?'selected':''}" onclick="tpGenSelectClient(${i})"><input type="radio" name="tpgen-client" ${i===tpGenState.clientIndex?'checked':''}><span><b>Proposition ${i+1}</b><br>${esc(r)}</span></label>`).join('')}</div></div><div class="tpgen-card"><h2>4. Véhicule support et ressource</h2><div class="tpgen-form"><label>Marque<input id="tpgen-marque" placeholder="Ex. Renault"></label><label>Modèle<input id="tpgen-modele" placeholder="Ex. Clio IV"></label><label>Immatriculation<input id="tpgen-immat" placeholder="AA-123-BB"></label><label>Année<input id="tpgen-year" placeholder="Ex. 2018"></label><label>Motorisation<input id="tpgen-motor" placeholder="Ex. 1.5 dCi K9K"></label><label>Kilométrage<input id="tpgen-km" placeholder="Ex. 86 500 km"></label><label>Durée<input id="tpgen-duration" value="${esc(a.duree)}"></label><label>Bibliothèque RTA<select onchange="tpGenSetRtaLibrary(this.value)"><option value="">— Sans RTA —</option>${libs.map(l=>`<option value="${esc(l.id)}" ${String(l.id)===String(tpGenState.rtaLibraryId)?'selected':''}>${esc(l.name)}</option>`).join('')}</select></label>${tpGenState.rtaLibraryId?`<label class="full">Recherche dans la RTA<input id="tpgen-rta-search" placeholder="Ex. vidange K9K, freinage, alternateur…" value="${esc(tpGenState.rtaSearch)}" oninput="tpGenSetRtaSearch(this.value)"></label><label class="full">Rubrique / activité RTA<select id="tpgen-rta-activity" onchange="tpGenSetRtaActivity(this.value)"></select><span id="tpgen-rta-count" class="tpgen-count"></span></label>`:''}</div><div id="tpgen-rta-info"></div>${!tpGenState.rtaLibraryId?`<div class="tpgen-resource-panel"><h3 style="margin:0 0 8px">📘 Ressource de remplacement — 63 fiches pratiques</h3><div class="muted" style="margin-bottom:8px">Si aucune RTA adaptée n’est disponible, sélectionne une fiche pratique comme ressource pédagogique.</div><div class="tpgen-resource-row"><label>Rechercher une fiche<input value="${esc(tpGenState.practicalSearch)}" placeholder="Ex. vidange, multimètre, freinage…" oninput="tpGenSetPracticalSearch(this.value)"></label><label>Fiche pratique<select id="tpgen-practical-sheet" onchange="tpGenSetPracticalSheet(this.value)"></select><span id="tpgen-practical-count" class="tpgen-count"></span></label></div><div id="tpgen-practical-info" class="tpgen-resource-info"></div></div>`:''}</div><div class="tpgen-card"><h2>5. Contenu pédagogique généré</h2><div class="tpgen-form"><label class="full">Mission élève<textarea id="tpgen-mission">${esc(a.mission)}</textarea></label><label class="full">Ressources à associer<textarea id="tpgen-resources">${esc(a.ressources)}</textarea></label><label class="full">Données techniques à rechercher<textarea id="tpgen-data">${esc(a.donnees)}</textarea></label><label class="full">Sécurité / risques<textarea id="tpgen-risks">${esc(a.risques)}</textarea></label><label class="full">Contrôles attendus<textarea id="tpgen-controls">${esc(a.controles)}</textarea></label><label class="full">Déchets / environnement<textarea id="tpgen-env">${esc(a.environnement||'')}</textarea></label><label class="full">Critères observables<textarea id="tpgen-criteria">${esc(a.criteres)}</textarea></label></div><h3 style="margin-top:14px">Compétences rattachées — Référentiel Bac Pro MV 2025</h3><div class="tpgen-comp-list">${tpGenCompetenceCards(a.competences)}</div></div><div class="tpgen-card"><div class="tpgen-actions"><button class="tpgen-btn secondary" onclick="tpGenReset()">Réinitialiser</button><button class="tpgen-btn green" onclick="tpGenSaveDraft('new')">💾 Enregistrer comme nouveau brouillon</button>${tpGenState.currentDraftId?`<button class="tpgen-btn secondary" onclick="tpGenSaveDraft('update')">↻ Mettre à jour ce brouillon</button>`:''}<button class="tpgen-btn primary" onclick="tpGenPreview()">👁️ Générer l’aperçu du TP</button><button class="tpgen-btn purple" onclick="tpGenOpenClassExport()">📦 Générer les TP de la classe</button></div></div><div class="tpgen-card"><h2>Derniers TP / Brouillons</h2><p class="muted">Les 3 derniers brouillons sont affichés ici. Utilise la vue dédiée pour gérer l’ensemble.</p><div id="tpgen-drafts" class="tpgen-drafts"></div></div>`:`<div class="tpgen-empty"><h3>Choisis une activité validée</h3><p>La partie droite affichera automatiquement le contexte pédagogique, les ressources et les compétences 2025.</p></div>`}</div></div><div id="tpgen-preview" class="tpgen-preview"></div></div>`;tpGenRenderActivityList();setTimeout(()=>{if(a){if(tpGenState.rtaLibraryId){tpGenRenderRtaActivities();tpGenRenderRtaActivityInfo()}else{tpGenRenderRtaActivityInfo();tpGenRenderPracticalSheets()}}tpGenRenderDrafts()},0)}
 
 
 /* ===== V7 — Export TP par classe ===== */
@@ -13740,7 +13737,7 @@ window.tpGenSaveDraft=function(mode='new'){const d=tpGenCurrentDraft();if(!d){sh
 window.tpGenReset=function(){tpGenState={level:'SECONDE',search:'',family:'',selectedId:'',clientIndex:0,rtaLibraryId:'',rtaSearch:'',rtaActivityId:'',practicalSearch:'',practicalCode:'',preview:false,currentDraftId:'',mode:'base',supportType:'vehicle',currentSavedId:'',savedLocked:false,custom:{number:'',family:'Personnalisé',title:'',client:'',mission:'',resources:'',technicalData:'',risks:'',controls:'',environment:'',criteria:'',competencies:[]}};state();tpGeneratorPage()};
 window.tpGenApplySavedLock=function(){if(!tpGenState.savedLocked)return;document.querySelectorAll('.tpgen-grid input,.tpgen-grid textarea,.tpgen-grid select').forEach(e=>e.disabled=true)};
 function baseUI(){if(tpGenState.mode==='custom')return customUI();const fam=tpGenUnique('famille',tpGenState.level);return`<div class="tpgen-card"><h2>2. Activité issue de la base enseignant</h2><div class="tpgen-searchrow"><input id="tpgen-search" placeholder="Rechercher…" value="${esc(tpGenState.search)}" oninput="tpGenSetSearch(this.value)"><select onchange="tpGenSetFamily(this.value)"><option value="">Toutes les familles</option>${fam.map(f=>`<option value="${esc(f)}" ${f===tpGenState.family?'selected':''}>${esc(f)}</option>`).join('')}</select></div><div id="tpgen-count" class="tpgen-count"></div><div id="tpgen-activity-list" class="tpgen-list"></div></div>`}
-window.tpGeneratorPage=function(){state();setActive('tpGenerator');const cls=activeClassName?.()||'',teacher=getSchoolSettings?.().teacherName||'',a=tpGenSelected(),libs=tpGenRtaLibraries();document.getElementById('main').innerHTML=`<header class="app-top-header"></header><div class="tpgen-shell"><div class="tpgen-head"><div><h1>🧰 Génération de TP</h1><p class="muted">Base enseignant ou TP personnalisé • support véhicule / maquette / autre • diffusion après verrouillage.</p></div><div class="tpgen-top-actions"><button class="tpgen-btn primary" onclick="tpGenSavedPage()">✅ Mes TP enregistrés</button><button class="tpgen-btn secondary" onclick="tpGenManagementPage()">⚙️ Management du générateur TP</button></div></div>${tpGenState.savedLocked?'<div class="tpgen-lock-note">🔒 TP verrouillé : prêt à diffuser. Les champs sont protégés.</div>':''}<div class="tpgen-card"><h2>1. Contexte</h2><div class="tpgen-meta"><span class="tpgen-pill">Classe : ${esc(cls||'—')}</span><span class="tpgen-pill">Professeur : ${esc(teacher||'—')}</span><span class="tpgen-pill">Année : ${tpGenSchoolYear()}</span></div><div class="tpgen-form" style="margin-top:10px"><label>Niveau<select onchange="tpGenSetLevel(this.value)"><option value="DEBUTANT" ${tpGenState.level==='DEBUTANT'?'selected':''}>Débutant</option><option value="SECONDE" ${tpGenState.level==='SECONDE'?'selected':''}>Seconde</option><option value="PREMIERE" ${tpGenState.level==='PREMIERE'?'selected':''}>Première</option><option value="TERMINALE" ${tpGenState.level==='TERMINALE'?'selected':''}>Terminale</option></select></label><label>Diplôme<input value="${tpGenState.level==='DEBUTANT'?'CAP / Bac Pro — Positionnement de rentrée':'Bac Pro Maintenance des Véhicules — Référentiel 2025'}" readonly></label></div><div class="tpgen-mode-switch"><button class="tpgen-btn ${tpGenState.mode==='base'?'active':'secondary'}" onclick="tpGenSetMode('base')">📚 Base enseignant</button><button class="tpgen-btn ${tpGenState.mode==='custom'?'active':'secondary'}" onclick="tpGenSetMode('custom')">✨ TP personnalisé</button></div></div>${codesPanel()}<div class="tpgen-grid"><div class="tpgen-editor">${baseUI()}</div><div>${a?`<div class="tpgen-card"><div class="tpgen-meta"><span class="tpgen-pill">${esc(tpGenTpCode({activityId:a.activityId,family:a.famille}))}</span><span class="tpgen-pill">${esc(a.type)}</span></div><h2>${esc(a.activite)}</h2></div><div class="tpgen-card"><h2>3. Ressenti client</h2>${tpGenState.mode==='custom'?`<div>${esc(a.ressentis[0]||'')}</div>`:`<div class="tpgen-client">${a.ressentis.map((r,i)=>`<label class="${i===tpGenState.clientIndex?'selected':''}" onclick="tpGenSelectClient(${i})"><input type="radio" ${i===tpGenState.clientIndex?'checked':''}><span><b>Proposition ${i+1}</b><br>${esc(r)}</span></label>`).join('')}</div>`}</div><div class="tpgen-card"><h2>4. Support et ressources</h2>${supportUI()}<div class="tpgen-form" style="margin-top:10px"><label>Durée<input id="tpgen-duration" value="${esc(a.duree||'2 h')}"></label><label>Bibliothèque RTA<select onchange="tpGenSetRtaLibrary(this.value)"><option value="">— Sans RTA —</option>${libs.map(l=>`<option value="${esc(l.id)}" ${String(l.id)===String(tpGenState.rtaLibraryId)?'selected':''}>${esc(l.name)}</option>`).join('')}</select></label>${tpGenState.rtaLibraryId?`<label class="full">Recherche dans la RTA<input id="tpgen-rta-search" value="${esc(tpGenState.rtaSearch)}" oninput="tpGenSetRtaSearch(this.value)"></label><label class="full">Rubrique RTA<select id="tpgen-rta-activity" onchange="tpGenSetRtaActivity(this.value)"></select><span id="tpgen-rta-count" class="tpgen-count"></span></label>`:''}</div><div id="tpgen-rta-info"></div>${!tpGenState.rtaLibraryId?`<div class="tpgen-resource-panel"><h3>📘 Ressource de remplacement — 63 fiches pratiques</h3><div class="tpgen-resource-row"><label>Rechercher<input value="${esc(tpGenState.practicalSearch)}" oninput="tpGenSetPracticalSearch(this.value)"></label><label>Fiche pratique<select id="tpgen-practical-sheet" onchange="tpGenSetPracticalSheet(this.value)"></select><span id="tpgen-practical-count" class="tpgen-count"></span></label></div><div id="tpgen-practical-info"></div></div>`:''}</div><div class="tpgen-card"><h2>5. Contenu pédagogique</h2><div class="tpgen-form"><label class="full">Mission élève<textarea id="tpgen-mission">${esc(a.mission)}</textarea></label><label class="full">Ressources<textarea id="tpgen-resources">${esc(a.ressources)}</textarea></label><label class="full">Données techniques<textarea id="tpgen-data">${esc(a.donnees)}</textarea></label><label class="full">Sécurité / risques<textarea id="tpgen-risks">${esc(a.risques)}</textarea></label><label class="full">Contrôles attendus<textarea id="tpgen-controls">${esc(a.controles)}</textarea></label><label class="full">Déchets / environnement<textarea id="tpgen-env">${esc(a.environnement||'')}</textarea></label><label class="full">Critères observables${tpGenState.mode==='custom'?' — libres':''}<textarea id="tpgen-criteria">${esc(a.criteres)}</textarea></label></div><h3>Compétences rattachées</h3><div class="tpgen-comp-list">${tpGenCompetenceCards(a.competences)}</div></div><div class="tpgen-card"><div class="tpgen-actions"><button class="tpgen-btn secondary" onclick="tpGenReset()">Réinitialiser</button><button class="tpgen-btn green" onclick="return window.tpGenTestAction('draft')">💾 Nouveau brouillon</button>${tpGenState.currentDraftId?'<button class="tpgen-btn secondary" onclick="tpGenSaveDraft(\'update\')">↻ Mettre à jour le brouillon</button>':''}<button class="tpgen-btn primary" onclick="return window.tpGenTestAction('save')">✅ ${tpGenState.currentSavedId?'Mettre à jour le TP':'Enregistrer le TP'}</button><button class="tpgen-btn secondary" onclick="return window.tpGenTestAction('preview')">👁️ Aperçu</button></div></div><div class="tpgen-card"><h2>Derniers brouillons</h2><div id="tpgen-drafts"></div></div>`:`<div class="tpgen-empty"><h3>${tpGenState.mode==='custom'?'Renseigne ton TP personnalisé':'Choisis une activité validée'}</h3></div>`}</div></div><div id="tpgen-preview" class="tpgen-preview"></div></div>`;if(tpGenState.mode==='base')tpGenRenderActivityList();setTimeout(()=>{if(a){if(tpGenState.rtaLibraryId){tpGenRenderRtaActivities();tpGenRenderRtaActivityInfo()}else{tpGenRenderRtaActivityInfo();tpGenRenderPracticalSheets()}}tpGenRenderDrafts();tpGenApplySavedLock()},0)};
+window.tpGeneratorPage=function(){state();setActive('tpGenerator');const cls=activeClassName?.()||'',teacher=getSchoolSettings?.().teacherName||'',a=tpGenSelected(),libs=tpGenRtaLibraries();document.getElementById('main').innerHTML=`<header class="app-top-header"></header><div class="tpgen-shell"><div class="tpgen-head"><div><h1>📤 Portail TP</h1><p class="muted">Diffusion, import et suivi des travaux pratiques.</p></div><div class="tpgen-top-actions"><button class="tpgen-btn primary" onclick="tpGenSavedPage()">✅ Mes TP enregistrés</button><button class="tpgen-btn secondary" onclick="tpGenManagementPage()">📤 Portail TP</button></div></div>${tpGenState.savedLocked?'<div class="tpgen-lock-note">🔒 TP verrouillé : prêt à diffuser. Les champs sont protégés.</div>':''}<div class="tpgen-card"><h2>1. Contexte</h2><div class="tpgen-meta"><span class="tpgen-pill">Classe : ${esc(cls||'—')}</span><span class="tpgen-pill">Professeur : ${esc(teacher||'—')}</span><span class="tpgen-pill">Année : ${tpGenSchoolYear()}</span></div><div class="tpgen-form" style="margin-top:10px"><label>Niveau<select onchange="tpGenSetLevel(this.value)"><option value="DEBUTANT" ${tpGenState.level==='DEBUTANT'?'selected':''}>Débutant</option><option value="SECONDE" ${tpGenState.level==='SECONDE'?'selected':''}>Seconde</option><option value="PREMIERE" ${tpGenState.level==='PREMIERE'?'selected':''}>Première</option><option value="TERMINALE" ${tpGenState.level==='TERMINALE'?'selected':''}>Terminale</option></select></label><label>Diplôme<input value="${tpGenState.level==='DEBUTANT'?'CAP / Bac Pro — Positionnement de rentrée':'Bac Pro Maintenance des Véhicules — Référentiel 2025'}" readonly></label></div><div class="tpgen-mode-switch"><button class="tpgen-btn ${tpGenState.mode==='base'?'active':'secondary'}" onclick="tpGenSetMode('base')">📚 Base enseignant</button><button class="tpgen-btn ${tpGenState.mode==='custom'?'active':'secondary'}" onclick="tpGenSetMode('custom')">✨ TP personnalisé</button></div></div>${codesPanel()}<div class="tpgen-grid"><div class="tpgen-editor">${baseUI()}</div><div>${a?`<div class="tpgen-card"><div class="tpgen-meta"><span class="tpgen-pill">${esc(tpGenTpCode({activityId:a.activityId,family:a.famille}))}</span><span class="tpgen-pill">${esc(a.type)}</span></div><h2>${esc(a.activite)}</h2></div><div class="tpgen-card"><h2>3. Ressenti client</h2>${tpGenState.mode==='custom'?`<div>${esc(a.ressentis[0]||'')}</div>`:`<div class="tpgen-client">${a.ressentis.map((r,i)=>`<label class="${i===tpGenState.clientIndex?'selected':''}" onclick="tpGenSelectClient(${i})"><input type="radio" ${i===tpGenState.clientIndex?'checked':''}><span><b>Proposition ${i+1}</b><br>${esc(r)}</span></label>`).join('')}</div>`}</div><div class="tpgen-card"><h2>4. Support et ressources</h2>${supportUI()}<div class="tpgen-form" style="margin-top:10px"><label>Durée<input id="tpgen-duration" value="${esc(a.duree||'2 h')}"></label><label>Bibliothèque RTA<select onchange="tpGenSetRtaLibrary(this.value)"><option value="">— Sans RTA —</option>${libs.map(l=>`<option value="${esc(l.id)}" ${String(l.id)===String(tpGenState.rtaLibraryId)?'selected':''}>${esc(l.name)}</option>`).join('')}</select></label>${tpGenState.rtaLibraryId?`<label class="full">Recherche dans la RTA<input id="tpgen-rta-search" value="${esc(tpGenState.rtaSearch)}" oninput="tpGenSetRtaSearch(this.value)"></label><label class="full">Rubrique RTA<select id="tpgen-rta-activity" onchange="tpGenSetRtaActivity(this.value)"></select><span id="tpgen-rta-count" class="tpgen-count"></span></label>`:''}</div><div id="tpgen-rta-info"></div>${!tpGenState.rtaLibraryId?`<div class="tpgen-resource-panel"><h3>📘 Ressource de remplacement — 63 fiches pratiques</h3><div class="tpgen-resource-row"><label>Rechercher<input value="${esc(tpGenState.practicalSearch)}" oninput="tpGenSetPracticalSearch(this.value)"></label><label>Fiche pratique<select id="tpgen-practical-sheet" onchange="tpGenSetPracticalSheet(this.value)"></select><span id="tpgen-practical-count" class="tpgen-count"></span></label></div><div id="tpgen-practical-info"></div></div>`:''}</div><div class="tpgen-card"><h2>5. Contenu pédagogique</h2><div class="tpgen-form"><label class="full">Mission élève<textarea id="tpgen-mission">${esc(a.mission)}</textarea></label><label class="full">Ressources<textarea id="tpgen-resources">${esc(a.ressources)}</textarea></label><label class="full">Données techniques<textarea id="tpgen-data">${esc(a.donnees)}</textarea></label><label class="full">Sécurité / risques<textarea id="tpgen-risks">${esc(a.risques)}</textarea></label><label class="full">Contrôles attendus<textarea id="tpgen-controls">${esc(a.controles)}</textarea></label><label class="full">Déchets / environnement<textarea id="tpgen-env">${esc(a.environnement||'')}</textarea></label><label class="full">Critères observables${tpGenState.mode==='custom'?' — libres':''}<textarea id="tpgen-criteria">${esc(a.criteres)}</textarea></label></div><h3>Compétences rattachées</h3><div class="tpgen-comp-list">${tpGenCompetenceCards(a.competences)}</div></div><div class="tpgen-card"><div class="tpgen-actions"><button class="tpgen-btn secondary" onclick="tpGenReset()">Réinitialiser</button><button class="tpgen-btn green" onclick="return window.tpGenTestAction('draft')">💾 Nouveau brouillon</button>${tpGenState.currentDraftId?'<button class="tpgen-btn secondary" onclick="tpGenSaveDraft(\'update\')">↻ Mettre à jour le brouillon</button>':''}<button class="tpgen-btn primary" onclick="return window.tpGenTestAction('save')">✅ ${tpGenState.currentSavedId?'Mettre à jour le TP':'Enregistrer le TP'}</button><button class="tpgen-btn secondary" onclick="return window.tpGenTestAction('preview')">👁️ Aperçu</button></div></div><div class="tpgen-card"><h2>Derniers brouillons</h2><div id="tpgen-drafts"></div></div>`:`<div class="tpgen-empty"><h3>${tpGenState.mode==='custom'?'Renseigne ton TP personnalisé':'Choisis une activité validée'}</h3></div>`}</div></div><div id="tpgen-preview" class="tpgen-preview"></div></div>`;if(tpGenState.mode==='base')tpGenRenderActivityList();setTimeout(()=>{if(a){if(tpGenState.rtaLibraryId){tpGenRenderRtaActivities();tpGenRenderRtaActivityInfo()}else{tpGenRenderRtaActivityInfo();tpGenRenderPracticalSheets()}}tpGenRenderDrafts();tpGenApplySavedLock()},0)};
 window.tpGenLockedSnapshot=function(){const id=String(tpGenState.currentSavedId||window.__tpDiffusionSavedId||'');if(!id)return null;const x=readSaved().find(r=>String(r.savedId||'')===id);if(!x||!x.locked||!x.snapshot)return null;return JSON.parse(JSON.stringify(x.snapshot))}
 window.tpGenOpenClassExport=function(){const d=window.tpGenLockedSnapshot();if(!d){showWarningMessage?.('Enregistre puis verrouille le TP avant diffusion.');return}const list=tpGenClassStudents(),codes=readCodes();if(list.some(st=>!codes[String(st.id)])){showWarningMessage?.('Des élèves n’ont pas encore de code d’accès.');return}document.getElementById('tpgen-class-export-modal')?.remove();const w=document.createElement('div');w.id='tpgen-class-export-modal';w.className='tpgen-class-modal';w.innerHTML=`<div class="tpgen-class-dialog"><div class="tpgen-class-head"><div><h2>📦 Diffuser le TP verrouillé</h2><div class="muted"><b>${esc(d.className||activeClassName())}</b> • ${esc(tpGenTpCode(d))}</div></div><button class="tpgen-class-close" onclick="tpGenCloseClassExport()">×</button></div><div class="tpgen-class-grid"><div class="tpgen-class-box"><h3>1. Élèves</h3><div class="tpgen-actions"><button class="tpgen-btn secondary" onclick="tpGenClassToggleAll(true)">Tout sélectionner</button><button class="tpgen-btn secondary" onclick="tpGenClassToggleAll(false)">Tout désélectionner</button><span id="tpgen-class-count"></span></div><div id="tpgen-class-students" class="tpgen-student-grid">${list.map(st=>`<label class="tpgen-student-choice"><input type="checkbox" value="${esc(String(st.id))}" checked onchange="tpGenClassUpdateCount()"><span>${esc(st.name)} 🔐</span></label>`).join('')}</div></div><div class="tpgen-class-box"><h3>2. Destination</h3><p>Chaque fichier .tp est individuel et protégé.</p><div class="tpgen-destination"><button class="tpgen-btn dark" onclick="tpGenChooseClassFolder()">📁 Choisir le dossier</button><span id="tpgen-folder-label">${tpGenClassExportDirHandle?'Dossier : '+esc(tpGenClassExportDirHandle.name):'Aucun dossier choisi'}</span></div><label style="display:block;margin-top:12px"><input id="tpgen-include-manifest" type="checkbox" style="width:auto"> Ajouter MANIFESTE_TP_CLASSE.txt</label></div></div><div class="tpgen-class-actions"><button class="tpgen-btn secondary" onclick="tpGenCloseClassExport()">Annuler</button><button class="tpgen-btn green" onclick="tpGenExportClassToFolder()">📁 Générer dans le dossier</button><button class="tpgen-btn purple" onclick="tpGenExportClassZip()">⬇️ Télécharger le ZIP</button></div></div>`;document.body.appendChild(w);tpGenClassUpdateCount()};
 window.tpGenHashCode=function(s){let h1=0xdeadbeef^s.length,h2=0x41c6ce57^s.length;for(let i=0,ch;i<s.length;i++){ch=s.charCodeAt(i);h1=Math.imul(h1^ch,2654435761);h2=Math.imul(h2^ch,1597334677)}h1=Math.imul(h1^(h1>>>16),2246822507)^Math.imul(h2^(h2>>>13),3266489909);h2=Math.imul(h2^(h2>>>16),2246822507)^Math.imul(h1^(h1>>>13),3266489909);return(4294967296*(2097151&h2)+(h1>>>0)).toString(36)};
@@ -13779,7 +13776,7 @@ window.tpGenManagementPage=function(){
  const all=tpGenCatalog(); const q=tpGenNorm(tpGenManagerState.search||'');
  const rows=all.filter(x=>!q||tpGenNorm([x.activityId,x.activite,x.famille,x.sequence,x.statut].join(' ')).includes(q));
  const sel=tpGenManagerState.selectedId;
- let html='<header class="app-top-header"></header><div class="tpgen-manager-shell"><div class="tpgen-head"><div><h1>⚙️ Management du générateur TP</h1><p class="muted">Activités repliées par défaut • verrouillage anti-modification • sujets personnalisés manageables.</p></div><button class="tpgen-btn secondary" onclick="tpGeneratorPage()">← Retour au générateur</button></div>';
+ let html='<header class="app-top-header"></header><div class="tpgen-manager-shell"><div class="tpgen-head"><div><h1>📤 Portail TP</h1><p class="muted">Activités repliées par défaut • verrouillage anti-modification • sujets personnalisés manageables.</p></div><button class="tpgen-btn secondary" onclick="tpGeneratorPage()">← Retour au Portail TP</button></div>';
  html+='<div class="tpgen-card"><h2>Activités de la base enseignant</h2><input style="width:100%;box-sizing:border-box;padding:10px;border:1px solid #cbd5e1;border-radius:9px" placeholder="Rechercher une activité…" value="'+esc(tpGenManagerState.search||'')+'" oninput="tpGenManagerState.search=this.value;tpGenManagementPage()">';
  rows.forEach(a=>{const open=sel===a.activityId,locked=tp83IsLocked(a.activityId);html+='<div class="tp83-accordion"><button class="tp83-accordion-head" onclick="tp83ToggleActivity(\''+a.activityId+'\')"><span>'+esc(a.activite)+' <small class="muted">• '+esc(a.activityId)+' • '+esc(a.famille)+'</small></span><span>'+(locked?'🔒':'🔓')+' '+(open?'▲':'▼')+'</span></button>';if(open){html+='<div class="tp83-accordion-body">'+(locked?'<div class="tp83-lock">🔒 Activité verrouillée : consultation uniquement. Déverrouille-la volontairement pour la modifier.</div>':'')+tpGenManagementForm(a)+'<div class="tpgen-actions"><button class="tpgen-btn '+(locked?'secondary':'dark')+'" onclick="tp83ToggleLock(\''+a.activityId+'\')">'+(locked?'🔓 Déverrouiller l’activité':'🔒 Verrouiller l’activité')+'</button></div></div>'}html+='</div>'});
  html+='</div><div class="tpgen-card"><h2>✨ Sujets pour TP personnalisés</h2><p class="muted">Cette liste alimente le champ « Sujet » lors de la création d’une situation inédite.</p><div class="tp83-subject-row"><input id="tp83-newfam" placeholder="Famille (ex. Frein)"><input id="tp83-newsubj" placeholder="Nouveau sujet personnalisé"><button class="tpgen-btn green" onclick="tp83AddSubject()">+ Ajouter</button><span></span></div>';
@@ -14531,11 +14528,30 @@ Nombre d’élèves : ${files.length}`});return {files,d:{...d,className}}};
 </script>
 <script id="v51-firebase-extended-hooks">
 (function(){
-  function syncSoon(){clearTimeout(window.__v51SyncSoon);window.__v51SyncSoon=setTimeout(()=>{try{window.firebaseSyncExtendedLocalData?.().catch(()=>{})}catch(e){}},700)}
-  function wrap(name){const f=window[name];if(typeof f!=='function'||f.__v51)return;const w=function(){const r=f.apply(this,arguments);syncSoon();return r};w.__v51=true;window[name]=w}
-  ['saveRtaLibraries','tpGenSaveDraft','tpGenSaveFinal','tpGenToggleSavedLock','tpGenDeleteSaved','tpGenDuplicateSaved','tpGenSetStudentCode','tpGenManagementSave','tpGenManagementRestore'].forEach(wrap);
-  // Les fonctions du générateur sont redéfinies par plusieurs couches : refaire le branchement après rendu.
-  setTimeout(()=>['tpGenSaveDraft','tpGenSaveFinal','tpGenToggleSavedLock','tpGenDeleteSaved','tpGenDuplicateSaved','tpGenSetStudentCode','tpGenManagementSave','tpGenManagementRestore'].forEach(wrap),1500);
+  function syncCodesSoon(){
+    clearTimeout(window.__v199CodesSyncSoon);
+    window.__v199CodesSyncSoon=setTimeout(()=>{
+      try{
+        const p=window.firebaseSyncTpStudentCodes?.();
+        if(p&&p.catch)p.catch(()=>{});
+      }catch(e){}
+    },700);
+  }
+  function wrapCodeSetter(){
+    const f=window.tpGenSetStudentCode;
+    if(typeof f!=='function'||f.__v199CodesOnly)return;
+    const w=function(){
+      const r=f.apply(this,arguments);
+      syncCodesSoon();
+      return r;
+    };
+    w.__v199CodesOnly=true;
+    window.tpGenSetStudentCode=w;
+  }
+  wrapCodeSetter();
+  // Certaines anciennes couches redéfinissent encore le setter après le chargement.
+  setTimeout(wrapCodeSetter,1500);
+  console.info('V199 : hooks Firebase historiques réduits aux seuls codes élèves TP.');
 })();
 </script>
 <style id="tp-correction-v54-style">
@@ -14654,7 +14670,7 @@ window.tpCorrectionValidate=async function(){
  async function pushRow(r){if(!r||!authReady())return;const c=col();if(!c)return;led(true);try{const k=key(r), payload=JSON.parse(JSON.stringify(r));payload.v73Key=k;payload.v73Identity=identity(r);payload.v73Device=device();payload.v73UpdatedAt=new Date().toISOString();await c.doc(k).set({record:payload,deleted:false,status:r.correctedAt?'corrected':'returned',correctedAt:r.correctedAt||null,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true})}finally{led(false)}}
  async function tombstone(r){if(!r||!authReady())return;const c=col();if(!c)return;led(true);try{await c.doc(key(r)).set({deleted:true,status:'deleted',deletedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedAt:firebase.firestore.FieldValue.serverTimestamp(),v73Device:device()},{merge:true})}finally{led(false)}}
  function refreshViews(){clearTimeout(window.__v73Refresh);window.__v73Refresh=setTimeout(async()=>{if(document.querySelector('#main .tpc-editor'))return;try{await window.loadData?.()}catch(e){}try{if(document.querySelector('.tpc-shell:not(:has(.tpc-editor))')&&typeof window.tpCorrectionPage==='function')window.tpCorrectionPage()}catch(e){}try{window.refreshAtelierCorrections?.()}catch(e){console.warn('V74 actualisation atelier',e)}},120)}
- function mergeRemote(snapshot){let local=rows(), changed=false;const byKey=new Map(local.map(r=>[key(r),r]));snapshot.docChanges().forEach(ch=>{const v=ch.doc.data()||{}, k=ch.doc.id, old=byKey.get(k);if(v.deleted){if(old){local=local.filter(r=>key(r)!==k);byKey.delete(k);changed=true}return}const rr=v.record;if(!rr)return;if(old&&document.querySelector('#main .tpc-editor')&&String(old.id)===String(window.__tp55Current))return;if(!old||stamp(rr)>=stamp(old)){if(old)local=local.map(r=>key(r)===k?rr:r);else local.push(rr);byKey.set(k,rr);changed=true}});if(changed){write(local);refreshViews()}}
+ function mergeRemote(snapshot){let local=rows(), changed=false;const byKey=new Map(local.map(r=>[key(r),r]));snapshot.docChanges().forEach(ch=>{const v=ch.doc.data()||{}, k=ch.doc.id, old=byKey.get(k);if(v.deleted){if(old){local=local.filter(r=>key(r)!==k);byKey.delete(k);changed=true}return}const rr=v.record;if(!rr)return;if(window.tpV201IsDeletedCorrection?.(rr))return;if(old&&document.querySelector('#main .tpc-editor')&&String(old.id)===String(window.__tp55Current))return;if(!old||stamp(rr)>=stamp(old)){if(old)local=local.map(r=>key(r)===k?rr:r);else local.push(rr);byKey.set(k,rr);changed=true}});if(changed){write(local);refreshViews()}}
  async function migrateAndListen(){if(!authReady()||window.__v73Listening)return;window.__v73Listening=true;const c=col();if(!c)return;try{
    // Migration unique : seulement les TP encore présents localement. Ensuite, chaque changement est unitaire.
    const local=rows();for(let i=0;i<local.length;i+=400){const batch=db().batch();for(const r of local.slice(i,i+400)){const ref=c.doc(key(r));batch.set(ref,{record:{...JSON.parse(JSON.stringify(r)),v73Key:key(r),v73Identity:identity(r),v73Device:device(),v73UpdatedAt:new Date().toISOString()},deleted:false,status:r.correctedAt?'corrected':'returned',correctedAt:r.correctedAt||null,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true})}if(local.slice(i,i+400).length)await batch.commit()}
@@ -15524,7 +15540,7 @@ window.tpCorrectionValidate=async function(){
  const oldDiffuse=window.tpGenDiffuseSaved;window.tpGenDiffuseSaved=async function(id){const x=rows().find(r=>String(r.savedId)===String(id));if(x?.snapshot?.rawProjectStored){const raw=await getProject(id);if(raw)mem.set(String(id),raw)}return oldDiffuse?.(id)};
  const oldLocked=window.tpGenLockedSnapshot;window.tpGenLockedSnapshot=function(){const d=oldLocked?.();if(d?.rawProjectStored&&!d.rawProject){const id=String(tpGenState.currentSavedId||window.__tpDiffusionSavedId||'');const raw=mem.get(id);if(raw)d.rawProject=JSON.parse(JSON.stringify(raw))}return d};
  const oldDelete=window.tpGenDeleteSaved;window.tpGenDeleteSaved=async function(id){const before=rows().some(x=>String(x.savedId)===String(id));const ret=await oldDelete?.(id);if(before&&!rows().some(x=>String(x.savedId)===String(id)))try{await delProject(id)}catch(e){console.warn(e)}return ret};
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V113 — Competences Rta Gestion atelier TP';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V113 — Évaluation · Charge Atelier · TP · Correction';
  migrate();
  console.info('V113 actif : projets TP lourds stockés dans IndexedDB; localStorage limité aux métadonnées.');
 })();
@@ -15584,7 +15600,7 @@ window.tpCorrectionValidate=async function(){
  };
  const oldDiffPage=window.tpV76DiffusionsPage;
  if(typeof oldDiffPage==='function')window.tpV76DiffusionsPage=function(){const out=oldDiffPage.apply(this,arguments);setTimeout(()=>{const data=diffRows().filter(r=>!new Set(deletedIds()).has(String(r.id))).sort((a,b)=>String(b.diffusedAt||'').localeCompare(String(a.diffusedAt||''))),els=[...document.querySelectorAll('.v76-diff-row')];els.forEach((el,i)=>{const r=data[i];if(!r||el.querySelector('[data-v114-delete]'))return;const oldBtn=el.querySelector('button');const wrap=document.createElement('div');wrap.className='v114-diff-actions';if(oldBtn){oldBtn.replaceWith(wrap);wrap.appendChild(oldBtn)}const b=document.createElement('button');b.type='button';b.className='tpgen-btn danger';b.dataset.v114Delete='1';b.textContent='🗑️ Supprimer';b.onclick=()=>window.tp114DeleteDiffusion(r.id);wrap.appendChild(b)})},0);return out};
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V115 — Competences Rta Gestion atelier TP';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V115 — Évaluation · Charge Atelier · TP · Correction';
  console.info('V114 actif : import TP IndexedDB corrigé et suppression individuelle des TP diffusés.');
 })();
 </script>
@@ -15664,7 +15680,7 @@ window.tpCorrectionValidate=async function(){
  const oldSet=Storage.prototype.setItem; if(!window.__v132StorageHook){window.__v132StorageHook=true;Storage.prototype.setItem=function(k,v){const z=oldSet.apply(this,arguments);if(this===localStorage&&k===DIFF)soon(k);return z}}
  // La photothèque n'est volontairement jamais incluse dans cette synchronisation.
  setTimeout(()=>run('demarrage'),1600);
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V134 — Competences Rta Gestion atelier TP';document.title='V132 Competences Rta Gestion atelier TP';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V134 — Évaluation · Charge Atelier · TP · Correction';document.title='V132 Évaluation · Charge Atelier · TP · Correction';
  console.info('V133 : Firebase limité aux TP diffusés. TP enregistrés et photothèque restent locaux.');
 })();
 </script>
@@ -15702,7 +15718,7 @@ window.tpCorrectionValidate=async function(){
  window.addEventListener('pagehide',()=>{if(!isHome())return;try{const light={at:new Date().toISOString(),version:VERSION,localStorage:Object.fromEntries(Array.from({length:localStorage.length},(_,i)=>{const k=localStorage.key(i);return[k,localStorage.getItem(k)]}))};localStorage.setItem('evaluation_emergency_backup_v133',JSON.stringify(light))}catch(_){}});
  // Outil volontaire : efface les anciennes copies cloud des TP ENREGISTRÉS V132, jamais les diffusions.
  window.v133CleanSavedTpCloud=async function(){if(!confirm('Supprimer de Firebase les anciennes copies des TP enregistrés ?\nLes TP diffusés ne seront pas touchés.'))return false;const fs=window.firebase?.firestore?.();if(!fs)throw new Error('Firebase indisponible');const col=fs.collection('workspaces').doc('evaluation-mv-main').collection('tpProjectsV132'),snap=await col.get();for(const d of snap.docs){const c=await d.ref.collection('chunks').get();for(let i=0;i<c.docs.length;i+=300){const b=fs.batch();c.docs.slice(i,i+300).forEach(x=>b.delete(x.ref));await b.commit()}await d.ref.delete()}alert(snap.size+' TP enregistrés supprimés de Firebase. Les versions locales sont conservées.');return true};
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V134 — Competences Rta Gestion atelier TP';document.title='V133 Competences Rta Gestion atelier TP';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V134 — Évaluation · Charge Atelier · TP · Correction';document.title='V133 Évaluation · Charge Atelier · TP · Correction';
  console.info('V133 poste maison:',isHome()?'actif':'inactif','— TP enregistrés locaux, diffusions Firebase.');
 })();
 </script>
@@ -15748,8 +15764,8 @@ window.tpCorrectionValidate=async function(){
  window.addEventListener('storage',e=>{if(e.key===DKEY)purgeDeleted()});
  window.addEventListener('tp-v133-synced',purgeDeleted);
  setInterval(purgeDeleted,4000);
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V134 — Competences Rta Gestion atelier TP';
- document.title='V134 Competences Rta Gestion atelier TP';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V134 — Évaluation · Charge Atelier · TP · Correction';
+ document.title='V134 Évaluation · Charge Atelier · TP · Correction';
  console.info('V134 : page TP diffusés non intrusive et suppression Firebase V106/V132 sécurisée.');
 })();
 </script>
@@ -15769,7 +15785,7 @@ window.tpCorrectionValidate=async function(){
  window.tp138ToggleStudents=function(id){const el=document.getElementById('v138-students-'+CSS.escape(String(id)));if(!el)return;const hidden=el.hidden;el.hidden=!hidden;const b=document.querySelector(`[data-v138-toggle="${CSS.escape(String(id))}"]`);if(b)b.textContent=hidden?'▾ Masquer les élèves':'▸ Voir les élèves';};
  window.tpV76DiffusionsPage=function(){window.setActive?.('tpGenerator');const rows=diffs().sort((a,b)=>String(b.diffusedAt||'').localeCompare(String(a.diffusedAt||''))),main=document.getElementById('main');if(!main)return false;main.innerHTML=`<header class="app-top-header"></header><div class="tpgen-manager-shell"><div class="tpgen-head"><div><h1>📤 Mes TP diffusés</h1><p class="muted">Registre multiposte léger : gris = diffusé, jaune = rendu, vert = corrigé. Les fichiers TP restent locaux / Dropbox.</p></div><button class="tpgen-btn secondary" onclick="tpGeneratorPage()">← Retour</button></div><div class="tpgen-card">${rows.length?rows.map(r=>{const c=counts(r),id=String(r.id||'');return `<div class="v138-diff-card"><div class="v138-top"><div><b>${esc(r.tpCode||'TP')} — ${esc(r.title||'')}</b><div class="muted">${esc(r.className||'')} • ${r.diffusedAt?new Date(r.diffusedAt).toLocaleString('fr-FR'):''} • ${(r.students||[]).length} élève(s)</div></div><div class="v138-actions"><button class="tpgen-btn primary" onclick="tpV76AddDiffusionToDay('${esc(id)}')">＋ Affecter</button><button class="tpgen-btn danger" onclick="tp114DeleteDiffusion('${esc(id)}')">🗑️ Supprimer</button></div></div><div class="v138-counts"><span class="v138-count v138-grey">⬜ Diffusé <b>${c.grey}</b></span><span class="v138-count v138-yellow">🟨 Rendu <b>${c.yellow}</b></span><span class="v138-count v138-green">🟩 Corrigé <b>${c.green}</b></span></div><button class="v138-toggle" data-v138-toggle="${esc(id)}" onclick="tp138ToggleStudents('${esc(id)}')">▸ Voir les élèves</button><div class="v138-students" id="v138-students-${esc(id)}" hidden>${(r.students||[]).map(st=>{const q=state(r,st),label=q==='green'?'Corrigé':q==='yellow'?'Rendu':'Diffusé';return `<div class="v138-student ${q}"><b>${esc(sname(st))}</b><span>${label}</span></div>`}).join('')||'<span class="muted">Liste nominative absente de cette ancienne diffusion.</span>'}</div></div>`}).join(''):'<div class="muted">Aucun TP diffusé enregistré.</div>'}</div></div>`;return true};
  // Le registre Firebase ne doit jamais contenir le projet TP lourd : la V132 a été patchée pour n'envoyer que les métadonnées + élèves.
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V139 — Competences Rta Gestion atelier TP';document.title='V139 Competences Rta Gestion atelier TP';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V139 — Évaluation · Charge Atelier · TP · Correction';document.title='V139 Évaluation · Charge Atelier · TP · Correction';
  console.info('V138 : registre TP diffusés léger + élèves repliés + compteurs gris/jaune/vert.');
 })();
 </script>
@@ -15815,7 +15831,7 @@ window.tpCorrectionValidate=async function(){
  const oldImport=window.tpCorrectionImport;window.tpCorrectionImport=async function(files){let before=new Set((()=>{try{return (JSON.parse(localStorage.getItem(CORR)||'[]')||[]).map(x=>String(x.id))}catch(_){return[]}})());let out=await oldImport?.apply(this,arguments);setTimeout(async()=>{try{let rows=JSON.parse(localStorage.getItem(CORR)||'[]')||[], fresh=rows.filter(x=>!before.has(String(x.id))&&!x.correctedAt);for(const light of fresh){let full=null;try{let db=await new Promise((ok,no)=>{let q=indexedDB.open('fdmahy_corrections_v129',1);q.onsuccess=()=>ok(q.result);q.onerror=()=>no(q.error)});full=await new Promise((ok,no)=>{let q=db.transaction('copies').objectStore('copies').get(String(light.id));q.onsuccess=()=>ok(q.result);q.onerror=()=>no(q.error)});db.close()}catch(_){}await cloudPut(full||light)}if(fresh.length)console.info('V139 copies rendues envoyées temporairement vers Firebase:',fresh.length)}catch(e){console.warn('V139 Firebase copies rendues',e)}},250);return out};
  const oldValidate=window.tpCorrectionValidate;window.tpCorrectionValidate=async function(){let id=window.__tp55Current||window.__tpCorrectionCurrent||null;let ret=await oldValidate?.apply(this,arguments);setTimeout(async()=>{try{let rows=JSON.parse(localStorage.getItem(CORR)||'[]')||[],r=rows.find(x=>String(x.id)===String(id));if(r?.correctedAt){await cloudDel(r.id);console.info('V139 copie lourde supprimée de Firebase après correction validée',r.id);try{window.tpV132SyncNow?.('correction-v139')}catch(_){} }}catch(e){console.warn('V139 suppression copie Firebase',e)}},300);return ret};
  // Version
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V139 — Competences Rta Gestion atelier TP';document.title='V139 Competences Rta Gestion atelier TP';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V139 — Évaluation · Charge Atelier · TP · Correction';document.title='V139 Évaluation · Charge Atelier · TP · Correction';
  console.info('V139 : diffusion depuis fichier local + aperçu temporaire + registre léger + copies rendues Firebase temporaires.');
 })();
 </script>
@@ -15853,7 +15869,7 @@ window.tpCorrectionValidate=async function(){
    o.querySelector('.v144-save').onclick=async()=>{const b=o.querySelector('.v144-save');b.disabled=true;b.textContent='Sauvegarde en cours…';try{const r=await window.v133SaveGlobalBackup?.();if(!r?.ok)throw Error('Sauvegarde non confirmée.');o.remove();await baseLogout?.()}catch(e){b.disabled=false;b.textContent='💾 Sauvegarder puis quitter';alert('Sauvegarde impossible : '+(e?.message||e))}};
    o.querySelector('.v144-nosave').onclick=async()=>{o.remove();await baseLogout?.()};return false;
  };
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V145 — Competences Rta Gestion atelier TP';document.title='V144 Competences Rta Gestion atelier TP';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V145 — Évaluation · Charge Atelier · TP · Correction';document.title='V144 Évaluation · Charge Atelier · TP · Correction';
  console.info('V144 actif : base de démarrage V139 conservée; navigation diffusions et sortie corrigées sans modifier Firebase.');
 })();
 </script>
@@ -15887,7 +15903,7 @@ window.tpCorrectionValidate=async function(){
   const mo=new MutationObserver(bind); mo.observe(document.documentElement,{childList:true,subtree:true}); bind();
   // Firebase/storage refreshes may update data but never navigate.
   window.addEventListener('tp-v133-synced',()=>{}, {passive:true});
-  const bv=document.getElementById('build-version'); if(bv) bv.textContent='V145 — Competences Rta Gestion atelier TP';
+  const bv=document.getElementById('build-version'); if(bv) bv.textContent='V145 — Évaluation · Charge Atelier · TP · Correction';
   console.info('V145 actif : navigation Mes TP diffusés strictement réservée à une action utilisateur.');
 })();
 </script>
@@ -15902,7 +15918,7 @@ window.tpCorrectionValidate=async function(){
  const clone=o=>JSON.parse(JSON.stringify(o||{}));
  const safe=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Za-z0-9_-]+/g,'-').replace(/^-+|-+$/g,'')||'TP';
  let folderHandle=null;
- function forceVersion(){const b=document.getElementById('build-version');if(b&&b.textContent!=='V157 — Competences Rta Gestion atelier TP')b.textContent='V157 — Competences Rta Gestion atelier TP';document.title='V157 Competences Rta Gestion atelier TP';document.getElementById('v144-version')?.remove();}
+ function forceVersion(){const b=document.getElementById('build-version');if(b&&b.textContent!=='V157 — Évaluation · Charge Atelier · TP · Correction')b.textContent='V157 — Évaluation · Charge Atelier · TP · Correction';document.title='V157 Évaluation · Charge Atelier · TP · Correction';document.getElementById('v144-version')?.remove();}
  forceVersion();
  document.addEventListener('DOMContentLoaded',forceVersion,{once:true});
  setTimeout(forceVersion,0);setTimeout(forceVersion,500);
@@ -15930,8 +15946,8 @@ window.tpCorrectionValidate=async function(){
   // 1) Une seule version visible. Ne touche ni à l'authentification ni au démarrage Firebase.
   function applyVersion(){
     const b=document.getElementById('build-version');
-    if(b) b.textContent=APP_VERSION+' — Competences Rta Gestion atelier TP';
-    document.title=APP_VERSION+' Competences Rta Gestion atelier TP';
+    if(b) b.textContent=APP_VERSION+' — Évaluation · Charge Atelier · TP · Correction';
+    document.title=APP_VERSION+' Évaluation · Charge Atelier · TP · Correction';
     document.getElementById('v144-version')?.remove();
   }
   applyVersion();
@@ -16107,7 +16123,7 @@ window.tpCorrectionValidate=async function(){
  };
  function markLegacyRows(root=document){root.querySelectorAll?.('.tpc-row').forEach(row=>{const b=row.querySelector('button[onclick*="tpCorrectionOpen"]');if(!b||row.querySelector('.v158-legacy-chip'))return;const m=(b.getAttribute('onclick')||'').match(/tpCorrectionOpen\(['\"]([^'\"]+)/);if(!m)return;const r=read().find(x=>String(x.id)===m[1]);if(r&&!project(r.data)){const target=row.children?.[1]||row.firstElementChild;target?.insertAdjacentHTML('beforeend','<span class="v158-legacy-chip">Ancien format</span>')}})}
  markLegacyRows();new MutationObserver(ms=>ms.forEach(m=>m.addedNodes.forEach(n=>{if(n.nodeType===1)markLegacyRows(n)}))).observe(document.documentElement,{childList:true,subtree:true});
- function setVersion(){const b=document.getElementById('build-version');if(b)b.textContent='V158 — Competences Rta Gestion atelier TP';document.title='V158 Competences Rta Gestion atelier TP'}
+ function setVersion(){const b=document.getElementById('build-version');if(b)b.textContent='V158 — Évaluation · Charge Atelier · TP · Correction';document.title='V158 Évaluation · Charge Atelier · TP · Correction'}
  setVersion();document.addEventListener('DOMContentLoaded',setVersion,{once:true});setTimeout(setVersion,250);
  console.info('V158 : compatibilité de correction des anciennes copies activée, sans modification du démarrage.');
 })();
@@ -16134,7 +16150,7 @@ window.tpCorrectionValidate=async function(){
  async function push(r){if(!r||!ready()||remoteApply)return false;badge('syncing','☁ Synchronisation…');const ref=col().doc(docId(r));const payload=JSON.parse(JSON.stringify(r));await ref.set({status:r.correctedAt?'corrected':'draft',record:r.correctedAt?null:payload,archive:r.correctedAt?compactArchive(r):null,updatedAt:firebase.firestore.FieldValue.serverTimestamp(),clientUpdatedAt:new Date().toISOString()},{merge:true});badge('ok',r.correctedAt?'✓ Correction synchronisée':'✓ Brouillon synchronisé');return true}
  function current(){const id=window.__tp55Current||window.__tpCorrectionCurrent||null;return rows().find(x=>String(x.id)===String(id))}
  function queue(){clearTimeout(timer);timer=setTimeout(()=>{const r=current();if(r)push(r).catch(e=>{console.warn('V159 sync brouillon',e);badge('offline','☁ À synchroniser')})},450)}
- function mergeSnapshot(snap){if(busy)return;busy=true;try{let a=rows(),changed=false;remoteApply=true;snap.docChanges().forEach(ch=>{const v=ch.doc.data()||{};if(v.status==='corrected'&&v.archive){const ar=v.archive;const ix=a.findIndex(r=>docId(r)===ch.doc.id);if(ix>=0&&!a[ix].correctedAt){a.splice(ix,1);changed=true}return}if(v.status!=='draft'||!v.record)return;const rr=v.record,ix=a.findIndex(r=>docId(r)===ch.doc.id);if(ix<0){a.push(rr);changed=true;return}const open=String(a[ix].id)===String(window.__tp55Current||window.__tpCorrectionCurrent||'')&&document.querySelector('.tpc-editor');if(open)return;const lt=Date.parse(a[ix].v159UpdatedAt||a[ix].updatedAt||a[ix].importedAt||0)||0,rt=Date.parse(v.clientUpdatedAt||rr.v159UpdatedAt||rr.updatedAt||rr.importedAt||0)||0;if(rt>=lt){a[ix]=rr;changed=true}});if(changed){save(a);window.dispatchEvent(new CustomEvent('tp-v159-corrections-updated'));/* aucune navigation / aucun rerender global */}}finally{remoteApply=false;busy=false}}
+ function mergeSnapshot(snap){if(busy)return;busy=true;try{let a=rows(),changed=false;remoteApply=true;snap.docChanges().forEach(ch=>{const v=ch.doc.data()||{};if(v.status==='corrected'&&v.archive){const ar=v.archive;const ix=a.findIndex(r=>docId(r)===ch.doc.id);if(ix>=0&&!a[ix].correctedAt){a.splice(ix,1);changed=true}return}if(v.status!=='draft'||!v.record)return;const rr=v.record;if(window.tpV201IsDeletedCorrection?.(rr))return;const ix=a.findIndex(r=>docId(r)===ch.doc.id);if(ix<0){a.push(rr);changed=true;return}const open=String(a[ix].id)===String(window.__tp55Current||window.__tpCorrectionCurrent||'')&&document.querySelector('.tpc-editor');if(open)return;const lt=Date.parse(a[ix].v159UpdatedAt||a[ix].updatedAt||a[ix].importedAt||0)||0,rt=Date.parse(v.clientUpdatedAt||rr.v159UpdatedAt||rr.updatedAt||rr.importedAt||0)||0;if(rt>=lt){a[ix]=rr;changed=true}});if(changed){save(a);window.dispatchEvent(new CustomEvent('tp-v159-corrections-updated'));/* aucune navigation / aucun rerender global */}}finally{remoteApply=false;busy=false}}
  async function listen(){if(!ready()||unsub)return;try{unsub=col().onSnapshot(mergeSnapshot,e=>{console.warn('V159 écoute corrections',e);unsub=null});const pending=rows().filter(r=>!r.correctedAt);for(const r of pending)await push(r)}catch(e){console.warn('V159 init corrections',e)}}
  function install(){
    // Sauvegarde de chaque modification de correction, même si les anciens wrappers ont été remplacés.
@@ -16153,7 +16169,7 @@ window.tpCorrectionValidate=async function(){
 })();
 </script>
 <script id="v159-version-display">
-(function(){const V='V159';function set(){document.querySelectorAll('.app-version-badge,.version-badge,[data-app-version]').forEach(e=>{if(/V\d+/i.test(e.textContent||''))e.textContent=(e.textContent||'').replace(/V\d+/i,V)});document.title=(document.title||'Competences Rta Gestion atelier TP').replace(/V\d+/i,V)}set();setTimeout(set,300);setTimeout(set,1800)})();
+(function(){const V='V159';function set(){document.querySelectorAll('.app-version-badge,.version-badge,[data-app-version]').forEach(e=>{if(/V\d+/i.test(e.textContent||''))e.textContent=(e.textContent||'').replace(/V\d+/i,V)});document.title=(document.title||'Évaluation · Charge Atelier · TP · Correction').replace(/V\d+/i,V)}set();setTimeout(set,300);setTimeout(set,1800)})();
 </script>
 
 
@@ -16468,8 +16484,8 @@ function inject(){
    Le timer V175 a été supprimé directement dans le code source ci-dessus. */
 function setVersion(){
   const b=document.getElementById('build-version');
-  if(b)b.textContent='V197 — Évaluation · Charge Atelier · TP · Correction';
-  document.title='V197 — Évaluation · Charge Atelier · TP · Correction';
+  if(b)b.textContent='V201 — Évaluation · Charge Atelier · TP · Correction';
+  document.title='V201 — Évaluation · Charge Atelier · TP · Correction';
 }
 function install(){
   inject();
@@ -16519,7 +16535,7 @@ else install();
  window.tp116ViewDiffusion=function(id){const r=diffRows().find(x=>String(x.id)===String(id));if(!r)return alert('TP diffusé introuvable.');const p=r.tpProject||projectFromRaw(r.snapshot?.rawProject);const ov=document.createElement('div');ov.className='v116-preview-overlay';ov.innerHTML=`<div class="v116-preview-box"><div class="v116-preview-top"><div><b>👁 ${esc(r.tpCode)} — ${esc(r.title)}</b><div class="muted">${esc(r.className)} · ${r.students?.length||0} élève(s)</div></div><button type="button">✕ Fermer</button></div>${sheet(p)}</div>`;ov.querySelector('button').onclick=()=>ov.remove();document.body.appendChild(ov)};
  // Reconstruit Mes TP diffusés avec Voir + Affecter + Supprimer et ne dépend pas de l'ancien formulaire générateur.
  const priorPage=window.tpV76DiffusionsPage;window.tpV76DiffusionsPage=function(){priorPage?.();setTimeout(()=>{const data=diffRows().sort((a,b)=>String(b.diffusedAt||'').localeCompare(String(a.diffusedAt||''))),els=[...document.querySelectorAll('.v76-diff-row')];els.forEach((el,i)=>{const r=data[i];if(!r)return;let wrap=el.querySelector('.v114-diff-actions,.v116-diff-actions');if(!wrap){wrap=document.createElement('div');wrap.className='v116-diff-actions';const b=el.querySelector('button');if(b){b.replaceWith(wrap);wrap.appendChild(b)}}else wrap.classList.add('v116-diff-actions');if(!wrap.querySelector('[data-v116-view]')){const b=document.createElement('button');b.className='tpgen-btn secondary';b.dataset.v116View='1';b.textContent='👁 Voir le TP';b.onclick=()=>window.tp116ViewDiffusion(r.id);wrap.prepend(b)}})},0)};
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V117 — Competences Rta Gestion atelier TP';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V117 — Évaluation · Charge Atelier · TP · Correction';
  console.info('V117 actif : rendu TP polyvalent et diffusion tracée.');
 })();
 </script><style id="v117-prof-style">
@@ -16543,7 +16559,7 @@ else install();
  let oldBuild=window.tpGenBuildStudentPackage;window.tpGenBuildStudentPackage=function(student,d){let m=oldBuild.apply(this,arguments),p=window.__v117Project||window.__v116CurrentProject||null;if(p){m.tpProject=clone(p);m.tpPictograms=clone(p.__pictograms||[]);m.meta=m.meta||{};m.meta.readerRequired='V117';m.type='tp-eleve-v117'}return m};
  // Hydratation complète avec pictogrammes avant export.
  ['tpGenExportClassToFolder','tpGenExportClassZip'].forEach(name=>{let prev=window[name];if(typeof prev!=='function')return;window[name]=async function(){let sid=String(tpGenState?.currentSavedId||window.__tpDiffusionSavedId||''),rr=sid?await raw(sid):null;window.__v117Project=unpack(rr);try{return await prev.apply(this,arguments)}finally{window.__v117Project=null}}});
- let bv=document.getElementById('build-version');if(bv)bv.textContent='V117 — Competences Rta Gestion atelier TP';console.info('V117 actif : vue TP polyvalente + diffusion persistante.');
+ let bv=document.getElementById('build-version');if(bv)bv.textContent='V117 — Évaluation · Charge Atelier · TP · Correction';console.info('V117 actif : vue TP polyvalente + diffusion persistante.');
 })();
 </script><!-- V118 — concordance Editeur / Logiciel / Lecteur + diffusion transactionnelle -->
 <style id="v118-style">
@@ -16581,7 +16597,7 @@ else install();
  function injectRetroSettings(){let main=document.getElementById('main');if(!main||main.querySelector('#v118-retro-settings'))return;let host=main.querySelector('.rubric-other-wrap .settings-rubric-collapse-body')||main.querySelector('.settings-grid')||main;let card=document.createElement('div');card.id='v118-retro-settings';card.className='settings-card section-other';card.innerHTML=`<h3>🕘 Évaluations rétroactives</h3><p class="muted">Choisis les cartes visibles dans « Nouvelle évaluation » pour le profil administrateur.</p><div class="v118-switch-row"><div><b>Positionnement rétroactif</b><div class="muted">Afficher la création d'un positionnement à une date antérieure.</div></div><label class="v118-switch"><input type="checkbox" ${retroOn(RETRO_POS)?'checked':''} onchange="v118ToggleRetro('${RETRO_POS}',this.checked)"><span class="v118-slider"></span></label></div><div class="v118-switch-row"><div><b>Import rétroactif collectif</b><div class="muted">Afficher l'import Excel rétroactif collectif.</div></div><label class="v118-switch"><input type="checkbox" ${retroOn(RETRO_XLS)?'checked':''} onchange="v118ToggleRetro('${RETRO_XLS}',this.checked)"><span class="v118-slider"></span></label></div>`;host.appendChild(card)}
  let oldSettings=window.renderSettingsPage;if(typeof oldSettings==='function')window.renderSettingsPage=function(){let r=oldSettings.apply(this,arguments);setTimeout(injectRetroSettings,0);return r};
  let oldChoice=window.evaluationChoicePage;if(typeof oldChoice==='function')window.evaluationChoicePage=function(){let r=oldChoice.apply(this,arguments);setTimeout(()=>{document.querySelectorAll('.eval-choice-card').forEach(c=>{let t=c.textContent||'';if(/Positionnement rétroactif/i.test(t)&&!retroOn(RETRO_POS))c.remove();if(/Import rétroactif collectif/i.test(t)&&!retroOn(RETRO_XLS))c.remove()})},0);return r};
- let bv=document.getElementById('build-version');if(bv)bv.textContent='V118 — Competences Rta Gestion atelier TP';
+ let bv=document.getElementById('build-version');if(bv)bv.textContent='V118 — Évaluation · Charge Atelier · TP · Correction';
  console.info('V118 actif : diffusion transactionnelle, générateur replié, rétroactif paramétrable.');
 })();
 </script>
@@ -16605,7 +16621,7 @@ else install();
  window.tpGenExportClassToFolder=async function(){try{if(!folderHandle){const ok=await window.tpGenChooseClassFolder();if(!ok)return false}const ctx=await buildFiles();let perm='granted';if(folderHandle.queryPermission)perm=await folderHandle.queryPermission({mode:'readwrite'});if(perm!=='granted'&&folderHandle.requestPermission)perm=await folderHandle.requestPermission({mode:'readwrite'});if(perm!=='granted')throw Error('Autorisation d’écriture refusée.');for(const f of ctx.files){const fh=await folderHandle.getFileHandle(f.name,{create:true}),w=await fh.createWritable();await w.write(new Blob([f.text],{type:f.name.endsWith('.tp')?'application/json;charset=utf-8':'text/plain;charset=utf-8'}));await w.close()}persist(ctx);const n=ctx.sts.length,name=folderHandle.name;window.tpGenCloseClassExport?.();window.showSuccessMessage?.(`${n} TP élève généré(s) dans « ${name} » et diffusion enregistrée dans Mes TP diffusés.`);return true}catch(e){console.error('V119 dossier',e);window.showWarningMessage?.('Génération impossible : '+(e?.message||e));return false}finally{window.__v117Project=null;window.__v116CurrentProject=null}};
  window.tpGenExportClassZip=async function(){try{const ctx=await buildFiles();const blob=window.tpGenBuildStoreZip(ctx.files);const name=[filePart(ctx.code),filePart(ctx.className),'TP_ELEVES'].filter(Boolean).join('_')+'.zip';window.tpGenDownloadBlob(blob,name);persist(ctx);window.tpGenCloseClassExport?.();window.showSuccessMessage?.(`${ctx.sts.length} TP élève correspondant(s) à « ${ctx.code} » regroupé(s) dans le ZIP et diffusion enregistrée.`);return true}catch(e){console.error('V119 ZIP',e);window.showWarningMessage?.('Génération ZIP impossible : '+(e?.message||e));return false}finally{window.__v117Project=null;window.__v116CurrentProject=null}};
  const oldDiffuse=window.tpGenDiffuseSaved;window.tpGenDiffuseSaved=function(id){folderHandle=null;window.__tpDiffusionSavedId=String(id||'');if(window.tpGenState)window.tpGenState.currentSavedId=String(id||'');return oldDiffuse?.apply(this,arguments)};
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V128 — Competences Rta Gestion atelier TP';document.title='V127 Competences Rta Gestion atelier TP';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V128 — Évaluation · Charge Atelier · TP · Correction';document.title='V127 Évaluation · Charge Atelier · TP · Correction';
  console.info('V127 actif : diffusion compacte, sans duplication du projet TP dans localStorage.');
 })();
 </script>
@@ -16633,7 +16649,7 @@ else install();
  };
  function wire(){document.querySelectorAll('#tp109-folder-input,#tp109-files-input,.tpc-toolbar input[type=file]').forEach(input=>{input.onchange=async()=>{const f=input.files;if(f?.length)await window.tpCorrectionImport(f);input.value=''}})}
  const oldPage=window.tpCorrectionPage;window.tpCorrectionPage=function(){const r=oldPage?.apply(this,arguments);setTimeout(wire,50);return r};setTimeout(wire,500);
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V130 — Competences Rta Gestion atelier TP';document.title='V131 Competences Rta Gestion atelier TP';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V130 — Évaluation · Charge Atelier · TP · Correction';document.title='V131 Évaluation · Charge Atelier · TP · Correction';
  console.info('V130 — import Copies rendues V128/V130 actif avec stockage IndexedDB anti-quota.');
 })();
 </script>
@@ -16662,7 +16678,7 @@ else install();
  function render(r){const d=r.data||{},p=project(d);if(!p)return'';const a=answers(d),flow=Array.isArray(p.flow)?p.flow:(p.questions||[]).map(q=>({type:'question',id:q.id}));let html='',sec='',n=0;for(const f of flow){if(f.type!=='question'){let x=obj(p,f);if(x?.parentQuestionId)continue;html+=block(r,p,f,a);continue}let q=obj(p,f);if(!q||q.excluded)continue;if((q.section||'Activité')!==sec){sec=q.section||'Activité';html+=`<h2 class="section">${esc(sec)}</h2>`}let val=a[q.id],k='q_'+q.id;html+=`<section class="q"><div class="v131-qhead"><div><div class="qtitle">${++n}. ${esc(q.text||'')}</div><div class="meta">${esc(q.competence||'')}${q.criterionId?' · '+esc(q.criterionId):''}</div></div><div data-v131-mark="${esc(k)}">${markButtons(r,k)}</div></div>${(q.images||[]).map(im=>imageTag(im,'max-width:100%;max-height:280px;object-fit:contain;margin-top:8px')).join('')}${q.answerType==='none'?'':`<div class="answer">${esc(val||'—')}</div>`}${flow.filter(z=>z.type!=='question'&&obj(p,z)?.parentQuestionId===q.id).map(z=>block(r,p,z,a)).join('')}</section>`}return `<div class="v130-copy"><div class="tphead"><div><small>BAC PRO MAINTENANCE DES VÉHICULES · COPIE ÉLÈVE</small><h1>${esc(p.publicTitle||p.title||d.titre||'TP')}</h1><div>Durée : ${esc(p.duration||'—')}</div></div><span class="code">${esc(p.publicId||p.id||d.code||'TP')}</span></div><div class="brief"><section><h3>Situation professionnelle</h3>${esc(p.intro||'')}</section><section><h3>Objectifs</h3>${esc(p.objectives||'')}</section><section><h3>Support</h3>${esc(p.support||'')}</section><section><h3>Ressources et matériels</h3>${esc(p.resources||'')}</section></div>${html}</div>`}
  const previous=window.tpCorrectionOpen;
  window.tpCorrectionOpen=function(id){const light=read().find(x=>String(x.id)===String(id));if(!light)return previous?.apply(this,arguments);previous?.apply(this,arguments);setTimeout(async()=>{const ed=document.querySelector('.tpc-editor'),left=ed?.firstElementChild;if(!left)return;left.innerHTML='<div class="v131-hydrating">Chargement de la copie complète et de ses illustrations…</div>';const stored=await full(id),r=stored||light;if(!project(r.data)){left.innerHTML='<div class="tpc-card">Cette copie ne contient pas le projet TP complet nécessaire à la vue fidèle.</div>';return}const local=read().find(x=>String(x.id)===String(id));if(local?.marks)r.marks={...(r.marks||{}),...local.marks};left.innerHTML='<div class="tpc-card"><b>V131 — Vue de correction fidèle.</b> Les illustrations sont rechargées depuis la copie complète. Chaque question dispose maintenant des boutons ✓ Correct, ✕ Incorrect et — Non évalué.</div>'+render(r)},20)};
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V131 — Competences Rta Gestion atelier TP';document.title='V131 Competences Rta Gestion atelier TP';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V131 — Évaluation · Charge Atelier · TP · Correction';document.title='V131 Évaluation · Charge Atelier · TP · Correction';
  console.info('V131 correcteur : hydratation IndexedDB + images + coches par question.');
 })();
 </script><!-- V147 — correctif final diffusion TP local : DOIT rester le dernier runtime du fichier -->
@@ -16674,8 +16690,8 @@ else install();
  let folderHandle=null;
  function setVersion(){
    const b=document.getElementById('build-version');
-   if(b)b.textContent='V147 — Competences Rta Gestion atelier TP';
-   document.title='V147 Competences Rta Gestion atelier TP';
+   if(b)b.textContent='V147 — Évaluation · Charge Atelier · TP · Correction';
+   document.title='V147 Évaluation · Charge Atelier · TP · Correction';
    document.getElementById('v144-version')?.remove();
  }
  setVersion(); document.addEventListener('DOMContentLoaded',setVersion,{once:true}); setTimeout(setVersion,100);
@@ -16763,7 +16779,7 @@ else install();
  });
  function compact(root=document){root.querySelectorAll?.('.v131-markbar .v131-mark').forEach(b=>{if(b.classList.contains('ok')){b.textContent='✓';b.title='Correct'}else if(b.classList.contains('bad')){b.textContent='✕';b.title='Incorrect'}else{b.textContent='—';b.title='Non évalué'}b.setAttribute('aria-label',b.title)})}
  compact(); new MutationObserver(m=>m.forEach(x=>x.addedNodes.forEach(n=>{if(n.nodeType===1)compact(n)}))).observe(document.documentElement,{childList:true,subtree:true});
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V154 — Competences Rta Gestion atelier TP';document.title='V154 Competences Rta Gestion atelier TP';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V154 — Évaluation · Charge Atelier · TP · Correction';document.title='V154 Évaluation · Charge Atelier · TP · Correction';
  console.info('V148 : Copies rendues stable pendant Firebase + coches compactes.');
 })();
 </script>
@@ -16782,7 +16798,7 @@ const rows=()=>window.getManagedEvaluationActivities?.()||[];
 const sortRows=a=>a.slice().sort((x,y)=>(Number(x.numero)||99999)-(Number(y.numero)||99999));
 function save(a){window.saveManagedEvaluationActivities?.(a);}
 function comps(s){return String(s||'').split(/[,;\n]+/).map(x=>x.trim()).filter(Boolean)}
-function forceVersion(){const b=document.getElementById('build-version');if(b)b.textContent=APP+' — Competences Rta Gestion atelier TP';document.title=APP+' Competences Rta Gestion atelier TP';document.getElementById('v144-version')?.remove()}
+function forceVersion(){const b=document.getElementById('build-version');if(b)b.textContent=APP+' — Évaluation · Charge Atelier · TP · Correction';document.title=APP+' Évaluation · Charge Atelier · TP · Correction';document.getElementById('v144-version')?.remove()}
 forceVersion();document.addEventListener('DOMContentLoaded',forceVersion,{once:true});setTimeout(forceVersion,250);setTimeout(forceVersion,1200);
 
 function installCategory(){
@@ -16863,7 +16879,7 @@ function mergeCorrections(){
 function mergeEvaluations(){return new Promise(resolve=>{
  try{const q=indexedDB.open('C2MMVP_TEST_FICTIFS_V8',2);q.onerror=()=>resolve(false);q.onsuccess=()=>{const d=q.result;try{const st=d.transaction('evaluations','readwrite').objectStore('evaluations');let left=BACKUP_EVALS.length;if(!left){d.close();return resolve(true)};BACKUP_EVALS.forEach(v=>{const g=st.get(v.id);g.onsuccess=()=>{if(g.result==null){try{st.add(v)}catch(_){}}if(--left===0){setTimeout(()=>{d.close();resolve(true)},20)}};g.onerror=()=>{if(--left===0){d.close();resolve(true)}}})}catch(e){d.close();resolve(false)}}}catch(e){resolve(false)}
 })}
-function version(){const b=document.getElementById('build-version');if(b)b.textContent='V171 — Compétences · RTA · Gestion atelier · TP';document.title='V171 — Évaluation · Atelier · RTA · TP'}
+function version(){const b=document.getElementById('build-version');if(b)b.textContent='V171 — Évaluation · Charge Atelier · TP · Correction';document.title='V171 — Évaluation · Charge Atelier · TP · Correction'}
 function installDefaultTodo(){
  const old=window.go;if(typeof old==='function'&&!old.__v171){const w=function(view){const r=old.apply(this,arguments);if(view==='correctionTp')setTimeout(()=>{const s=document.getElementById('tpc-f-status');if(s){s.value='todo';s.dispatchEvent(new Event('change',{bubbles:true}))}},120);return r};w.__v171=true;window.go=w}
 }
@@ -16905,7 +16921,7 @@ async function validate(){
  }catch(e){console.error('V172 validation',e);alert('Validation impossible : '+(e?.message||e));}
  finally{window.__v172Saving=false;if(btn){btn.disabled=false;btn.innerHTML=oldText||'💾 Valider la correction et l’évaluation'}}
 }
-function install(){window.tpCorrectionValidate=validate;const b=document.getElementById('build-version');if(b)b.textContent='V172 — Compétences · RTA · Gestion atelier · TP';document.title='V172 — Évaluation · Atelier · RTA · TP'}
+function install(){window.tpCorrectionValidate=validate;const b=document.getElementById('build-version');if(b)b.textContent='V172 — Évaluation · Charge Atelier · TP · Correction';document.title='V172 — Évaluation · Charge Atelier · TP · Correction'}
 window.addEventListener('load',()=>setTimeout(install,4200),{once:true});setTimeout(()=>{if(document.readyState==='complete')install()},5200);
 })();
 </script>
@@ -16927,7 +16943,7 @@ function lockIfCorrected(id){
 function install(){
  const oldOpen=window.tpCorrectionOpen; if(typeof oldOpen==='function'&&!oldOpen.__v173){const w=function(id){const out=oldOpen.apply(this,arguments);setTimeout(()=>lockIfCorrected(id),450);setTimeout(()=>lockIfCorrected(id),1200);return out};w.__v173=true;window.tpCorrectionOpen=w;}
  const oldVal=window.tpCorrectionValidate; if(typeof oldVal==='function'&&!oldVal.__v173){const w=async function(){const out=await oldVal.apply(this,arguments);return out};w.__v173=true;window.tpCorrectionValidate=w;}
- const b=document.getElementById('build-version');if(b)b.textContent='V173 — Compétences · RTA · Gestion atelier · TP';document.title='V173 — Évaluation · Atelier · RTA · TP';
+ const b=document.getElementById('build-version');if(b)b.textContent='V173 — Évaluation · Charge Atelier · TP · Correction';document.title='V173 — Évaluation · Charge Atelier · TP · Correction';
 }
 // Accélère l'impression de synchronisation : les données locales sont déjà enregistrées avant le cloud.
 const oldSync=window.tpV159SyncCorrectionsNow; if(typeof oldSync==='function'){window.tpV159SyncCorrectionsNow=function(){try{const p=oldSync.apply(this,arguments);if(p&&p.catch)p.catch(e=>console.warn('V173 sync',e));return Promise.resolve(true)}catch(e){console.warn('V173 sync',e);return Promise.resolve(false)}}}
@@ -17011,8 +17027,7 @@ const MODE_KEYS={
   free:'evaluation_mode_free_v190',
   professional:'evaluation_mode_professional_v190',
   rentree:'evaluation_mode_rentree_v190',
-  activity:'evaluation_mode_activity_v190',
-  rta:'evaluation_mode_rta_v190'
+  activity:'evaluation_mode_activity_v190'
 };
 const FIREBASE_DOC='evaluationModesV190';
 let userAccordionChange=false;
@@ -17022,8 +17037,7 @@ const MODE_META=[
   ['free','Évaluation libre sur critères','Afficher la création d’une évaluation construite librement à partir des compétences et critères.'],
   ['professional','Situation professionnelle','Afficher l’évaluation à partir d’une situation professionnelle de la bibliothèque.'],
   ['rentree','Évaluation de rentrée','Afficher les évaluations techniques de début d’année.'],
-  ['activity','Évaluation sur fiche d’activité','Afficher l’évaluation à partir des fiches et activités administrées.'],
-  ['rta','Évaluation sur RTA','Afficher l’évaluation à partir des bibliothèques RTA.']
+  ['activity','Évaluation sur fiche d’activité','Afficher l’évaluation à partir des fiches et activités administrées.']
 ];
 
 function modeOn(name){
@@ -17193,8 +17207,7 @@ function moveActivitiesCategory(){
   const d=document.getElementById('v157-activities-category');
   if(!d)return;
   if(d.parentElement!==grid){
-    const rta=[...grid.children].find(x=>x.matches?.('details.settings-rubric-collapse') && /Intégration RTA/i.test(x.querySelector(':scope > summary')?.textContent||''));
-    grid.insertBefore(d,rta||null);
+    grid.appendChild(d);
   }
   d.classList.add('v190-activities-top');
   if(!d.dataset.v191Initialized){
@@ -17276,7 +17289,6 @@ function filterEvaluationCards(){
     else if(/Évaluation sur situation professionnelle/i.test(t) && !modeOn('professional'))c.remove();
     else if(/Évaluation de rentrée/i.test(t) && !modeOn('rentree'))c.remove();
     else if(/Évaluation sur fiche d’activités/i.test(t) && !modeOn('activity'))c.remove();
-    else if(/Évaluation sur RTA/i.test(t) && !modeOn('rta'))c.remove();
   });
 }
 
@@ -17319,7 +17331,7 @@ setTimeout(()=>{pullModesFirebase().catch(()=>{})},3500);
 function setVersion(){
   const b=document.getElementById('build-version');
   if(b)b.textContent=VERSION;
-  document.title='V191 — Évaluation · Atelier · RTA · TP';
+  document.title='V191 — Évaluation · Charge Atelier · TP · Correction';
 }
 setVersion();
 setTimeout(setVersion,500);
@@ -17378,7 +17390,7 @@ console.info('V191 : Paramètres accordéon stable au clic + modes d’évaluati
 (function(){
 'use strict';
 
-const VERSION='V197 — Portail TP';
+const VERSION='V201 — Portail TP';
 const IMPORT_COL='tpImportedLibraryV192';
 const CHUNK_SIZE=350000;
 let tp192TempImported=null;
@@ -17782,7 +17794,7 @@ function relabelNavigation(){
 function setVersion(){
   const b=document.getElementById('build-version');
   if(b)b.textContent=VERSION;
-  document.title='V197 — Évaluation · Charge Atelier · TP · Correction';
+  document.title='V201 — Évaluation · Charge Atelier · TP · Correction';
 }
 relabelNavigation();
 setVersion();
@@ -18254,9 +18266,9 @@ if(typeof window.tpCorrectionImport==='function'){
 /* Habillage du Portail TP seulement : la fonction RTA existante reste disponible
    ailleurs dans le logiciel, elle n'est simplement plus dans le nom de la suite. */
 function stamp(){
-  document.title='V198 — Évaluation · Charge Atelier · TP · Correction';
+  document.title='V201 — Évaluation · Charge Atelier · TP · Correction';
   const bv=document.getElementById('build-version');
-  if(bv)bv.textContent='V198 — Évaluation · Charge Atelier · TP · Correction';
+  if(bv)bv.textContent='V201 — Évaluation · Charge Atelier · TP · Correction';
 }
 stamp();
 setTimeout(stamp,700);
@@ -18424,11 +18436,482 @@ document.addEventListener('visibilitychange',()=>{
 /* Affichage de version seulement, sans timer périodique ni MutationObserver. */
 function stampVersion(){
   const b=document.getElementById('build-version');
-  if(b)b.textContent='V198 — Évaluation · Charge Atelier · TP · Correction';
-  document.title='V198 — Évaluation · Charge Atelier · TP · Correction';
+  if(b)b.textContent='V201 — Évaluation · Charge Atelier · TP · Correction';
+  document.title='V201 — Évaluation · Charge Atelier · TP · Correction';
 }
 stampVersion();
 
-console.info('V198 : correctif iPhone/iPad limité à l’actualisation des états et compteurs TP.');
+console.info('V199 : correctif iPhone/iPad conservé ; synchro RTA/générateur supprimée.');
+})();
+</script>
+
+
+<!-- V199 — marqueur technique : nettoyage des anciennes synchronisations -->
+<script id="v199-sync-cleanup-marker">
+(function(){
+  window.TP_SYNC_POLICY_V199={
+    rtaFirebase:false,
+    legacyGeneratorFirebase:false,
+    studentCodesFirebase:true,
+    studentCodesDocument:'configuration/tpStudentCodesV199',
+    periodicLegacySync:false
+  };
+  console.info('V199 : Firebase actif pour les données utiles ; RTA et ancien générateur exclus des échanges automatiques.');
+})();
+</script>
+
+
+<!-- V200 — RTA retirée + ancien générateur TP désactivé -->
+<script id="v200-no-rta-no-generator">
+(function(){
+'use strict';
+
+function cleanUi(root=document){
+  try{
+    root.querySelectorAll?.('.eval-choice-card').forEach(card=>{
+      if(/\bRTA\b/i.test(card.textContent||'')) card.remove();
+    });
+
+    root.querySelectorAll?.('.settings-rubric-title,.settings-card,details.settings-rubric-collapse').forEach(el=>{
+      const txt=(el.querySelector?.(':scope > summary')?.textContent||el.textContent||'').trim();
+      if(/\bRTA\b/i.test(txt) && /intégration|biblioth|évaluation/i.test(txt)) el.remove();
+    });
+
+    const nav=document.querySelector('#nav-tpGenerator span');
+    if(nav)nav.textContent='Portail TP';
+
+    document.querySelectorAll('.home-shortcut-tpgen').forEach(card=>{
+      const h=card.querySelector('h3');if(h)h.textContent='Portail TP';
+      const p=card.querySelector('p');if(p)p.textContent='Diffuser, importer et suivre les travaux pratiques des élèves';
+      const b=card.querySelector('.home-modern-action');if(b)b.textContent='Ouvrir le portail';
+    });
+  }catch(e){
+    console.warn('V200 nettoyage interface',e);
+  }
+}
+
+/* L'ancien parcours RTA n'est plus accessible. */
+window.beginRtaEvaluation=function(){return false;};
+
+/* Les anciennes destinations de création/management restent neutralisées. */
+['tpGenManagementPage','tpGenDraftsPage','tpGenSavedPage'].forEach(name=>{
+  window[name]=function(){return window.tpGeneratorPage?.();};
+});
+
+const choice=window.evaluationChoicePage;
+if(typeof choice==='function'&&!choice.__v200){
+  const w=function(){
+    const r=choice.apply(this,arguments);
+    cleanUi(document.getElementById('main')||document);
+    return r;
+  };
+  w.__v200=true;
+  window.evaluationChoicePage=w;
+}
+
+const settings=window.renderSettingsPage;
+if(typeof settings==='function'&&!settings.__v200){
+  const w=function(){
+    const r=settings.apply(this,arguments);
+    cleanUi(document.getElementById('main')||document);
+    return r;
+  };
+  w.__v200=true;
+  window.renderSettingsPage=w;
+}
+
+cleanUi(document);
+
+const bv=document.getElementById('build-version');
+if(bv)bv.textContent='V201 — Évaluation · Charge Atelier · TP · Correction';
+document.title='V201 — Évaluation · Charge Atelier · TP · Correction';
+
+console.info('V200 : RTA retirée de l’interface et des évaluations ; ancien générateur TP neutralisé au profit du Portail TP.');
+})();
+</script>
+
+
+<!-- V201 — barre latérale PC/iPhone + suppression TP persistante -->
+<style id="v201-sidebar-fix">
+/* PC / tablette : la barre conserve son comportement repliable mais peut défiler. */
+.side{
+  overflow-x:hidden!important;
+  overflow-y:auto!important;
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior:contain;
+  max-height:100vh;
+  max-height:100dvh;
+}
+
+/* Bouton mobile indépendant du contenu de #main : il ne disparaît pas au changement de page. */
+#v201-mobile-menu-btn,
+#v201-mobile-menu-backdrop{display:none}
+
+@media(max-width:600px){
+  html,body{overflow-x:hidden!important}
+
+  .side{
+    position:fixed!important;
+    left:0!important;
+    top:0!important;
+    bottom:0!important;
+    z-index:5001!important;
+    width:min(86vw,310px)!important;
+    max-width:310px!important;
+    height:100vh!important;
+    height:100dvh!important;
+    max-height:100dvh!important;
+    overflow-x:hidden!important;
+    overflow-y:auto!important;
+    -webkit-overflow-scrolling:touch!important;
+    overscroll-behavior:contain!important;
+    padding-top:max(18px,env(safe-area-inset-top))!important;
+    padding-bottom:max(22px,env(safe-area-inset-bottom))!important;
+    transform:translateX(-105%)!important;
+    transition:transform .2s ease!important;
+    box-shadow:8px 0 28px rgba(15,23,42,.24)!important;
+  }
+  .side.mobile-open{
+    transform:translateX(0)!important;
+  }
+
+  /* L'ancien bouton dépendait de .mobile-topbar, qui est recréé/supprimé par les pages.
+     On masque seulement ce bouton-là et on utilise le bouton V201 permanent. */
+  .mobile-topbar .mobile-menu{display:none!important}
+  .sidebar-toggle{display:none!important}
+
+  #v201-mobile-menu-btn{
+    display:flex!important;
+    position:fixed;
+    left:max(10px,env(safe-area-inset-left));
+    top:max(10px,env(safe-area-inset-top));
+    z-index:5003;
+    width:46px;
+    height:46px;
+    min-height:46px;
+    padding:0;
+    align-items:center;
+    justify-content:center;
+    border:1px solid #cbd5e1;
+    border-radius:13px;
+    background:#fff;
+    color:#0b3b6e;
+    font-size:24px;
+    font-weight:900;
+    box-shadow:0 4px 16px rgba(15,23,42,.18);
+    -webkit-tap-highlight-color:transparent;
+  }
+  #v201-mobile-menu-btn.open{
+    background:#0b3b6e;
+    color:#fff;
+  }
+
+  #v201-mobile-menu-backdrop{
+    position:fixed;
+    inset:0;
+    z-index:5000;
+    background:rgba(15,23,42,.34);
+    -webkit-backdrop-filter:blur(1px);
+    backdrop-filter:blur(1px);
+  }
+  #v201-mobile-menu-backdrop.open{display:block!important}
+
+  /* Laisse de la place au bouton permanent sur les pages sans barre haute. */
+  .main{padding-top:max(66px,calc(16px + env(safe-area-inset-top)))!important}
+  .mobile-topbar{
+    padding-left:64px!important;
+  }
+}
+</style>
+
+<script id="v201-sidebar-delete-runtime">
+(function(){
+'use strict';
+
+const KEY='tp_correction_local_v54';
+const DEL70='tp_correction_deleted_v70';
+const WS='evaluation-mv-main';
+const COL73='tpCorrectionsV73';
+const COL159='tpCorrectionWorkV159';
+const TOMBS='tpCorrectionTombstonesV201';
+
+const deletedIds=new Set();
+
+const sv=v=>String(v??'').trim();
+const norm=v=>sv(v).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+const rows=()=>{try{const a=JSON.parse(localStorage.getItem(KEY)||'[]');return Array.isArray(a)?a:[]}catch(_){return[]}};
+const save=a=>localStorage.setItem(KEY,JSON.stringify((a||[]).slice(0,2000)));
+const db=()=>{try{return window.firebase?.firestore?.()}catch(_){return null}};
+const auth=()=>{try{return window.firebase?.auth?.().currentUser||null}catch(_){return null}};
+const root=()=>{const f=db();return f?f.collection('workspaces').doc(WS):null};
+
+function hash(x){
+  let h=2166136261;
+  for(let i=0;i<x.length;i++){h^=x.charCodeAt(i);h=Math.imul(h,16777619)}
+  return (h>>>0).toString(36);
+}
+function identity73(r){
+  const d=r?.data||{};
+  const sid=sv(d.studentId||d.eleve?.id);
+  const name=norm([d.eleve?.nom,d.eleve?.prenom].filter(Boolean).join(' ')||d.studentName||'');
+  const code=norm(d.code||'');
+  const title=norm(d.titre||'');
+  const rawDate=sv(d.eleve?.date||d.date||d.meta?.generatedAt||r?.importedAt||'').slice(0,10);
+  return [sid||name,code||title,rawDate].join('|');
+}
+function doc73(r){return 'tp_'+hash(identity73(r))}
+function identity159(r){
+  const d=r?.data||{},e=d.identite||d.eleve||{},tp=d.tp||{};
+  return [
+    d.studentId||e.id||norm((e.nom||'')+' '+(e.prenom||'')),
+    tp.id||d.code||norm(tp.titre||d.titre||''),
+    sv(d.dates?.rendu||d.submission?.submittedAt||d.date||r?.importedAt||'').slice(0,10)
+  ].join('|');
+}
+function doc159(r){return 'c_'+hash(identity159(r))}
+
+function loadLocalTombstones(){
+  try{
+    const d=JSON.parse(localStorage.getItem(DEL70)||'{}')||{};
+    Object.keys(d).forEach(id=>deletedIds.add(String(id)));
+  }catch(_){}
+}
+function markLocal(ids){
+  let d={};
+  try{d=JSON.parse(localStorage.getItem(DEL70)||'{}')||{}}catch(_){}
+  const now=new Date().toISOString();
+  ids.forEach(id=>{
+    id=String(id);
+    deletedIds.add(id);
+    d[id]=now;
+  });
+  localStorage.setItem(DEL70,JSON.stringify(d));
+}
+function isDeleted(r){
+  return !!(r && deletedIds.has(String(r.id||'')));
+}
+window.tpV201IsDeletedCorrection=isDeleted;
+
+function purgeLocal(ids){
+  const set=new Set(ids.map(String));
+  const before=rows();
+  const after=before.filter(r=>!set.has(String(r.id)));
+  if(after.length!==before.length)save(after);
+}
+function refreshPage(){
+  try{
+    if(document.querySelector('.tpc-shell')&&!document.querySelector('.tpc-editor')){
+      window.tpCorrectionPage?.();
+    }
+  }catch(_){}
+}
+
+async function cloudDeleteRow(r){
+  const rt=root();
+  if(!rt||!auth())throw new Error('Connexion Firebase requise pour une suppression multiposte.');
+
+  const id=String(r.id||'');
+  const tRef=rt.collection(TOMBS).doc(id);
+  const r73=rt.collection(COL73).doc(doc73(r));
+  const r159=rt.collection(COL159).doc(doc159(r));
+
+  /* Le marqueur V201 est écrit en premier. Les listeners V73/V159 ont été
+     protégés plus haut pour ne plus réinjecter une copie portant cet id. */
+  await tRef.set({
+    rowId:id,
+    identity73:identity73(r),
+    doc73:doc73(r),
+    identity159:identity159(r),
+    doc159:doc159(r),
+    studentId:sv(r?.data?.studentId||r?.data?.identite?.id||r?.data?.eleve?.id),
+    tpCode:sv(r?.data?.tp?.id||r?.data?.code),
+    fileName:sv(r?.fileName),
+    deletedAtClient:new Date().toISOString(),
+    deletedBy:auth()?.uid||'',
+    updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+  },{merge:true});
+
+  /* V73 sait déjà interpréter deleted:true. */
+  await r73.set({
+    deleted:true,
+    status:'deleted',
+    record:null,
+    deletedAt:firebase.firestore.FieldValue.serverTimestamp(),
+    updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+  },{merge:true});
+
+  /* V159 : on garde le document comme tombstone léger au lieu de le supprimer.
+     Cela évite qu'une ancienne copie Firebase le ressuscite immédiatement. */
+  await r159.set({
+    status:'deleted',
+    record:null,
+    deleted:true,
+    deletedRowId:id,
+    deletedAt:firebase.firestore.FieldValue.serverTimestamp(),
+    updatedAt:firebase.firestore.FieldValue.serverTimestamp(),
+    clientUpdatedAt:new Date().toISOString()
+  },{merge:true});
+}
+
+async function deleteIds(ids,ask=true){
+  ids=[...new Set((ids||[]).map(String).filter(Boolean))];
+  if(!ids.length)return false;
+
+  const before=rows();
+  const targets=before.filter(r=>ids.includes(String(r.id)));
+  if(!targets.length)return false;
+
+  if(ask){
+    const msg=targets.length===1
+      ? `Supprimer définitivement ce TP de « Copies rendues » sur tous les postes ?\n\n${sv(targets[0]?.data?.code||targets[0]?.data?.tp?.id||'TP')} — ${sv(targets[0]?.fileName)}\n\nLes évaluations déjà enregistrées dans l’historique ne seront pas supprimées.`
+      : `Supprimer définitivement ${targets.length} TP de « Copies rendues » sur tous les postes ?\n\nLes évaluations déjà enregistrées dans l’historique ne seront pas supprimées.`;
+    if(!confirm(msg))return false;
+  }
+
+  /* Suppression locale immédiate : l'utilisateur voit le résultat sans attendre le réseau. */
+  markLocal(ids);
+  purgeLocal(ids);
+  refreshPage();
+
+  if(!auth()){
+    alert('Les TP ont été masqués sur cet appareil, mais Firebase n’est pas connecté. Reconnecte-toi puis supprime-les à nouveau pour valider la suppression multiposte.');
+    return false;
+  }
+
+  const errors=[];
+  for(const r of targets){
+    try{await cloudDeleteRow(r)}
+    catch(e){errors.push(`${sv(r.fileName||r.id)} : ${e?.message||e}`)}
+  }
+
+  if(errors.length){
+    alert('Suppression locale effectuée, mais certaines suppressions Firebase restent à confirmer :\n\n'+errors.join('\n'));
+    return false;
+  }
+
+  window.dispatchEvent(new CustomEvent('tp-v201-deletions-updated',{detail:{ids}}));
+  window.showSuccessMessage?.(targets.length===1
+    ? 'TP supprimé définitivement de Copies rendues.'
+    : `${targets.length} TP supprimés définitivement de Copies rendues.`);
+  return true;
+}
+
+/* Définition finale : remplace le vieux bouton ×. */
+window.tpCorrectionDelete=function(id){
+  return deleteIds([id],true);
+};
+window.tpCorrectionDelete.__v73=true;
+
+window.tp58DeleteSelected=function(){
+  const ids=[...document.querySelectorAll('.tpc-row-select .tpc-check:checked')]
+    .map(x=>{
+      const m=String(x.getAttribute('onchange')||'').match(/tp58ToggleOne\('([^']+)'/);
+      return m?m[1]:'';
+    }).filter(Boolean);
+  if(!ids.length){
+    alert('Sélectionne au moins un TP à supprimer.');
+    return false;
+  }
+  return deleteIds(ids,true);
+};
+window.tp58DeleteSelected.__v73=true;
+
+/* Synchronise les tombstones entre postes. Cette écoute ne touche qu'aux suppressions
+   et n'effectue aucune navigation. */
+function installDeletionListener(){
+  const rt=root();
+  if(!rt||!auth()||window.__v201DeletionUnsub)return;
+  window.__v201DeletionUnsub=rt.collection(TOMBS).onSnapshot(snap=>{
+    const incoming=[];
+    snap.docs.forEach(d=>{
+      const id=String(d.data()?.rowId||d.id||'');
+      if(id){
+        deletedIds.add(id);
+        incoming.push(id);
+      }
+    });
+    if(incoming.length){
+      markLocal(incoming);
+      purgeLocal(incoming);
+      refreshPage();
+    }
+  },e=>{
+    console.warn('V201 écoute suppressions TP',e);
+    try{window.__v201DeletionUnsub?.()}catch(_){}
+    window.__v201DeletionUnsub=null;
+  });
+}
+
+loadLocalTombstones();
+purgeLocal([...deletedIds]);
+
+try{
+  window.firebase?.auth?.().onAuthStateChanged(u=>{
+    if(u)installDeletionListener();
+    else{
+      try{window.__v201DeletionUnsub?.()}catch(_){}
+      window.__v201DeletionUnsub=null;
+    }
+  });
+}catch(_){}
+
+/* ---------------- MENU MOBILE PERMANENT ---------------- */
+function ensureMobileMenu(){
+  let btn=document.getElementById('v201-mobile-menu-btn');
+  if(!btn){
+    btn=document.createElement('button');
+    btn.id='v201-mobile-menu-btn';
+    btn.type='button';
+    btn.setAttribute('aria-label','Ouvrir le menu');
+    btn.setAttribute('aria-expanded','false');
+    btn.textContent='☰';
+    document.body.appendChild(btn);
+  }
+
+  let back=document.getElementById('v201-mobile-menu-backdrop');
+  if(!back){
+    back=document.createElement('div');
+    back.id='v201-mobile-menu-backdrop';
+    back.setAttribute('aria-hidden','true');
+    document.body.appendChild(back);
+  }
+
+  function setOpen(open){
+    const side=document.querySelector('.side');
+    if(!side)return;
+    side.classList.toggle('mobile-open',!!open);
+    btn.classList.toggle('open',!!open);
+    btn.textContent=open?'×':'☰';
+    btn.setAttribute('aria-expanded',open?'true':'false');
+    btn.setAttribute('aria-label',open?'Fermer le menu':'Ouvrir le menu');
+    back.classList.toggle('open',!!open);
+    back.setAttribute('aria-hidden',open?'false':'true');
+  }
+
+  btn.onclick=()=>setOpen(!document.querySelector('.side')?.classList.contains('mobile-open'));
+  back.onclick=()=>setOpen(false);
+
+  /* Les boutons de navigation ferment le tiroir après le choix. */
+  document.querySelector('.side')?.addEventListener('click',e=>{
+    if(window.innerWidth<=600 && e.target?.closest?.('.nav button')) setOpen(false);
+  });
+
+  /* Compatibilité avec le bouton historique lorsqu'il existe encore. */
+  window.toggleMobileMenu=function(){
+    setOpen(!document.querySelector('.side')?.classList.contains('mobile-open'));
+  };
+
+  window.addEventListener('resize',()=>{
+    if(window.innerWidth>600)setOpen(false);
+  });
+}
+ensureMobileMenu();
+
+/* Version : affichage uniquement, aucun timer et aucun MutationObserver. */
+const bv=document.getElementById('build-version');
+if(bv)bv.textContent='V201 — Évaluation · Charge Atelier · TP · Correction';
+document.title='V201 — Évaluation · Charge Atelier · TP · Correction';
+
+console.info('V201 : barre latérale scrollable + menu iPhone permanent + suppression TP V73/V159 persistante.');
 })();
 </script>
