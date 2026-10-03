@@ -2734,7 +2734,7 @@ body{background:#f7f9fc;color:var(--text)}
 <!-- V88 — DONNÉES DE RÉFÉRENCE RÉINTÉGRÉES DEPUIS V86.5
      Jeux embarqués repris : référentiel compétences, élèves par défaut, seconde classe fictive, situations professionnelles.
      Les données dynamiques (classes/élèves/évaluations réellement saisies) restent chargées par IndexedDB/localStorage et Firebase. -->
-<div id="build-version">V201 — Évaluation · Charge Atelier · TP · Correction</div>
+<div id="build-version">V202 — Évaluation · Charge Atelier · TP · Correction</div>
 <div id="firebase-auth-overlay">
 <div class="firebase-login-card">
 <h2>☁️ Connexion Firebase — V89</h2>
@@ -2804,7 +2804,7 @@ body{background:#f7f9fc;color:var(--text)}
 </div>
 <div aria-live="polite" class="settings-save-progress">
 <div class="settings-save-progress-track"><div class="settings-save-progress-bar" id="settings-save-progress-bar"></div></div>
-<div class="settings-save-progress-text" id="settings-save-progress-text">Mode local : aucune donnée n’est envoyée vers Firebase.</div>
+<div class="settings-save-progress-text" id="settings-save-progress-text">Les réglages fonctionnels enregistrés ici sont partagés entre vos postes lorsque Firebase est connecté.</div>
 </div>
 <div class="settings-grid">
 <div class="settings-rubric-title rubric-teacher">👨‍🏫 Professeurs</div>
@@ -3455,7 +3455,7 @@ async function addClassFromSettings(){
   }
   const referentialId=document.getElementById("settings-new-class-referential")?.value||DEFAULT_REFERENTIAL_ID;
   const cls={id:slugClassId(name),name,archived:false,createdAt:Date.now(),referentialId};
-  list.push(cls);saveClasses(list);
+  list.push(cls);window.saveClasses?.(list);
   if(input)input.value="";
   renderSettingsClasses();
   showSuccessMessage("Classe ajoutée.");
@@ -3472,7 +3472,7 @@ function renameClassFromSettings(id){
   if(list.some(c=>String(c.id)!==String(id)&&!c.archived&&c.name.toLowerCase()===clean.toLowerCase())){
     showWarningMessage("Une autre classe porte déjà ce nom.");return;
   }
-  cls.name=clean;saveClasses(list);
+  cls.name=clean;window.saveClasses?.(list);
   syncLegacyClassName();
   renderSettingsClasses();renderSchoolSettings();applySchoolSettings();
   showSuccessMessage("Nom de la classe modifié.");
@@ -3483,20 +3483,20 @@ function archiveClassFromSettings(id){
     showWarningMessage("Choisis d'abord une autre classe active avant d'archiver celle-ci.");return;
   }
   showDeleteConfirmation(`Archiver la classe « ${cls.name} » ? Les élèves et leurs évaluations seront conservés.`,()=>{
-    cls.archived=true;saveClasses(list);renderSettingsClasses();
+    cls.archived=true;window.saveClasses?.(list);renderSettingsClasses();
     showSuccessMessage("Classe archivée.");
   });
 }
 function restoreClassFromSettings(id){
   const list=getClasses(),cls=list.find(c=>String(c.id)===String(id));if(!cls)return;
-  cls.archived=false;saveClasses(list);renderSettingsClasses();showSuccessMessage("Classe réactivée.");
+  cls.archived=false;window.saveClasses?.(list);renderSettingsClasses();showSuccessMessage("Classe réactivée.");
 }
 async function changeClassReferentialFromSettings(id,referentialId){
   if(![DEFAULT_REFERENTIAL_ID,SECOND_REFERENTIAL_ID].includes(referentialId))return;
   const list=getClasses(),cls=list.find(c=>String(c.id)===String(id));if(!cls)return;
   const previous=cls.referentialId||DEFAULT_REFERENTIAL_ID;
   if(previous===referentialId)return;
-  cls.referentialId=referentialId;saveClasses(list);
+  cls.referentialId=referentialId;window.saveClasses?.(list);
   if(String(id)===String(getActiveClassId())){
     await applyReferentialForClass(id);
     refreshManagedSituations();
@@ -4102,8 +4102,8 @@ function home(){
     </div>`;
   /* Affichage de version de l'accueil : information uniquement, sans impact sur le bootstrap. */
   const homeVersionBadge=document.getElementById("build-version");
-  if(homeVersionBadge)homeVersionBadge.textContent='V201 — Évaluation · Charge Atelier · TP · Correction';
-  document.title='V201 — Évaluation · Charge Atelier · TP · Correction';
+  if(homeVersionBadge)homeVersionBadge.textContent='V202 — Évaluation · Charge Atelier · TP · Correction';
+  document.title='V202 — Évaluation · Charge Atelier · TP · Correction';
 }
 
 function collapseAllCollectiveRows(){
@@ -9689,7 +9689,7 @@ function saveSchoolSettings(){
   };
   if(className){
     const classes=getClasses(),active=classes.find(c=>String(c.id)===String(getActiveClassId()));
-    if(active){active.name=className;saveClasses(classes);}
+    if(active){active.name=className;window.saveClasses?.(classes);}
   }
   localStorage.setItem(SCHOOL_SETTINGS_KEY,JSON.stringify(settings));
   syncFirebaseApplicationConfigSoon();
@@ -11139,6 +11139,10 @@ function openAssistanceMail(){
       version:"V15",
       adminCode:localStorage.getItem("evaluation_admin_code_v71")||"1234",
       schoolSettings:school,
+      functionalPreferences:{
+        retroPosition:localStorage.getItem("evaluation_show_retro_position_v118")!=="0",
+        retroCollective:localStorage.getItem("evaluation_show_retro_collective_v118")!=="0"
+      },
       activeClassId:localStorage.getItem("evaluation_active_class_v77")||"",
       teachers:JSON.parse(localStorage.getItem("evaluation_teachers_v84_1")||"[]"),
       competencies:comps,
@@ -11162,6 +11166,14 @@ function openAssistanceMail(){
     }
     if(cfg.schoolSettings&&typeof cfg.schoolSettings==="object"){
       safeLocalSetItem("evaluation_school_settings_v71",JSON.stringify(cfg.schoolSettings));
+    }
+    if(cfg.functionalPreferences&&typeof cfg.functionalPreferences==="object"){
+      if(typeof cfg.functionalPreferences.retroPosition==="boolean"){
+        safeLocalSetItem("evaluation_show_retro_position_v118",cfg.functionalPreferences.retroPosition?"1":"0");
+      }
+      if(typeof cfg.functionalPreferences.retroCollective==="boolean"){
+        safeLocalSetItem("evaluation_show_retro_collective_v118",cfg.functionalPreferences.retroCollective?"1":"0");
+      }
     }
     if(cfg.activeClassId!==undefined&&cfg.activeClassId!==null){
       safeLocalSetItem("evaluation_active_class_v77",String(cfg.activeClassId));
@@ -16484,8 +16496,8 @@ function inject(){
    Le timer V175 a été supprimé directement dans le code source ci-dessus. */
 function setVersion(){
   const b=document.getElementById('build-version');
-  if(b)b.textContent='V201 — Évaluation · Charge Atelier · TP · Correction';
-  document.title='V201 — Évaluation · Charge Atelier · TP · Correction';
+  if(b)b.textContent='V202 — Évaluation · Charge Atelier · TP · Correction';
+  document.title='V202 — Évaluation · Charge Atelier · TP · Correction';
 }
 function install(){
   inject();
@@ -16786,13 +16798,20 @@ else install();
 <!-- V157 — administration autonome des fiches d'évaluation, PDF local à la demande. Bootstrap inchangé. -->
 <style id="v157-activities-style">
 #v157-activities-overlay{position:fixed;inset:0;z-index:120000;background:#eef3f8;overflow:auto;color:#17324d}
-.v157-shell{max-width:1500px;margin:0 auto;padding:18px}.v157-head{position:sticky;top:0;z-index:4;background:#eef3f8;padding:8px 0 12px;display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}.v157-tools,.v157-actions{display:flex;gap:7px;flex-wrap:wrap}.v157-card{background:#fff;border:1px solid #d7e0e9;border-radius:14px;box-shadow:0 2px 8px #1232;padding:14px}.v157-tablewrap{overflow:auto;max-height:55vh}.v157-table{width:100%;border-collapse:collapse;min-width:1080px}.v157-table th,.v157-table td{border-bottom:1px solid #e4e9ef;padding:9px 8px;text-align:left;vertical-align:top}.v157-table th{position:sticky;top:0;background:#f4f7fa;z-index:2;color:#17365d}.v157-table tr.v157-arch{opacity:.58}.v157-table tr.v157-selected{background:#eef7ff}.v157-editor{margin-top:14px}.v157-grid{display:grid;grid-template-columns:110px 1fr 1fr;gap:10px}.v157-grid label{font-weight:800;font-size:12px}.v157-grid input,.v157-grid textarea{width:100%;box-sizing:border-box;margin-top:4px}.v157-wide{grid-column:1/-1}.v157-criteria{display:grid;gap:7px}.v157-crit{display:grid;grid-template-columns:32px 1fr auto;gap:7px;align-items:center}.v157-critnum{text-align:center;font-weight:900}.v157-note{font-size:12px;color:#5c6b79}.v157-category-summary{background:#eef8ff!important;border-left:6px solid #0284c7!important;color:#17365d!important}
+.v157-shell{max-width:1500px;margin:0 auto;padding:18px}.v157-head{position:sticky;top:0;z-index:4;background:#eef3f8;padding:8px 0 12px;display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}.v157-tools,.v157-actions{display:flex;gap:7px;flex-wrap:wrap}.v157-card{background:#fff;border:1px solid #d7e0e9;border-radius:14px;box-shadow:0 2px 8px #1232;padding:12px}.v157-tablewrap{overflow:auto;max-height:72vh}.v157-table{width:100%;border-collapse:collapse;min-width:1080px}.v157-table th,.v157-table td{border-bottom:1px solid #e4e9ef;padding:6px 7px;text-align:left;vertical-align:top}.v157-table th{position:sticky;top:0;background:#f4f7fa;z-index:2;color:#17365d}
+.v202-activity-toolbar{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin:0 0 10px}
+.v202-activity-search{flex:1;min-width:280px;border:1px solid #b9c9d9;border-radius:10px;padding:10px 12px;font:inherit;background:#fff}
+.v202-activity-counter{display:inline-flex;align-items:center;gap:6px;padding:7px 10px;border-radius:999px;background:#eef6ff;border:1px solid #bfd8f0;color:#174e82;font-size:12px;font-weight:850;white-space:nowrap}
+.v202-activity-clear{border:1px solid #c8d5e2;border-radius:9px;background:#fff;padding:9px 11px;color:#17365d;font-weight:800;cursor:pointer}
+.v202-activity-empty{padding:30px;text-align:center;color:#64748b;font-weight:700}
+.v202-desc{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;max-width:430px}
+@media(max-width:760px){.v202-activity-search{min-width:100%}.v202-activity-toolbar{align-items:stretch}.v202-activity-counter{width:max-content}}.v157-table tr.v157-arch{opacity:.58}.v157-table tr.v157-selected{background:#eef7ff}.v157-editor{margin-top:14px}.v157-grid{display:grid;grid-template-columns:110px 1fr 1fr;gap:10px}.v157-grid label{font-weight:800;font-size:12px}.v157-grid input,.v157-grid textarea{width:100%;box-sizing:border-box;margin-top:4px}.v157-wide{grid-column:1/-1}.v157-criteria{display:grid;gap:7px}.v157-crit{display:grid;grid-template-columns:32px 1fr auto;gap:7px;align-items:center}.v157-critnum{text-align:center;font-weight:900}.v157-note{font-size:12px;color:#5c6b79}.v157-category-summary{background:#eef8ff!important;border-left:6px solid #0284c7!important;color:#17365d!important}
 @media(max-width:760px){.v157-shell{padding:8px}.v157-grid{grid-template-columns:1fr}.v157-wide{grid-column:auto}.v157-head .v157-tools button{width:100%}.v157-editor{padding:10px}.v157-crit{grid-template-columns:26px 1fr}.v157-crit .v157-actions{grid-column:2}}
 </style>
 <script id="v157-activities-runtime">
 (function(){
 'use strict';
-const APP='V157'; let currentId=null;
+const APP='V202'; let currentId=null; let v202ActivitySearch='';
 const E=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const rows=()=>window.getManagedEvaluationActivities?.()||[];
 const sortRows=a=>a.slice().sort((x,y)=>(Number(x.numero)||99999)-(Number(y.numero)||99999));
@@ -16813,7 +16832,7 @@ function installCategory(){
  const row=card.querySelector('.row'); if(row){row.innerHTML='<button type="button" class="primary" onclick="openEvaluationActivitiesManagerV157()">Ouvrir le tableau d’administration</button><button type="button" class="secondary" onclick="generateEvaluationActivitiesPdfV157()">📄 Générer le PDF complet</button><span class="pill" id="settings-activities-count-v157"></span>'}
  list.style.display='none'; updateCount();
 }
-function updateCount(){const e=document.getElementById('settings-activities-count-v157');if(e){const a=rows();e.textContent=`${a.filter(x=>x.active!==false).length} active(s) · ${a.filter(x=>x.active===false).length} archivée(s)`}}
+function updateCount(){const e=document.getElementById('settings-activities-count-v157');if(e){const a=rows(),act=a.filter(x=>x.active!==false).length,arch=a.length-act;e.textContent=`${a.length} fiche(s) · ${act} active(s) · ${arch} archivée(s)`}}
 const mo=new MutationObserver(()=>{if(document.getElementById('settings-activities-list'))installCategory()});mo.observe(document.documentElement,{childList:true,subtree:true});
 
 window.openEvaluationActivitiesManagerV157=function(){
@@ -16821,11 +16840,89 @@ window.openEvaluationActivitiesManagerV157=function(){
  const o=document.createElement('div');o.id='v157-activities-overlay';document.body.appendChild(o);renderManager();
 };
 window.closeEvaluationActivitiesManagerV157=function(){document.getElementById('v157-activities-overlay')?.remove();currentId=null;updateCount()};
+function v202ActivityNorm(v){
+ return String(v??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+}
+function v202ActivityMatches(x,q){
+ if(!q)return true;
+ const criteria=(x.criteres||[]).map(c=>typeof c==='string'?c:[c?.id,c?.nom,c?.label,c?.texte,c?.description].filter(Boolean).join(' ')).join(' ');
+ const hay=v202ActivityNorm([
+   x.numero,x.theme,x.titre,x.description,
+   (x.competences_cap||[]).join(' '),
+   (x.competences_bac_pro||[]).join(' '),
+   criteria
+ ].join(' '));
+ return q.split(/\s+/).filter(Boolean).every(word=>hay.includes(word));
+}
+window.v202FilterEvaluationActivities=function(value){
+ v202ActivitySearch=String(value||'');
+ renderManager();
+ requestAnimationFrame(()=>{
+   const i=document.getElementById('v202-activity-search');
+   if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}
+ });
+};
+window.v202ClearEvaluationActivitiesSearch=function(){
+ v202ActivitySearch='';
+ renderManager();
+ requestAnimationFrame(()=>document.getElementById('v202-activity-search')?.focus());
+};
 function renderManager(){
- const o=document.getElementById('v157-activities-overlay');if(!o)return;const a=sortRows(rows());
- o.innerHTML=`<div class="v157-shell"><div class="v157-head"><div><h1 style="margin:0">🗂️ Gestion des fiches et activités d’évaluation</h1><div class="v157-note">Toutes les fiches sur une page. Les PDF sont générés localement et ne sont pas stockés dans Firebase.</div></div><div class="v157-tools"><button class="primary" onclick="newEvaluationActivityV157()">＋ Nouvelle fiche</button><button class="secondary" onclick="generateEvaluationActivitiesPdfV157()">📄 PDF complet</button><button class="secondary" onclick="closeEvaluationActivitiesManagerV157()">← Paramètres</button></div></div><div class="v157-card v157-tablewrap"><table class="v157-table"><thead><tr><th>N°</th><th>Thème</th><th>Fiche / activité</th><th>CAP</th><th>Bac Pro</th><th>Critères</th><th>État</th><th>Actions</th></tr></thead><tbody>${a.map(x=>`<tr class="${x.active===false?'v157-arch':''} ${String(x.id)===String(currentId)?'v157-selected':''}"><td>A${String(x.numero||'').padStart(2,'0')}</td><td>${E(x.theme||'')}</td><td><b>${E(x.titre||'')}</b><div class="v157-note">${E(x.description||'')}</div></td><td>${E((x.competences_cap||[]).join(', ')||'—')}</td><td>${E((x.competences_bac_pro||[]).join(', ')||'—')}</td><td>${(x.criteres||[]).length}</td><td>${x.active===false?'Archivée':'Active'}</td><td><div class="v157-actions"><button class="secondary" onclick="editEvaluationActivityV157('${E(x.id)}')">✏️ Modifier</button><button class="secondary" onclick="duplicateEvaluationActivityV157('${E(x.id)}')">⧉ Dupliquer</button><button class="secondary" onclick="toggleEvaluationActivityV157('${E(x.id)}')">${x.active===false?'↩ Réactiver':'📦 Archiver'}</button><button class="secondary" onclick="generateEvaluationActivitiesPdfV157('${E(x.id)}')">📄 PDF</button></div></td></tr>`).join('')}</tbody></table></div><div id="v157-editor"></div></div>`;
+ const o=document.getElementById('v157-activities-overlay');if(!o)return;
+ const all=sortRows(rows());
+ const q=v202ActivityNorm(v202ActivitySearch);
+ const a=all.filter(x=>v202ActivityMatches(x,q));
+ const active=all.filter(x=>x.active!==false).length;
+ const archived=all.length-active;
+ const shown=a.length;
+
+ o.innerHTML=`<div class="v157-shell">
+   <div class="v157-head">
+     <div>
+       <h1 style="margin:0">🗂️ Gestion des fiches et activités d’évaluation</h1>
+       <div class="v157-note">Toutes les fiches sur une page. Les PDF sont générés localement et ne sont pas stockés dans Firebase.</div>
+     </div>
+     <div class="v157-tools">
+       <button class="primary" onclick="newEvaluationActivityV157()">＋ Nouvelle fiche</button>
+       <button class="secondary" onclick="generateEvaluationActivitiesPdfV157()">📄 PDF complet</button>
+       <button class="secondary" onclick="closeEvaluationActivitiesManagerV157()">← Paramètres</button>
+     </div>
+   </div>
+
+   <div class="v202-activity-toolbar">
+     <input id="v202-activity-search" class="v202-activity-search" type="search"
+       placeholder="Rechercher par n°, thème, titre, description, compétence ou critère…"
+       value="${E(v202ActivitySearch)}"
+       oninput="v202FilterEvaluationActivities(this.value)">
+     <button type="button" class="v202-activity-clear" onclick="v202ClearEvaluationActivitiesSearch()">× Effacer</button>
+     <span class="v202-activity-counter">${all.length} fiche(s) · ${active} active(s) · ${archived} archivée(s) · ${shown} affichée(s)</span>
+   </div>
+
+   <div class="v157-card v157-tablewrap">
+     <table class="v157-table">
+       <thead><tr><th>N°</th><th>Thème</th><th>Fiche / activité</th><th>CAP</th><th>Bac Pro</th><th>Critères</th><th>État</th><th>Actions</th></tr></thead>
+       <tbody>${a.length?a.map(x=>`<tr class="${x.active===false?'v157-arch':''} ${String(x.id)===String(currentId)?'v157-selected':''}">
+         <td>A${String(x.numero||'').padStart(2,'0')}</td>
+         <td>${E(x.theme||'')}</td>
+         <td><b>${E(x.titre||'')}</b><div class="v157-note v202-desc">${E(x.description||'')}</div></td>
+         <td>${E((x.competences_cap||[]).join(', ')||'—')}</td>
+         <td>${E((x.competences_bac_pro||[]).join(', ')||'—')}</td>
+         <td>${(x.criteres||[]).length}</td>
+         <td>${x.active===false?'Archivée':'Active'}</td>
+         <td><div class="v157-actions">
+           <button class="secondary" onclick="editEvaluationActivityV157('${E(x.id)}')">✏️ Modifier</button>
+           <button class="secondary" onclick="duplicateEvaluationActivityV157('${E(x.id)}')">⧉ Dupliquer</button>
+           <button class="secondary" onclick="toggleEvaluationActivityV157('${E(x.id)}')">${x.active===false?'↩ Réactiver':'📦 Archiver'}</button>
+           <button class="secondary" onclick="generateEvaluationActivitiesPdfV157('${E(x.id)}')">📄 PDF</button>
+         </div></td>
+       </tr>`).join(''):`<tr><td colspan="8"><div class="v202-activity-empty">Aucune fiche ne correspond à cette recherche.</div></td></tr>`}</tbody>
+     </table>
+   </div>
+   <div id="v157-editor"></div>
+ </div>`;
  if(currentId)renderEditor();
 }
+
 window.newEvaluationActivityV157=function(){const a=rows(),n=Math.max(0,...a.map(x=>Number(x.numero)||0))+1,x={id:'ACT-ADMIN-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,6),numero:n,theme:'Activité personnalisée',titre:'Nouvelle activité',description:'',criteres:[''],competences_cap:[],competences_bac_pro:[],diplomes:['CAP','Bac Pro'],active:true,createdAt:Date.now()};a.push(x);save(a);currentId=x.id;renderManager()};
 window.editEvaluationActivityV157=function(id){currentId=id;renderManager();setTimeout(()=>document.getElementById('v157-editor')?.scrollIntoView({behavior:'smooth',block:'start'}),0)};
 function critRow(v,i){return `<div class="v157-crit"><span class="v157-critnum">${i+1}</span><input class="v157-critinput" value="${E(v)}"><div class="v157-actions"><button class="secondary" title="Monter" onclick="moveCriterionV157(this,-1)">↑</button><button class="secondary" title="Descendre" onclick="moveCriterionV157(this,1)">↓</button><button class="secondary" title="Supprimer" onclick="this.closest('.v157-crit').remove();renumberCriteriaV157()">×</button></div></div>`}
@@ -17022,7 +17119,7 @@ stamp();window.addEventListener('load',()=>{stamp();setTimeout(reconcile,300)},{
 (function(){
 'use strict';
 
-const VERSION='V191 — Firebase maître';
+const VERSION='V202 — Évaluation · Charge Atelier · TP · Correction';
 const MODE_KEYS={
   free:'evaluation_mode_free_v190',
   professional:'evaluation_mode_professional_v190',
@@ -17331,7 +17428,7 @@ setTimeout(()=>{pullModesFirebase().catch(()=>{})},3500);
 function setVersion(){
   const b=document.getElementById('build-version');
   if(b)b.textContent=VERSION;
-  document.title='V191 — Évaluation · Charge Atelier · TP · Correction';
+  document.title='V202 — Évaluation · Charge Atelier · TP · Correction';
 }
 setVersion();
 setTimeout(setVersion,500);
@@ -17794,7 +17891,7 @@ function relabelNavigation(){
 function setVersion(){
   const b=document.getElementById('build-version');
   if(b)b.textContent=VERSION;
-  document.title='V201 — Évaluation · Charge Atelier · TP · Correction';
+  document.title='V202 — Évaluation · Charge Atelier · TP · Correction';
 }
 relabelNavigation();
 setVersion();
@@ -18266,9 +18363,9 @@ if(typeof window.tpCorrectionImport==='function'){
 /* Habillage du Portail TP seulement : la fonction RTA existante reste disponible
    ailleurs dans le logiciel, elle n'est simplement plus dans le nom de la suite. */
 function stamp(){
-  document.title='V201 — Évaluation · Charge Atelier · TP · Correction';
+  document.title='V202 — Évaluation · Charge Atelier · TP · Correction';
   const bv=document.getElementById('build-version');
-  if(bv)bv.textContent='V201 — Évaluation · Charge Atelier · TP · Correction';
+  if(bv)bv.textContent='V202 — Évaluation · Charge Atelier · TP · Correction';
 }
 stamp();
 setTimeout(stamp,700);
@@ -18436,8 +18533,8 @@ document.addEventListener('visibilitychange',()=>{
 /* Affichage de version seulement, sans timer périodique ni MutationObserver. */
 function stampVersion(){
   const b=document.getElementById('build-version');
-  if(b)b.textContent='V201 — Évaluation · Charge Atelier · TP · Correction';
-  document.title='V201 — Évaluation · Charge Atelier · TP · Correction';
+  if(b)b.textContent='V202 — Évaluation · Charge Atelier · TP · Correction';
+  document.title='V202 — Évaluation · Charge Atelier · TP · Correction';
 }
 stampVersion();
 
@@ -18523,8 +18620,8 @@ if(typeof settings==='function'&&!settings.__v200){
 cleanUi(document);
 
 const bv=document.getElementById('build-version');
-if(bv)bv.textContent='V201 — Évaluation · Charge Atelier · TP · Correction';
-document.title='V201 — Évaluation · Charge Atelier · TP · Correction';
+if(bv)bv.textContent='V202 — Évaluation · Charge Atelier · TP · Correction';
+document.title='V202 — Évaluation · Charge Atelier · TP · Correction';
 
 console.info('V200 : RTA retirée de l’interface et des évaluations ; ancien générateur TP neutralisé au profit du Portail TP.');
 })();
@@ -18909,9 +19006,30 @@ ensureMobileMenu();
 
 /* Version : affichage uniquement, aucun timer et aucun MutationObserver. */
 const bv=document.getElementById('build-version');
-if(bv)bv.textContent='V201 — Évaluation · Charge Atelier · TP · Correction';
-document.title='V201 — Évaluation · Charge Atelier · TP · Correction';
+if(bv)bv.textContent='V202 — Évaluation · Charge Atelier · TP · Correction';
+document.title='V202 — Évaluation · Charge Atelier · TP · Correction';
 
 console.info('V201 : barre latérale scrollable + menu iPhone permanent + suppression TP V73/V159 persistante.');
+})();
+</script>
+
+
+<!-- V202 — fiches plus lisibles + personnalisation multiposte -->
+<script id="v202-functional-settings-marker">
+(function(){
+'use strict';
+window.V202_SETTINGS_POLICY={
+  classesFirebase:true,
+  evaluationModesFirebase:true,
+  retroPreferencesInApplicationConfig:true,
+  schoolSettingsInApplicationConfig:true,
+  activeClassInApplicationConfig:true,
+  teacherAssignmentsFirebase:true,
+  ephemeralUiLocalOnly:true
+};
+const bv=document.getElementById('build-version');
+if(bv)bv.textContent='V202 — Évaluation · Charge Atelier · TP · Correction';
+document.title='V202 — Évaluation · Charge Atelier · TP · Correction';
+console.info('V202 : recherche/compteur fiches + paramètres fonctionnels multiposte, démarrage inchangé.');
 })();
 </script>
