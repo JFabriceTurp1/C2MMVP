@@ -2789,6 +2789,7 @@ body{background:#f7f9fc;color:var(--text)}
 <button id="nav-archives" onclick="go('archives')">📦 <span>Évaluations archivées</span></button>
 <button id="nav-report" onclick="reportPage()">📄 <span>Synthèse élève</span></button>
 <button id="nav-comps" onclick="go('comps')">📚 <span>Référentiel</span></button>
+<button id="nav-activityAdmin" class="admin-only-hidden" onclick="openManagedActivities219()">🗂️ <span>Gestion des fiches et activités d’évaluation</span></button>
 <button id="nav-settings" onclick="openSettings()">⚙️ <span>Paramètres</span></button>
 </div>
 </aside>
@@ -3736,7 +3737,7 @@ async function migratePre14092026ToRecorded(){
   try{
     const cutoff=new Date(2026,8,14).getTime();
     const rows=await getAll("evaluations");
-    const targets=rows.filter(ev=>!ev.archived&&!ev.recorded&&evaluationDateTimestamp(ev.evaluationDate||ev.date)>0&&evaluationDateTimestamp(ev.evaluationDate||ev.date)<cutoff);
+    const targets=rows.filter(ev=>!ev.archived&&!ev.recorded&&!ev.restoredToHistoryAt&&evaluationDateTimestamp(ev.evaluationDate||ev.date)>0&&evaluationDateTimestamp(ev.evaluationDate||ev.date)<cutoff);
     for(const ev of targets){
       await put("evaluations",{...ev,recorded:true,recordedAt:Date.now(),recordedAutomaticallyV19:true});
     }
@@ -3886,7 +3887,7 @@ async function restoreEvaluation(evaluationId,studentIdHint){
 async function setEvaluationRecorded(ev,recorded){
   if(!ev||ev.id===undefined||ev.id===null)throw new Error("Évaluation invalide.");
   const updated={...ev,recorded:!!recorded};
-  if(recorded)updated.recordedAt=Date.now(); else{delete updated.recordedAt;delete updated.recordedAutomaticallyV19;}
+  if(recorded){updated.recordedAt=Date.now();delete updated.restoredToHistoryAt;}else{delete updated.recordedAt;delete updated.recordedAutomaticallyV19;updated.restoredToHistoryAt=Date.now();}
   await put("evaluations",updated);
   return updated;
 }
@@ -3933,7 +3934,7 @@ function competenceLabel(id){
 function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
 function student(){return students.find(s=>s.id===selectedStudent);}
 function setActive(id){document.querySelectorAll(".nav button").forEach(b=>b.classList.remove("active"));const b=document.getElementById("nav-"+id);if(b)b.classList.add("active");}
-function go(p){ const side=document.querySelector(".side"); if(side)side.classList.remove("mobile-open");page=p;render();}
+function go(p){ if(typeof window.closeMobileMenu220==="function")window.closeMobileMenu220();else{const side=document.querySelector(".side");if(side)side.classList.remove("mobile-open");}page=p;render();}
 
 function toggleMobileMenu(){
   const side=document.querySelector(".side");
@@ -3954,7 +3955,10 @@ function toggleSidebar(){const app=document.querySelector(".app");if(!app||windo
 function initSidebarState(){if(window.innerWidth<=600)return;let collapsed=false;try{collapsed=localStorage.getItem(SIDEBAR_COLLAPSED_KEY)==="1"}catch(e){}setSidebarCollapsed(collapsed,false);}
 document.addEventListener("click",function(e){
   const side=document.querySelector(".side");
-  if(side && window.innerWidth<=600 && side.classList.contains("mobile-open") && !side.contains(e.target) && !e.target.closest(".mobile-menu")) side.classList.remove("mobile-open");
+  if(side && window.innerWidth<=600 && side.classList.contains("mobile-open") && !side.contains(e.target) && !e.target.closest(".mobile-menu, #v201-mobile-menu-btn, #v201-mobile-menu-backdrop")){
+    if(typeof window.closeMobileMenu220==="function")window.closeMobileMenu220();
+    else side.classList.remove("mobile-open");
+  }
 });
 window.addEventListener("resize",function(){
   const side=document.querySelector(".side");
@@ -4014,6 +4018,7 @@ function render(){
  else if(page==="comps")compsPage();
   else if(page==="history")historyPage();else if(page==="bilans")bilansPage();else if(page==="recorded")recordedEvaluationsPage();else if(page==="archives")archivesPage();else if(page==="studentHistory")studentHistoryPage();
   else if(page==="settings")renderSettingsPage();
+  else if(page==="activityAdmin")openEvaluationActivitiesManagerV157();
   else if(page==="referentiel-import-text")referentielImportTextPage();
   else if(page==="referentiel-import-review")renderReferentielImportReview();
 
@@ -4692,9 +4697,35 @@ function getManagedEvaluationActivities(){
   return defaultManagedEvaluationActivities();
 }
 function saveManagedEvaluationActivities(list){
-  localStorage.setItem(MANAGED_EVALUATION_ACTIVITIES_KEY,JSON.stringify(list||[]));
-  try{syncFirebaseApplicationConfigSoon()}catch(e){}
+ const before=new Map(getManagedEvaluationActivities().map(x=>[String(x.id),x]));
+ const updated=(list||[]).map(x=>{const old=before.get(String(x.id));return managedActivityStable219(x)===managedActivityStable219(old)?x:{...x,updatedAt:Math.max(Date.now(),managedActivityStamp219(old)+1,managedActivityStamp219(x))};});
+ localStorage.setItem(MANAGED_EVALUATION_ACTIVITIES_KEY,JSON.stringify(updated));
+ localStorage.setItem('managed_activities_pending_v219','1');
+ window.managedActivities219?.schedule();
 }
+// Per-activity merge. No initial I/O, no change to the bootstrap sequence.
+function managedActivityStamp219(x){const v=x?.updatedAt||x?.createdAt||0;return typeof v==='number'?v:(Date.parse(v)||0);}
+function managedActivityStable219(v){if(Array.isArray(v))return '['+v.map(managedActivityStable219).join(',')+']';if(v&&typeof v==='object')return '{'+Object.keys(v).sort().map(k=>JSON.stringify(k)+':'+managedActivityStable219(v[k])).join(',')+'}';return JSON.stringify(v);}
+function mergeManagedActivities219(local,remote){
+ const map=new Map();for(const x of [...(Array.isArray(local)?local:[]),...(Array.isArray(remote)?remote:[])]){
+  if(!x||!x.id)continue;const id=String(x.id),old=map.get(id);if(!old||managedActivityStamp219(x)>managedActivityStamp219(old)||(managedActivityStamp219(x)===managedActivityStamp219(old)&&managedActivityStable219(x)>managedActivityStable219(old)))map.set(id,x);
+ }
+ return [...map.values()].sort((a,b)=>(Number(a.numero)||0)-(Number(b.numero)||0)||String(a.id).localeCompare(String(b.id)));
+}
+function acceptManagedActivities219(remote){
+ const local=getManagedEvaluationActivities(),merged=mergeManagedActivities219(local,remote),text=JSON.stringify(merged);
+ if(managedActivityStable219(merged)!==managedActivityStable219(local))localStorage.setItem(MANAGED_EVALUATION_ACTIVITIES_KEY,text);
+ const pending=managedActivityStable219(merged)!==managedActivityStable219(mergeManagedActivities219([],remote));
+ if(pending)localStorage.setItem('managed_activities_pending_v219','1');
+ window.managedActivities219?.received(pending);
+ return merged;
+}
+async function openManagedActivities219(){
+ if(!isAdminTeacher()){showWarningMessage('La gestion des fiches est réservée à l’administrateur.');return;}
+ const code=await requestAdminCodeMasked('Saisis le code administrateur pour gérer les fiches :');if(code===null)return;if(code!==getAdminCode()){showWarningMessage('Code administrateur erroné.');return;}
+ go('activityAdmin');
+}
+
 function activeManagedEvaluationActivities(){return getManagedEvaluationActivities().filter(x=>x.active!==false)}
 function normalizeActivityComps(v){return String(v||"").split(/[,;\n]+/).map(x=>x.trim()).filter(Boolean)}
 function nextManagedActivityNumber(list){return Math.max(0,...(list||[]).map(x=>Number(x.numero)||0))+1}
@@ -7082,8 +7113,7 @@ async function openSettings(){
     showWarningMessage("⚠️ Code administrateur erroné. Veuillez réessayer.");
     return;
   }
-  page="settings";
-  render();
+  go("settings");
 }
 function makeSettingsRubricsCollapsible(){
   const root=document.getElementById("main");
@@ -9476,8 +9506,9 @@ function applyTeacherPermissions(){
   const admin=isAdminTeacher();
   const nav=document.getElementById("nav-settings");
   if(nav)nav.classList.toggle("admin-only-hidden",!admin);
+  document.getElementById("nav-activityAdmin")?.classList.toggle("admin-only-hidden",!admin);
   document.querySelectorAll(".home-shortcut-settings").forEach(el=>el.classList.toggle("admin-only-hidden",!admin));
-  if(!admin && typeof page!=="undefined" && page==="settings"){
+  if(!admin && typeof page!=="undefined" && (page==="settings"||page==="activityAdmin")){
     if(typeof go==="function")go("home");
   }
 }
@@ -10174,22 +10205,56 @@ function historyPage(){
 }
 
 
+// V218 — Recherche, tri et restauration multiple des évaluations enregistrées.
+const recorded218={classId:null,query:'',sort:'date-desc',selected:new Set(),visible:[],groups:[],busy:false,message:''};
+function recorded218Items(){const id=String(getActiveClassId()||'');return (allStudents||[]).filter(s=>String(s.classId||'')===id).flatMap(s=>recordedEvaluations(s.evaluations||[]).map(e=>({...e,studentName:s.name,studentId:s.id})));}
+function recorded218Search(clear=false){if(recorded218.busy)return;recorded218.query=clear?'':String(document.getElementById('recorded218-search')?.value||'');recordedEvaluationsPage();}
+function recorded218Toggle(ids,on){if(recorded218.busy)return;ids.forEach(id=>on?recorded218.selected.add(String(id)):recorded218.selected.delete(String(id)));recorded218Selection();}
+function recorded218Selection(){
+ const visible=new Set(recorded218.visible.map(e=>String(e.id))),n=[...recorded218.selected].filter(id=>visible.has(id)).length;
+ document.querySelectorAll('[data-recorded218-ids]').forEach(box=>{const ids=JSON.parse(box.dataset.recorded218Ids),k=ids.filter(id=>recorded218.selected.has(String(id))).length;box.checked=ids.length>0&&k===ids.length;box.indeterminate=k>0&&k<ids.length;box.disabled=recorded218.busy;});
+ const label=document.getElementById('recorded218-count');if(label)label.textContent=recorded218.selected.size+' évaluation(s) sélectionnée(s)'+(recorded218.selected.size>n?' · '+(recorded218.selected.size-n)+' hors de la recherche affichée':'');
+ const button=document.getElementById('recorded218-restore');if(button){button.disabled=recorded218.busy||!recorded218.selected.size;button.textContent=recorded218.busy?'Restauration en cours…':'↩ Restaurer la sélection dans l’historique';}
+}
+async function recorded218Restore(){
+ if(recorded218.busy||!recorded218.selected.size)return;
+ const active=String(getActiveClassId()||''),ids=[...recorded218.selected];
+ if(!confirm(`Restaurer ${ids.length} évaluation(s) sélectionnée(s) dans l’historique actif ?\n\nLes notes, compétences et pièces jointes seront conservées.`))return;
+ recorded218.busy=true;recorded218Selection();let count=0,skipped=0,error='';
+ try{
+  const students=new Set((allStudents||[]).filter(s=>String(s.classId||'')===active).map(s=>String(s.id)));
+  const latest=await getAll('evaluations'),byId=new Map(latest.map(e=>[String(e.id),e]));
+  for(const id of ids){
+   if(String(getActiveClassId()||'')!==active)throw Error('La classe active a changé. Les dossiers restants sont conservés dans la sélection.');
+   const e=byId.get(id);
+   if(!e||e.archived||!e.recorded||!students.has(String(e.studentId))){recorded218.selected.delete(id);skipped++;continue;}
+   await setEvaluationRecorded(e,false);recorded218.selected.delete(id);count++;
+  }
+ }catch(e){error=e?.message||String(e);}
+ try{await loadData();}catch(e){error=error||'Les données ont été enregistrées, mais le rechargement a échoué : '+(e?.message||e);}
+ recorded218.busy=false;
+ recorded218.message=`${count} évaluation(s) restaurée(s) dans l’historique actif.`+(skipped?` ${skipped} dossier(s) déjà déplacé(s) ou indisponible(s) ignoré(s).`:'')+(error?` Traitement interrompu : ${error}. Les éléments non traités restent sélectionnés.`:'');
+ if(document.getElementById('recorded218-search'))recordedEvaluationsPage();
+ if(error)showWarningMessage(recorded218.message);
+}
 function recordedEvaluationsPage(){
-  setActive("history");
-  const activeId=String(getActiveClassId()||"");
-  const classStudents=(allStudents||[]).filter(st=>String(st.classId||"")===activeId);
-  const all=[];
-  classStudents.forEach(st=>recordedEvaluations(st.evaluations||[]).forEach(ev=>all.push({...ev,studentName:st.name,studentId:st.id})));
-  const groups=new Map();
-  all.forEach(e=>{const key=e.batchId?`batch-${String(e.batchId)}`:`single-${String(e.id)}`;if(!groups.has(key))groups.set(key,{key,collective:!!e.batchId,date:e.date,title:e.title,comps:e.comps||[],createdAt:e.createdAt||0,items:[]});groups.get(key).items.push(e);});
-  groups.forEach(g=>{if(g.items.length<=1)g.collective=false;});
-  const ordered=[...groups.values()].sort((a,b)=>evaluationDateTimestamp(b.date)-evaluationDateTimestamp(a.date)||(b.createdAt||0)-(a.createdAt||0));
-  let body="";
-  ordered.forEach(g=>{
-    if(!g.collective){const e=g.items[0];body+=`<tr class="history-individual-row" onclick="viewEvaluation('${String(e.id)}')" style="cursor:pointer"><td>${esc(e.date||"")}</td><td><b>${esc(e.studentName||"")}</b></td><td><span class="pill">Individuelle</span></td><td>${esc(e.title||"")}${evaluationSupportLabel(e)?`<div class="history-support">Support : ${esc(evaluationSupportLabel(e))}</div>`:""}${evaluationTeacherLabel(e)?`<div class="history-teacher">Professeur : ${esc(evaluationTeacherLabel(e))}</div>`:""}</td><td>${evaluationDisplayComps(e).map(competenceLabel).join("<br>")||"—"}</td><td><span class="score-badge ${scoreClass(evaluationScore20(e))}">${evaluationScoreLabel(e)}</span></td><td><button class="secondary" onclick="event.stopPropagation();restoreRecordedEvaluation('${String(e.id)}','${String(e.studentId)}')">↩ Restaurer</button></td></tr>`;}
-    else{const id="recorded-collective-"+String(g.key).replace(/[^a-zA-Z0-9_-]/g,"_");const names=g.items.length===classStudents.length&&classStudents.length?"Toute la classe":g.items.slice().sort((a,b)=>String(a.studentName||"").localeCompare(String(b.studentName||""),"fr")).map(x=>esc(x.studentName||"")).join(", ");body+=`<tr class="history-collective-row" onclick="toggleCollectiveRow('${esc(id)}')" style="cursor:pointer"><td>${esc(g.date||"")}</td><td><b>👥 Évaluation collective</b><div class="history-support">${names}</div></td><td><span class="pill">Collective</span></td><td>${esc(g.title||"")}${evaluationSupportLabel(g.items[0])?`<div class="history-support">Support : ${esc(evaluationSupportLabel(g.items[0]))}</div>`:""}${evaluationTeacherLabel(g.items[0])?`<div class="history-teacher">Professeur : ${esc(evaluationTeacherLabel(g.items[0]))}</div>`:""}</td><td>${(g.comps||[]).map(competenceLabel).join("<br>")||"—"}</td><td><span class="pill">${g.items.length} élèves</span></td><td><button class="secondary" onclick="event.stopPropagation();restoreRecordedCollective('${String(g.items[0].batchId)}')">↩ Restaurer le groupe</button></td></tr>`;g.items.slice().sort((a,b)=>String(a.studentName||"").localeCompare(String(b.studentName||""),"fr")).forEach(e=>{body+=`<tr data-collective="${esc(id)}" style="display:none;cursor:pointer" onclick="viewEvaluation('${String(e.id)}')"><td>${esc(e.date||"")}</td><td style="padding-left:28px">↳ ${esc(e.studentName||"")}</td><td><span class="pill">Élève</span></td><td>${esc(e.title||"")}</td><td>${evaluationDisplayComps(e).map(competenceLabel).join("<br>")||"—"}</td><td><span class="score-badge ${scoreClass(evaluationScore20(e))}">${evaluationScoreLabel(e)}</span></td><td><button class="secondary" onclick="event.stopPropagation();restoreRecordedEvaluation('${String(e.id)}','${String(e.studentId)}')">↩ Restaurer</button></td></tr>`;});}
-  });
-  document.getElementById("main").innerHTML=`<div class="page-header"><div><h1>Évaluations enregistrées</h1><p class="sub">Évaluations retirées de l’historique actif. Elles restent conservées et continuent à compter dans les résultats et synthèses.</p></div><button class="secondary" onclick="go('history')">← Historique</button></div><div class="panel"><div class="row"><h2>Évaluations enregistrées</h2><span class="pill">${ordered.length} dossier(s)</span></div>${ordered.length?`<div style="overflow-x:auto"><table class="evaluation-history-table"><tr class="evaluation-history-header"><th>Date</th><th>Élève / groupe</th><th>Type</th><th>Situation</th><th>Compétences</th><th>Note / groupe</th><th>Action</th></tr>${body}</table></div>`:'<p class="muted">Aucune évaluation enregistrée.</p>'}</div>`;
+ setActive('history');const active=String(getActiveClassId()||'');
+ if(recorded218.classId!==active){recorded218.classId=active;recorded218.query='';recorded218.selected.clear();recorded218.message='';}
+ const all=recorded218Items(),valid=new Set(all.map(e=>String(e.id)));for(const id of recorded218.selected)if(!valid.has(id))recorded218.selected.delete(id);
+ const terms=normalizeHistorySearch(recorded218.query).split(/\s+/).filter(Boolean);
+ const filtered=all.filter(e=>{const hay=normalizeHistorySearch([e.studentName,e.date,e.title,e.place,e.type,evaluationSupportLabel(e),evaluationTeacherLabel(e),e.evaluationObservation,e.globalObservation,...(e.comps||[])].filter(Boolean).join(' '));return terms.every(t=>hay.includes(t));});
+ const groups=new Map();filtered.forEach(e=>{const key=e.batchId?'batch-'+e.batchId:'single-'+e.id;if(!groups.has(key))groups.set(key,{key,items:[]});groups.get(key).items.push(e);});
+ const ordered=[...groups.values()];const byName=(a,b)=>String(a.studentName||'').localeCompare(String(b.studentName||''),'fr');
+ ordered.forEach(g=>g.items.sort(byName));ordered.sort((a,b)=>{const x=a.items[0],y=b.items[0];switch(recorded218.sort){case 'date-asc':return evaluationDateTimestamp(x.date)-evaluationDateTimestamp(y.date);case 'student':return byName(x,y);case 'title':return String(x.title||'').localeCompare(String(y.title||''),'fr');default:return evaluationDateTimestamp(y.date)-evaluationDateTimestamp(x.date)||(y.createdAt||0)-(x.createdAt||0);}});
+ recorded218.visible=filtered;recorded218.groups=ordered;
+ const check=(items,label)=>`<input type="checkbox" aria-label="${esc(label)}" data-recorded218-ids="${esc(JSON.stringify(items.map(e=>String(e.id))))}" onclick="event.stopPropagation()" onchange="recorded218Toggle(JSON.parse(this.dataset.recorded218Ids),this.checked)">`;
+ // Dataset attributes avoid embedding record identifiers inside JavaScript strings.
+ const action=e=>`<button type="button" class="secondary" data-evalid="${esc(String(e.id))}" data-studentid="${esc(String(e.studentId))}" onclick="event.stopPropagation();restoreRecordedEvaluation(this.dataset.evalid,this.dataset.studentid)">↩ Restaurer</button>`;
+ const details=e=>`${esc(e.title||'')}${evaluationSupportLabel(e)?`<div class="history-support">Support : ${esc(evaluationSupportLabel(e))}</div>`:''}${evaluationTeacherLabel(e)?`<div class="history-teacher">Professeur : ${esc(evaluationTeacherLabel(e))}</div>`:''}`;
+ const row=(e,child='')=>`<tr ${child?`data-collective="${child}" style="display:none;cursor:pointer"`:'class="history-individual-row" style="cursor:pointer"'} data-evalid="${esc(String(e.id))}" onclick="viewEvaluation(this.dataset.evalid)"><td onclick="event.stopPropagation()">${check([e],'Sélectionner '+e.studentName)}</td><td>${esc(e.date||'')}</td><td>${child?'↳ ':''}${esc(e.studentName||'')}</td><td><span class="pill">${child?'Élève':'Individuelle'}</span></td><td>${details(e)}</td><td>${evaluationDisplayComps(e).map(competenceLabel).join('<br>')||'—'}</td><td><span class="score-badge ${scoreClass(evaluationScore20(e))}">${evaluationScoreLabel(e)}</span></td><td>${action(e)}</td></tr>`;
+ let body='';ordered.forEach((g,i)=>{if(g.items.length===1){body+=row(g.items[0]);return;}const e=g.items[0],id='recorded218-group-'+i;body+=`<tr class="history-collective-row" data-group="${id}" onclick="toggleCollectiveRow(this.dataset.group)" style="cursor:pointer"><td onclick="event.stopPropagation()">${check(g.items,'Sélectionner les élèves affichés de ce dossier collectif')}</td><td>${esc(e.date||'')}</td><td><b>👥 Évaluation collective</b><div class="history-support">${g.items.map(e=>esc(e.studentName||'')).join(', ')}</div></td><td><span class="pill">Collective</span></td><td>${details(e)}</td><td>${evaluationDisplayComps(e).map(competenceLabel).join('<br>')||'—'}</td><td><span class="pill">${g.items.length} élèves</span></td><td><button class="secondary" type="button" data-groupindex="${i}" onclick="event.stopPropagation();recorded218Toggle(recorded218.groups[Number(this.dataset.groupindex)].items.map(e=>e.id),true)">Sélectionner le dossier</button></td></tr>`;g.items.forEach(e=>body+=row(e,id));});
+ document.getElementById('main').innerHTML=`<div class="page-header"><div><h1>Évaluations enregistrées</h1><p class="sub">Classe : <b>${esc(activeClassName())}</b>. Recherchez et sélectionnez les dossiers à restaurer dans l’historique actif.</p></div><button class="secondary" onclick="go('history')">← Historique</button></div><div class="panel"><div class="row"><h2>Évaluations enregistrées</h2><span class="pill">${ordered.length} dossier(s) · ${filtered.length} évaluation(s) sur ${all.length}</span></div><div class="history-search-wrap"><input id="recorded218-search" type="search" class="history-search-input" placeholder="Élève, titre, date, compétence, support, professeur…" aria-label="Rechercher dans les évaluations enregistrées" value="${esc(recorded218.query)}" onkeydown="if(event.key==='Enter'){event.preventDefault();recorded218Search()}"><button class="primary" onclick="recorded218Search()">Rechercher</button><button class="secondary" onclick="recorded218Search(true)">Effacer</button><label>Trier par <select onchange="if(!recorded218.busy){recorded218.query=document.getElementById('recorded218-search').value;recorded218.sort=this.value;recordedEvaluationsPage()}">${[['date-desc','Date : plus récentes'],['date-asc','Date : plus anciennes'],['student','Nom de l’élève'],['title','Titre de l’évaluation']].map(([v,t])=>`<option value="${v}" ${recorded218.sort===v?'selected':''}>${t}</option>`).join('')}</select></label></div><div class="history-search-wrap"><label>${check(filtered,'Tout sélectionner parmi les résultats')} Tout sélectionner (résultats affichés)</label><span id="recorded218-count" class="pill"></span><button class="secondary" onclick="if(!recorded218.busy){recorded218.selected.clear();recorded218Selection()}">Désélectionner</button><button id="recorded218-restore" class="primary" onclick="recorded218Restore()">↩ Restaurer la sélection dans l’historique</button></div><p class="muted">Une case sur un dossier collectif sélectionne ses élèves affichés. Dépliez le dossier pour choisir les élèves individuellement.</p>${recorded218.message?`<p role="status">${esc(recorded218.message)}</p>`:''}${body?`<div style="overflow-x:auto"><table class="evaluation-history-table"><tr class="evaluation-history-header"><th>Sélection</th><th>Date</th><th>Élève / groupe</th><th>Type</th><th>Situation</th><th>Compétences</th><th>Note / groupe</th><th>Action</th></tr>${body}</table></div>`:'<p class="muted">Aucune évaluation ne correspond à cette recherche.</p>'}</div>`;
+ recorded218Selection();
 }
 
 function archivesPage(){
@@ -11187,7 +11252,7 @@ function openAssistanceMail(){
       saveCompetenciesLargeStore(competencies).catch(e=>console.warn("Référentiel Firebase non conservé dans IndexedDB",e));
     }
     if(Array.isArray(cfg.managedEvaluationActivities)){
-      try{safeLocalSetItem(MANAGED_EVALUATION_ACTIVITIES_KEY,JSON.stringify(cfg.managedEvaluationActivities));}
+      try{acceptManagedActivities219(cfg.managedEvaluationActivities);}
       catch(e){console.warn("Fiches d'évaluation non conservées en local",e);}
     }
     if(Array.isArray(cfg.professionalSituations)&&cfg.professionalSituations.length){
@@ -11636,7 +11701,12 @@ function openAssistanceMail(){
     if(!auth.currentUser)return;
     const clean=JSON.parse(JSON.stringify(data||{}));
     clean.updatedAt=firebase.firestore.FieldValue.serverTimestamp();
-    await userRoot().collection(FIREBASE_CONFIG_COLLECTION).doc(FIREBASE_CONFIG_DOC).set(clean,{merge:false});
+    const ref=userRoot().collection(FIREBASE_CONFIG_COLLECTION).doc(FIREBASE_CONFIG_DOC);
+    await firestore.runTransaction(async tx=>{
+      const snap=await tx.get(ref),remote=snap.exists?(snap.data()||{}):{};
+      clean.managedEvaluationActivities=mergeManagedActivities219(clean.managedEvaluationActivities||[],remote.managedEvaluationActivities||[]);
+      tx.set(ref,clean,{merge:false});
+    });
   }
   window.firebaseSaveFullConfig=saveFullConfig;
   
@@ -16219,7 +16289,7 @@ window.tp217={queueSend,ackSend,pending,stats,event,read,done,same,normalize,rec
       try{
         const fb=window.firebase;
         if(!fb?.auth?.()?.currentUser) return; // reste local, aucune perte si hors connexion
-        if(typeof window.firebaseSaveCurrentConfig==='function') await window.firebaseSaveCurrentConfig();
+        if(window.managedActivities219) await window.managedActivities219.sync();
       }catch(e){ console.warn('V155 : activité conservée localement, synchronisation Firebase différée.',e); }
     },350);
   }
@@ -17603,10 +17673,12 @@ function updateCount(){const e=document.getElementById('settings-activities-coun
 const mo=new MutationObserver(()=>{if(document.getElementById('settings-activities-list'))installCategory()});mo.observe(document.documentElement,{childList:true,subtree:true});
 
 window.openEvaluationActivitiesManagerV157=function(){
- document.getElementById('v157-activities-overlay')?.remove();
- const o=document.createElement('div');o.id='v157-activities-overlay';document.body.appendChild(o);renderManager();
+ if(!isAdminTeacher()){showWarningMessage('Gestion réservée à l’administrateur.');return;}
+ if(page!=='activityAdmin'){go('activityAdmin');return;}
+ setActive('activityAdmin');document.getElementById('main').innerHTML='<div id="v157-activities-overlay" class="v219-activities-page"></div>';renderManager();window.managedActivities219?.paint();
 };
-window.closeEvaluationActivitiesManagerV157=function(){document.getElementById('v157-activities-overlay')?.remove();currentId=null;updateCount()};
+window.closeEvaluationActivitiesManagerV157=function(){currentId=null;go('home')};
+window.refreshManagedActivities219=function(){if(page==='activityAdmin'&&!currentId)renderManager();window.managedActivities219?.paint()};
 function v202ActivityNorm(v){
  return String(v??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
 }
@@ -17652,10 +17724,11 @@ function renderManager(){
      <div class="v157-tools">
        <button class="primary" onclick="newEvaluationActivityV157()">＋ Nouvelle fiche</button>
        <button class="secondary" onclick="generateEvaluationActivitiesPdfV157()">📄 PDF complet</button>
-       <button class="secondary" onclick="closeEvaluationActivitiesManagerV157()">← Paramètres</button>
+       <button class="secondary" onclick="closeEvaluationActivitiesManagerV157()">← Accueil</button>
      </div>
    </div>
 
+   <p id="activities219-sync-status" role="status" class="v157-note">${E(window.managedActivities219?.status()||"Fiches conservées sur ce poste.")}</p>
    <div class="v202-activity-toolbar">
      <input id="v202-activity-search" class="v202-activity-search" type="search"
        placeholder="Rechercher par n°, thème, titre, description, compétence ou critère…"
@@ -17697,7 +17770,7 @@ function renderEditor(){const x=rows().find(z=>String(z.id)===String(currentId))
 window.addCriterionV157=function(){const r=document.getElementById('v157-criteria');if(r){r.insertAdjacentHTML('beforeend',critRow('',r.children.length));renumberCriteriaV157()}};
 window.renumberCriteriaV157=function(){document.querySelectorAll('#v157-criteria .v157-critnum').forEach((e,i)=>e.textContent=i+1)};
 window.moveCriterionV157=function(btn,dir){const row=btn.closest('.v157-crit'),box=row?.parentElement;if(!row||!box)return;if(dir<0&&row.previousElementSibling)box.insertBefore(row,row.previousElementSibling);if(dir>0&&row.nextElementSibling)box.insertBefore(row.nextElementSibling,row);renumberCriteriaV157()};
-window.saveEvaluationActivityV157=function(id){const a=rows(),x=a.find(z=>String(z.id)===String(id));if(!x)return;const v=k=>document.getElementById(k)?.value?.trim()||'';if(!v('v157-title'))return window.showWarningMessage?.('L’intitulé est obligatoire.');Object.assign(x,{numero:Number(v('v157-num'))||x.numero,theme:v('v157-theme'),titre:v('v157-title'),description:v('v157-desc'),competences_cap:comps(v('v157-cap')),competences_bac_pro:comps(v('v157-bac')),criteres:[...document.querySelectorAll('#v157-criteria .v157-critinput')].map(e=>e.value.trim()).filter(Boolean),updatedAt:Date.now()});save(a);currentId=null;renderManager();window.showSuccessMessage?.('Fiche enregistrée localement. Synchronisation Firebase demandée.')};
+window.saveEvaluationActivityV157=function(id){const a=rows(),x=a.find(z=>String(z.id)===String(id));if(!x)return;const v=k=>document.getElementById(k)?.value?.trim()||'';if(!v('v157-title'))return window.showWarningMessage?.('L’intitulé est obligatoire.');Object.assign(x,{numero:Number(v('v157-num'))||x.numero,theme:v('v157-theme'),titre:v('v157-title'),description:v('v157-desc'),competences_cap:comps(v('v157-cap')),competences_bac_pro:comps(v('v157-bac')),criteres:[...document.querySelectorAll('#v157-criteria .v157-critinput')].map(e=>e.value.trim()).filter(Boolean),updatedAt:Date.now()});save(a);currentId=null;renderManager();window.showSuccessMessage?.('Fiche enregistrée. L’état de synchronisation est indiqué dans le tableau.')};
 window.duplicateEvaluationActivityV157=function(id){const a=rows(),x=a.find(z=>String(z.id)===String(id));if(!x)return;const c=JSON.parse(JSON.stringify(x));c.id='ACT-DUP-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,6);c.numero=Math.max(0,...a.map(z=>Number(z.numero)||0))+1;c.titre=(c.titre||'Activité')+' — copie';c.active=true;c.createdAt=Date.now();c.updatedAt=Date.now();a.push(c);save(a);renderManager();window.showSuccessMessage?.('Activité dupliquée en dernière ligne.')};
 window.toggleEvaluationActivityV157=function(id){const a=rows(),x=a.find(z=>String(z.id)===String(id));if(!x)return;x.active=x.active===false;x.updatedAt=Date.now();save(a);renderManager()};
 
@@ -19853,6 +19926,7 @@ function ensureMobileMenu(){
     back.setAttribute('aria-hidden',open?'false':'true');
   }
 
+  window.closeMobileMenu220=()=>setOpen(false);
   btn.onclick=()=>setOpen(!document.querySelector('.side')?.classList.contains('mobile-open'));
   back.onclick=()=>setOpen(false);
 
@@ -20306,3 +20380,65 @@ let observer;function observe(){const main=document.getElementById('main');if(!m
 })();
 
 </script>
+
+<style id="v219-activities-page-style">#v157-activities-overlay.v219-activities-page{position:static;inset:auto;z-index:auto;overflow:visible;background:transparent}.v219-activities-page .v157-shell{max-width:none;padding:0}.v219-activities-page .v157-head{flex-wrap:wrap}#activities219-sync-status{padding:10px 14px;border:1px solid #cbd5e1;border-radius:9px;background:#f8fafc;overflow-wrap:anywhere}</style>
+<script id="v219-activities-sync">
+(function(){
+'use strict';
+const KEY='managed_evaluation_activities_v1',PENDING='managed_activities_pending_v219';
+let busy=false,timer=null,unsubscribe=null,authUnsubscribe=null,lastUser='',message='Fiches conservées sur ce poste.',lastError='',rerun=false;
+function enabled(){try{return typeof isFirebaseModeEnabled==='function'&&isFirebaseModeEnabled()}catch(_){return false}}
+function connection(){try{if(!enabled()||!window.firebase?.auth?.().currentUser)return null;const db=firebase.firestore();return {db,ref:db.collection('workspaces').doc('evaluation-mv-main').collection('configuration').doc('application')}}catch(_){return null}}
+function status(){if(!enabled())return 'Firebase désactivé — fiches conservées localement. Elles seront synchronisées après activation et connexion.';if(!connection())return 'Fiches conservées localement — connexion Firebase nécessaire.';return message}
+function paint(){const el=document.getElementById('activities219-sync-status');if(el&&el.textContent!==status())el.textContent=status()}
+function received(pending){if(pending)schedule();paint()}
+function schedule(){clearTimeout(timer);localStorage.setItem(PENDING,'1');message='Fiches enregistrées localement — synchronisation en attente.';paint();timer=setTimeout(sync,650)}
+async function sync(){
+ const c=connection();if(!c){paint();return false}if(busy){rerun=true;return false}if(localStorage.getItem(PENDING)!=='1'){paint();return true}
+ busy=true;message='Synchronisation des fiches…';paint();let result=null;
+ try{
+  await c.db.runTransaction(async tx=>{
+   const snap=await tx.get(c.ref),cfg=snap.exists?(snap.data()||{}):{},remote=Array.isArray(cfg.managedEvaluationActivities)?cfg.managedEvaluationActivities:[];
+   const local=getManagedEvaluationActivities();result=mergeManagedActivities219(local,remote);
+   if(managedActivityStable219(result)!==managedActivityStable219(mergeManagedActivities219([],remote)))tx.set(c.ref,{managedEvaluationActivities:result,updatedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedAtClient:Date.now()},{merge:true});
+  });
+  // Include any edits made while the transaction was in flight; acknowledge only the uploaded revision.
+  const current=getManagedEvaluationActivities(),merged=mergeManagedActivities219(current,result||[]);
+  const changed=managedActivityStable219(current)!==managedActivityStable219(merged);
+  if(changed)localStorage.setItem(KEY,JSON.stringify(merged));
+  if(managedActivityStable219(merged)===managedActivityStable219(result||[])){localStorage.removeItem(PENDING);message=`✓ ${merged.length} fiche(s) synchronisée(s) dans Firebase.`;lastError='';}
+  else{localStorage.setItem(PENDING,'1');rerun=true;message='Nouvelles modifications en attente de synchronisation.';}
+  if(changed)window.refreshManagedActivities219?.();return true;
+ }catch(e){lastError=String(e?.message||e);message='Fiches conservées localement — synchronisation non confirmée : '+lastError;localStorage.setItem(PENDING,'1');return false;}
+ finally{busy=false;paint();if(rerun){rerun=false;if(!lastError){clearTimeout(timer);timer=setTimeout(sync,650)}}}
+}
+function watch(){const c=connection();if(!c){paint();return}const uid=firebase.auth().currentUser.uid;if(unsubscribe&&lastUser===uid)return;if(unsubscribe)unsubscribe();lastUser=uid;
+ unsubscribe=c.ref.onSnapshot({includeMetadataChanges:true},snap=>{
+  const remote=snap.exists?(snap.data()?.managedEvaluationActivities||[]):[],before=managedActivityStable219(getManagedEvaluationActivities());
+  const merged=acceptManagedActivities219(remote),different=managedActivityStable219(merged)!==managedActivityStable219(mergeManagedActivities219([],remote));
+  if(different){schedule();}
+  else if(!snap.metadata?.fromCache&&!snap.metadata?.hasPendingWrites){localStorage.removeItem(PENDING);message=`✓ ${merged.length} fiche(s) synchronisée(s) dans Firebase.`;lastError='';}
+  else if(!busy)message='Fiches disponibles dans le cache — confirmation Firebase en attente.';
+  if(before!==managedActivityStable219(merged))window.refreshManagedActivities219?.();paint();
+ },e=>{message='Fiches conservées localement — réception Firebase interrompue : '+String(e?.message||e);unsubscribe=null;paint()});
+}
+function boot(){try{if(!enabled()){paint();return}const auth=window.firebase?.auth?.();if(!auth)return;if(!authUnsubscribe)authUnsubscribe=auth.onAuthStateChanged(u=>{if(!u){unsubscribe?.();unsubscribe=null;lastUser='';paint();return}watch();});watch();}catch(e){message='Fiches conservées localement — connexion Firebase en attente.';paint()}}
+window.managedActivities219={schedule,sync,status,paint,received};
+window.addEventListener('online',()=>{lastError='';boot();if(localStorage.getItem(PENDING)==='1')sync()});
+window.addEventListener('storage',e=>{if(e.key===KEY){window.refreshManagedActivities219?.();if(localStorage.getItem(PENDING)==='1')schedule()}});
+if(document.readyState==='complete')boot();else window.addEventListener('load',boot,{once:true});
+})();
+
+</script>
+
+<!-- V220 : menu tactile lisible, sans conflit entre ouverture et fermeture. -->
+<style id="v220-mobile-navigation">
+@media screen and (max-width:600px){
+ .side .logo,.side .nav{flex-shrink:0}
+ .side .nav{padding-bottom:calc(24px + env(safe-area-inset-bottom,0px))}
+ .side .nav button{flex-shrink:0;min-height:48px;white-space:normal;line-height:1.3;touch-action:manipulation}
+ .side .nav button span{display:inline}
+ .app.sidebar-collapsed .side .nav,.app.sidebar-collapsed .side .logo{opacity:1;pointer-events:auto;white-space:normal}
+ #v201-mobile-menu-btn{touch-action:manipulation}
+}
+</style>
