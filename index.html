@@ -11466,7 +11466,7 @@ function openAssistanceMail(){
     out.assignments=JSON.parse(JSON.stringify(current.assignments||{}));
     out.absent=JSON.parse(JSON.stringify(current.absent||{}));
     out.activeTask=JSON.parse(JSON.stringify(current.activeTask||{}));
-    out.updatedAtClient=Math.max(Number(l.updatedAtClient||0),Number(r.updatedAtClient||0),Date.now());
+    out.updatedAtClient=Math.max(Number(l.updatedAtClient||0),Number(r.updatedAtClient||0));
     return out;
   }
   function firebaseTimeout(promise,ms,label){
@@ -11477,58 +11477,63 @@ function openAssistanceMail(){
     return Promise.race([promise,timeout]).finally(()=>{if(timer)clearTimeout(timer);});
   }
 
+  // V221 : pending keys survive reloads; reads never advance the edit timestamp.
+  const ATELIER_PENDING_221='evaluation_atelier_sync_pending_v90';
+  let atelierBusy221=false,atelierTimer221=null,atelierRetry221=0;
+  function atelierQueue221(){try{const q=JSON.parse(localStorage.getItem(ATELIER_PENDING_221)||'{}');return q&&!Array.isArray(q)&&typeof q==='object'?q:{}}catch(_){return {}}}
+  function atelierMark221(cid,date){const q=atelierQueue221();q[JSON.stringify([String(cid),String(date)])]=true;localStorage.setItem(ATELIER_PENDING_221,JSON.stringify(q));}
+  function atelierState221(message){window.atelierSyncState221=message;window.paintAtelierSync221?.();}
+  function atelierSchedule221(delay=500){clearTimeout(atelierTimer221);atelierTimer221=setTimeout(()=>flushAtelier221(),delay);}
+  async function flushAtelier221(startup=false){
+    if(atelierBusy221)return;
+    if(!auth?.currentUser||(!cloudReady&&!startup)){atelierState221('Modifications conservées sur ce poste — connexion Firebase en attente.');return;}
+    atelierBusy221=true;
+    try{
+      for(const key of Object.keys(atelierQueue221())){
+        const [cid,date]=JSON.parse(key),ref=userRoot().collection(FIREBASE_ATELIER_COLLECTION).doc(atelierDocumentId(cid,date));
+        let sent=null;
+        atelierState221('Synchronisation de l’Atelier du jour…');
+        await firestore.runTransaction(async tx=>{
+          const snap=await tx.get(ref),local=readAtelierLocal().classDays?.[cid]?.[date];
+          if(!local)return;
+          const remote=snap.exists?(snap.data()?.session||{}):{};
+          sent=mergeAtelierSessions(local,remote);
+          if(managedActivityStable219(sent)!==managedActivityStable219(remote))tx.set(ref,{classId:cid,date,session:sent,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:false});
+        });
+        const current=readAtelierLocal(),latest=current.classDays?.[cid]?.[date];
+        const merged=sent&&mergeAtelierSessions(latest||{},sent);
+        if(merged){current.classDays=current.classDays||{};current.classDays[cid]=current.classDays[cid]||{};current.classDays[cid][date]=merged;writeAtelierLocal(current);}
+        const q=atelierQueue221();
+        if(!latest||managedActivityStable219(merged)===managedActivityStable219(sent))delete q[key];
+        localStorage.setItem(ATELIER_PENDING_221,JSON.stringify(q));
+      }
+      atelierRetry221=0;
+      if(Object.keys(atelierQueue221()).length){atelierState221('Nouvelles modifications en attente.');atelierSchedule221();}
+      else atelierState221('✓ Modifications de l’atelier synchronisées dans Firebase.');
+    }catch(e){
+      atelierState221('Modifications conservées sur ce poste — envoi non confirmé : '+friendlyError(e));
+      // Bounded retries: no perpetual writes if Firebase refuses requests.
+      if(atelierRetry221<2)atelierSchedule221([5000,20000][atelierRetry221++]);
+    }finally{atelierBusy221=false;}
+  }
   async function synchronizeAtelierSessions(){
-    // V51 — Synchronisation multiposte non destructive de TOUTES les classes et dates.
-    // L'ancienne routine lisait encore d.days et seulement la classe active, alors que
-    // l'Atelier du jour utilise désormais d.classDays[classId][date].
-    const allRemote=await firebaseTimeout(cloudDocs(FIREBASE_ATELIER_COLLECTION),12000,"Lecture Atelier du jour");
-    const local=readAtelierLocal(); local.classDays=local.classDays||{};
-    const remoteMap=new Map();
-    for(const x of allRemote){
-      const cid=String(x.classId||''); const date=String(x.date||'');
-      if(cid && /^\d{4}-\d{2}-\d{2}$/.test(date)) remoteMap.set(cid+'|'+date,x);
-    }
-    const keys=new Set(remoteMap.keys());
-    for(const [cid,days] of Object.entries(local.classDays||{})){
-      for(const date of Object.keys(days||{})) if(/^\d{4}-\d{2}-\d{2}$/.test(date)) keys.add(String(cid)+'|'+date);
-    }
-    // V86 : l'ancien stockage global local.days est volontairement ignoré.
-    // Le changement de classe ne peut donc plus recopier les travaux d'une autre classe.
-    const payloads=[];
-    for(const key of keys){
-      const cut=key.indexOf('|'),cid=key.slice(0,cut),date=key.slice(cut+1);
-      local.classDays[cid]=local.classDays[cid]||{};
-      const l=local.classDays[cid][date]||{};
-      const r=remoteMap.get(key)?.session||{};
-      const merged=mergeAtelierSessions(l,r);
-      local.classDays[cid][date]=merged;
-      payloads.push({cid,date,merged});
-    }
+    const remote=await firebaseTimeout(cloudDocs(FIREBASE_ATELIER_COLLECTION),12000,'Lecture Atelier du jour');
+    const local=readAtelierLocal();local.classDays=local.classDays||{};
+    const keys=new Map();
+    for(const [cid,days] of Object.entries(local.classDays))for(const date of Object.keys(days||{}))if(/^\d{4}-\d{2}-\d{2}$/.test(date))keys.set(JSON.stringify([cid,date]),{});
+    for(const doc of remote)if(doc.classId&&/^\d{4}-\d{2}-\d{2}$/.test(doc.date))keys.set(JSON.stringify([String(doc.classId),String(doc.date)]),doc.session||{});
+    for(const [key,r] of keys){const [cid,date]=JSON.parse(key);local.classDays[cid]=local.classDays[cid]||{};const merged=mergeAtelierSessions(local.classDays[cid][date]||{},r);local.classDays[cid][date]=merged;if(managedActivityStable219(merged)!==managedActivityStable219(r))atelierMark221(cid,date);}
     writeAtelierLocal(local);
-    for(let i=0;i<payloads.length;i+=200){
-      const chunk=payloads.slice(i,i+200),batch=firestore.batch();
-      for(const item of chunk) batch.set(userRoot().collection(FIREBASE_ATELIER_COLLECTION).doc(atelierDocumentId(item.cid,item.date)),{
-        classId:item.cid,date:item.date,session:JSON.parse(JSON.stringify(item.merged)),updatedAt:firebase.firestore.FieldValue.serverTimestamp()
-      },{merge:false});
-      if(chunk.length) await firebaseTimeout(batch.commit(),12000,"Envoi Atelier du jour");
-    }
-    if(typeof window.refreshAtelierFromFirebase==='function')window.refreshAtelierFromFirebase();
-    return payloads.length;
+    await flushAtelier221(true);
+    window.refreshAtelierFromFirebase?.();return keys.size;
   }
   window.firebaseSaveAtelierSession=async function(session,classId,date){
-    // La sauvegarde locale est déjà faite avant cet appel. Si Firebase est hors ligne,
-    // on conserve donc les données et la prochaine synchronisation les fusionnera.
-    if(!cloudReady||!auth?.currentUser)return {connected:false,pending:true};
-    const clean=JSON.parse(JSON.stringify(session||{}));
-    clean.updatedAtClient=Math.max(Number(clean.updatedAtClient||0),Date.now());
-    await userRoot().collection(FIREBASE_ATELIER_COLLECTION).doc(atelierDocumentId(classId,date)).set({
-      classId:String(classId),
-      date:String(date),
-      session:clean,
-      updatedAt:firebase.firestore.FieldValue.serverTimestamp()
-    },{merge:false});
-    return {connected:true};
+    // Caller has already saved the local revision, including moves between dates.
+    atelierMark221(classId,date);atelierRetry221=0;
+    atelierState221('Atelier enregistré sur ce poste — synchronisation en attente.');atelierSchedule221();
+    return {connected:!!auth?.currentUser,pending:true};
   };
+  window.addEventListener('online',()=>{atelierRetry221=0;atelierSchedule221();});
 
   window.firebaseSyncPendingStudents=async function(){
     const ids=getPendingStudentSyncIds();
@@ -12218,6 +12223,7 @@ window.firebaseSaveCurrentConfig=async()=>{await saveFullConfig(firebaseBuildApp
       if(reconnectPushPending)localStorage.removeItem("evaluation_firebase_reconnect_push_pending");
       startRealtimeListeners();
       startAccountsRealtime();
+      if(Object.keys(atelierQueue221()).length)atelierSchedule221();
       // V199 : aucun timer RTA/générateur. Les codes élèves sont synchronisés
       // au démarrage, lors d'une synchronisation manuelle et lorsqu'un code change.
     }catch(err){
@@ -12357,14 +12363,17 @@ window.firebaseSaveCurrentConfig=async()=>{await saveFullConfig(firebaseBuildApp
     }
   }
   async function applyRemoteAtelierSession(change){
-    const item=change.doc.data()||{};
-    const classId=String(item.classId||"");
-    const date=String(item.date||"");if(!classId||!date)return;
+    const item=change.doc.data()||{},classId=String(item.classId||''),date=String(item.date||'');if(!classId||!date)return;
     const local=readAtelierLocal();local.classDays=local.classDays||{};local.classDays[classId]=local.classDays[classId]||{};
-    if(change.type==='removed') delete local.classDays[classId][date];
-    else local.classDays[classId][date]=mergeAtelierSessions(local.classDays[classId][date]||{},item.session||{});
-    writeAtelierLocal(local);
-    if(String(getActiveClassId()||'')===classId && typeof window.refreshAtelierFromFirebase==='function')window.refreshAtelierFromFirebase();
+    const previous=local.classDays[classId][date],key=JSON.stringify([classId,date]);
+    if(change.type==='removed'){
+      if(!atelierQueue221()[key])delete local.classDays[classId][date];
+    }else{
+      const merged=mergeAtelierSessions(previous||{},item.session||{});local.classDays[classId][date]=merged;
+      if(managedActivityStable219(merged)!==managedActivityStable219(item.session||{})){atelierMark221(classId,date);atelierSchedule221();}
+    }
+    const changed=managedActivityStable219(previous)!==managedActivityStable219(local.classDays[classId][date]);
+    if(changed){writeAtelierLocal(local);if(String(getActiveClassId()||'')===classId)window.refreshAtelierFromFirebase?.();}
   }
   function watchCollection(name,handler){
     let first=true;
@@ -12384,21 +12393,22 @@ window.firebaseSaveCurrentConfig=async()=>{await saveFullConfig(firebaseBuildApp
             renderAfterRemoteChange();
           }finally{realtimeApply=false;}
         }
-        return;
+        if(name!==FIREBASE_ATELIER_COLLECTION)return;
       }
+      if(name===FIREBASE_ATELIER_COLLECTION&&!snap.metadata?.fromCache&&!snap.metadata?.hasPendingWrites&&!Object.keys(atelierQueue221()).length)atelierState221('✓ Réception Firebase de l’atelier confirmée.');
       const changes=snap.docChanges();
       if(!changes.length)return;
       try{
         realtimeApply=true;
         setStatus('Synchronisation temps réel…','warn');
         for(const ch of changes) await handler(ch);
-        renderAfterRemoteChange();
+        if(name!==FIREBASE_ATELIER_COLLECTION)renderAfterRemoteChange();
       }catch(e){
         setStatus('Temps réel : '+friendlyError(e),'bad');
       }finally{
         realtimeApply=false;
       }
-    },err=>setStatus('Temps réel : '+friendlyError(err),'bad'));
+    },err=>{if(name===FIREBASE_ATELIER_COLLECTION)atelierState221('Réception de l’atelier interrompue : '+friendlyError(err));setStatus('Temps réel : '+friendlyError(err),'bad')});
     realtimeUnsubs.push(unsub);
   }
   
@@ -12732,7 +12742,7 @@ function ensureAtelierClassSession(d,date=day(),classId=atelierClassId()){
 }
 function save(data){
   const classId=atelierClassId(),date=day(),session=ensureAtelierClassSession(data,date,classId);
-  if(session) session.updatedAtClient=Date.now();
+  if(session) session.updatedAtClient=Math.max(Date.now(),Number(session.updatedAtClient||0)+1);
   localStorage.setItem(KEY,JSON.stringify(data));
   if(session&&typeof window.firebaseSaveAtelierSession==='function'){
     window.firebaseSaveAtelierSession(session,classId,date).catch(err=>console.warn('Séance atelier non synchronisée',err));
@@ -12829,7 +12839,7 @@ window.refreshAtelierUI=function(){
 window.atelierPage=function(p){if(state.studentView&&!['morning','auto'].includes(p))p='morning';state.page=p;state.selectedActivity="";render()}
 window.toggleAtelierViewMode=async function(){if(!state.studentView){state.studentView=true;state.page='morning';sessionStorage.setItem(STUDENT_VIEW_KEY,'1');render();return}const activeTeacher=(typeof getActiveTeacher==='function'?getActiveTeacher():null);if(!activeTeacher){if(typeof showWarningMessage==='function')showWarningMessage('Aucun professeur connecté : impossible de quitter la Vision élève.');else alert('Aucun professeur connecté.');return}const teacherName=(typeof teacherFullName==='function'?teacherFullName(activeTeacher):([activeTeacher.firstName,activeTeacher.lastName].filter(Boolean).join(' ')||'professeur connecté'));const code=typeof requestTeacherInput==='function'?await requestTeacherInput('Quitter la Vision élève','',{secret:true,placeholder:'Code professeur',help:'Saisis le code personnel de '+teacherName+'. Le code administrateur n’est pas accepté, sauf si ce professeur est lui-même le professeur connecté.'}):prompt('Code personnel de '+teacherName+' :');if(code===null)return;if(String(code).trim()!==String(activeTeacher.code||'').trim()){if(typeof showWarningMessage==='function')showWarningMessage('Code du professeur connecté incorrect.');else alert('Code du professeur connecté incorrect.');return}state.studentView=false;state.page='pending';sessionStorage.removeItem(STUDENT_VIEW_KEY);render()}
 window.returnToAtelierPending=function(){state.studentView=false;sessionStorage.removeItem(STUDENT_VIEW_KEY);state.page='pending';state.selectedActivity='';document.getElementById('atelier-app').classList.remove('hidden');document.getElementById('at-active-class').textContent=classLabel();render()}
-function render(){if(state.studentView&&!['morning','auto'].includes(state.page))state.page='morning';nav();if(state.page==='admin')renderAdmin();else if(state.page==='pending')renderPending();else if(state.page==='auto')renderAutoEvaluation();else if(state.page==='journal')renderAtelierJournal();else if(state.page==='tpSummary')window.renderAtelierTpSummary?.();else renderMorning()}
+function render(){if(state.studentView&&!['morning','auto'].includes(state.page))state.page='morning';nav();if(state.page==='admin')renderAdmin();else if(state.page==='pending')renderPending();else if(state.page==='auto')renderAutoEvaluation();else if(state.page==='journal')renderAtelierJournal();else if(state.page==='tpSummary')window.renderAtelierTpSummary?.();else renderMorning();window.paintAtelierSync221?.()}
 function renderMorning(){const d=database(),t=today(d),ps=pupils().slice().sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'fr',{sensitivity:'base'})),present=ps.filter(s=>!isAtAbsent(t,s.id)),absent=ps.filter(s=>isAtAbsent(t,s.id)),pub=[{publicationId:TEAM_ID,activityId:TEAM_ID,code:'CHEF',title:"Chef d’équipe",support:"Gestion de l’atelier pédagogique",capacity:1},...((Object.prototype.hasOwnProperty.call(t,'_v94PublishedKeys'))?(t.published||[]).filter(p=>(t._v94PublishedKeys||[]).map(String).includes(String(publicationKey(p)))):(t.published||[]))];const hasLeader=Object.entries(t.assignments).some(([sid,v])=>!isAtAbsent(t,sid)&&v===TEAM_ID);const assignedPresent=present.filter(s=>t.assignments[s.id]).length;const nonAssigned=present.filter(s=>!t.assignments[s.id]).length;const cards=pub.map(p=>{const key=publicationKey(p),a=activityById(p.activityId)||p;const names=present.filter(s=>String(t.assignments[s.id])===key).map(s=>s.name);return `<article class="at-card published ${p.activityId===TEAM_ID?'at-team-card':''} ${state.selectedActivity===key?'selected':''}" onclick="selectAtActivity('${e(key)}')"><span class="at-code">${e(a.code||'ACT')}</span><span class="at-title">${e(a.title)}</span><div class="at-support">${p.activityId===TEAM_ID?'Rôle':'🚗 Support'} : ${e(p.support||'Non renseigné')}</div><div class="at-count">${names.length}/${p.capacity||4} élève${names.length>1?'s':''}${p.activityId===TEAM_ID&&!names.length?' — OBLIGATOIRE':''}</div><div class="at-names">${names.length?e(names.join(' • ')):'Aucun élève désigné'}</div></article>`}).join('');
 document.getElementById('at-main').innerHTML=`<section class="at-panel"><div class="at-toolbar"><div><h2>Tableau du ${e(atDateLabel(day()))}</h2><div class="muted">${e(classLabel())}</div></div><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="at-pill">${assignedPresent}/${present.length} présents positionnés · ${nonAssigned} non affecté(s) · ${absent.length} absent(s)</span>${day()!==realDay()?'<button type="button" class="at-btn at-primary" onclick="returnAtelierToToday()">↩ Revenir à aujourd’hui</button>':''}</div></div>${absent.length?`<div class="at-absent-strip"><b>Absents :</b>${absent.map(s=>`<span class="at-absent-chip">${e(s.name)}</span>`).join('')}</div>`:''}</section><div class="at-morning-layout"><section class="at-panel"><div class="at-toolbar"><h2>Élèves</h2><small>2. Clique sur le nom de l’élève · pour le déplacer, choisis une autre activité puis reclique sur son nom</small></div><div class="at-students">${ps.map(s=>{const absentFlag=isAtAbsent(t,s.id),assignment=t.assignments[s.id],a=assignedActivity(t,assignment),p=assignment===TEAM_ID?pub[0]:publicationById(t,assignment);const studentButton=`<button class="at-student ${assignment?'assigned':''} ${absentFlag?'absent':''}" ${absentFlag?'disabled':''} onclick="handleAtStudentClick('${e(s.id)}')">${e(s.name)}${absentFlag?'<small style="display:block;margin-top:5px">ABSENT</small>':assignment?`<small style="display:block;margin-top:5px;color:#557">${e(a?.title||underlyingActivityId(t,assignment))}${assignment===TEAM_ID?'':`<br>🚗 ${e(p?.support||'Support non renseigné')}`}</small>`:''}</button>`;return `<div class="at-student-wrap">${studentButton}${!state.studentView?`<button type="button" class="at-btn at-absent-btn ${absentFlag?'active':''}" title="${absentFlag?'Remettre présent':'Marquer absent'}" onclick="event.stopPropagation();toggleAtAbsent('${e(s.id)}')">${absentFlag?'Présent':'Absent'}</button>`:''}</div>`}).join('')}</div></section><section class="at-panel"><div class="at-toolbar"><h2>Travaux du jour</h2><small>1. Clique d’abord sur une activité</small></div><div class="at-grid">${cards}</div></section></div>`}
 window.selectAtActivity=function(id){state.selectedActivity=String(id);renderMorning()}
@@ -20442,3 +20452,12 @@ if(document.readyState==='complete')boot();else window.addEventListener('load',b
  #v201-mobile-menu-btn{touch-action:manipulation}
 }
 </style>
+
+<script id="v221-atelier-sync-status">
+window.paintAtelierSync221=function(){
+ const nav=document.getElementById('at-nav');if(!nav)return;
+ let el=document.getElementById('atelier-sync-status-v221');if(!el){el=document.createElement('p');el.id='atelier-sync-status-v221';el.setAttribute('role','status');el.style.cssText='padding:8px 12px;margin:8px 0;color:#334155;font-size:13px';nav.insertAdjacentElement('afterend',el);}
+ const text=typeof isFirebaseModeEnabled==='function'&&!isFirebaseModeEnabled()?'Firebase désactivé — Atelier du jour enregistré uniquement sur ce poste.':window.atelierSyncState221||'Atelier du jour : attente de confirmation Firebase.';
+ if(el.textContent!==text)el.textContent=text;
+};
+</script>
