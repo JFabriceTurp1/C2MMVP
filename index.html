@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1" name="viewport"/>
-<title>V147 Évaluation · Charge Atelier · TP · Correction</title>
+<title>V214 Évaluation · Charge Atelier · TP · Correction</title>
 <style>
 *{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f5f7fa;color:#172033}
 .app{display:flex;min-height:100vh}.side{width:235px;background:#172033;color:#fff;padding:22px 14px}.logo{font-size:19px;font-weight:700;padding:8px 10px 24px}
@@ -2734,7 +2734,7 @@ body{background:#f7f9fc;color:var(--text)}
 <!-- V88 — DONNÉES DE RÉFÉRENCE RÉINTÉGRÉES DEPUIS V86.5
      Jeux embarqués repris : référentiel compétences, élèves par défaut, seconde classe fictive, situations professionnelles.
      Les données dynamiques (classes/élèves/évaluations réellement saisies) restent chargées par IndexedDB/localStorage et Firebase. -->
-<div id="build-version">V205 — Évaluation · Charge Atelier · TP · Correction</div>
+<div id="build-version">V214 — Évaluation · Charge Atelier · TP · Correction</div>
 <div id="firebase-auth-overlay">
 <div class="firebase-login-card">
 <h2>☁️ Connexion Firebase — V89</h2>
@@ -2777,7 +2777,7 @@ body{background:#f7f9fc;color:var(--text)}
 <div class="app">
 <button aria-expanded="true" aria-label="Masquer la barre latérale" class="sidebar-toggle" id="sidebar-toggle" onclick="toggleSidebar()" title="Masquer la barre latérale" type="button">◀</button>
 <aside class="side">
-<div class="logo">COMPÉTENCES MV<br/><small style="font-size:11px;font-weight:400">V10 — Évaluation · Charge Atelier · TP · Correction</small></div>
+<div class="logo">COMPÉTENCES MV<br/><small style="font-size:11px;font-weight:400">V214 — Évaluation · Charge Atelier · TP · Correction</small></div>
 <div class="nav">
 <button id="nav-home" onclick="go('home')">🏠 <span>Accueil</span></button>
 <button id="nav-students" onclick="go('students')">👨‍🎓 <span>Élèves</span></button>
@@ -4102,8 +4102,8 @@ function home(){
     </div>`;
   /* Affichage de version de l'accueil : information uniquement, sans impact sur le bootstrap. */
   const homeVersionBadge=document.getElementById("build-version");
-  if(homeVersionBadge)homeVersionBadge.textContent='V205 — Évaluation · Charge Atelier · TP · Correction';
-  document.title='V205 — Évaluation · Charge Atelier · TP · Correction';
+  if(homeVersionBadge)homeVersionBadge.textContent='V214 — Évaluation · Charge Atelier · TP · Correction';
+  document.title='V214 — Évaluation · Charge Atelier · TP · Correction';
 }
 
 function collapseAllCollectiveRows(){
@@ -11827,32 +11827,47 @@ window.firebaseSaveCurrentConfig=async()=>{await saveFullConfig(firebaseBuildApp
     return [...m.values()];
   }
   async function synchronizeExtendedLocalData(){
-    if(!auth?.currentUser)return {connected:false,codes:0,stableCodes:0};
+    if(!auth?.currentUser)return {connected:false,codes:0,stableCodes:0,warning:'Utilisateur Firebase absent'};
 
     const cfgRef=userRoot().collection(FIREBASE_CONFIG_COLLECTION);
     const codesRef=cfgRef.doc('tpStudentCodesV199');
 
     let remote={};
+    let warning='';
+    let readSource='local';
+
+    // V214 — étape secondaire du bootstrap : aucune lecture de codes ne peut bloquer l'ouverture.
     try{
-      const snap=await codesRef.get();
+      const snap=await firebaseTimeout(
+        codesRef.get(),
+        10000,
+        'Lecture des codes élèves TP'
+      );
       if(snap.exists){
         remote=snap.data()||{};
+        readSource='tpStudentCodesV199';
       }else{
-        // V199 : migration UNE SEULE FOIS depuis l'ancien document du générateur.
-        // Dès que tpStudentCodesV199 existe, le lourd document tpGenerator n'est plus lu.
+        // Migration historique, elle aussi bornée dans le temps.
         try{
-          const legacySnap=await cfgRef.doc(FIREBASE_TPGEN_DOC).get();
+          const legacySnap=await firebaseTimeout(
+            cfgRef.doc(FIREBASE_TPGEN_DOC).get(),
+            8000,
+            'Lecture ponctuelle de l’ancien générateur TP'
+          );
           const legacy=legacySnap.exists?(legacySnap.data()||{}):{};
           remote={
             codes:(legacy.codes&&typeof legacy.codes==='object')?legacy.codes:{},
             stableCodes:(legacy.stableCodes&&typeof legacy.stableCodes==='object')?legacy.stableCodes:{}
           };
+          readSource='tpGenerator-legacy';
         }catch(e){
-          console.warn('V199 : migration ponctuelle des codes depuis l’ancien générateur indisponible',e);
+          warning='Migration ancienne des codes différée : '+friendlyError(e);
+          console.warn('V214 : migration ponctuelle des codes depuis l’ancien générateur différée',e);
         }
       }
     }catch(e){
-      console.warn('V199 : lecture des codes élèves Firebase indisponible',e);
+      warning='Lecture des codes élèves TP différée : '+friendlyError(e);
+      console.warn('V214 : lecture des codes élèves TP différée, cache local conservé',e);
     }
 
     const localCodes=v51Json('tp_generator_student_codes_v8',{});
@@ -11860,20 +11875,34 @@ window.firebaseSaveCurrentConfig=async()=>{await saveFullConfig(firebaseBuildApp
     const codes={...((remote.codes&&typeof remote.codes==='object')?remote.codes:{}),...localCodes};
     const stableCodes={...((remote.stableCodes&&typeof remote.stableCodes==='object')?remote.stableCodes:{}),...localStable};
 
+    // Le cache local reste disponible même si Firebase tarde.
     safeLocalSetItem('tp_generator_student_codes_v8',JSON.stringify(codes));
     safeLocalSetItem('tp_v45_codes_by_student_v1',JSON.stringify(stableCodes));
 
-    await codesRef.set({
-      codes,
-      stableCodes,
-      source:'V199 — codes élèves uniquement',
-      updatedAt:firebase.firestore.FieldValue.serverTimestamp()
-    },{merge:true});
+    // V214 — écriture bornée à 5 s et non bloquante pour le bootstrap.
+    try{
+      await firebaseTimeout(
+        codesRef.set({
+          codes,
+          stableCodes,
+          source:'V214 — codes élèves uniquement',
+          updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+        },{merge:true}),
+        5000,
+        'Écriture des codes élèves TP'
+      );
+    }catch(e){
+      const msg='Écriture des codes élèves TP différée : '+friendlyError(e);
+      warning=warning?warning+' | '+msg:msg;
+      console.warn('V214 : écriture des codes élèves TP non bloquante',e);
+    }
 
     return {
       connected:true,
       codes:Object.keys(codes).length,
-      stableCodes:Object.keys(stableCodes).length
+      stableCodes:Object.keys(stableCodes).length,
+      warning,
+      source:readSource
     };
   }
 
@@ -11905,10 +11934,44 @@ window.firebaseSaveCurrentConfig=async()=>{await saveFullConfig(firebaseBuildApp
       setSyncProgress(30,'Lecture des élèves V86.5…');
       let cloudStudents=await cloudDocs('students');
       setSyncProgress(44,'Lecture des évaluations V86.5…');
-      let cloudEvaluations=await cloudDocs('evaluations');
+      let cloudEvaluations=[];
+      let evaluationsSyncWarning='';
+      try{
+        // V207 — étape 44 % non bloquante :
+        // une lecture Firestore suspendue ne doit plus figer tout le démarrage.
+        cloudEvaluations=await firebaseTimeout(
+          cloudDocs('evaluations'),
+          18000,
+          'Lecture des évaluations Firebase'
+        );
+      }catch(e){
+        evaluationsSyncWarning=friendlyError(e);
+        console.warn('V207 : lecture des évaluations Firebase différée :',e);
+        try{
+          // Conserver strictement le cache local existant au lieu de le remplacer
+          // par une liste vide lorsque Firebase ne répond pas.
+          cloudEvaluations=await getAll('evaluations');
+          if(!Array.isArray(cloudEvaluations))cloudEvaluations=[];
+        }catch(localErr){
+          console.warn('V207 : lecture du cache local des évaluations indisponible :',localErr);
+          cloudEvaluations=[];
+        }
+        setSyncProgress(50,'Évaluations Firebase différées — ouverture avec le cache local…');
+      }
+
       const rootRef=userRoot();
-      const rootSnap=await rootRef.get();
-      const rootData=rootSnap.exists?(rootSnap.data()||{}):{};
+      // Cette lecture du document racine n'est pas indispensable au contenu local.
+      // Elle est elle aussi protégée afin que l'écran ne reste jamais à 44 %.
+      try{
+        await firebaseTimeout(
+          rootRef.get(),
+          10000,
+          'Lecture du document racine Firebase'
+        );
+      }catch(e){
+        console.warn('V207 : document racine Firebase non bloquant :',e);
+        if(!evaluationsSyncWarning)evaluationsSyncWarning=friendlyError(e);
+      }
 
       // V88 — compatibilité stricte V86.5 :
       // une collection "classes" vide ne doit jamais empêcher le rapatriement
@@ -11950,7 +12013,30 @@ window.firebaseSaveCurrentConfig=async()=>{await saveFullConfig(firebaseBuildApp
       await replaceLocalStudents(cloudStudents);
       await replaceLocalEvaluations(cloudEvaluations);
       setPendingStudentSyncIds([]);
-      await rootRef.set({centralSyncInitialized:true,workspace:FIREBASE_SHARED_WORKSPACE_ID,evaluationsInitialized:true,lastSyncAt:firebase.firestore.FieldValue.serverTimestamp(),lastSyncBy:auth.currentUser.email||auth.currentUser.uid||''},{merge:true});
+
+      // V212 — Le document racine ne doit jamais bloquer l'ouverture du logiciel.
+      // Le diagnostic V210 a localisé le gel précisément sur ce set().
+      // L'écriture reste effectuée normalement, mais elle est bornée à 5 s.
+      // En cas de timeout/refus, on conserve les données déjà récupérées et on poursuit.
+      let rootMarkerWarning='';
+      try{
+        setSyncProgress(54,'Validation du marqueur Firebase…');
+        await firebaseTimeout(
+          rootRef.set({
+            centralSyncInitialized:true,
+            workspace:FIREBASE_SHARED_WORKSPACE_ID,
+            evaluationsInitialized:true,
+            lastSyncAt:firebase.firestore.FieldValue.serverTimestamp(),
+            lastSyncBy:auth.currentUser.email||auth.currentUser.uid||''
+          },{merge:true}),
+          5000,
+          'Validation du marqueur Firebase'
+        );
+      }catch(e){
+        rootMarkerWarning=friendlyError(e);
+        console.warn('V212 : marqueur racine Firebase non bloquant :',e);
+        setSyncProgress(56,'Marqueur Firebase différé — poursuite du démarrage…');
+      }
 
       setSyncProgress(58,'Synchronisation de l’Atelier du jour…');
       let atelierSessionsCount=0;
@@ -11966,10 +12052,19 @@ window.firebaseSaveCurrentConfig=async()=>{await saveFullConfig(firebaseBuildApp
       }
       setSyncProgress(66,'Synchronisation des codes élèves TP…');
       let tpCodesSync={};
+      let tpCodesWarning='';
       try{
-        tpCodesSync=await synchronizeExtendedLocalData();
+        // V214 : garde-fou global supplémentaire sur toute l'étape codes TP.
+        tpCodesSync=await firebaseTimeout(
+          synchronizeExtendedLocalData(),
+          16000,
+          'Synchronisation des codes élèves TP'
+        );
+        tpCodesWarning=String(tpCodesSync?.warning||'');
       }catch(e){
-        console.warn('V199 : codes élèves TP non bloquants :',e);
+        tpCodesWarning=friendlyError(e);
+        console.warn('V214 : codes élèves TP différés — poursuite du bootstrap :',e);
+        setSyncProgress(70,'Codes élèves TP différés — poursuite du démarrage…');
       }
 
       setSyncProgress(72,'Synchronisation des paramètres…');
@@ -12022,17 +12117,33 @@ window.firebaseSaveCurrentConfig=async()=>{await saveFullConfig(firebaseBuildApp
         teachers:teacherCount,
         configuration:!!cfg,
         tpStudentCodes:Number(tpCodesSync?.codes||0),tpStableCodes:Number(tpCodesSync?.stableCodes||0),
+        tpCodesSource:String(tpCodesSync?.source||''),
+        tpCodesWarning:tpCodesWarning||'',
         workspace:FIREBASE_SHARED_WORKSPACE_ID,
         pendingOps:readPendingFirebaseOps().length,
         atelierSessions:atelierSessionsCount,
-        atelierWarning:atelierSyncWarning||''
+        atelierWarning:atelierSyncWarning||'',
+        evaluationsWarning:evaluationsSyncWarning||'',
+        rootMarkerWarning:rootMarkerWarning||''
       };
-      const diagText=`Firebase : ${cloudClasses.length} classe(s), ${cloudStudents.length} élève(s), ${cloudEvaluations.length} évaluation(s), ${atelierSessionsCount} séance(s) atelier, ${teacherCount} professeur(s).`+(atelierSyncWarning?' Atelier du jour à resynchroniser séparément.':'');
+      const diagText=`Firebase : ${cloudClasses.length} classe(s), ${cloudStudents.length} élève(s), ${cloudEvaluations.length} évaluation(s), ${atelierSessionsCount} séance(s) atelier, ${teacherCount} professeur(s).`
+        +(evaluationsSyncWarning?' Évaluations Firebase différées : cache local conservé.':'')
+        +(rootMarkerWarning?' Marqueur Firebase différé : ouverture poursuivie.':'')
+        +(tpCodesWarning?' Codes élèves TP différés : cache local conservé.':'')
+        +(atelierSyncWarning?' Atelier du jour à resynchroniser séparément.':'');
       setSyncProgress(90,diagText);
       cloudReady=true;
       await loadData();
       applySchoolSettings();
-      setStatus('✓ Données V86.5 récupérées et synchronisées','ok');
+      if(evaluationsSyncWarning){
+        setStatus('⚠ Ouverture terminée — évaluations Firebase à resynchroniser','warn');
+      }else if(rootMarkerWarning){
+        setStatus('⚠ Ouverture terminée — marqueur Firebase différé','warn');
+      }else if(tpCodesWarning){
+        setStatus('⚠ Ouverture terminée — codes élèves TP différés','warn');
+      }else{
+        setStatus('✓ Données V86.5 récupérées et synchronisées','ok');
+      }
       setSyncProgress(100,typeof diagText==='string'?diagText:'Synchronisation terminée.');
       if(reconnectPushPending)localStorage.removeItem("evaluation_firebase_reconnect_push_pending");
       startRealtimeListeners();
@@ -15572,7 +15683,7 @@ window.tpCorrectionValidate=async function(){
  const oldDiffuse=window.tpGenDiffuseSaved;window.tpGenDiffuseSaved=async function(id){const x=rows().find(r=>String(r.savedId)===String(id));if(x?.snapshot?.rawProjectStored){const raw=await getProject(id);if(raw)mem.set(String(id),raw)}return oldDiffuse?.(id)};
  const oldLocked=window.tpGenLockedSnapshot;window.tpGenLockedSnapshot=function(){const d=oldLocked?.();if(d?.rawProjectStored&&!d.rawProject){const id=String(tpGenState.currentSavedId||window.__tpDiffusionSavedId||'');const raw=mem.get(id);if(raw)d.rawProject=JSON.parse(JSON.stringify(raw))}return d};
  const oldDelete=window.tpGenDeleteSaved;window.tpGenDeleteSaved=async function(id){const before=rows().some(x=>String(x.savedId)===String(id));const ret=await oldDelete?.(id);if(before&&!rows().some(x=>String(x.savedId)===String(id)))try{await delProject(id)}catch(e){console.warn(e)}return ret};
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V113 — Évaluation · Charge Atelier · TP · Correction';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V214 — Évaluation · Charge Atelier · TP · Correction';
  migrate();
  console.info('V113 actif : projets TP lourds stockés dans IndexedDB; localStorage limité aux métadonnées.');
 })();
@@ -15632,7 +15743,7 @@ window.tpCorrectionValidate=async function(){
  };
  const oldDiffPage=window.tpV76DiffusionsPage;
  if(typeof oldDiffPage==='function')window.tpV76DiffusionsPage=function(){const out=oldDiffPage.apply(this,arguments);setTimeout(()=>{const data=diffRows().filter(r=>!new Set(deletedIds()).has(String(r.id))).sort((a,b)=>String(b.diffusedAt||'').localeCompare(String(a.diffusedAt||''))),els=[...document.querySelectorAll('.v76-diff-row')];els.forEach((el,i)=>{const r=data[i];if(!r||el.querySelector('[data-v114-delete]'))return;const oldBtn=el.querySelector('button');const wrap=document.createElement('div');wrap.className='v114-diff-actions';if(oldBtn){oldBtn.replaceWith(wrap);wrap.appendChild(oldBtn)}const b=document.createElement('button');b.type='button';b.className='tpgen-btn danger';b.dataset.v114Delete='1';b.textContent='🗑️ Supprimer';b.onclick=()=>window.tp114DeleteDiffusion(r.id);wrap.appendChild(b)})},0);return out};
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V115 — Évaluation · Charge Atelier · TP · Correction';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V214 — Évaluation · Charge Atelier · TP · Correction';
  console.info('V114 actif : import TP IndexedDB corrigé et suppression individuelle des TP diffusés.');
 })();
 </script>
@@ -15686,8 +15797,28 @@ window.tpCorrectionValidate=async function(){
  const root=()=>fs()?.collection('workspaces').doc(WS);
  const parse=k=>{try{const a=JSON.parse(localStorage.getItem(k)||'[]');return Array.isArray(a)?a:[]}catch(_){return[]}};
  const stamp=x=>Date.parse(x?.updatedAt||x?.savedAt||x?.createdAt||x?.diffusedAt||0)||0;
- const compactDiff=x=>({id:x?.id||'',savedId:x?.savedId||'',tpCode:x?.tpCode||x?.code||'',title:x?.title||'',classId:x?.classId||'',className:x?.className||'',diffusedAt:x?.diffusedAt||'',updatedAt:x?.updatedAt||x?.diffusedAt||new Date().toISOString(),fileCount:x?.fileCount||x?.students?.length||0,students:Array.isArray(x?.students)?x.students.map(st=>({id:st?.id||st?.studentId||'',name:st?.name||[st?.nom,st?.prenom].filter(Boolean).join(' '),nom:st?.nom||'',prenom:st?.prenom||'',code:st?.code||st?.accessCode||''})):[],studentIds:Array.isArray(x?.studentIds)?x.studentIds:[],registryOnly:true});
- const mergeRegistry=(local,remote)=>local?{...local,...remote,tpProject:local.tpProject,snapshot:local.snapshot,rawProject:local.rawProject,project:local.project}:{...remote};
+ const compactDiff=x=>({id:x?.id||'',savedId:x?.savedId||'',tpCode:x?.tpCode||x?.code||'',title:x?.title||'',classId:x?.classId||'',className:x?.className||'',diffusedAt:x?.diffusedAt||'',updatedAt:x?.updatedAt||x?.diffusedAt||new Date().toISOString(),fileCount:x?.fileCount||x?.students?.length||0,students:Array.isArray(x?.students)?x.students.map(st=>({id:st?.id||st?.studentId||'',name:st?.name||[st?.nom,st?.prenom].filter(Boolean).join(' '),nom:st?.nom||'',prenom:st?.prenom||'',code:st?.code||st?.accessCode||'',state:st?.state||'',status:st?.status||''})):[],studentIds:Array.isArray(x?.studentIds)?x.studentIds.map(String):[],registryOnly:true,storageVersion:213});
+ const compactList=a=>(Array.isArray(a)?a:[]).map(compactDiff).filter(x=>String(x.id||'')).slice(0,1000);
+ const mergeRegistry=(local,remote)=>compactDiff({...compactDiff(local||{}),...compactDiff(remote||{}),students:Array.isArray(remote?.students)?remote.students:(local?.students||[])});
+ function writeDiffCacheRaw(storage,value,rawSet){
+   let rows=[];
+   try{const parsed=typeof value==='string'?JSON.parse(value):value;rows=compactList(parsed)}catch(_){rows=[]}
+   const limits=[1000,750,500,300,150,75,30];
+   let lastErr=null;
+   for(const n of limits){
+     try{
+       rawSet.call(storage,DIFF,JSON.stringify(rows.slice(0,n)));
+       window.__tpV213DiffusionCacheWarning='';
+       return true;
+     }catch(e){
+       lastErr=e;
+       if(!/quota|exceeded|storage/i.test(String(e?.message||e)))break;
+     }
+   }
+   window.__tpV213DiffusionCacheWarning=String(lastErr?.message||lastErr||'Cache local Mes TP diffusés indisponible');
+   console.warn('V213 : cache local Mes TP diffusés non écrit, Firebase reste maître.',lastErr);
+   return false;
+ }
  function split(s){let a=[];for(let i=0;i<s.length;i+=CHUNK)a.push(s.slice(i,i+CHUNK));return a}
  async function putChunked(kind,id,obj){const r=root();if(!r||!id)return;const text=JSON.stringify(obj), parts=split(text), ref=r.collection(kind).doc(String(id));
    const old=await ref.collection('chunks').get();let batch=fs().batch();old.docs.forEach(d=>batch.delete(d.ref));await batch.commit();
@@ -15696,10 +15827,12 @@ window.tpCorrectionValidate=async function(){
  }
  async function getChunked(kind,doc){const d=doc.data()||{},n=Number(d.parts||0);if(!n)return null;const q=await doc.ref.collection('chunks').orderBy(firebase.firestore.FieldPath.documentId()).get();try{return JSON.parse(q.docs.map(x=>x.data()?.data||'').join(''))}catch(e){console.warn('V132 reconstruction',kind,doc.id,e);return null}}
  function idSaved(x){return String(x?.savedId||x?.id||'')}; function idDiff(x){return String(x?.id||'')}
- async function syncKind(kind,key,idfn){const r=root();if(!r)return {up:0,down:0};const local=parse(key), lm=new Map(local.map(x=>[idfn(x),x]).filter(x=>x[0]));const snap=await r.collection(kind).get();let up=0,down=0;
-   for(const d of snap.docs){const remote=await getChunked(kind,d);if(!remote)continue;const id=idfn(remote)||d.id, old=lm.get(id);if(!old||stamp(remote)>stamp(old)){lm.set(id,kind==='tpDiffusionsV132'?mergeRegistry(old,remote):remote);down++}}
+ async function syncKind(kind,key,idfn){const r=root();if(!r)return {up:0,down:0};const local=kind==='tpDiffusionsV132'?compactList(parse(key)):parse(key), lm=new Map(local.map(x=>[idfn(x),x]).filter(x=>x[0]));const snap=await r.collection(kind).get();let up=0,down=0;
+   for(const d of snap.docs){const remoteRaw=await getChunked(kind,d);if(!remoteRaw)continue;const remote=kind==='tpDiffusionsV132'?compactDiff(remoteRaw):remoteRaw;const id=idfn(remote)||d.id, old=lm.get(id);if(!old||stamp(remote)>stamp(old)){lm.set(id,kind==='tpDiffusionsV132'?mergeRegistry(old,remote):remote);down++}}
    for(const [id,x] of lm){const meta=snap.docs.find(d=>d.id===id)?.data()||{};const remoteTime=Date.parse(meta.clientUpdatedAt||0)||0;if(!remoteTime||stamp(x)>=remoteTime){await putChunked(kind,id,kind==='tpDiffusionsV132'?compactDiff(x):x);up++}}
-   try{localStorage.setItem(key,JSON.stringify([...lm.values()].sort((a,b)=>stamp(b)-stamp(a))))}catch(e){console.warn('V132 cache local allégé impossible',e)}
+   const values=[...lm.values()].sort((a,b)=>stamp(b)-stamp(a));
+   if(kind==='tpDiffusionsV132')writeDiffCacheRaw(localStorage,values,Storage.prototype.__tpV213RawSet||Storage.prototype.setItem);
+   else try{localStorage.setItem(key,JSON.stringify(values))}catch(e){console.warn('V132 cache local impossible',e)}
    return {up,down,count:lm.size}
  }
  async function run(reason='manuel'){if(busy||!auth()?.currentUser||!root())return null;busy=true;try{const d=await syncKind('tpDiffusionsV132',DIFF,idDiff);window.dispatchEvent(new CustomEvent('tp-v133-synced',{detail:{diffusions:d,reason}}));/* V145: synchronisation de données uniquement, aucune navigation */console.info('V145 Firebase TP diffusés',d);return {diffusions:d}}catch(e){console.warn('V133 Firebase TP diffusés',e);return {error:String(e?.message||e)}}finally{busy=false}}
@@ -15709,10 +15842,27 @@ window.tpCorrectionValidate=async function(){
  window.addEventListener('storage',e=>{if(e.key===DIFF)soon('storage')});
  try{auth()?.onAuthStateChanged(u=>{if(u)setTimeout(()=>run('connexion'),500)})}catch(_){}
  // Intercepter les sauvegardes TP pour publier sans attendre une synchro générale.
- const oldSet=Storage.prototype.setItem; if(!window.__v132StorageHook){window.__v132StorageHook=true;Storage.prototype.setItem=function(k,v){const z=oldSet.apply(this,arguments);if(this===localStorage&&k===DIFF)soon(k);return z}}
+ const oldSet=Storage.prototype.setItem;
+ if(!Storage.prototype.__tpV213RawSet)Storage.prototype.__tpV213RawSet=oldSet;
+ if(!window.__v132StorageHook){
+   window.__v132StorageHook=true;
+   Storage.prototype.setItem=function(k,v){
+     if(this===localStorage&&k===DIFF){
+       const ok=writeDiffCacheRaw(this,v,oldSet);
+       soon(k);
+       return ok;
+     }
+     return oldSet.apply(this,arguments);
+   }
+ }
+ // V213 : migration unique de l'ancien registre éventuellement gonflé par des snapshots/projets/images.
+ try{
+   const existing=localStorage.getItem(DIFF);
+   if(existing)writeDiffCacheRaw(localStorage,existing,oldSet);
+ }catch(e){console.warn('V213 migration registre Mes TP diffusés',e)}
  // La photothèque n'est volontairement jamais incluse dans cette synchronisation.
  setTimeout(()=>run('demarrage'),1600);
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V134 — Évaluation · Charge Atelier · TP · Correction';document.title='V132 Évaluation · Charge Atelier · TP · Correction';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V214 — Évaluation · Charge Atelier · TP · Correction';document.title='V214 Évaluation · Charge Atelier · TP · Correction';
  console.info('V133 : Firebase limité aux TP diffusés. TP enregistrés et photothèque restent locaux.');
 })();
 </script>
@@ -15750,7 +15900,7 @@ window.tpCorrectionValidate=async function(){
  window.addEventListener('pagehide',()=>{if(!isHome())return;try{const light={at:new Date().toISOString(),version:VERSION,localStorage:Object.fromEntries(Array.from({length:localStorage.length},(_,i)=>{const k=localStorage.key(i);return[k,localStorage.getItem(k)]}))};localStorage.setItem('evaluation_emergency_backup_v133',JSON.stringify(light))}catch(_){}});
  // Outil volontaire : efface les anciennes copies cloud des TP ENREGISTRÉS V132, jamais les diffusions.
  window.v133CleanSavedTpCloud=async function(){if(!confirm('Supprimer de Firebase les anciennes copies des TP enregistrés ?\nLes TP diffusés ne seront pas touchés.'))return false;const fs=window.firebase?.firestore?.();if(!fs)throw new Error('Firebase indisponible');const col=fs.collection('workspaces').doc('evaluation-mv-main').collection('tpProjectsV132'),snap=await col.get();for(const d of snap.docs){const c=await d.ref.collection('chunks').get();for(let i=0;i<c.docs.length;i+=300){const b=fs.batch();c.docs.slice(i,i+300).forEach(x=>b.delete(x.ref));await b.commit()}await d.ref.delete()}alert(snap.size+' TP enregistrés supprimés de Firebase. Les versions locales sont conservées.');return true};
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V134 — Évaluation · Charge Atelier · TP · Correction';document.title='V133 Évaluation · Charge Atelier · TP · Correction';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V214 — Évaluation · Charge Atelier · TP · Correction';document.title='V214 Évaluation · Charge Atelier · TP · Correction';
  console.info('V133 poste maison:',isHome()?'actif':'inactif','— TP enregistrés locaux, diffusions Firebase.');
 })();
 </script>
@@ -15796,8 +15946,8 @@ window.tpCorrectionValidate=async function(){
  window.addEventListener('storage',e=>{if(e.key===DKEY)purgeDeleted()});
  window.addEventListener('tp-v133-synced',purgeDeleted);
  setInterval(purgeDeleted,4000);
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V134 — Évaluation · Charge Atelier · TP · Correction';
- document.title='V134 Évaluation · Charge Atelier · TP · Correction';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V214 — Évaluation · Charge Atelier · TP · Correction';
+ document.title='V214 Évaluation · Charge Atelier · TP · Correction';
  console.info('V134 : page TP diffusés non intrusive et suppression Firebase V106/V132 sécurisée.');
 })();
 </script>
@@ -15817,7 +15967,7 @@ window.tpCorrectionValidate=async function(){
  window.tp138ToggleStudents=function(id){const el=document.getElementById('v138-students-'+CSS.escape(String(id)));if(!el)return;const hidden=el.hidden;el.hidden=!hidden;const b=document.querySelector(`[data-v138-toggle="${CSS.escape(String(id))}"]`);if(b)b.textContent=hidden?'▾ Masquer les élèves':'▸ Voir les élèves';};
  window.tpV76DiffusionsPage=function(){window.setActive?.('tpGenerator');const rows=diffs().sort((a,b)=>String(b.diffusedAt||'').localeCompare(String(a.diffusedAt||''))),main=document.getElementById('main');if(!main)return false;main.innerHTML=`<header class="app-top-header"></header><div class="tpgen-manager-shell"><div class="tpgen-head"><div><h1>📤 Mes TP diffusés</h1><p class="muted">Registre multiposte léger : gris = diffusé, jaune = rendu, vert = corrigé. Les fichiers TP restent locaux / Dropbox.</p></div><button class="tpgen-btn secondary" onclick="tpGeneratorPage()">← Retour</button></div><div class="tpgen-card">${rows.length?rows.map(r=>{const c=counts(r),id=String(r.id||'');return `<div class="v138-diff-card"><div class="v138-top"><div><b>${esc(r.tpCode||'TP')} — ${esc(r.title||'')}</b><div class="muted">${esc(r.className||'')} • ${r.diffusedAt?new Date(r.diffusedAt).toLocaleString('fr-FR'):''} • ${(r.students||[]).length} élève(s)</div></div><div class="v138-actions"><button class="tpgen-btn primary" onclick="tpV76AddDiffusionToDay('${esc(id)}')">＋ Affecter</button><button class="tpgen-btn danger" onclick="tp114DeleteDiffusion('${esc(id)}')">🗑️ Supprimer</button></div></div><div class="v138-counts"><span class="v138-count v138-grey">⬜ Diffusé <b>${c.grey}</b></span><span class="v138-count v138-yellow">🟨 Rendu <b>${c.yellow}</b></span><span class="v138-count v138-green">🟩 Corrigé <b>${c.green}</b></span></div><button class="v138-toggle" data-v138-toggle="${esc(id)}" onclick="tp138ToggleStudents('${esc(id)}')">▸ Voir les élèves</button><div class="v138-students" id="v138-students-${esc(id)}" hidden>${(r.students||[]).map(st=>{const q=state(r,st),label=q==='green'?'Corrigé':q==='yellow'?'Rendu':'Diffusé';return `<div class="v138-student ${q}"><b>${esc(sname(st))}</b><span>${label}</span></div>`}).join('')||'<span class="muted">Liste nominative absente de cette ancienne diffusion.</span>'}</div></div>`}).join(''):'<div class="muted">Aucun TP diffusé enregistré.</div>'}</div></div>`;return true};
  // Le registre Firebase ne doit jamais contenir le projet TP lourd : la V132 a été patchée pour n'envoyer que les métadonnées + élèves.
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V139 — Évaluation · Charge Atelier · TP · Correction';document.title='V139 Évaluation · Charge Atelier · TP · Correction';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V214 — Évaluation · Charge Atelier · TP · Correction';document.title='V214 Évaluation · Charge Atelier · TP · Correction';
  console.info('V138 : registre TP diffusés léger + élèves repliés + compteurs gris/jaune/vert.');
 })();
 </script>
@@ -15863,7 +16013,7 @@ window.tpCorrectionValidate=async function(){
  const oldImport=window.tpCorrectionImport;window.tpCorrectionImport=async function(files){let before=new Set((()=>{try{return (JSON.parse(localStorage.getItem(CORR)||'[]')||[]).map(x=>String(x.id))}catch(_){return[]}})());let out=await oldImport?.apply(this,arguments);setTimeout(async()=>{try{let rows=JSON.parse(localStorage.getItem(CORR)||'[]')||[], fresh=rows.filter(x=>!before.has(String(x.id))&&!x.correctedAt);for(const light of fresh){let full=null;try{let db=await new Promise((ok,no)=>{let q=indexedDB.open('fdmahy_corrections_v129',1);q.onsuccess=()=>ok(q.result);q.onerror=()=>no(q.error)});full=await new Promise((ok,no)=>{let q=db.transaction('copies').objectStore('copies').get(String(light.id));q.onsuccess=()=>ok(q.result);q.onerror=()=>no(q.error)});db.close()}catch(_){}await cloudPut(full||light)}if(fresh.length)console.info('V139 copies rendues envoyées temporairement vers Firebase:',fresh.length)}catch(e){console.warn('V139 Firebase copies rendues',e)}},250);return out};
  const oldValidate=window.tpCorrectionValidate;window.tpCorrectionValidate=async function(){let id=window.__tp55Current||window.__tpCorrectionCurrent||null;let ret=await oldValidate?.apply(this,arguments);setTimeout(async()=>{try{let rows=JSON.parse(localStorage.getItem(CORR)||'[]')||[],r=rows.find(x=>String(x.id)===String(id));if(r?.correctedAt){await cloudDel(r.id);console.info('V139 copie lourde supprimée de Firebase après correction validée',r.id);try{window.tpV132SyncNow?.('correction-v139')}catch(_){} }}catch(e){console.warn('V139 suppression copie Firebase',e)}},300);return ret};
  // Version
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V139 — Évaluation · Charge Atelier · TP · Correction';document.title='V139 Évaluation · Charge Atelier · TP · Correction';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V214 — Évaluation · Charge Atelier · TP · Correction';document.title='V214 Évaluation · Charge Atelier · TP · Correction';
  console.info('V139 : diffusion depuis fichier local + aperçu temporaire + registre léger + copies rendues Firebase temporaires.');
 })();
 </script>
@@ -15901,7 +16051,7 @@ window.tpCorrectionValidate=async function(){
    o.querySelector('.v144-save').onclick=async()=>{const b=o.querySelector('.v144-save');b.disabled=true;b.textContent='Sauvegarde en cours…';try{const r=await window.v133SaveGlobalBackup?.();if(!r?.ok)throw Error('Sauvegarde non confirmée.');o.remove();await baseLogout?.()}catch(e){b.disabled=false;b.textContent='💾 Sauvegarder puis quitter';alert('Sauvegarde impossible : '+(e?.message||e))}};
    o.querySelector('.v144-nosave').onclick=async()=>{o.remove();await baseLogout?.()};return false;
  };
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V145 — Évaluation · Charge Atelier · TP · Correction';document.title='V144 Évaluation · Charge Atelier · TP · Correction';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V214 — Évaluation · Charge Atelier · TP · Correction';document.title='V214 Évaluation · Charge Atelier · TP · Correction';
  console.info('V144 actif : base de démarrage V139 conservée; navigation diffusions et sortie corrigées sans modifier Firebase.');
 })();
 </script>
@@ -15935,7 +16085,7 @@ window.tpCorrectionValidate=async function(){
   const mo=new MutationObserver(bind); mo.observe(document.documentElement,{childList:true,subtree:true}); bind();
   // Firebase/storage refreshes may update data but never navigate.
   window.addEventListener('tp-v133-synced',()=>{}, {passive:true});
-  const bv=document.getElementById('build-version'); if(bv) bv.textContent='V145 — Évaluation · Charge Atelier · TP · Correction';
+  const bv=document.getElementById('build-version'); if(bv) bv.textContent='V214 — Évaluation · Charge Atelier · TP · Correction';
   console.info('V145 actif : navigation Mes TP diffusés strictement réservée à une action utilisateur.');
 })();
 </script>
@@ -15950,7 +16100,7 @@ window.tpCorrectionValidate=async function(){
  const clone=o=>JSON.parse(JSON.stringify(o||{}));
  const safe=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Za-z0-9_-]+/g,'-').replace(/^-+|-+$/g,'')||'TP';
  let folderHandle=null;
- function forceVersion(){const b=document.getElementById('build-version');if(b&&b.textContent!=='V157 — Évaluation · Charge Atelier · TP · Correction')b.textContent='V157 — Évaluation · Charge Atelier · TP · Correction';document.title='V157 Évaluation · Charge Atelier · TP · Correction';document.getElementById('v144-version')?.remove();}
+ function forceVersion(){const b=document.getElementById('build-version');if(b&&b.textContent!=='V214 — Évaluation · Charge Atelier · TP · Correction')b.textContent='V214 — Évaluation · Charge Atelier · TP · Correction';document.title='V214 Évaluation · Charge Atelier · TP · Correction';document.getElementById('v144-version')?.remove();}
  forceVersion();
  document.addEventListener('DOMContentLoaded',forceVersion,{once:true});
  setTimeout(forceVersion,0);setTimeout(forceVersion,500);
@@ -16155,7 +16305,7 @@ window.tpCorrectionValidate=async function(){
  };
  function markLegacyRows(root=document){root.querySelectorAll?.('.tpc-row').forEach(row=>{const b=row.querySelector('button[onclick*="tpCorrectionOpen"]');if(!b||row.querySelector('.v158-legacy-chip'))return;const m=(b.getAttribute('onclick')||'').match(/tpCorrectionOpen\(['\"]([^'\"]+)/);if(!m)return;const r=read().find(x=>String(x.id)===m[1]);if(r&&!project(r.data)){const target=row.children?.[1]||row.firstElementChild;target?.insertAdjacentHTML('beforeend','<span class="v158-legacy-chip">Ancien format</span>')}})}
  markLegacyRows();new MutationObserver(ms=>ms.forEach(m=>m.addedNodes.forEach(n=>{if(n.nodeType===1)markLegacyRows(n)}))).observe(document.documentElement,{childList:true,subtree:true});
- function setVersion(){const b=document.getElementById('build-version');if(b)b.textContent='V158 — Évaluation · Charge Atelier · TP · Correction';document.title='V158 Évaluation · Charge Atelier · TP · Correction'}
+ function setVersion(){const b=document.getElementById('build-version');if(b)b.textContent='V214 — Évaluation · Charge Atelier · TP · Correction';document.title='V214 Évaluation · Charge Atelier · TP · Correction'}
  setVersion();document.addEventListener('DOMContentLoaded',setVersion,{once:true});setTimeout(setVersion,250);
  console.info('V158 : compatibilité de correction des anciennes copies activée, sans modification du démarrage.');
 })();
@@ -16516,8 +16666,8 @@ function inject(){
    Le timer V175 a été supprimé directement dans le code source ci-dessus. */
 function setVersion(){
   const b=document.getElementById('build-version');
-  if(b)b.textContent='V205 — Évaluation · Charge Atelier · TP · Correction';
-  document.title='V205 — Évaluation · Charge Atelier · TP · Correction';
+  if(b)b.textContent='V214 — Évaluation · Charge Atelier · TP · Correction';
+  document.title='V214 — Évaluation · Charge Atelier · TP · Correction';
 }
 function install(){
   inject();
@@ -16531,6 +16681,501 @@ else install();
 })();
 </script>
 
+
+<style id="v206-correction-pdf-v74-style">
+/* Choix de correction : noir tant que la valeur n'est pas sélectionnée. */
+.tpc-markbtn,
+.tpc-markbtn.ok,
+.tpc-markbtn.bad{
+  color:#111827!important;
+  border-color:#94a3b8!important;
+  background:#fff!important;
+  box-shadow:none!important;
+}
+.tpc-markbtn.ok.active{
+  color:#15803d!important;
+  border-color:#16a34a!important;
+  background:#dcfce7!important;
+  box-shadow:0 0 0 2px #bbf7d0!important;
+}
+.tpc-markbtn.bad.active{
+  color:#b91c1c!important;
+  border-color:#dc2626!important;
+  background:#fee2e2!important;
+  box-shadow:0 0 0 2px #fecaca!important;
+}
+.v110-actions .yes:not(.active),
+.v110-actions .no:not(.active){
+  color:#111827!important;
+  border-color:#94a3b8!important;
+  background:#fff!important;
+}
+
+/* Choix du dossier directement dans la fiche de correction. */
+.v206-pdf-folder-card{
+  border-left:5px solid #2563eb!important;
+}
+.v206-pdf-folder-card .v206-pdf-folder-row{
+  display:flex;
+  gap:8px;
+  align-items:center;
+  flex-wrap:wrap;
+}
+.v206-pdf-folder-card .v206-foldername{
+  font-size:12px;
+  color:#52657b;
+  font-weight:750;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+</style>
+<script id="v206-correction-pdf-v74-runtime">
+(function(){
+'use strict';
+
+const VERSION='V206';
+const KEY='tp_correction_local_v54';
+const PDF_DB='evaluation_tp_pdf_folder_v71';
+const PDF_STORE='handles';
+const PDF_KEY='corrections';
+const EDITOR_LOGO="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAakAAACRCAIAAAD2ENB4AAAACXBIWXMAAA7EAAAOxAGVKw4bAABYpElEQVR4nO2dBXxUV/b4SXAoUKhtty5b2d1uV7rtbrftbv/ttrvb/ogQIAqBJASCO8GCQ0jGJ5m4u7u7u7u7eyZu//NmYJi892bmTUKE5p3PKYXkvfuufu85V1fNkEIKKaSsPFm11BEghRRSSFkCIdlHCimkrEQh2UcKKaSsRCHZRwoppKxEIdlHCimkrEQh2UcKKaSsRCHZRwoppKxEIdlHCimkrEQh2UcKKaSsRCHZRwoppKxEIcS+o0ePqvPk8uXLCx0hUkghhZRFEELs++yzz97myX//+9+FjhAppJBCyiIIyT5SSCFlJYrU7JuenpmlCx1BUuYh6MIiy+sXJNMzC1uyqPCXRBY0jdKx79vvfsiv6ciqbONrZmVrQV1nQ9dAW+9Qe+9Q18Bwz+DIwPAYd2R8ZHxicopsaIshE1NTYxOTQ6PjgyPjvdzR7oGRjr4hKJHa9r7c6nZBYYFmV7XXtfeNjE/O+VvjE1N9Q6NQynPT/qGx8ckpflBQQ6R8dxTSOPH49TkIVEionKLC7x4cgfCnibXyqanpPi5OPkD+i6/2EPzw2EQ3XgSIJA2iNzo+2T881trDLazrhAb4uGTbShq6m7sGIWTIWKI5gidQQFDELd2DRfVdmUKVp7y5p7N/eHCEaBHAY/2Y3Ib84Y6OT4nNIshA+ErXwEhLNxcSJRwHiFJLDxdqOAQyf7xIx753//DFGwfN1ivS1u96oht30zftZmzZy/zdMbt/XnZTpwadtY6l+WWF59QV1HVUtvQ2dQ1CmkfGJghWLFLEC5AOqjhUgpq2PmgAgZnVFuEF+g6Jx8yi/nvD6y+nHV/Zx4ES2ahEFy4mKLVtKqzDphFQInP+dGJxo4pR4Nf6Ll/ru0qrfz/vokYJTiltnuE1DJeE0i8vEg3nG33XXQ/8Lzkk+KVVVjT3QPLFtx9cqWrtPWYR89Ul/E/87bzzTbfUjoFhIkE1dg0o3PNDhQAh/3TLp6ShS8yLQ6MTVhGF8C3Uu/+66lFU3ynmxanpaWAHdGbmYfkqlKBf7TOdVbjQDJXoL6ia/PWsEzS9qpZewId0uTMzA40U6oZbYtnOO7471Nio8Dco0d7VsTxuEeObWgk5OTg8Jr41Z1W1abPDZ+WPvut31zzuuKc2dw/ivgI4A/sptrBBjxP56Un7dYrwUToqGlv3MqGGn7WJC8upBRZLm0ZhkY59b//+85f3ma6So6zaKaRyj1RGjrJanrJWgcoH4pa9rK3KrN8fs4Nact052SI8Pzy3DnKkrqMfsE1SUCqBnqO+ox+qflJxk2Ns8XnbeGWjwL+fd/61phnk86Y9DF4toa9RoMoiBWGMLiOkmKjPKZscZIYBO+YcDf/0qg+P2KyWp0JBS6ur5GjQOwZn1czw8E31z5aRJhxIGqRxizLr46O2F+0TAPpS2YCTk9NBmdWfnHKSlafhhg+R+eysE9TPKQI9NDDiLW0rbCBQEMY+mWJeBGTcck+XUWSgXtyx3yq1rEXUWxCl+o6Bq85JHxy23ryXAU0MKeKdmCLeaQylv2E3HShs7JcJVtIoMRsfHsupbr/mnATEASMGshqCwlYhaOC8HpQN7DYJzm3vGxITZlRePeTnaoUnRQxxe24Pcx8tFPps7PNA3viixpOWMW9qWUBNluFTBSeNSDhAmO0q7GPm0eB3cqWnPF+kZN8nX7wC7IN8EadPaMgHIvB78x4GcPCV/Zy/nHE8wAil+Ge5JZRF59fXtvVDpZxb1H/xAjWyoXMAWiPwgh2Uq8UK+/sF5/cPWz+vwgazDoofabFys3JbfLk8p8yGQObDPt+0yvd1rWQkfEiEytM/OmoLAJrhsy8gB3AsXQi8NMrKU6Au7TUKDMuuBSeaYMwHh8fveqbtUOeI/ChUVCWmd0rFBAGLEtj3hpYVNhDoFf5zw5s7IjJW4HTfdM9YpcBAvbhD0zq1rBn3FbCGsqvbT1vHvqBuIkQEcbkE8Nq8h/nv614+qRXgYotPC4QPLfEbfTcAtyyBWsQrAuo7Opb3PNOq2/pE9UCRuXV/OuUATwq/DvVWnRpS3YpmH3QJNpGFwEqIg4zEBPLSCI9BGv/fVQ+7mGLxFBYlC8E+EVnGU6Rv3M3YrmbyqqbZn0877qOH3fPK4ITkQZ1LLW+pbe8bQGzpFUrDwZExqEx5NR2xBQ3OcSV3PNK0WBE/3PD6SM/mRXUT6D/WKFCEOnypi2D+7AOX8ze61nNnn57NvNgnpODifXbW+Z5nemljN5GYg5eqRgsFo098DA1cU0YkwWKGzz5tHPaBgmNkE1WIuIR4L/LYl06cfT3cEfPw/J9u+4DBK2WhIzbHX886eqdWikoRNLS23iGPpPIfDbw37KJJFT5Q8rUD5gcYYX5pVR19Q9g2C3YfNHAs+zSAfbPtPujjoV6Bt75aXur6AGn87TE7VnBu39CoxFJDyaKxD10w8CffJATSv6Bm8p6uzV/POSveDwBvzjQkL62sZWweQ/LPlvQNjeXXdnglV1x2TPy/275fXnL/9JTTG1oWz+1lrgPj7pGD8xTy/JfEPn79eUGDs+u+f1PXoMT+EsgCrJTUvCnfXvMkMookhn1glkJrtIsuxvU3pWIfuEQ0/+xXNM0eOaHS61pF6tf6biFZNUOjOI4h2F/HzaPf17WGZji38DfuZnx4xAbaLHisqMAJsg/MxpDs2r9fcFmjMMc4QIb/6ZRjRkWrtBbTUrEPp9qBrlWkb1ExfXm/+ffXPG66pXqllENDHZ/H1N4yF6gxPikVF+0S5O76gS+5TdV0tQLt0aDBAuTwArIPKCZRFZkfHLYOzJDEPpx3ReeGHGXjXrZvaqX4aE9NTfunV72hZSkxl97SsUoqaZboeIhhHygU4o83fArrOrETMlKxr7at/5OTDiJ5DViRZyBBgcqLtNo2KjH2PAyEyKASBRblFcfELXuZovMWwqc/Dp8ueqyAul2FFZpVi4o8QfZxR8YV7/uLhC+kS4G5SpHNU9YqEWY72E+soNzhMekG/pYP+540UQSCuxhbVM3e0bbcYxQIZmAt3uDosytQCes7+oEj+g6Jvz/huFnZdJ0SSwapJQuBvCcZu0DsA/cH6vTzKqztqmwxCs3s87PO4Tl1M6LZt1qOslWZuUPtyVsQrIw8Ban6Iuq9rAL9pGWM+Gj3D43d98p4XoUtMZc2KNFNQvIkTneIZx/oDjWTOx5pWGuIOPvgSap/1nolEWySp71x0OKfV9yh19x51++T43Yb97BW4ZpOctR3dW3ZIbnCY6MA5aTi5lc1OSLiT5VRoIE39rcLLv93x++n276fnXFCKClqxECepk4JRqWUCPsgl4sbut44aI7TvfFGFcEg0DGJOGMTB6pjEvmnUw5r8Si5Wp7y0y2fxi786WNRsgzZ90Rl5KirdzHBDFSlBNtGFRXVd81neddyECjsPu6oR3K5GjX43UNWaxHkzdHUl14Xin1bVVi7DQNo/lnsoByWaKUHZDnHlda198+IZt8OVZPT1rGc0Hz+K+zgHGZg9nXnpAPMsDcPWuCaHhCZb/TdxEcbehqwfWSxQwdgzqB/QoVvSZw6lMg+KNavLnsklTShMEqcfTnVHb89aiOD7Q4h8+VpP9zwso8pyqxsrW3vq2nvC86qOW0dB96rLN6Q2WoFqpJhgLC1NTI2YeyXhTt2IYN0PyywxUyCcxNLmsAvLm/uiSlogPL9wwl7Udbfm9oWXQMjwvEnxL7padvoIujt0OzjTdd8o+/unVLRy4XIToIOjowHZ1Z/rGeL22Re3c8pITbyK5BlzT7hmrReifGBnt0PN3xoAdnFDZ1dA8OTU8/GpAhEc3BkrKC20zqy8CAz7O+XPLYos2UQJ2JBrTysLhD7KL8+YG4amjc0OoGzjQRvVwkUGy77ZHYav/PY5UQp2CkJxU3/uOiKrJXBJO0jPbvyZpH1fnRiEpoQtBmUWQ0mnjY7/DmU0ydHee2guV1Ukfh8kMi+VTzP94RlbMfsKUiC7Kvr6NdhR2zYY4JuCLwZhuvOyY1dA8L+9DTSnUzl1rTvo4WCA4iOjDzto6N24Tm1AtOhtYcLHQZOtOWoOzQ4xr5ZPdxRVOOCf5Y0dCnc89+yF2fWBcwxTUYo1AHB80TYB8UKLWLDLjo6QDnKvy6717b3o9o3/DOusPHPpxzQnRayeobhn14llW30bLBPuKVBvXlZw1SNEuKaUApVEFoR8dQuskxOTfVxxzIqWm+6pb6ja4PUeLlFs/Jwsm7h2McKzuXijaaLEjHsiy9uFPVWUX3nm1oWWFPoVU1zr5QKUW+19w3tNQpagzGIPj1hD6aKGiUYbf7sYoOVNDgsbvUMEfaBfnzUPrm0eUqoPRJhH3Tq/mlVb+jYYBBDeVHdlBmYI2bdMnS0313zlEV3q8igBCMwm88mgGZaectaRawFRwEX+6pT0tiEyG0IPYOjembRz+Hh75X9HMfYEsGTRNgHKf35tg9vJmdWjdqoRD9hES3KsNHjRG5RZr2sYSLQl9RN3tGx9E2rkGpu4JljH095o7DbVNgatNDo/IY+KNJl5gtD1eGOTCQUNd71TP/yoisYrfOc03wa+syzr6FzQP6e37pd6P5jh5qJaUgu7ivQztMrWv902gllKQAKb7mljo1PWkUUoGdR5Wkf69mAESEm/gTZt2kP875XhvDyCyLsA1PRwCV5h4YZii8yclTFBwGljd1i9rRAxbvpmrp+F9qXBwbd8UjjQ3N4bMI0JA+nQsoji6LBjxaTcGBrZmXbF+ddsM71pt10bVa4IGYE2adsFLROET3SLStP2XnHF2KLm86grOr7XmlGvhkCfeiTwQjMKm3skmq3z7PJPr7KUdbtYnx50e2Bd0ZMQQOyz2kZ+MAQBWjYtW19pqH5yKIKZJqStujuLa4+8+wDC+4wJ3LjbgaqqWxVZj30zhD1oXueaS9pmKK+BQ5vbk0HPJBe3rpDdfYciBxljSL9tHXs5JTIDpUg+6Dov9J3A29d0CaJsK+sqRtcS6S/nP3MNmXWXY803NUqwuKeWAbm4QYlBmSUQNftZt9wSxvgTXe09HAV7vtj6iRl/W6mkU+GREcKSuGCXfx2VfTEkYw85csLLtAM+Y8R8nmnp/UdEhEnHT3eRwVbnhWU29Q1CKacMNGe4jjXs8y+xzUVivavZ51PW8X6plVCZk3OYavn0xCwPes6+iNy62j+WftooTvU0O1tqXWh2PcrTTPoeJu7B8EhwlVoDwMjs7Z/zo19FS0931/zxM70vaiBLCfGfaW8qee7qx5IC5zduj4+asv3FeCBL86h1/3JKjC+0XfLrmoTFRNR7MMsxAMvkr6PHlpQ92ivLhH2wV8+P+8qgzGsPj/nHJlXPz4pgU1AFmO/rDvuqWDoCfSmawrYB/w1s+XNPa8esMC0I9pfzzgllzSJD3yGV8+DM6t/f9weNVYA//zoiE1EXh0fTwTnOkKyal7db4Y7zwuerBYrnB2c65lcEZFbn1rWUt7cDdUJOSXlaZzp8uyz73ElAzv5Yz1bZeOg224pYJbPO2ekE7B6fFMr1SjBfzzlsE2FNcfVvwucRQs0zwsV+m/nXfbRQg4ww3BVkxFG8csaHH5isMyBff1Do1ecknjrVNB5+xa8VYjzFs8BTOFZKLM5IkfV40Txm2hrL1ebFbEaw6zt6qZXHBNFjaXgsQ+ZmvxIzwZtRe6kbFNF2nA5L9slsg967sCMqo+OO2I6Tsruh0GtPdx5tnlIUWBmNTYCqxRY52zje7gjkoOYmSlp7N55xw/bCb28z5QekM3v5Aiu7+sbGj1pGYMsoMFrMrJylBfU2O/rWn960uGri64/3/Y5wAgDq5MTmpdY0jTPE2t+Mex73H7kjLfsYfxo4BWVXzeffCEuUJkyKlrP2cR9rGcz5/X3i6JLt69DjvofAy/h/RJi2JeIZ3pAT88KzAHXFftpeOuT4w7tvTg7OgE0/7jkugplQCG7iejWEQX8JgpEBn8Z60ev2cX4701vcA9x8wGXfesUaT/d8vn5ti8m+ZRtama3PVInJ6cksg+qk1dK+ft66NUkaxWoRzhRczidBSXAC8uIAhz27WIzAnMIHgzV0DlwkBXOy7RZgWxXZUEypWIf9EDF9V0/XPcivqENmPurfRywUq84JuEei0BQfmns4+u6XdQvzjnZRRf1DBLqx+YsvEWz6X8+7bB1L/Mp7TxbOF1S9t3wlsg+0G17WcpGgWCAnLWJ4+tp61htVvi/Lrv/+oCZDF7gMvIU8Gpxh3pza9rhLfRXEFPCJKH4EWGBR87xpdvAnER7cNTfHrXNEuFA4LIP8LTbMIARkI2TP/L0T0/aVzb3SGTfyNiERXjB69rWqPis30U7aRkrvIhkbiKafSbgXRJkX2PXgA47Ap997tKxbwY5FHLSK7kc8Xyl3FC8XYX97VUPyHBRh2KJl18m+1YhE3mUHWrsf1xwMXBJlnYCiIi09gz6p1X+aOC5VZmFWVKwPPUZYJ8M73giaCHCul6RJisnclPzakVk9QZubC3C81dj1sGuVqB9cc65W2ghbnp5y5cXcfaTvrLPzDoSfxhRFPtUKUHQsL+94o7NovVKzFtuKRLZxx0ZZwZm/+qAxSKzb60SExI7T/ZtVWZed04iPt4nEPB87aOLfjDw3q5qItUoOXL8lypbjRI8h1Mpf7Hse9SW5KlrFOm/P44s7OTjb/7zRKMTk+ygnL+edd6kxMBdRr9c9Rlgn3SFC9HYxf78rFOTiM1M0CQwRh8VHGdGQM74xJOBPO7I2D3PtOeRVofCDf2oeTRuyGLYNzU1k1LWDDYjdirgkxMOaeUtD3yyxLAPIuaWUPbuETtUZMChPmYeLdVkOq6Is/tC8giyDzL8kMlTs/v4Ap/uHhzJqmo7bR0HVovsblOZXUwZBcyyZzyFjgGCbRUxQCFKfuHse1zjKe/rWl93SW7oHJjPSkDe6vlJcJEgNGRjzbNh7gl0AdkHfYysPF2kKtB/eNrsgzjI7mL/9pidbxr+QQbQlj44bI1+UZ72/mHrooYuVA/okVz+7iFLVDNbLU/9+bZvYycOWMWwD37bPzwKMMUeE7B5D+OkVcwV55RVCuj1d8LjfZ7JOON9oPtoIQNiV1wTkZGxcYuIfNzxPqp/lphlPcJS3dqnSgler4ROBTiht9xT5mD3CUtH31BqeQu0svN28T/d8nlRw3yjCmfdbjYY+Ni57ycZqMp2ji8Z++WvbZ6DyiMntsvf8wvJqh0dn5yD9Qdtqbl70Dws79NTDmswdfdZ0IVi31pF6hsHzf90yuEvZ/D1j6fsj5pF9Qlt7J8/+9bvMfnTGScwkUStR8usaHtBffaeMJ5DrfTAvwNz1GVeTYfifb8Ns5fUycpReAdNV2MDF8++Gd6J7d9e9Vg7248Gt/ojPZsvzjvjbGQWmuf1z6j84BhmnleOstc4eJ6ntPMlsbhplSLmiARF1lmbeIKn4OXXdnyPmZ2Q2Wn86wNmFuH5c7P7UAKBdPQNlzV1h+XUmoTknraK+e9N7zd0rNftwlCbp+D8/mDg1Yc5PEKMrBj2IbWHukaB+rcLLq7xpS09XGgzBPkHoOzoH4rMqzvCiXxL25LQubLLURdqfd9LGpzztvEJxY3pFS3g02E1tawFKrHwfiMx7JPlncwsUDzjmrJD3XS3YWBgZrWoQ4kh/KvOSZtQTpkc9UV10+vOycUNXTVtfcJa0tB1xip2qwra7d2mzLrpmoJdTiyRffwpi3cPWQmPBcvwXNf12O2rs9f3JZU2/eW8O8bGoXyj7w45OSHJNAPPMbemI6uqfbZ2NHVx+S5tRUvvNuQkVFTroH+NhI9/drSwgGUaml37u+N2mG0nFCB7ZF49cfb1ckfbeofaernC2t43hCrW0fGJ1p7BwvpOn9SKvQ8D39KxXKOAc2YXeNxSjfqtJPbxdLUC9V1dKy12hFdyeWPXgEQjH0q6uL7rgn0C5DhiFzxjfq6wLuC+DpOQvCFJxx0L29qi2Ad22acn7f952f1rfTdQMJF2qJmgXWw5KhgdmZWtYganwGkCkw3zInLK+d8vuO685y83W+XvBfzxlCPWiQPT5suLrnGYxYMS2QfSNTB8wS5+qzL24CycKiTMvqrWXjVK8MbdaNPsBTWT6y4pEk0/x9jiT044/uaIrbC+d8Se9ngjMPBF2TgIu1l4wx5kMy/23C2UtHRzT1jGPK+K3tILPPrPDW9INXGflxmYo8uJOmQafYjzRI9bxsYUNuIW7tQUctC0Y1zxB0esMQdqIUa9Q0wx8c1dK459/GySlaf95ojNebv4qpZeMZkFLkBEXp3CPf/nVNAnajyD+gzsaQOnySqyMLOyLb2iFTS+qFGbFY49w+6Tkw7AI1Fz91Ce52zjt2CPM+GryNNVcXs1wCXjgVc6yhIhwj4Q8BU+PopBMJ4Ks29geMwkOPcVTSvs6SZfnHeNyqsbF73tDLijxQxbi1mqvXYX3dAnk38219jElFtiOc40nTztwyM2vqkVYhZFjIxPuvLGu7HZtV2Vfd8zXfAkEfb9dNtHFiw4eToCsse6bhdT3zFRzNY6+JXcXT+M246sr7zhkkz87sqVyb5HbQCctStOSd0DOGsAoQ41dw2ahuR9fsEDWb/+DJt7An0G2IecYVX6ZG0z1GJwmd/SRt+OtEWZBS0Z96gV5A6KnqFvr3jgnnY1B12jQAU/C7WGliD7mroGFO/7rxUxRCWswuyDzjihuPGDIzjQ3LyXdcY6rlHEGf3ww+rW3k9P2KHXA8lRX1A3tY4sHBl7BJSi+q4XNXAa8mpFhvw9v2YR8+YQfl5Nx3fXPHmDbiiH1/jDI9a51R2Ch4mwbz8jlHdi8+yg5Kk/Gnhhx2SFcnXwu6semOka5A45ekA2afcRVGSsyjwsrwPjR0DWX3ZMfPuwvYzo08CfNX022Ifa0wZuGjhiqCYkI0f9z02f7Kr2SUxFh/bpmlD6lrbF01pqDol9/aBZeG6tMG4Ism98chK6z9cOmIuZoOQr9vw+DWro+t3YUTkq5LahTwbveqBZCR+fmKps7gUzedNu7IGstA+P2ocJn9/Xy0V2vGATK0/doWFmEpSLu5Cwrr1f6UHABmRkAJ2cNQqUvQ+DxoRWDhFhH80/e+NuzEGWcpRX93OYAdmjIkw/87CCNw6Y4/q8/ulVxKcxVzj7EH1pn7n8vQCnuJJB3tWC45NTxQ1dJyxjXt5vJrHKPlP6TLKPd5cYV9koCMWyTXtY+2ghJY3o1Sq93BFNRth6zDlXq3gnIyETKWJUnorrn4Lpd8oypkvo2nKC7Jvhjfrd9Uh7Fdqq2EltFPsAUvFFTX8+7SSDs/zbeIea6R7DIOvIIiByZmVbXm27W2LZebuEry+7P7eXidn9Qtm0l6VGDals7RVkFe/c5kzc1alQ518/aLGPHsYIyAnNrs2raU8qaQrIqKIFZH171WMDZkiU/4mP9GzyazqEE06EffUdA+8ewrnydLUCDfCnyQyziSqE6goGPijkZEpps759AnJDNGYhusxOhJhSbXEj2feocr+gYXbPMw3w55JQ+qfTzuuVGMvyPIL56DPJvhme59veN/SmljkqReuUWCetYoUXbAIoA9KrPjpig037VmXW3y84/3Tb+3+3vEQp/PazM45rFNHNW4ZnieRUtwvYQZx9MzzQGLgky0rDPpCJqamEoibs+mFBjd28h7VFxWSbquk2dbPn9rL49zXjPCxH/eKCWyxmeLS6te8/N/B30QJe1ypSgVNI+GqcraqmW1TYEBNRwwgAaCPfDJSzSfD8vofeGchB0HjbtCEOm/cwn1fjvLDfAnSHhgUkFpKJu41qvRKNFZQj1ekGJPue6Itqpgr3/X+laY7tbH8R+qyyb4a3l0YNmZqcnSJ56ptaFg4xxYLHoC1dd05eg22ictS/XXRPK2uZnJoSrzH5DdvUMec78dQ5rkSwTEcq9oEU1nf+94aXGNMP95427uiE3D3/eZb7yxqcGy7J2D0PgMKIvLoPD1vPd3BAnva743Z1bQOo8Amu7+sZHP3kuB3OtSRSKlTL8qZf4n0dpD4NfYbZBw0V0INjpCgy5e76CiY9wDzUYoVj0w5+3P/uBBBxiIrqO9/SscTdaHzLPVUw2yst+0DsY0o2YZatCFTU3eRgxq7bJfoaSUm6WoH6/TVPIC9+KYxPmoXlv6rJmbOLA2h7W9uSFZwz57vJwWz3T6t6R8dyPm7WRiU6JyRP2iOtSPatHH2G2TfDu6z2bR0L9BCVHHWHmkl4Ti3/GSDXT7d8sGnfrMw+bhHTPSB5UwQ8o2wUKIs3M6tGCRasfZsD+1p6uf+84ilq3kwU+7gj44dMIt86ZLUFOShIGjogm1jov9G1MQ8rELNmpW9oFMj1u2O2vBFSKcKHfmiHuukX513sootwb8kgvq9jaHTCPLzgDS2LORwBJ8tbs/mNvltOdbvEwkUJyb5fmPI2QiBKfXxcPrJmaq0idcte1iv7zfU4UXM48UIgwL73kcFp/gULfKW+esCcGZQzJ/bRhMKhgOPztmj2jU9MeadUfHTERlaeOustedqeh0E9gyNTU1N+aVUfHrER/i3vAer7R+w9ksqJbOQB+8UmqvBlTf7UxKxwwDYReFWP2Sf0gBwVfG0VY5HsA3/cPqZ4uxpnlRwFFTKyU0XTRtSeipGxiZSylov2CZ+edECmGiRd1g4PPK/K/uycywFmuGtCqcRymZiajilo2E8P/cMJh63KrEf1R3T4sgo06G/+edmD5p9V0dI7IQKskXn1fzoF7JtVxBt3M9QpOHvaerkj1pFFP9/2hUxe92hJmRgQIzFEpqTV2P+64nGWt6doVPpzTEn2PevKwxyyKJQOFNihbvL+YZvfn3D42yX3/2fgo/gwZI9x2G5KGHiC523joP14JJbNZ09oUGb1n046QNPapvJEPzgCxkWexHskhAXYxw7O26piIhwO6O9PIBebiXprYHic5p8NBgLqLUgyoG10YpITmg9GKOq3OzQ4qpTgUsKXt1a39qpTQzYro+O2VYUVkl3DB2h1a9/Hx+xmPaDKfkGNfZAVJipYcAqbugY1GWHI7MTskEFf07HNqBB5SRC8yx0ZC82u0TWN+vqy57u6NthlcVAHVivSX9lv9g99j6tOSWAHDQyPEVzwMTU93Tc0Fp3fcNkx4YcbPm9oWSJLjhVmLTmGf27aw/zdcYef7wbedE3JqmobHRd3en5sQcPX+m7bVWdl4yv7ODrsiNp23HNcphq7BpxiS1QpIR8fs0eO1UEuZZwdBx5JAdDvH7b951Wv6y7J4MSMzWl7/gzJvmdTKXzYgUIV+fSU0/cGPkoPQw5xom66pVhFFngklUXn12dVtTZ09Lf2cFt6uB19w92DI6DgQ83nKEMgCD0g+5pTkkCvOiU+8E5PK2+R6npAMIKSSpquOCYKBwVq7JtZy7u8XJRUtfQ+9MlAvXXdJSkwswoiEFvYcHX2r3i/TQ7JquknfAIKcDk0u/aCXRwqnCuOCUmlTfxkdg2MGHqnz86HJAOXZM9kkVdlzvDGthKLm67yHsZGsqETPV2AEmANlGZSSTO4sVqsCDC+BIMGYE8BEw+bRd/3So8rbIDozaGUxyamwAXOr+1kBGYfMo1Upob/dMf/x5u+fN3PjDpnm+CWWFrU0AVWtihzTyDQhZiG5l1zShTOopuuyV7JFaJOFAaCDY9NVLX2OsWVQIbomESo0SP+c8uPH4EfbvrKPwg6yAq/7JhoHVmYVNzUNTA8n+vJSPY9O4o4IzQZBfoWFdM/n3baeS/wiFn0A69039TK9PJW8CMAcL3cUaAbVKDxiUnim3uIyziveUDdFVb4KHI0jpRBjYxPoMIB7eNKuG4UfgvPYF9E7jOcnoaEY38FCj+XyjQAN7N7QEQ4vAfASOnFiwZX0pnyAFbcGCI0IdZ5wGOQWHBmX358+dxaRdr31zzBb4UKAJkjZscbEQGagMHY3jdU19FfUNeZXdWejRyF0NbczQWk8nKSUDjQSUB/g64q/N5XbBBQUkOjSDlCcqA/yK1pfxSHyjboelt7h/j5PP9raUn2LWd9NGy3eQ/rvcM23131AI/phmuqW2IZGCBlTT1tfUP9Q6PQUJfb9cSkLJyMjE8mFDd9d81TMDOwRZl5iB2RWdk2/9P9UAKQgh6Ur083ZOIiiADo072ElmTfclV52lYVk8/POmkyQumBOWDZgb/DN3D4Nt1TvKiUlGdIihu6dt7x3SC0XEZWnrpVxfTj4w7gdOPe2UQKrpDsW2YKhp4CY80u5sdHbS85JEIPD84Xcj0zSTpSeNLRN3TKMmbzHuajqfzHNUdGHjmO3ze1QqqB15UsJPuWi8rIUdYqMXeosf95xe24RYx/RpVUM6ekrBwpaez623mX1w6YvbKPs+bJhC+yH1mNEizmBBRShIVk3xKrrBxlgxL9VU3zL847g88SX9TYTtZdUkQLf6wjt6Yjs7I1qaTpsGnEGqH1w9tUWJXzWLu+ooRk31LqOkX6h3o2moww5/jS/qGnPFBNyi9YpqaQ2dii+q5j5lHCh+CD3zCftesrSkj2LY2Ch/vcXuZXl1wdY4ulumCFFFJAyhq773pl/eemj/Ct6qvlKd9edRd1YycpKCHZtwS6RgG5M/O4RXRMQYP4xfGkkIIr9jFF65XNZu9vo2zdy6L6Z0lcY0gKX0j2LaLyhvY+Pmp72DTSJ7WypVu6q5RJIUUgTnHF6/c8ukNGVo7yorrJPy+7X3FMqu8QtyuGFGEh2bdIulqB+vk5Z3pAdmJxU5uUF8iTQgpK/NIq/3rO+efbPmqU4GtOSd6p5Xm1HT2Do+RaKOJCsm8xdIsy8yAzPL2ijTs6TtZNUuYvnQPDudXt5U09te19XQNE98ORIiwk+xZY5ShrdzH3PAwsru+azyECpJAiLNO8DWc8mSFr1dyEZN8Cqow8dbu62Smr2NLGriXcEUkKKaRghWTfQumvDlictopJLWt56jvMSSGFlPkLyb6nr7LIGaIc5/iShS48XAFXaGxianhsApjbNzTa2T/c3jfE147+YfghOTZECikzJPuetlI27mZ+csLeKrKQO7J45t7o+GT/0FhH31Bte39eTUdwVo1ddNEdj9SL9vGqlGC5ewHy9wPgz91GwczAnOZucu0rKaSQ7Huquk2FtfOOr19a5dj8zo8kItMzyCG3ALL82k6/tApWUM5Fu3glw8BvLnv+8bTT+4dtXtLgbFVmyiCnjTNXKTDgz00qHA1aiLRX+QnLwNBYRXNPUX2XRC1u6Kpp64Po9QyOEMwNsFjhlcL6TiLh42ppY1e3iDOB0bk3PdPawy0S8a2Cus6mrgGCp4RxR8fLm/DzBNLS2DlAMPnwWFVrb2EdfpQg2wkOnoBdX4bEpxMVk/qO/vEJCefC1ncMFNQKv9gJ5QiFyB+thpSWNHThZVpnZUuvxOyC30NlKG3sxq0tTV2D4qP31IVk39NRmZ2UX2uaHTOPSitrWTjw8U8VL2vqDs+pdYkvowXk6JpGfnfd+w8nHd7Sttyuyl6tSOedZc+72eDRov8n6/7nf09bUkkz0PPHGz4/SNL/3PTdaxSkaxp1xSmZHZIfmFEDzQNar5gFaJBvp6xi/33DV2LgolThfoB/RhWRhExOTpuG5IoK53sD3zNWsUAiIkHFFjaqGIfghgNpueuZ3kJgOSfAJb28dT8j7N8G+FFSpYZG5tUToXH3wMjeh4HYmFx1Tu4aENcxdA0MX3VK+s7Ab3Y5+lD9swZ5e0UATzrsCOT4eEwZgXtRJ2lZNQQC/tD/bvthU6doGOQYVzo0KvV9Q/MRkn1PQWV5l2TfckutbetboPnc/uGx/NoO57jSi/YJ/73l94eTjm/rWL20j7NxN0NGnirpXqunxj7f1Mp3daxkHoFVgq6Wp0L0kBtq9pv99pj9T3f8LzkkJpc2i7o6Y2R84qtLrgi7CQSOq/AtdkgukYSMT06dsorh3WOHF5Q87Vf7zZhBORLDAV7f88rYoc4REQ5dhXctmURmAReOm0dv3stcJSJvt6mY3HBNHSGwAxJQ+6qmGTocefr/3fETP9zR0jP4f7d9VymyZxWiAk2bHd4ziGw5546MG3pnvnrAAhvJDbsZp61jh8WeulbS2P1vAy+81NE+OuYQkVu/yGshSPbNH3yUt3Us73ulL8TZU1AXuMNj1W29rKDcLy55vq1ru0WFLeGWwoVkH979vMSUd3ci76YRR2ZgjuCSb2EB9n2j74q9F5y4Pq/CMiHMvjM2sWI6jHVKrH30EImWSHM3V4Metl6JLiLVVDWqZPaBt1hQ1/HpSQcxaZeVo6gYBxMxIeGZ1w+ao2uIHHXnXcnsk7vrh4yQCL24RoF6yCSCzz5IREPngColCLo0bA1846C5W0KZqMDBZfFKqXhdywKbtDWKdPn7/l3zuD5wbkKyb14qI0f94LC1ZUTBUz+LBdoDdLPQVbKCcr684PziPjPC9p0oXVL28ZV3repvjtgIbhMXlmXFvtUK9H9ccqlsluD25la3g60qMkOIsW9yauqBV/qL6qZiuzTK5+edo/LqJR7LvHDsm+FdVhWQUfXBYRts1q1VoIHZKKohQAgX7OJ5J62ik/ayphlAc/GXH5Dsm49S/nbBJfVpD/CB5Q8VJSSrVtU45C1ty017WLLzwIFwbJeefTxdI0/9+wWXuCL0HeTLin2gb2hZ+qeJGz0EU8XYN/M1AI2oQIixr4c78sU5Zxl5CQnfosy67JTcy5UwmbOg7AMButEDcl47YI7NvRfUTe57pmMpNjY+aR9T/O4hKyzcNygx73qm9S7FMW4k++aqctRX93MKajuf4uZxCAocZ0OfzLe0rdbsYsrODzEYXUD2ycobr5anolRMZFYrUL684JJY3CQcuBj2ycpTsOFjdYeaCSckj0hCiLBvqzL7pluKmEDA6PvewFtGDKyJsS8it3brXpZk6MtRvzjvGpVfL34+dKHZN8Ob9NDlRG0CzxcTyW+vuKMqGHgwMQX1YCXIyKNHBmTkaQeZYaKu611oIdk3F4UuGqqXT2rFUxybhd4yrazls9NOCxbthWLfBiX6J8ftfr7ts/Our0B/uO75ghobfiXKSNy4m3HVKal/6EmjEsW+tYrUry+5CgcuSlWMA4OzaogkhAj71inStJjhogbgh0YmHGKKPzrmgEyYiAqEGPtMgnMJWrvP8U/oEzulsAjsA7GKKHx1vxk2hh/qWQdlVgs/OTw+cdQ8GpkeweT2DlV2XYeEG9kXTkj2zUEpb2lbeCSVT049nREK6Bi7B0Z80yo/PGIjK8nxmU+0F4Z9lFc1zRiB2ciOkakpYApfR8cnixu6rjgl/eGEw+bdTDxTkfK3884JxY0CtuCzT46yTZmVWNokCFm8Ejwwggj7wJD8/rpXeRN+dgFiTlnFPK9qIm6Qjhj7DptG4hGftkPNFJ1v8nRds+jmbq6Y8BaHfWnlLV9ecsdGe8te5l2PNOETeQMzqn5/3I7HvtkVQI5yyz11BG/Wa3GEZJ+0SnllvxnNPxsM9fkbfWDrNXQOxBU1nrCIfu0AZ57jaBJjvkDs+/UBM3ZwDtYYmUZ2101mVbXpmkS8vA8ndZt20x94pQ8+XvIihn2p5S1zz2U8IcI+iPB7ulbOcSXYAayp6ensqravofGLn3oiwD7oMv582hGFqjUKtC/Ou9zzSNugxEAF+Okpp6CsGjFDzIvDvrYe7mFOFHJVJiYHdt7xLazv5NvL0CNq0EJxVya8q2PZuehzu8JCsk8qpby0z+y6S0p779D8h/mgb4wrbNBkhL6hZbFWgSqz8JFfMPaZs4JzxThi0OTUqSG8K3VmRUlGzvirS65F9Z38x8SwL6Wsec5xxhUi7ANdr0hTowZXtfShXgdgWUUUvIAs65sv+8Asem4vE/XWrzXNOaF5NW19HxyxRRXiGkXGCctYMRdRLg77wL5Or2iVvx+wYQ8blY1blVknrWIbOgYg1VBhePPXaPMQih7Mw6W9SphkH3GlbN7D2kcPAydo/uCD/tAtsexHA691u0SPFj3t+C8V+2aQ4aGC59Vwhoe2KjMj8+r4mz2WIfugib5/2No7pQL1ei939Jxt/CrM4D1aJbFvfGJK/q7fank0p7686FrS0A29o5JhEDbMD4/Y5lS3idohszjs4+ehT2rlB0cdZNH+LOUtbUvXhDKIP3Ttsgro30L9eVPLIr+2Y2mPdSPZR1TXKtC+v+4ZX9Q4/86qlzty2z31t8fs1ivhzJQtmC4l+yDfXj5gg40VBOWeVM53KkWx73kVFjiYc44zrhBk3yrenMxNt1TUBUBtvdxdDwLEzXI8irwE9hXXd72lhVoiQ9myl3nYNKKtF7HsrjolY03L1YpMKAhRkzCi2Kf4IED80ujeoVEkUYpE2cfLh6HzNvHrdrPRxSpPU6WGBKRX/fa4/So5VJ5QNuyiX7RPWPKz3Uj2EVJZOcrvjtlCWc7nWjX+Zm/4k+aftUPdlNcfLugAH0qXkn2F9V1vaFnhzGbKUczC8vi5KmKel7JpN+OBV7pncrl4BeusqL6LYELEsQ899Eb90cC7qGFWyDXtfb8/Zjfrdd7GFUxQEthn5JOxTQXl8FLe07V2iisZGUPyxD2xDDtLsEqecd8rQ9RiYBHso/z+uN0NlxQjn0xcNfbLBMR/Aqia/Tnx7APbM7G46eOjdpgei/rKPs4X55y3KLNQkV+tQP3rWafs6vYlv1qEZJ9khab+oZ5NeG7tPO+THB6bSC1rPmYe9esDlkuRkKVkX01b319OO8pgm/FOCnCNb1WJWuMCn3tZg/P6QQvx+p6ulZFvBsGEiGLf5r3M1w+aycz++TZlpm1UoWAv7fjkpFNc8XZVE8ED0J5f3c/54Ig1OkDR7IMusKFz4MsLLiiHF4L6702fwrpH60brOgaQG3jRmUb96bavKLsJn33I1jHaFhWTraqmuLpN1XSLCnst2j+VwD6Q4dFxj6TybSomqBeh1OCLqAkusCHeOWTlEFOMu6lxkYVkn2TdqESn+GXOc6N1R98QxS/r/UPW63bhLPhYFF1K9rX3DSsZBqzexcTG6p5Hmnj28VVGglI27WFed04mmBBR7HtT21KbFf4m+KFC0ZCVp/x0y0dwTkn/8Nh/b3o/yQQ5yq/2cc7Zxn1+zglr/ohi39TU9C231OcxXHte1QRsusHHhz8OjU7osCOwefKmtlVyKf4YqCj2zU0lsm+GN2un9MCfiBPzkoapkW/mknu7fCHZJ0nlqO8dsprPmXczSA0eNw3Je+2gBY7/sni6tOwb2vXAfz7sk5i6p8K+17UsmEE5ykbBqGGv7aqszMpWPsFyazo+0rNdJcS+T086xBY0/PWsI3H2QfuXw85y7DR+7YC5s9CJANDjBmXWYLe7gYFmFoa/g2Xx2QdiGVGwSkHCzI+sPPW7a54ZFa0Ey2ihhWSfWJWjblFmXndJmk8WT01PJxQ3fXlxXjtVn4YuOfvmZfdJTN1TYR+kJTyvjh6QLbsLPQznnlSOrJ2enjZwTgYUCt4FOqhSgus7BoizD/6ZWNL0hxP2mPpG+cNJh4jcOuGHW3u4b2tjBkkU6AeZYcK7YgSyJOwra+p5Ud1EvOkHTemmW8oiHOtLUEj2iVRo4VuVWZqM0Dmb6NM8iy+7qm0/I2yDErbZL7IuJftaugfBT1ytiJ3XJsQ+Ivt5tyizDFzEbb8VFlHse1XTHKgUU1D/to6l8DQuJFnfIQFKs7N/+LPZjNumzAKrp6Gj/zPC7BubmLrtnroVMw8gI0f9322/4tkzNr3ckZMWMejN3XLUj/Vs/dOqsKcli2KfDC8bxSt2kSlB9g2PTlx2TMLObAgn7aOjdgHphE6WXRwh2SdSX9IwPWMdWy/pNFox0j88ZhNV+I+LrujV+UujS8m+ypbeT47b4R1VQjHyyRgaFce+dYrUn2/7atBCxetBVjh2IZ4oEcM+MLt6uaMX7RNWK8wqtX8beHUNDD/wSn9ehSVEFgr4v3m1HU1dg8TZ19g1oGQYiDfTwjpjEw9fEX4Y3N7Usua3MCffySjQtVjhrT3oJXsi2EeBlvtvA8//3fLBVchhcEhf2cdBJYEg+yCBjZ0DuiYRaxXxzfZNe1i6ppELccblnIVkH76u3UUDR6axa3DOE/GjE5PMoJy3tC1k5nXo3lPUpWQf0OF1LZwjjOAnFuH5o+PIrJ+Y9X1ZlYu0vg/YF5pTyxtlq4ayE37g5X2mWVVtn591mpUKOarC/QDoIAFnxNmXVNL8t/Mu2Kx457CdS3zpyNjExOSUsALOwMOVQS2Uk6e9rW3hGl+KSpqo9X0/GHjxGD3QiKfN3YO51W0/Gnitmk18guyb4c1c59a0//0CJl3IgkT6X844hmbXPr0CfApCsg8fE7/SNPNJrZzPMuaE4sbXDpih6+uSJmoJ2QfG1IuaVjixkqP4pFbw59CXw74OPvugGVe19kLnJxyZ1QqUY+bRSP0X+iFYsicsY8ARJs4+SKx7Uvl7utY4te6gxXGLaGZgNmO2GvtmKtz3wzqka5VYF+wS+D2HQOa8r6NVyn0dWOGOjBv5ZmLjuVHZ9Lxt/FKdVSVKSPbhqRz1xxs+te3oXZxSCbQcmWVh7gl0KdnHCsrZqoquORDOdjV2XFEjHw3Lin3ghlP8s1BO+g41NrBAOG5blNkPfTIGh8eIs29kbJLqn71DDb0gbhUPNNtV2S9pmGAVvQSap6sVmf+54Q3WnHDSFm1PG1Ygmc5xpVj2bVY1B3zPqaAWUEj2YVSO+tI+M1ZQ7uCIuMYsSqDZtPZwb7ikbBM97rtEumTsK2/q+em271rMeeVgFP/fHZ/Klkfnwi8r9oF1Fl/UiGedCcVfnvrHU07R+cglOwTZNzU1XdvWr8kIE3+2K+G6ihyuYeidIeygkOwjKCT70JXpOd7cLu++0blkaOfAsMJ9/+f2LjfwGS8J+7ijE+DffXXRdeNunMVfm/cwzMLyBKcQLyv2wTN17f0/3vASuVhEjvKiBuesdRxQb4Y3fUGEfSNjE/YxRa8dwDnWYW66Vokhf8+vqevJCaAk+wgKyb5ZKiNP//SMq3961dyuSYa3rjolYdcuLA9dKPZBS7OKKAByTT+Wicmp4vpO26jCnXd939SyWIPZKbWKt73p+2uewocUiJnryK/rmCYqxEqKAPu6BoaPmUeLXG8oR/vgmKNbYtkYr6oQZF8vd1TfKVkGL0PmXKyfnLAXzkaSfQSFZN+sarRVhX2EE1nbPpd1LRNTU75pVe/p4o3oLwtdqDPr1+2ivXfI8ssLLl9dcuPrPy66/PaY7av7OasVqLjskOGdXmXkkyG8RVrUGhdofp+etP/qkqsgfFH69SU3Q590ImPqRNg3NDpBC8iVUcTfrgCZ8LW+W2rZo0NVibAPXOOsqrYfb/pgt/esUaSt28UQr2sV6bKYfSCQhLd1bHxTKwVJI9lHUEj2PdH1uxhy9/zzajoInnsuLFDqOdXt31/3XshD5+epC3lPG/8UE5SKmOrhnU1getkxsbV31pFK4vZ1ELubXEaOqsUK55/+JF6IsA86s5DsGuR2MZyEUH6laW7sk9n9eC0eEfbxpkGzNu5moQJcLY8sqDJwSb7pmnxDtJ61if3inBP2uAHkTiXXVMF+c5J9BIVk3xN9S8cqJKtmbt7uwPDYHc/0Hao4k3fLRpfJHZWUjUoMXdMI7F2L87+jEvxoHfZTYx/80dQ1qMWOxJppMnLGfzzpkFTy5J45ieyb5i3w/u6aJ3bf61ZlVuHjw6vFyOTUFDs45wV1U1S01yjQFO8H1D12Vkj2ERSSfY+bjTz126uejV3iKocomZicSi1rhmq9RAe0iFbEHHtskcnTNyubajJCy5eMfUhM1isx/n7eJR5zOe/M8mPfDG+rlpFv5jYV9ADuOkWa4oPA+s4nYyOS2Tc9HVfYuEUZ526jv551FnMGvbCE5dT++ZTDaoVZX4Hi+FjPJjDj0XYxkn0EhWTfI12/i37KOm4OJ/RNI/dRcC85JG5XE3tl16IqQhkZedoWZdYL6pw3ta3eO2z7u5NOn19wv+qYVDePdYtzZ58cZa0i7Q1tK4W7/kGZ1UOj49hZiWXIPnB744oav7zkhnpy8x7meWRR8ZPaIpF94JNaRhSiyMJXVWrIOLEd/vUd/Rq0kA270YE8r4IsM+Qfikeyj6CQ7Huk4HdAw5Y2+6CJ9A2NmocXfHTUfonBJ4dcg/DcXuZrBy3Ajvj5jt9BVoSBSzKYLfYxRZ7J5eG5dbGFDSWN3UNiFyGLF+QU8qO2G3fTNyhJ1o27GQDf51VNoCl+c9n9hEW0XXRRfm2nqJM8RsYnv7vqAYYhkcBxdZMS/QiH0KZRYN8Fu3hsCG9pW0FGCbAM/+/sHz5nGw+pEH7s1QPmDrElwgE2dQ9+ecF5w+zIQ1r208NqeOyDVB/hRG3Yw0J9cd0uOtU/i2D+Q7RZQbnvHLLeOPtDW/ayFO755fMWObf2ct/RsUR9BWKyS9KZ9fCi0oOAtUqzYrh5D0OPE4UdoMAVSKZbQtlGTK5uUzenEU7jognJPkRl5KjQODv7pL4xb2Jq2j6m+DeHbVY/zVULUlMPXLBXNEw/O+NE8ctKKG7KrWmvaOmBTr6XOzowMgatTtT55tJKcX2noU8GUIOIAnltogoDM6ohSkX1nYAk8WY1RJITmnfellDgotQrpYLIonTejt0q7Ou33FJRYwLwZGZl613PNOHHbrql1s++VLuPO8oMzEFFHqDpEl/aPYjUK+7ohElI7gW7BNQXz9rESTUCCyQ1Dcm7aI8O5457al4NchA8MvTskYr6EETMNrqoX+yJRPCiXXTxGes44Rcv2Sd4p1QQP2Y5t7odr1wScEc5llZI9iG6RoFuEpI3h9270J4V7vnL4Dkyi0M9WXnqq/vNdt7xdU8sg1bBndNeFOICrln/0FjP4AgRBdYB7Iifdz3Na34EAxelQ6MTBNf4QXvGiTN3FFsN4CeoVMNjqMUAfOhgA4QS4V9MAX+KyjqpjgSHcCDMHi46EOjnIOrTvAcg57FfGXwcEzEhwzPdqBe5UmTpDHI81yRuGsGoJx7I4gjJPkTf0DInMkiElYjcunXI+VRL4+2uUaD+4YR9UGZ1z+Do3KanSSFlxQrJPsR6OmYePbfdu+DWoc78WRxdLU/dpET/9zXPtLLWySW94JkUUp5RIdmH3JBQ294/B3u8urX346O2ixxbWXnKb3StLjsmppY2D40trIdLCim/YCHZZ0wPyB6RfmnLxNTUaZtYvD1GC6gycpSPjjlE59dLX9CkkELKLFnp7Fu/i1ZU3zkHo6+ovusbfTeZxb1+6PMzzp5J5cvnthdSSHl2ZaWz7yM9G9SuUoJyyz11uxp6d9HC6VpF2s+3fbKr2uZ5PzoppJDCl5XOPoV7/nM4SrugtvP/XfVYLeKEj6euYJzK3/OrbOmdnCKnNUgh5enISmYfcu3hXY+04VGi6zb5Mj4xpW+/aDvYKNtV2drsiPy6DvGLs0ghhRSpZAWzT44C9pRPSoW0ex6augb/d9N7zSIYfXKUjbsZ6tTgooauORyrRQoppIiRFc2+LXtZGRWt0kIlvaL1kxN2Cz/SR1mrSP/uqkdySdMECT5SSHnasnLZJyNH+VDPpqxJ6gOd/NIq39ZZ8MOZIXq/O2bvmVw+n3sySSGFFFGyctm3cTf9nG1c94DUEx13PdK2KbMXOnov7eNQ/LKI7yFfCTIxMdne1tvZ0TcyMkYOfpIyT1mx7KNsVzXxTqmYkHLmdGBoTI0autAH069WQLzdmrZ5XRD8C5PJyamsrEr9i9Ym7ICGhs7ltjGelGdOVij7wKN8X9cqsbhJcuJnS3Zl2zf6bgu7nUOO8vJ+M5p/NrmGWVhaW7uvXLY9fdosJiZvjDSHSZm3rFD2rVei77zjW9rULVVmTU1PO8YWv37QfCHPpqc8p2yiTg0uaZQubosmoi6C5B/LLsYcw71Ekv+TqSn8+yUFr0xNTWVklF+/5uDnl8zljgg/K+19lQQflfb6y0fJnxKZFklRnZb4DG5oyOemxEXtyWN4keJHW1RyxKRlRnRNmMFUBvHZRzD5/KckVjPisjLZR9mmwr7jntY/JO4oR6x09g+ftopbv2sBV7fIKDAU7gfk1XQ8ldJ96jI4OFxd1dLUiL5YBxpJby+3vLyxvr4dN+Kjo2MVFU3FxXUtLV39n0ACh4ZG6uraMjPKkxKLUlJKSkrquULnAw8Pj8K3SkoaSksa4Fdg7gUHpeXlVvH/2draA17wwMBQZWUz/LOU95iwwg87OtCDBmNj442NHaWls56EiLW19fDGEB9FHf4OCSkpnhUsfKi3dxD31JyJicmurv7iorq01JLk5KK83Gr4inCA/PTW1rZh48mLagMkZ3x8ort7oLKyqQTvmerqlqGhJwfH9/UN5uZUpaQUQ9alppTU1rSO4i1THR0dr6hohLxNTCzMSC+DCAgHAuZzY2MnfA7SJVxqEJPm5q6CghoIPzW1BNLV2dmHSnh//xDkW01NCxQT9rudHX0Q54aG9vHxSSjTmppWpMjaerC5B70aZGxVJZI6+C5Y92VljbhZBI9BUJ2d/VDNeH+X+qRhlKxQ9r2y38w+ulja1cL5tR3/u+mzeuEcXjnK61pWXsnlcyrKxZCy0gYG3dfbKwm13hAadkNDB43qDTqKdyY+tEBjI2+jhx5ZWRUzvNYFVdzFJebBfbezZ8yPHWWfOG5icN3eyysRmhn/FaCPCTvQ4LoD/ByjDsHB6dBaSkrqjI098R6wByMxJjoXFY2enkEX55hbNx2Fn7x9ywkS5emRUFXZPMEbZ2hp7razjTC45jD7MWczs+CoqJz+vlmbICEaMTG5HNPAq1dsT54wPX6MfemiFaTU2zsZ8mTq8YAyhIyEiRfVGwaOQYFpfX3clORio4ee16/hJJnN8q+tbednNXDQ3i7i4gXLE8fZkHUnT5jcv+/m55ci/Dl4rKdnIDAg7dYtR8jbo3qs06c48JizUzQkk/9MV9eAq0vsrZvO2dmVAipNTk4CvqlUH319awgZUnT1ih2L5RcakjEsdOxzYWENlPVDQ/fExCJ4BZXPsbF5d267ODpEQaKqq1s5nMCbN5xcXWP7+tD7R6GHMDb2YrMC6+raAcGBAal377jiljiF4gUMTUgovHfXlUrxqqqUesAKJSuRfbJylN8esw3KrJY2s8Jyaj/Ss5GRW7C4ydO0WeFNc7orbnEkO6vi7Bkzc7NQ7FprMMGgrh86RAfbB2u0enkmaGvRaDRvvukEBuD16/YHNI011A0BGVSK9/17rod1GYd06JYWwQ31yL0T0L1f1rfdv+8hwBGlZ06b+3gngRWQmVEGjV/rIOX8OfQzoGGh6PtxwBKkGHtBmMCCx4+Z6R1hqqs90DpIvXPbGSxNxECrabt7x+WAJgVaviC0w7p0iC28yKD7tLQ8GpGAh8E4OnfWHH515DAT+Ghs5Hn+nMX+fUY6OjRr6zAw5fhPggVk+MATkgwkgueF4wn/9PZOAi6HBKefOA70RD8A+tDQA5AH4UCfQaV4HjxgfPasOSCATkWyDj6te4hOo3o1NT2aBQLD0MoqBOIM+WP4wJ1O84HUaWvRNfcb3bvrkp9fM4MMofZAzh/QpMbHFfLZB+9ClvLjD6yEnunuHWcIAVIHQUVGZAvKHezBM6fN4DF4Bow1VD57eyfqaNMfGnqCOVxYWHflMpQjBUoTrD/Uk9BzHD9melnfDtIFpWNjE3ZYlwmFgko+ZMjt205g7gUEpOpoUyEPC/Klbr8oWYnsW6dI+/d1z7TyFmkzyyG2ZNOeBTypdONuhlti6XLewiGGffATsDugPVw4bwEcFP4VtA1oupf1bcBjnUEc5xEL82AN9Qfwk8jIHOjw29t6wckqKqrTv2Std4Tt5hYHIAD2Xblsf+QIC/4CzV5Yq6pawPcBGwca6lE9NhgC8GnMM80C7giEzz7N/Q/9fJMBc/wnoUFCW4XWBbBzc40DT7Cuth1IAeADrgkCLCys5XMTKOnqEjPCO+y2pbkLYAet0coytKK8CVxIcJ+rq5rDwjIvnLcEigEj+LYksM/ooQ8kOS6uADx9VFQhOYBysP709W2DgjLAOUUlB0IeGRkFywtiqHuIef2aPXjH7W097e29wDsgAuSDthYlMCBldBSxzsCAAlqdOmkWG5PX1sp7rLEzMDBdW4sK+DN84AaxwrIvN7cKuiIoAk+PeMjk1pbu5qbO8vImJ6doXidkBuHwcxIc7TOnzNTVDLUOUOzsIlC9HYZ9Nvs0jHR1GSEhGagnUeyztQnXv2RbXFyPSj4UFtQTSD5YsiT75q6bdjM0GaGVrb1S5VTXwMgF2/gFneH9y1mXhk50c11WIoZ9M4hbN+XhngCNBLyYnu5Bfi2HvwApzp21jOXNz8KLxUV1EAiT4QuMGBvjXVbJG8OG5peZWQ6Gz8ULtklJRWAbXrliD7V8cHBY1MA/j30sMCdn8IbJsTEUsC8xsVAwkA8Cfjp88eIFK3C4oDXW1bYB+8DcAEgJnoHn+/u5DvYR0PYu69u3t/d0dPTa20WeO2sBzjXgXvBN+B+ktLS0wdDQ/e5d15KSBngX2Gds5APuNqAEG9sZHgUCA1OvXXNITS0TjOijUgOIB9RqazF5nuYT97a/f8jbKxEQY8YJhEjCw/B3zf0UMAzBAHz8GNLrREflAFzAEuzt5aLYV1pSf/uWI4A1wD/l0WDl47kF4HJWVoXeERaD4cvHH/QKF85ZgG144jjnyGF2Nm8oQyAo9ulfstLRpkHvcuumE4QzIbSAAcu+69ccoefDn+kApgeS7JuHblNhX3dJlmqiY5p3SvOehwELyD45qjY7fJkfUSWefSDd3f0HNI3AsuCYBsIzULODET+Ow2T4DQzwrisbHAabAuo6oA2LJ2BQenoZGE3g3RQV1oLdx2efqPjw2QcOHcH4C7MP9fG+viFwUQ0MnLp7Bhsa2gXsQ4VQW9ty+pTZuXO2FRWNGellVy47UCk+AmtIWCB14eFZJ46bubrEQroes8+pohx/oEqYfaLiD+bP/XtuwL709HLhIuBNHI0CaHhDCki+Amj27zN+8MBdeHJjhjfsCJkAcIGOCsU+W9twrYOMS5esBfNRwgIPmJgEHDvKiYrKBvsLYd95S7B2gfuAOUiX8MMY9llDpkG5X7tqe1nfurKiWTjVuOwTlQMk++alO9RMWUE5UmUTVKasqrY/nnJYwNUt8nS6f87TukxygUQi+6CFuLjEaqg/BOcX3DRwY8GH0txHCQvLGh/n3Zzd3M2g+0KrAMsCNwRonPzr3fg+LzieAwMj4u0+CBDPUJJg96F+39LSzWL6Glx37Ovj1teLZF9BQQ00vPPnEb/Mxzvp+DGOg0M0yscXSG5O1YULdmAFNzZ2QPKJsO/6NYe0tDJRVg/EzcI8WFuLzuEEDg+PInePTuGnFAxAnpdqAa765CT/MfQzwuyD5D809NDRZptxgoaGcDY7wetBQWlaB2nm5iHAJmDf+XMWjg5RQDcHh0g9PRMw6ASfQLHv0kVgHwcMfxvrCIi8pWWIgG7E7T7+8yT75qOUF9U5piHoGUDxAjmfWNz0hpbFwk10yCiyIvLql/lBVRLZN8ObS9W/ZHPkMCMwINXJKeqwLhPac0VFE/+VyoomoCGb5S/xW3z2Adqqqppra9uEtampiz/cxmcfOKrNzV3CD9TUtDY1dWLnH0WxD4yypKTCc+cs7tzm+bx1+OwD3HA4QWDY6l+yg+hZWYUePGDs4R6Hsq0EApi7esXhJvCuoonPvps3HIEFwMqB/kcK7uoEz9jns++yvm1oaBb4tqgkt7X18Ns/2MUXL1ge1mVAQvx8k3OzK5ubO+Fd6DOEUwS0Bf/6kA4Dvujnl5yZWd7a2s3ljgr7m8LsKy6qM7juoKNt4ueXIqpE4uPy92kYUow9IRv57LOzjQB3uLq69dhRE8ixzseLinDtvrTUkujo3OPHTMB3hr/zSwdvvM+mvLwJch5VoOC8Qw6Q7JuXvnvI0iNJpFuBK4CkkOyaDQu4so+yQ42dU92O24cvHyHCPkhCcnLRqVOcy/o2UEcBgt5eiQK/tbi4FkxCC4tgid/iz/MCaO7fdzN8MEutrUKbm5A1hvx5XvjEw4fuwg/cv+8KxoXwakG+QOsyNvYElzwoMB0ACsQEBSsvMaEQvnLkMMvBPhKsztqaNt5cBwdsGf4zoNAa3Vxjj+qxD+uyzMwCAU/miAlG8fVNwl3jNoOs7AH2Od684VRe1gjse2joBcwCp5XNCmAx/fnKYPjBYzOP2XfqJOfKZduHhu6oJLu7x/HrBvibqakl9+97nDtnfe6sxY3rDsZGnmB/paSUNDR2Qkz4NQgKqLS0wcI85MJ5a2C6wXV7MD/BQEtLK21s6OQbqsLsK8ivuXbV7pCOSWhohqgSSU4qguIwMvLo6Oh9wr7BEeg5LC3CtLWoTo6PTGBc9vH5a20ZxveRgeYzeOyDHIYsQiX//j0XiDnYryT75q7gtH56wj48p1aqbAInzCqycAHPrZKjyt31gzq5rMlHjH0zvCXE4eFZh3ToUK09PRLAHBAwHVzFc2fNgRoSv8Vjn90hbXpQUHp4WKawAlt7exGnicc+FjJfHJEt/EBYWCbYcWOYe+z4dt8+jYeXLlpBA+Pr3btu16873rrpDC0ZTAxIWl1t+907LloHqTcMHHjPuN6943zhvCVYgkYPPcHaAhR2dvZbWoRoHaQA2SWzrxxhn6Gh1/FjbBOTQFfXeGfnOIGCUTPzmH0XzltZWoRC7s1OclZWZoXA+0POdGjvzc+vTogvCApM8/JMolF94EUw8UJCMgRGKH8OBJiSkFAYGpLp4ZH44IHbpYs2V/RtXVxioGMQZl9hwSP2BQeliyoRCAeZyDLyhK8/Zl84l3fseU11C4QMBh2YjUBnXPZlZ1dMTU01NXaamwXBbz3c4yEhWPadPWMZ4J+KKvHQ0Mza2lbS7puXyspTvrrkli7lApeBobHbHqkLGDF5+mWnpF4ufhNaPkKQfSDQPMBqAy8P7CNhYxbcyXv3XOk0X4kh8Hxeh5MnTAfxLhXghykY7yMYf8H6PsMH7mDigTo5RQf4pyQlFcHn+BPKSCR57NM9RDc1CYBn7O0jzcyC9I4w4c+Ghnb+BCvAF34FfHd1icUamHzhrdqxv3PbBdx2YJ+Rkc+NGw7wQ4DyyMiYQPkBPhrvu+6Ylibd4nYgSF1tK9i5EBk9PRZ2jJIvEAGArLNT9IH9lMO6dEivMPsqK5vAR9bRZru6xoq68RmIfEDTmM3yA6Kh2AdxiI3J441v2FdXt4hi3wzPIAWK3b7tDBZuS0sXln0G153IuY4F0dUK1G+veuZWt0uVTb2DI5fsExYwYgoMq8iiZT7JOyMN+zo7+8CSYrOCUIvs4J9WVmG3b7lgF8TO8HY4gT3V2NgJBgu4bAsxz8vzeR+CYdjR0Q/fgsYJ4U/MPjaCv74PGmd+XjU8A8qfCrh21R7iNsNL+tDQCNgjYKSAu9fXi99WAalnTltxTCET+h/N896a+zwvb5HNEEQAXE5UhIFWBQXVED0N9YdgD8JjzU2d8OQE5jiM+ro2YNYhHRrETZh9fX2DTKavthYT8gdex34degVn52jdQ0wP97jBgWEU+2Z4JWvGCQTDFiAItrCONgOXfUhsJ6YSEwt1DzHc3eIG+odOHCfneReHffLUf13xyJGSfW29QxrUkAWLFXJEs0dS+TKf5J2Rkn3g67GYgVD7hX8+PjYRGZl9/Cg7OioHO7gJld7KMpxi7B8TnZuXW331yuKtcREWPvtQcx3gDGpr0aysQvlDWoBp8N9v3nSBZIILjA0EUufjnQSmELilYHPNf40LBBIVlXPvrocZJxjMauH484yptnv33MCdhzxJSSkB/5dOAyu1AxUImKsPDd0P6TDi4wuE2QeU9PFJhASePMGp5fng2OTcMHA8pmcKdWByYhLLPsgQsCWvXbW1sgy1tgrV1gK7zwOXfTO8WSOI4YnjZpkZ5WCr6l+yJdm34LpGgfrjTW9pT0lp6eHufRi4ULGSo/xa0ywkq+ZZYR+HEwxNZZaOI38K+0qi2ActFtzeK5dtr121S0wsgKY4MQGtZhreBU8wLDTzsC4LvJ7c3Cq+3Xf8mAkyE4r6HO9bEBSffVSqNwSBfWYKczjjfNgHhqq+vjVYK4EBqXwcQ8RCQjIuXbR2dIgC/EH8kcUkU1OAOWi9gO+rV+xMTALATYZvEWXfVfvUlFJsciBkUN7+OSvIovi4gnFkoTiSdfAffA4Ie/KEKXABvNeqqhbIFm0thrV1GOT/1GMB3xwSfgyZrmHk59eg2AemIsc0EBxnG95b/AwEgXTBk15eCfArN9dYvlWIZd8M73CEuLi8ixesjh1l7d9nJIZ9M4hRXKh1kHrurMU+DSNh9l276shbfoguTX58Anl72sC6zMutnJpE5xK2xMXIimPfWkWaCiWkc0C6QyAWmn0f69nGFDZOLuPdbHwB9p05baZ/ycbTIx4cFmH18kyA2sxfxDcjmn0zyPb18eCgNACQjjb9sr5NQEBqTk5VVFSu4QM3bS3q6VOc5ORiqMf8uQ6wRFxdYlHfghaYkFAIsID4QDMDSMHXUc+ApqWWoD4tmOcVzz7+PC9QXph9YPhkZJSdOM4+cdw8MjKHt6ZkGtnF7Bh15DAL7DsIOS4uPyOjHHzD06fNIebXrtlVVrbwbWQB+yBduB/ls+/cWUsmww+bvYC2pqbOsdFxX9/kw7p0+CLYVtB55OVVQbbTaN5aBynaWhRbmwjgMiAgIjz7+DHAH9XYyCsuNj8npzIuruD2LefDuuz9Gg8f3HcdGRl7wr74Ql5fgmxcAVxCUIAqK8sQABykiEH3OXGcc/CAMfQx/APEZp6wL4I7ezS2ra2HTvfRUH+gof6EfdA9nDrJyZq99wMykMnw3adhqK5m+Jh9vYBd+LSLcwy2NN1cYxobO6C26B6iQWTYLH9P9ye55OEW7+WRCP4+8ZUSK5F9qpSQruXFPur317xya9qX805evkDXDTVeQ91w/76H4F4JFDr5A9A2KF6CScbOzv5bN51ZzAAs+2YQi4kLzVvvCBMICO9q7jfW3GcEDQYcrtSUEj5AwT4CyMK3hD/06HMaxuDnQlPJya4EYwcbH77a2ESgvgvsg0hqHTROSiwSa/chZxlASlHzBtCuOJxAQOfVK7a9j8f4wB68e9flgKYRNGNNXlr4X4eIgYvKX4c4w2ffQ29Aqii7b3hoFAAHdi6Eg03L2TMW2dmVMzxEenom6h5CDlZA8o2n+/cZHtKhAa0g2/mhAVkiI7LBN4TQ+DkMf8LfgWtGD927u/t5Me+h07wPHnjEPv6LED6D4QNP8sPnvwWpgw6mvv7JSFFqasnFC5b29pGoeR74LuAJvgJvGT307O7qLyqqu6xvDV0myu7jZ52eHhM+BHAs59l9YEhCQrDJB9XcT4WuDgLXO8JQV3uAqhhQASCS0CkSb0TSse+dP3zx9kGTzbuMn13dtpe2jxLY3NkzIo3UtXarPfRbqFgpUf9n4JFR1jg0NCxVrBZfioqqTUz87t11vHfXSVjv3nG8f9/Z1S2qt7ef/2R7e7elZZCTY2RHe7eo0MrK6hzsw8+dBZvC8Kge48F955yccsFvq6oaTU18IWTUt0Dv3HZwdYmCT0B8GAwv+Cf2GVAfn3jUF9vaulxdowwfuGRnl4lJZl1di4NDhImJL/wF9avq6iYW0wfwUVvbLPghpDoiIuOhoeuJ4yytgw9vGNi7OEdWVNQPDQ0Jnhkc5NrZhtrZhUEIuB/t6xtISMin0Txxk8xm+RQUVAkeTkjMv2Fgp3uIqrkfqEehUjyys0sHBgaFAxweHq6paYbyOqpHP6AJOUxns31TU4sEj7W0dLq7xUDuwQ+Fo9re3uXrm3j7lsORw/TjR1mQrvDw9M7OWeWYm1vBMfULDkrt6elHJaS0pM7SIgheR0q/o7u8vN7CPAjiD4WFehJiGBGRbmjoClldXdXY1tYdFJgK/8QtzVs3HfLywHrNpVA8sFkEP4H6A6UAYeJmL1YIsW/37t3f8wT+Yk8KKaSQ8uwLIfaRQgoppPzChGQfKaSQshKFZB8ppJCyEoVkHymkkLIShWQfKaSQshKFZB8ppJCyEoVkHymkkLIShWQfKaSQshKFZB8ppJCyEoVkHymkkLIShWQfKaSQshKFZB8ppJCyEuX/A5Eqn4GQzGRtAAAAAElFTkSuQmCC";
+
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const rows=()=>{try{const a=JSON.parse(localStorage.getItem(KEY)||'[]');return Array.isArray(a)?a:[]}catch(_){return[]}};
+const projectOf=d=>{let p=d?.tpProject||d?.sourceProject||d?.project||d?.projet||d?.tp?.project||null;return p?.schema==='evaluation.tp.v1'&&p.data?p.data:p};
+const answersOf=d=>d?.reponses?.v117||d?.reponses?.v115||d?.answersById||d?.answers||{};
+const imageOf=o=>o?.data||o?.image||o?.src||'';
+const personName=d=>[d?.eleve?.nom,d?.eleve?.prenom].filter(Boolean).join(' ').trim()||d?.eleve?.name||d?.studentName||'Élève';
+
+function frDate(v){
+  const str=String(v||'').trim();
+  if(!str)return '';
+  let m=str.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if(m)return `${m[3]}-${m[2]}-${m[1]}`;
+  m=str.match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{4})$/);
+  if(m)return `${String(m[1]).padStart(2,'0')}-${String(m[2]).padStart(2,'0')}-${m[3]}`;
+  const d=new Date(str);
+  if(!isNaN(d))return `${String(d.getDate()).padStart(2,'0')}-${String(d.getMonth()+1).padStart(2,'0')}-${d.getFullYear()}`;
+  return str;
+}
+function safeFile(v){return String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9_-]+/gi,'_').replace(/^_+|_+$/g,'')||'TP'}
+
+const BASIC_COLOURS=['#d32f2f','#fbc02d','#388e3c','#175b97','#000000','#f57c00','#d9d9d9','#888888','#444444'];
+function validColour(v){const q=String(v||'').toLowerCase();return BASIC_COLOURS.includes(q)?q:''}
+function validAlign(v){return ['left','center','right'].includes(v)?v:''}
+function textStyleAt(obj,field,index){
+  let style={...(obj?._textDefaults?.[field]||{})};
+  for(const run of obj?._textFormats?.[field]||[]){
+    if(index>=Number(run.start||0)&&index<Number(run.end||0)){
+      for(const k of ['bold','italic','strike','size','color'])if(run[k]!==undefined)style[k]=run[k];
+    }
+  }
+  return style;
+}
+function formattedText(obj,field){
+  const value=String(obj?.[field]??'');
+  if(!value)return '';
+  if(!obj?._textFormats?.[field]?.length&&!obj?._textDefaults?.[field])return esc(value);
+  let pieces=[],start=0,prev=textStyleAt(obj,field,0);
+  const key=x=>JSON.stringify(x);
+  function flush(end){
+    let text=esc(value.slice(start,end));
+    if(prev.bold)text=`<strong>${text}</strong>`;
+    if(prev.italic)text=`<em>${text}</em>`;
+    if(prev.strike)text=`<del>${text}</del>`;
+    if(prev.size)text=`<span style="font-size:${Math.max(8,Math.min(48,Number(prev.size)||12))}pt">${text}</span>`;
+    const c=validColour(prev.color);if(c)text=`<span style="color:${c}">${text}</span>`;
+    pieces.push(text);
+  }
+  for(let i=1;i<value.length;i++){
+    const next=textStyleAt(obj,field,i);
+    if(key(next)!==key(prev)){flush(i);start=i;prev=next}
+  }
+  flush(value.length);
+  const align=validAlign(obj?._textDefaults?.[field]?.align),html=pieces.join('');
+  return align?`<span class="tp-aligned-text" style="display:block;text-align:${align}">${html}</span>`:html;
+}
+function fontFieldStyle(obj,field){
+  const d=obj?._textDefaults?.[field]||{},c=validColour(d.color);
+  return (validAlign(d.align)?`text-align:${d.align};`:'')+
+    (c?`color:${c};`:'')+(d.bold?'font-weight:700;':'')+
+    (d.italic?'font-style:italic;':'')+(d.strike?'text-decoration:line-through;':'')+
+    (d.size?`font-size:${Math.max(8,Math.min(48,Number(d.size)||12))}pt;`:'');
+}
+function frameWidth(v,fallback=2){
+  if(v===undefined||v===null||v==='')return fallback;
+  const n=Number(v);return Number.isFinite(n)?Math.max(0,Math.min(10,n)):fallback;
+}
+function blockFrameStyle(b){
+  const c=/^#[0-9a-f]{6}$/i.test(String(b?.frameColor||''))?`border-color:${b.frameColor};`:'';
+  return c+(b?.frameWidthPx!==undefined?`border-width:${frameWidth(b.frameWidthPx)}px;`:'');
+}
+function coverFrameWidth(m,key){return frameWidth(m?.coverFrameWidths?.[key],key==='header'?5:key==='photos'?2:4)}
+function coverFrameStyle(m,key){
+  const c=m?.coverFrameColors?.[key];
+  return (/^#[0-9a-f]{6}$/i.test(String(c||''))?`border-color:${c};`:'')+
+    (m?.coverFrameWidths?.[key]!==undefined?`border-width:${coverFrameWidth(m,key)}px;`:'');
+}
+function textFrameColor(b){return /^#[0-9a-f]{6}$/i.test(String(b?.frameColor||''))?b.frameColor:'#175b97'}
+function spacerHeight(v){const n=Number(v);return Number.isFinite(n)?Math.max(0,Math.min(150,n)):10}
+function spacerMarkup(b){return `<div class="tp-spacer" style="height:${spacerHeight(b?.heightMm??10)}mm"></div>`}
+function photoWidth(im){const n=Number(im?.widthPct);return Number.isFinite(n)&&n>0?Math.max(10,Math.min(100,n)):null}
+function photoAlign(im){return ['left','center','right'].includes(im?.align)?im.align:'center'}
+function photoCaption(im){return String(im?.caption||'')}
+function photoMarkup(im,mode){
+  const url=imageOf(im);if(!url)return '';
+  const w=photoWidth(im),a=photoAlign(im),cap=photoCaption(im);
+  const margins=a==='left'?'margin-left:0;margin-right:auto':a==='right'?'margin-left:auto;margin-right:0':'margin-left:auto;margin-right:auto';
+  if(mode==='zone'&&!w&&!im?.align)return `<figure><img src="${esc(url)}" alt="${esc(cap||'Illustration')}">${cap?`<figcaption>${esc(cap)}</figcaption>`:''}</figure>`;
+  return `<div class="tp-photo-row"><figure class="tp-photo" style="${w?'width:'+w+'%;':''}${margins}"><img src="${esc(url)}" alt="${esc(cap||'Illustration')}">${cap?`<figcaption>${esc(cap)}</figcaption>`:''}</figure></div>`;
+}
+function projectObj(p,f){
+  const map={question:'questions',image:'imageBlocks',match:'matchBlocks',text:'textBlocks',table:'tableBlocks',placement:'placementBlocks'};
+  return (p?.[map[f.type]]||[]).find(x=>String(x.id)===String(f.id));
+}
+function pictogramsOf(d,p){return d?.tpPictograms||d?.projectPictograms||d?.pictograms||p?.pictograms||[]}
+function pictogram(d,p,obj){
+  const list=pictogramsOf(d,p);
+  const ids=Array.isArray(obj?.pictogramIds)&&obj.pictogramIds.length?obj.pictogramIds:[obj?.pictogramId];
+  const found=[...new Set(ids.filter(Boolean))].map(id=>list.find(x=>String(x.id)===String(id))).filter(x=>imageOf(x)||x?.image);
+  return found.length?`<span class="builtin-picto-group">${found.map(x=>`<img class="block-picto" src="${esc(imageOf(x)||x.image)}" alt="${esc(x.name||'Pictogramme')}">`).join('')}</span>`:'';
+}
+function callProfessor(o){return o?.callProfessor?'<div class="call-prof"><strong>👨‍🏫 Appeler le professeur</strong></div>':''}
+function gommetteClass(label){return Array.from(String(label??'').trim().normalize('NFC')).length===1?'gommette-round':'gommette-flat'}
+
+function markState(r,id){
+  const raw=r?.marks?.[id]??r?.marks?.['auto_'+id]??'';
+  if(['ok','correct','yes','true'].includes(String(raw).toLowerCase()))return 'ok';
+  if(['bad','wrong','incorrect','no','false'].includes(String(raw).toLowerCase()))return 'bad';
+  return '';
+}
+function correctionBadge(r,id){
+  const st=markState(r,id);
+  return st==='ok'?'<span class="v206pdf-mark ok">✓ Correct</span>':
+         st==='bad'?'<span class="v206pdf-mark bad">✕ À corriger</span>':'';
+}
+function valueHtml(v){
+  if(v===undefined||v===null||v==='')return '—';
+  if(typeof v==='string'||typeof v==='number'||typeof v==='boolean')return esc(v);
+  try{return esc(JSON.stringify(v,null,2)).replace(/\n/g,'<br>')}catch(_){return esc(String(v))}
+}
+function publicMeta(q){
+  if(q?.hideEvaluationCriteria)return '';
+  const bits=[];
+  if(q?.competence)bits.push(`<em>${esc(q.competence)}</em>`);
+  if(q?.criterionId)bits.push(`<em>${esc(q.criterionId)}</em>`);
+  if(q?.criterion)bits.push(esc(q.criterion));
+  return bits.length?`<div class="qmeta">${bits.join(' ')}</div>`:'';
+}
+function coverBlocksMarkup(m,position){
+  return (m?.coverBlocks||[]).filter(b=>(b.position||'afterBrief')===position).map(b=>{
+    if(b.type==='spacer')return spacerMarkup(b);
+    return `<section class="cover-text-block" style="--text-frame-color:${textFrameColor(b)};${blockFrameStyle(b)}">${b.title?`<h2>${formattedText(b,'title')}</h2>`:''}<p>${formattedText(b,'text')}</p></section>`;
+  }).join('');
+}
+function builtinCoverPhotos(m){
+  const photos=(m?.coverImages||[]).filter(im=>imageOf(im));if(!photos.length)return '';
+  const cols=Math.max(1,Math.min(4,Number(m.coverColumns)||2));
+  const framed=m?.coverFrameColors?.photos||m?.coverFrameWidths?.photos!==undefined;
+  return `<div class="builtin-cover-grid" style="grid-template-columns:repeat(${cols},minmax(0,1fr));${coverFrameStyle(m,'photos')}${framed?'border-style:solid;border-width:'+coverFrameWidth(m,'photos')+'px;padding:8px;':''}">${photos.map(im=>`<figure><img src="${esc(imageOf(im))}" alt="Illustration" style="width:${Math.max(10,Math.min(100,Number(im.widthPct)||100))}%;margin-left:${im.align==='left'?'0':'auto'};margin-right:${im.align==='right'?'0':'auto'}">${photoCaption(im)?`<figcaption>${esc(photoCaption(im))}</figcaption>`:''}</figure>`).join('')}</div>`;
+}
+function coverHtml(r,p){
+  const d=r.data||{};
+  const date=frDate(d?.eleve?.date||d?.date||d?.dates?.rendu||d?.submission?.submittedAt||'');
+  return `<div class="v206pdf-cover-inner">
+    <div class="tp-header" style="${coverFrameStyle(p,'header')}">
+      <img src="${esc(EDITOR_LOGO)}" alt="">
+      <div class="titles">
+        <div class="eyebrow">Bac Pro Maintenance des véhicules · TP élève</div>
+        <h1>${formattedText(p,'publicTitle')||esc(p.publicTitle||p.title||d.titre||'TP')}</h1>
+        <div class="sub">Bac Pro MV · Durée : ${esc(String(p.duration||'').trim()||'__________')}</div>
+      </div>
+      <span class="code">${esc(p.publicId||p.id||d.code||'TP')}</span>
+    </div>
+    <div class="student"><span>Nom et prénom : ${esc(personName(d))}</span><span>Classe : ${esc(d.classe||d.identite?.classe||'')}</span><span>Date : ${esc(date)}</span></div>
+    ${coverBlocksMarkup(p,'afterHeader')}
+    <div class="brief">
+      <section style="${coverFrameStyle(p,'intro')}"><h2>Situation professionnelle</h2><p>${formattedText(p,'intro')}</p></section>
+      <section style="${coverFrameStyle(p,'objectives')}"><h2>Objectifs</h2><p>${formattedText(p,'objectives')}</p></section>
+      <section style="${coverFrameStyle(p,'support')}"><h2>Support</h2><p>${formattedText(p,'support')}</p></section>
+      <section style="${coverFrameStyle(p,'resources')}"><h2>Ressources et matériels</h2><p>${formattedText(p,'resources')}</p></section>
+    </div>
+    ${coverBlocksMarkup(p,'afterBrief')}
+    ${builtinCoverPhotos(p)}
+    ${coverBlocksMarkup(p,'afterPhotos')}
+  </div>`;
+}
+function blockHtml(r,p,f,a){
+  const x=projectObj(p,f);if(!x)return '';
+  const av=a?.[x.id];
+  if(f.type==='text'){
+    if(x.isSpacer)return spacerMarkup(x);
+    return `<section class="text-block v206pdf-atomic" style="--text-frame-color:${textFrameColor(x)};${blockFrameStyle(x)}">${pictogram(r.data,p,x)}${x.title?`<h3>${formattedText(x,'title')}</h3>`:''}<p>${formattedText(x,'text')}</p>${correctionBadge(r,x.id)}${callProfessor(x)}</section>`;
+  }
+  if(f.type==='image'){
+    return `<section class="image-block v206pdf-atomic" style="${blockFrameStyle(x)}">${pictogram(r.data,p,x)}${x.title?`<h3>${formattedText(x,'title')}</h3>`:''}${x.text?`<p>${formattedText(x,'text')}</p>`:''}<div class="image-grid">${(x.images||[]).map(im=>photoMarkup(im,'zone')).join('')}</div>${correctionBadge(r,x.id)}${callProfessor(x)}</section>`;
+  }
+  if(f.type==='table'){
+    const weights=(x.columnWeights||Array.from({length:x.cols||0},()=>1)).map(n=>Math.max(1,+n||1));
+    const total=weights.reduce((s,n)=>s+n,0)||x.cols||1;
+    return `<section class="table-block v206pdf-atomic" style="${blockFrameStyle(x)}">${pictogram(r.data,p,x)}${x.title?`<h3>${formattedText(x,'title')}</h3>`:''}${x.text?`<p>${formattedText(x,'text')}</p>`:''}<table class="tp-grid"><colgroup>${Array.from({length:x.cols||0},(_,c)=>`<col style="width:${((weights[c]||1)/total)*100}%">`).join('')}</colgroup><tbody>${Array.from({length:x.rows||0},(_,ri)=>`<tr style="height:${Math.max(25,Math.min(250,+x.rowHeights?.[ri]||48))}px">${Array.from({length:x.cols||0},(_,ci)=>{const c=x.cells?.[ri]?.[ci]||{},tag=x.headerRow&&ri===0?'th':'td';return `<${tag} style="${fontFieldStyle(c,'text')}">${c.student?`<div class="answer table-answer" style="${fontFieldStyle(c,'text')}">${valueHtml(av?.[ri]?.[ci])}</div>`:formattedText(c,'text')}</${tag}>`}).join('')}</tr>`).join('')}</tbody></table>${correctionBadge(r,x.id)}${callProfessor(x)}</section>`;
+  }
+  if(f.type==='match'){
+    const toks=[];(x.labels||[]).forEach(l=>{for(let i=0;i<Math.min(30,Math.max(1,+l.count||1));i++)toks.push({id:l.id+'@'+i,name:l.name,_textFormats:l._textFormats,_textDefaults:l._textDefaults})});
+    const slots=av&&typeof av==='object'?av:{};
+    return `<section class="match-block v206pdf-atomic" style="${blockFrameStyle(x)}">${pictogram(r.data,p,x)}<h3>${formattedText(x,'title')||'Association'}</h3><p class="match-instruction">${formattedText(x,'text')}</p><div class="match-grid">${(x.targets||[]).map((t,i)=>{const tid=String(t.id||i),tok=slots[tid],lab=toks.find(z=>z.id===tok);return `<div class="match-card"><img src="${esc(imageOf(t))}" alt="Outil ${i+1}"><div class="match-drop ${tok?'filled':''}">${lab?formattedText(lab,'name'):'Non répondu'}</div></div>`}).join('')}</div>${correctionBadge(r,x.id)}${callProfessor(x)}</section>`;
+  }
+  if(f.type==='placement'){
+    const pos=av&&typeof av==='object'?av:{},img=imageOf(x.image);
+    return `<section class="placement-block v206pdf-atomic" style="${blockFrameStyle(x)}">${pictogram(r.data,p,x)}<h3>${formattedText(x,'title')||'Placement sur image'}</h3><p>${formattedText(x,'text')}</p>${img?`<div class="placement-stage"><img src="${esc(img)}">${(x.tokens||[]).filter(t=>pos[t.id]).map(t=>`<span class="placement-pin ${gommetteClass(t.label)}" style="left:${+pos[t.id].x||0}%;top:${+pos[t.id].y||0}%">${formattedText(t,'label')}</span>`).join('')}</div>`:''}${correctionBadge(r,x.id)}${callProfessor(x)}</section>`;
+  }
+  return '';
+}
+function contentUnits(r,p){
+  const a=answersOf(r.data),flow=Array.isArray(p.flow)?p.flow:(p.questions||[]).map(q=>({type:'question',id:q.id}));
+  const units=[];let sec='',n=0;
+  for(const f of flow){
+    if(f.type!=='question'){
+      const x=projectObj(p,f);if(x?.parentQuestionId)continue;
+      const h=blockHtml(r,p,f,a);if(h)units.push(h);continue;
+    }
+    const q=projectObj(p,f);if(!q||q.excluded)continue;
+    const current=q.section||'Activité';
+    const head=current!==sec?`<h2 class="section-title">${formattedText(q,'section')||esc(current)}</h2>`:'';
+    sec=current;
+    const val=a?.[q.id];
+    const children=flow.filter(z=>z.type!=='question'&&projectObj(p,z)?.parentQuestionId===q.id);
+    const answer=q.answerType==='none'?'':`<div class="answer ${esc(q.answerType||'short')}" style="min-height:${Math.max(42,Math.max(1,Math.min(20,+q.answerRows||((q.answerType==='long')?5:2)))*24)}px">${valueHtml(val)}</div>`;
+    const qhtml=`<div class="question-card" style="${blockFrameStyle(q)}"><div class="qhead"><span class="qno">${++n}</span><div class="qbody">${pictogram(r.data,p,q)}<div class="qtext">${formattedText(q,'text')}</div>${publicMeta(q)}${(q.images||[]).map(im=>photoMarkup(im,'question')).join('')}${answer}${children.length?`<div class="question-contents">${children.map(z=>blockHtml(r,p,z,a)).join('')}</div>`:''}${correctionBadge(r,q.id)}${callProfessor(q)}</div></div></div>`;
+    units.push(`<div class="v206pdf-atomic section-start">${head}${qhtml}</div>`);
+  }
+  return units;
+}
+function selfEval(r){
+  const a=r?.data?.autoEvaluation||r?.data?.auto_evaluation;if(!a||typeof a!=='object')return null;
+  const calc=Number(a.noteCalculee??a.calculatedNote??a.autoNoteCalculated??a.autoNote??a.note??NaN);
+  const note=Number(a.noteEleve??a.studentNote??a.autoNote??a.note??calc);
+  return {
+    organisation:Number(a.organisation??0)||null,
+    resultats:Number(a.resultats??0)||null,
+    autonomie:Number(a.autonomie??a.confiance??0)||null,
+    note:Number.isFinite(note)?note:null,
+    calc:Number.isFinite(calc)?calc:null,
+    modified:!!(a.noteModifieeParEleve??a.studentNoteModified??false),
+    comment:String(a.commentaire??a.comment??'').trim()
+  };
+}
+function fmtNum(v){return v==null?'—':String(Math.round(Number(v)*10)/10).replace('.',',')}
+function summaryUnits(r,p){
+  const d=r.data||{},ae=selfEval(r),units=[];
+  units.push(`<section class="v206pdf-summary-card v206pdf-atomic"><h2>Correction / Évaluation</h2><div class="v206pdf-summary-grid"><div><b>Élève</b><br>${esc(personName(d))}</div><div><b>Classe</b><br>${esc(d.classe||d.identite?.classe||'—')}</div><div><b>TP</b><br>${esc(p.publicId||p.id||d.code||'TP')}</div><div><b>Date de correction</b><br>${esc(frDate(r.correctedAt||new Date().toISOString()))}</div></div></section>`);
+  units.push(`<section class="v206pdf-summary-card v206pdf-atomic"><h2>Évaluation professeur</h2><div class="v206pdf-prof-note">${esc(r.note??'—')} / 20</div><p><b>Appréciation :</b></p><div class="v206pdf-app">${esc(r.appreciation||'—').replace(/\n/g,'<br>')}</div></section>`);
+  units.push(`<section class="v206pdf-summary-card v206pdf-atomic"><h2>Auto-évaluation de l’élève</h2>${ae?`<table class="v206pdf-summary-table"><tbody><tr><th>Organisation</th><td>${esc(ae.organisation??'—')} / 4</td></tr><tr><th>Résultats</th><td>${esc(ae.resultats??'—')} / 4</td></tr><tr><th>Autonomie</th><td>${esc(ae.autonomie??'—')} / 4</td></tr><tr><th>Note élève</th><td><b>${esc(fmtNum(ae.note))} / 20</b></td></tr><tr><th>Note calculée automatiquement</th><td>${esc(fmtNum(ae.calc))} / 20</td></tr>${ae.modified?'<tr><th>Information</th><td>La note a été modifiée par l’élève.</td></tr>':''}<tr><th>Commentaire élève</th><td>${esc(ae.comment||'—')}</td></tr></tbody></table>`:'<p>Aucune auto-évaluation embarquée dans cette copie.</p>'}</section>`);
+  const comps=[...new Set((p.questions||[]).map(q=>q.competence).filter(Boolean).concat(Object.keys(r.levels||{})))];
+  for(let i=0;i<comps.length;i+=12){
+    const part=comps.slice(i,i+12);
+    units.push(`<section class="v206pdf-summary-card v206pdf-atomic"><h2>Compétences évaluées${comps.length>12?` (${i+1}–${i+part.length}/${comps.length})`:''}</h2><table class="v206pdf-summary-table"><thead><tr><th>Compétence</th><th>Niveau validé</th></tr></thead><tbody>${part.map(c=>`<tr><td><b>${esc(c)}</b></td><td>${esc(r.levels?.[c]||'—')}</td></tr>`).join('')}</tbody></table></section>`);
+  }
+  const marks=Object.entries(r.marks||{}).filter(([,v])=>['ok','bad','correct','wrong'].includes(String(v).toLowerCase()));
+  if(marks.length){
+    const labelFor=id=>{
+      const clean=String(id).replace(/^auto_/,'');
+      for(const arr of [p.questions,p.textBlocks,p.imageBlocks,p.tableBlocks,p.matchBlocks,p.placementBlocks]){
+        const x=(arr||[]).find(o=>String(o.id)===clean);if(x)return x.title||x.text||x.section||clean;
+      }
+      const classic={travail:'Travail demandé / compte rendu',donnees:'Données techniques',risques:'Préparation / risques',bilan:'Bilan élève'};
+      return classic[clean]||clean;
+    };
+    for(let i=0;i<marks.length;i+=14){
+      const part=marks.slice(i,i+14);
+      units.push(`<section class="v206pdf-summary-card v206pdf-atomic"><h2>Annotations de correction${marks.length>14?` (${i+1}–${i+part.length}/${marks.length})`:''}</h2><table class="v206pdf-summary-table"><tbody>${part.map(([id,v])=>{const ok=['ok','correct'].includes(String(v).toLowerCase());return `<tr><td>${esc(labelFor(id))}</td><td class="${ok?'v206pdf-oktxt':'v206pdf-badtxt'}">${ok?'✓ Correct':'✕ À corriger'}</td></tr>`}).join('')}</tbody></table></section>`);
+    }
+  }
+  return units;
+}
+
+/* ----------------------- Dossier PDF ---------------------------------- */
+function idb(){return new Promise((res,rej)=>{const q=indexedDB.open(PDF_DB,1);q.onupgradeneeded=()=>{if(!q.result.objectStoreNames.contains(PDF_STORE))q.result.createObjectStore(PDF_STORE)};q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error)})}
+async function getFolder(){try{const db=await idb();const h=await new Promise((res,rej)=>{const q=db.transaction(PDF_STORE,'readonly').objectStore(PDF_STORE).get(PDF_KEY);q.onsuccess=()=>res(q.result||null);q.onerror=()=>rej(q.error)});db.close();return h}catch(_){return null}}
+async function putFolder(h){const db=await idb();await new Promise((res,rej)=>{const q=db.transaction(PDF_STORE,'readwrite').objectStore(PDF_STORE).put(h,PDF_KEY);q.onsuccess=()=>res();q.onerror=()=>rej(q.error)});db.close()}
+async function permission(h,ask=false){try{let p=await h.queryPermission({mode:'readwrite'});if(p!=='granted'&&ask)p=await h.requestPermission({mode:'readwrite'});return p==='granted'}catch(_){return false}}
+window.tp71ChooseCorrectionFolder=window.tp206ChooseCorrectionFolder=async function(){
+  if(!window.showDirectoryPicker)return alert("Le choix d’un dossier n’est pas disponible dans ce navigateur. Sur PC, utilise Edge ou Chrome.");
+  try{
+    const h=await showDirectoryPicker({mode:'readwrite'});
+    if(!(await permission(h,true)))return alert("L’autorisation d’écriture dans ce dossier n’a pas été accordée.");
+    await putFolder(h);await updateFolderLabels();
+    alert('Dossier PDF corrigés sélectionné : '+h.name);
+  }catch(e){if(e?.name!=='AbortError')alert('Impossible de mémoriser le dossier : '+(e?.message||e))}
+};
+async function updateFolderLabels(){
+  const h=await getFolder();
+  let txt='Dossier PDF : téléchargement habituel';
+  if(h){
+    const ok=await permission(h,false);
+    txt='Dossier PDF : '+h.name+(ok?'':' (autorisation à renouveler)');
+  }
+  document.querySelectorAll('.tp71-foldername,.v206-foldername').forEach(x=>x.textContent=txt);
+}
+window.tp71UpdateFolderLabels=window.tp206UpdateFolderLabels=updateFolderLabels;
+
+async function savePdf(pdf,filename){
+  const h=await getFolder();
+  if(h&&await permission(h,false)){
+    try{
+      const fh=await h.getFileHandle(filename,{create:true});
+      const w=await fh.createWritable();await w.write(pdf.output('blob'));await w.close();
+      window.showSuccessMessage?.('PDF corrigé enregistré dans « '+h.name+' » : '+filename);
+      return {folder:h.name,file:filename};
+    }catch(e){console.warn('V206 dossier PDF',e)}
+  }
+  pdf.save(filename);
+  if(h)window.showWarningMessage?.("Le dossier PDF n’est plus autorisé : téléchargement classique utilisé.");
+  else window.showWarningMessage?.("Aucun dossier PDF choisi : téléchargement classique utilisé. Utilise « Dossier des PDF » pour l’enregistrement direct.");
+  return {fallback:true,file:filename};
+}
+
+/* ----------------------- Rendu / pagination --------------------------- */
+const PDF_CSS=`
+*{box-sizing:border-box}
+.v206pdf-host{font:14px/1.45 system-ui,-apple-system,Segoe UI,sans-serif;color:#1f3044;background:#fff}
+.v206pdf-page{position:relative;width:794px;height:1123px;background:#fff;overflow:hidden;padding:42px 42px 68px;box-sizing:border-box}
+.v206pdf-content{height:1013px;overflow:hidden}
+.v206pdf-watermark{position:absolute;right:42px;bottom:22px;font:400 9px Arial,sans-serif;color:#888;text-align:right}
+.tp-header{display:flex;gap:18px;align-items:center;border-bottom:5px solid #175b97;padding-bottom:12px}
+.tp-header img{width:115px;height:50px;object-fit:contain}.tp-header .titles{flex:1}.eyebrow{text-transform:uppercase;letter-spacing:.12em;font-size:10px;font-weight:800;color:#175b97}.tp-header h1{font-size:27px;line-height:1.15;margin:2px 0 3px;color:#142a48}.tp-header .sub{color:#5b6d80;font-size:12px}.code{background:#142a48;color:white;border-radius:5px;padding:7px 10px;font-weight:800}
+.student{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin:16px 0}.student span{border-bottom:1px solid #7d91a4;min-height:27px;color:#5b6d80;font-size:11px}
+.brief{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:14px 0}.brief section{background:#e9f2fa;border-left:4px solid #175b97;padding:10px 12px;min-height:70px}.brief h2{font-size:12px;text-transform:uppercase;margin:0 0 4px;color:#175b97}.brief p{margin:0;white-space:pre-wrap;font-size:12px}
+.section-title{font-size:17px;color:#142a48;border-bottom:2px solid #d4dfeb;padding-bottom:5px;margin:18px 0 10px}
+.question-card{position:relative;border:1px solid #c8d7e5;border-radius:7px;margin:9px 0;padding:12px 13px}.qhead{display:flex;align-items:flex-start;gap:9px}.qno{background:#175b97;color:white;border-radius:4px;padding:3px 6px;min-width:30px;text-align:center;font-weight:800;font-size:12px}.qbody{flex:1;min-width:0}.qtext{white-space:pre-wrap;font-weight:650;font-size:13px}.qmeta{font-size:10px;color:#46617c;margin-top:6px}.qmeta em{font-style:normal;background:#eaf3fa;border-radius:3px;padding:2px 4px;margin-right:4px}
+.answer{display:block;width:100%;border:1px solid #aabccb;margin-top:10px;border-radius:3px;min-height:42px;padding:7px 9px;background:white;color:#1a2c3c;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere}
+.text-block{position:relative;border:2px solid var(--text-frame-color,#175b97);border-left-width:5px;background:#f4f9fd;border-radius:5px;padding:12px 16px;margin:10px 0;display:flow-root}.text-block h3{color:#142a48;font-size:15px;margin:0 0 7px}.text-block p{white-space:pre-wrap;margin:0;line-height:1.5;font-size:13px}
+.image-block,.table-block,.match-block,.placement-block,.cover-text-block{position:relative;border:2px solid #adc9df;border-radius:7px;padding:12px;margin:10px 0;display:flow-root}.image-block{background:#f5faff}.image-block h3,.table-block h3,.match-block h3,.placement-block h3{font-size:15px;color:#142a48;margin:0 0 6px}
+.image-grid{display:flex;flex-wrap:wrap;gap:10px;clear:both}.image-grid figure{margin:0;flex:1 1 220px;text-align:center}.image-grid img{max-width:100%;max-height:300px;object-fit:contain}.image-grid figcaption,.tp-photo figcaption{font-size:10px;color:#5b6d80}
+.tp-photo-row{width:100%;min-width:0;margin:10px 0}.tp-photo{margin:0;max-width:100%;text-align:center}.tp-photo img{width:100%;height:auto;max-height:350px;object-fit:contain}
+.tp-grid,.v206pdf-summary-table{border-collapse:collapse;width:100%;table-layout:fixed}.tp-grid th,.tp-grid td,.v206pdf-summary-table th,.v206pdf-summary-table td{border:1px solid #7f9db5;padding:5px 7px;vertical-align:top;white-space:pre-wrap;overflow-wrap:anywhere}.tp-grid th,.v206pdf-summary-table th{background:#e8f2f9;text-align:left}.table-answer{margin:0;min-height:28px;border:0}
+.match-instruction{font-size:12px;color:#5b6d80;margin:0 0 9px}.match-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:9px}.match-card{border:1px solid #cbd9e7;background:white;padding:8px;text-align:center;border-radius:7px}.match-card img{width:100%;height:120px;object-fit:contain}.match-drop{width:100%;margin-top:7px;border:2px dashed #90b4d0;border-radius:5px;background:#f8fcff;min-height:40px;padding:7px;font-size:12px;color:#41678a}.match-drop.filled{background:#e7f5e9;border-color:#39a36b;color:#164d30}
+.placement-stage{position:relative;width:min(100%,600px);margin:10px auto}.placement-stage img{width:100%;height:auto;display:block;border:1px solid #9eb5c9;border-radius:5px}.placement-pin{position:absolute;transform:translate(-50%,-50%);background:#176a9e;color:white;border:2px solid white;box-shadow:0 1px 5px #2348;border-radius:50%;min-width:34px;height:34px;padding:2px 7px;font-weight:800;text-align:center;white-space:nowrap}.gommette-flat{border-radius:6px!important;width:auto!important;min-width:44px!important;height:32px!important;padding:3px 12px!important;display:inline-flex;align-items:center;justify-content:center}.gommette-round{border-radius:50%!important;width:34px!important;min-width:34px!important;height:34px!important;padding:2px!important;display:inline-flex;align-items:center;justify-content:center}
+.question-contents{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,290px),1fr));gap:10px;margin-top:12px}.question-contents>*{min-width:0;margin:0!important}
+.block-picto{float:right;width:44px;height:44px;object-fit:contain;margin:0 0 8px 12px}.builtin-picto-group{float:right;display:flex;gap:5px;margin:0 0 6px 10px}.builtin-picto-group .block-picto{float:none;margin:0}
+.call-prof{display:flex;width:max-content;max-width:100%;clear:both;align-items:center;gap:7px;border:2px solid #223243;border-radius:6px;background:white;color:#1a2c3c;padding:4px 8px;margin:12px 0 0 auto;font-size:12px;font-weight:800}
+.tp-spacer{display:block;clear:both;width:100%;padding:0!important;margin:0!important;border:0!important;background:transparent!important}
+.cover-text-block{border:2px solid var(--text-frame-color,#175b97);border-left-width:5px;border-radius:5px;padding:12px 16px;margin:10px 0}.cover-text-block h2{font-size:14px;color:#142a48;margin:0 0 5px}.cover-text-block p{white-space:pre-wrap;overflow-wrap:anywhere;margin:0;font-size:13px;line-height:1.45}
+.builtin-cover-grid{display:grid;gap:12px;margin:14px 0 22px}.builtin-cover-grid figure{margin:0;text-align:center}.builtin-cover-grid img{display:block;max-height:190px;object-fit:contain}.builtin-cover-grid figcaption{font-size:11px;margin-top:4px}
+.v206pdf-mark{position:absolute;right:8px;bottom:8px;z-index:4;background:#fff;border:1px solid currentColor;border-radius:999px;padding:3px 7px;font-size:10px;font-weight:900;box-shadow:0 1px 4px #0002}.v206pdf-mark.ok{color:#15803d}.v206pdf-mark.bad{color:#b91c1c}
+.v206pdf-summary-card{border:1px solid #b8d2e8;border-radius:10px;margin:0 0 12px;padding:14px 16px}.v206pdf-summary-card h2{font-size:18px;color:#142a48;margin:0 0 10px}.v206pdf-summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.v206pdf-summary-grid>div{background:#f8fafc;border:1px solid #dbe4ee;border-radius:8px;padding:8px}.v206pdf-prof-note{font-size:30px;font-weight:900;text-align:center;color:#142a48}.v206pdf-app{white-space:pre-wrap}.v206pdf-oktxt{color:#15803d;font-weight:900}.v206pdf-badtxt{color:#b91c1c;font-weight:900}
+`;
+
+function newPage(host){
+  const page=document.createElement('section');page.className='v206pdf-page';
+  page.innerHTML='<div class="v206pdf-content"></div><div class="v206pdf-watermark">Edition : Fabrice TURPIN — 2026–2027</div>';
+  host.appendChild(page);return page.querySelector('.v206pdf-content');
+}
+function htmlNode(html){
+  const t=document.createElement('template');t.innerHTML=String(html).trim();
+  return t.content.firstElementChild||document.createElement('div');
+}
+async function waitImages(root){
+  const imgs=[...root.querySelectorAll('img')];
+  await Promise.all(imgs.map(img=>img.complete?Promise.resolve():new Promise(res=>{img.onload=img.onerror=()=>res()})));
+}
+function fitOne(el,content){
+  content.appendChild(el);
+  if(content.scrollHeight<=content.clientHeight+2)return content;
+  content.removeChild(el);
+  const host=content.closest('.v206pdf-host'),fresh=newPage(host);fresh.appendChild(el);
+  if(fresh.scrollHeight>fresh.clientHeight+2){
+    const h=Math.max(1,el.getBoundingClientRect().height||el.scrollHeight||1);
+    const scale=Math.max(.55,Math.min(1,(fresh.clientHeight-4)/h));
+    el.style.zoom=String(scale);
+  }
+  return fresh;
+}
+async function buildPdfPages(r,p){
+  const host=document.createElement('div');host.className='v206pdf-host';
+  host.style.cssText='position:absolute;left:-20000px;top:0;width:794px;background:#fff;z-index:-1';
+  const st=document.createElement('style');st.textContent=PDF_CSS;host.appendChild(st);
+  document.body.appendChild(host);
+
+  // Couverture : une page, comme dans l'éditeur V74.
+  let content=newPage(host);const cover=htmlNode(coverHtml(r,p));content.appendChild(cover);
+  await waitImages(cover);
+  if(content.scrollHeight>content.clientHeight+2){
+    const h=Math.max(1,cover.getBoundingClientRect().height||cover.scrollHeight||1);
+    cover.style.zoom=String(Math.max(.55,Math.min(1,(content.clientHeight-4)/h)));
+  }
+
+  // Corps : chaque question/cadre reste atomique pour ne pas être coupé.
+  content=newPage(host);
+  for(const h of contentUnits(r,p)){
+    const el=htmlNode(h);content=fitOne(el,content);await waitImages(el);
+    if(content.scrollHeight>content.clientHeight+2){
+      // Une image chargée peut faire dépasser après mesure initiale.
+      const node=el;if(node.parentElement===content){
+        const height=Math.max(1,node.getBoundingClientRect().height||node.scrollHeight||1);
+        if(height>content.clientHeight)node.style.zoom=String(Math.max(.55,Math.min(1,(content.clientHeight-4)/height)));
+      }
+    }
+  }
+
+  // Évaluation / correction : pages séparées, sans altérer le TP original.
+  content=newPage(host);
+  for(const h of summaryUnits(r,p)){const el=htmlNode(h);content=fitOne(el,content)}
+  await waitImages(host);
+  return host;
+}
+
+const previousPdf=window.tp61GenerateCorrectionPdf;
+window.tp61GenerateCorrectionPdf=async function(id){
+  const r=rows().find(x=>String(x.id)===String(id));if(!r)return alert('TP corrigé introuvable.');
+  const p=projectOf(r.data);
+  if(!p||!Array.isArray(p.questions))return previousPdf?.apply(this,arguments);
+  if(!window.jspdf?.jsPDF||!window.html2canvas)return alert('Le module PDF n’est pas disponible.');
+
+  let host=null;
+  try{
+    host=await buildPdfPages(r,p);
+    const pages=[...host.querySelectorAll('.v206pdf-page')];
+    const {jsPDF}=window.jspdf,pdf=new jsPDF({orientation:'portrait',unit:'mm',format:'a4',compress:true});
+    for(let i=0;i<pages.length;i++){
+      const canvas=await html2canvas(pages[i],{scale:1.8,useCORS:true,backgroundColor:'#fff',logging:false,windowWidth:794,windowHeight:1123});
+      if(i)pdf.addPage('a4','portrait');
+      pdf.addImage(canvas.toDataURL('image/jpeg',.95),'JPEG',0,0,210,297,undefined,'FAST');
+    }
+    const fn=`${safeFile(personName(r.data))}_${safeFile(p.publicId||p.id||r.data?.code||'TP')}_CORRIGE.pdf`;
+    await savePdf(pdf,fn);
+  }catch(e){
+    console.error('V206 PDF fidèle V74',e);
+    alert('Génération du PDF corrigé impossible : '+(e?.message||e));
+  }finally{host?.remove()}
+};
+
+/* Ajoute le choix du dossier dans la fiche de correction sans modifier le démarrage. */
+function injectFolderCard(){
+  const ed=document.querySelector('.tpc-editor');if(!ed)return;
+  const aside=ed.querySelector('aside');if(!aside||aside.querySelector('.v206-pdf-folder-card'))return;
+  const card=document.createElement('div');card.className='tpc-card v206-pdf-folder-card';
+  card.innerHTML='<h2>📄 PDF corrigé</h2><div class="v206-pdf-folder-row"><button type="button" class="secondary" onclick="tp206ChooseCorrectionFolder()">📁 Choisir / changer le dossier</button><span class="v206-foldername">Dossier PDF : …</span></div><p class="muted" style="margin-top:8px">Le PDF corrigé reprend la mise en page et les contenus du TP créé dans l’éditeur V74.</p>';
+  aside.appendChild(card);updateFolderLabels();
+}
+const oldOpen=window.tpCorrectionOpen;
+if(typeof oldOpen==='function'&&!oldOpen.__v206pdf){
+  const wrapped=function(){const z=oldOpen.apply(this,arguments);[80,350,900].forEach(ms=>setTimeout(injectFolderCard,ms));return z};
+  wrapped.__v206pdf=true;window.tpCorrectionOpen=wrapped;
+}
+const oldPage=window.tpCorrectionPage;
+if(typeof oldPage==='function'&&!oldPage.__v206pdf){
+  const wrapped=function(){const z=oldPage.apply(this,arguments);setTimeout(updateFolderLabels,100);return z};
+  wrapped.__v206pdf=true;window.tpCorrectionPage=wrapped;
+}
+
+/* Version statique : pas de MutationObserver ni timer périodique. */
+const bv=document.getElementById('build-version');if(bv)bv.textContent='V214 — Évaluation · Charge Atelier · TP · Correction';
+document.title='V214 — Évaluation · Charge Atelier · TP · Correction';
+window.tpV206PdfV74={buildPdfPages,contentUnits,summaryUnits,chooseFolder:window.tp206ChooseCorrectionFolder};
+console.info('V206 : PDF de correction fidèle à l’éditeur V74 + coches noires avant sélection + dossier PDF choisi.');
+})();
+</script>
 </body>
 </html>
 <!-- V116 — TP projet unifié : diffusion fiable, aperçu et passerelle lecteur -->
@@ -16567,7 +17212,7 @@ else install();
  window.tp116ViewDiffusion=function(id){const r=diffRows().find(x=>String(x.id)===String(id));if(!r)return alert('TP diffusé introuvable.');const p=r.tpProject||projectFromRaw(r.snapshot?.rawProject);const ov=document.createElement('div');ov.className='v116-preview-overlay';ov.innerHTML=`<div class="v116-preview-box"><div class="v116-preview-top"><div><b>👁 ${esc(r.tpCode)} — ${esc(r.title)}</b><div class="muted">${esc(r.className)} · ${r.students?.length||0} élève(s)</div></div><button type="button">✕ Fermer</button></div>${sheet(p)}</div>`;ov.querySelector('button').onclick=()=>ov.remove();document.body.appendChild(ov)};
  // Reconstruit Mes TP diffusés avec Voir + Affecter + Supprimer et ne dépend pas de l'ancien formulaire générateur.
  const priorPage=window.tpV76DiffusionsPage;window.tpV76DiffusionsPage=function(){priorPage?.();setTimeout(()=>{const data=diffRows().sort((a,b)=>String(b.diffusedAt||'').localeCompare(String(a.diffusedAt||''))),els=[...document.querySelectorAll('.v76-diff-row')];els.forEach((el,i)=>{const r=data[i];if(!r)return;let wrap=el.querySelector('.v114-diff-actions,.v116-diff-actions');if(!wrap){wrap=document.createElement('div');wrap.className='v116-diff-actions';const b=el.querySelector('button');if(b){b.replaceWith(wrap);wrap.appendChild(b)}}else wrap.classList.add('v116-diff-actions');if(!wrap.querySelector('[data-v116-view]')){const b=document.createElement('button');b.className='tpgen-btn secondary';b.dataset.v116View='1';b.textContent='👁 Voir le TP';b.onclick=()=>window.tp116ViewDiffusion(r.id);wrap.prepend(b)}})},0)};
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V117 — Évaluation · Charge Atelier · TP · Correction';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V214 — Évaluation · Charge Atelier · TP · Correction';
  console.info('V117 actif : rendu TP polyvalent et diffusion tracée.');
 })();
 </script><style id="v117-prof-style">
@@ -16591,7 +17236,7 @@ else install();
  let oldBuild=window.tpGenBuildStudentPackage;window.tpGenBuildStudentPackage=function(student,d){let m=oldBuild.apply(this,arguments),p=window.__v117Project||window.__v116CurrentProject||null;if(p){m.tpProject=clone(p);m.tpPictograms=clone(p.__pictograms||[]);m.meta=m.meta||{};m.meta.readerRequired='V117';m.type='tp-eleve-v117'}return m};
  // Hydratation complète avec pictogrammes avant export.
  ['tpGenExportClassToFolder','tpGenExportClassZip'].forEach(name=>{let prev=window[name];if(typeof prev!=='function')return;window[name]=async function(){let sid=String(tpGenState?.currentSavedId||window.__tpDiffusionSavedId||''),rr=sid?await raw(sid):null;window.__v117Project=unpack(rr);try{return await prev.apply(this,arguments)}finally{window.__v117Project=null}}});
- let bv=document.getElementById('build-version');if(bv)bv.textContent='V117 — Évaluation · Charge Atelier · TP · Correction';console.info('V117 actif : vue TP polyvalente + diffusion persistante.');
+ let bv=document.getElementById('build-version');if(bv)bv.textContent='V214 — Évaluation · Charge Atelier · TP · Correction';console.info('V117 actif : vue TP polyvalente + diffusion persistante.');
 })();
 </script><!-- V118 — concordance Editeur / Logiciel / Lecteur + diffusion transactionnelle -->
 <style id="v118-style">
@@ -16629,7 +17274,7 @@ else install();
  function injectRetroSettings(){let main=document.getElementById('main');if(!main||main.querySelector('#v118-retro-settings'))return;let host=main.querySelector('.rubric-other-wrap .settings-rubric-collapse-body')||main.querySelector('.settings-grid')||main;let card=document.createElement('div');card.id='v118-retro-settings';card.className='settings-card section-other';card.innerHTML=`<h3>🕘 Évaluations rétroactives</h3><p class="muted">Choisis les cartes visibles dans « Nouvelle évaluation » pour le profil administrateur.</p><div class="v118-switch-row"><div><b>Positionnement rétroactif</b><div class="muted">Afficher la création d'un positionnement à une date antérieure.</div></div><label class="v118-switch"><input type="checkbox" ${retroOn(RETRO_POS)?'checked':''} onchange="v118ToggleRetro('${RETRO_POS}',this.checked)"><span class="v118-slider"></span></label></div><div class="v118-switch-row"><div><b>Import rétroactif collectif</b><div class="muted">Afficher l'import Excel rétroactif collectif.</div></div><label class="v118-switch"><input type="checkbox" ${retroOn(RETRO_XLS)?'checked':''} onchange="v118ToggleRetro('${RETRO_XLS}',this.checked)"><span class="v118-slider"></span></label></div>`;host.appendChild(card)}
  let oldSettings=window.renderSettingsPage;if(typeof oldSettings==='function')window.renderSettingsPage=function(){let r=oldSettings.apply(this,arguments);setTimeout(injectRetroSettings,0);return r};
  let oldChoice=window.evaluationChoicePage;if(typeof oldChoice==='function')window.evaluationChoicePage=function(){let r=oldChoice.apply(this,arguments);setTimeout(()=>{document.querySelectorAll('.eval-choice-card').forEach(c=>{let t=c.textContent||'';if(/Positionnement rétroactif/i.test(t)&&!retroOn(RETRO_POS))c.remove();if(/Import rétroactif collectif/i.test(t)&&!retroOn(RETRO_XLS))c.remove()})},0);return r};
- let bv=document.getElementById('build-version');if(bv)bv.textContent='V118 — Évaluation · Charge Atelier · TP · Correction';
+ let bv=document.getElementById('build-version');if(bv)bv.textContent='V214 — Évaluation · Charge Atelier · TP · Correction';
  console.info('V118 actif : diffusion transactionnelle, générateur replié, rétroactif paramétrable.');
 })();
 </script>
@@ -16653,7 +17298,7 @@ else install();
  window.tpGenExportClassToFolder=async function(){try{if(!folderHandle){const ok=await window.tpGenChooseClassFolder();if(!ok)return false}const ctx=await buildFiles();let perm='granted';if(folderHandle.queryPermission)perm=await folderHandle.queryPermission({mode:'readwrite'});if(perm!=='granted'&&folderHandle.requestPermission)perm=await folderHandle.requestPermission({mode:'readwrite'});if(perm!=='granted')throw Error('Autorisation d’écriture refusée.');for(const f of ctx.files){const fh=await folderHandle.getFileHandle(f.name,{create:true}),w=await fh.createWritable();await w.write(new Blob([f.text],{type:f.name.endsWith('.tp')?'application/json;charset=utf-8':'text/plain;charset=utf-8'}));await w.close()}persist(ctx);const n=ctx.sts.length,name=folderHandle.name;window.tpGenCloseClassExport?.();window.showSuccessMessage?.(`${n} TP élève généré(s) dans « ${name} » et diffusion enregistrée dans Mes TP diffusés.`);return true}catch(e){console.error('V119 dossier',e);window.showWarningMessage?.('Génération impossible : '+(e?.message||e));return false}finally{window.__v117Project=null;window.__v116CurrentProject=null}};
  window.tpGenExportClassZip=async function(){try{const ctx=await buildFiles();const blob=window.tpGenBuildStoreZip(ctx.files);const name=[filePart(ctx.code),filePart(ctx.className),'TP_ELEVES'].filter(Boolean).join('_')+'.zip';window.tpGenDownloadBlob(blob,name);persist(ctx);window.tpGenCloseClassExport?.();window.showSuccessMessage?.(`${ctx.sts.length} TP élève correspondant(s) à « ${ctx.code} » regroupé(s) dans le ZIP et diffusion enregistrée.`);return true}catch(e){console.error('V119 ZIP',e);window.showWarningMessage?.('Génération ZIP impossible : '+(e?.message||e));return false}finally{window.__v117Project=null;window.__v116CurrentProject=null}};
  const oldDiffuse=window.tpGenDiffuseSaved;window.tpGenDiffuseSaved=function(id){folderHandle=null;window.__tpDiffusionSavedId=String(id||'');if(window.tpGenState)window.tpGenState.currentSavedId=String(id||'');return oldDiffuse?.apply(this,arguments)};
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V128 — Évaluation · Charge Atelier · TP · Correction';document.title='V127 Évaluation · Charge Atelier · TP · Correction';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V214 — Évaluation · Charge Atelier · TP · Correction';document.title='V214 Évaluation · Charge Atelier · TP · Correction';
  console.info('V127 actif : diffusion compacte, sans duplication du projet TP dans localStorage.');
 })();
 </script>
@@ -16681,7 +17326,7 @@ else install();
  };
  function wire(){document.querySelectorAll('#tp109-folder-input,#tp109-files-input,.tpc-toolbar input[type=file]').forEach(input=>{input.onchange=async()=>{const f=input.files;if(f?.length)await window.tpCorrectionImport(f);input.value=''}})}
  const oldPage=window.tpCorrectionPage;window.tpCorrectionPage=function(){const r=oldPage?.apply(this,arguments);setTimeout(wire,50);return r};setTimeout(wire,500);
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V130 — Évaluation · Charge Atelier · TP · Correction';document.title='V131 Évaluation · Charge Atelier · TP · Correction';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V214 — Évaluation · Charge Atelier · TP · Correction';document.title='V214 Évaluation · Charge Atelier · TP · Correction';
  console.info('V130 — import Copies rendues V128/V130 actif avec stockage IndexedDB anti-quota.');
 })();
 </script>
@@ -16710,7 +17355,7 @@ else install();
  function render(r){const d=r.data||{},p=project(d);if(!p)return'';const a=answers(d),flow=Array.isArray(p.flow)?p.flow:(p.questions||[]).map(q=>({type:'question',id:q.id}));let html='',sec='',n=0;for(const f of flow){if(f.type!=='question'){let x=obj(p,f);if(x?.parentQuestionId)continue;html+=block(r,p,f,a);continue}let q=obj(p,f);if(!q||q.excluded)continue;if((q.section||'Activité')!==sec){sec=q.section||'Activité';html+=`<h2 class="section">${esc(sec)}</h2>`}let val=a[q.id],k='q_'+q.id;html+=`<section class="q"><div class="v131-qhead"><div><div class="qtitle">${++n}. ${esc(q.text||'')}</div><div class="meta">${esc(q.competence||'')}${q.criterionId?' · '+esc(q.criterionId):''}</div></div><div data-v131-mark="${esc(k)}">${markButtons(r,k)}</div></div>${(q.images||[]).map(im=>imageTag(im,'max-width:100%;max-height:280px;object-fit:contain;margin-top:8px')).join('')}${q.answerType==='none'?'':`<div class="answer">${esc(val||'—')}</div>`}${flow.filter(z=>z.type!=='question'&&obj(p,z)?.parentQuestionId===q.id).map(z=>block(r,p,z,a)).join('')}</section>`}return `<div class="v130-copy"><div class="tphead"><div><small>BAC PRO MAINTENANCE DES VÉHICULES · COPIE ÉLÈVE</small><h1>${esc(p.publicTitle||p.title||d.titre||'TP')}</h1><div>Durée : ${esc(p.duration||'—')}</div></div><span class="code">${esc(p.publicId||p.id||d.code||'TP')}</span></div><div class="brief"><section><h3>Situation professionnelle</h3>${esc(p.intro||'')}</section><section><h3>Objectifs</h3>${esc(p.objectives||'')}</section><section><h3>Support</h3>${esc(p.support||'')}</section><section><h3>Ressources et matériels</h3>${esc(p.resources||'')}</section></div>${html}</div>`}
  const previous=window.tpCorrectionOpen;
  window.tpCorrectionOpen=function(id){const light=read().find(x=>String(x.id)===String(id));if(!light)return previous?.apply(this,arguments);previous?.apply(this,arguments);setTimeout(async()=>{const ed=document.querySelector('.tpc-editor'),left=ed?.firstElementChild;if(!left)return;left.innerHTML='<div class="v131-hydrating">Chargement de la copie complète et de ses illustrations…</div>';const stored=await full(id),r=stored||light;if(!project(r.data)){left.innerHTML='<div class="tpc-card">Cette copie ne contient pas le projet TP complet nécessaire à la vue fidèle.</div>';return}const local=read().find(x=>String(x.id)===String(id));if(local?.marks)r.marks={...(r.marks||{}),...local.marks};left.innerHTML='<div class="tpc-card"><b>V131 — Vue de correction fidèle.</b> Les illustrations sont rechargées depuis la copie complète. Chaque question dispose maintenant des boutons ✓ Correct, ✕ Incorrect et — Non évalué.</div>'+render(r)},20)};
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V131 — Évaluation · Charge Atelier · TP · Correction';document.title='V131 Évaluation · Charge Atelier · TP · Correction';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V214 — Évaluation · Charge Atelier · TP · Correction';document.title='V214 Évaluation · Charge Atelier · TP · Correction';
  console.info('V131 correcteur : hydratation IndexedDB + images + coches par question.');
 })();
 </script><!-- V147 — correctif final diffusion TP local : DOIT rester le dernier runtime du fichier -->
@@ -16722,8 +17367,8 @@ else install();
  let folderHandle=null;
  function setVersion(){
    const b=document.getElementById('build-version');
-   if(b)b.textContent='V147 — Évaluation · Charge Atelier · TP · Correction';
-   document.title='V147 Évaluation · Charge Atelier · TP · Correction';
+   if(b)b.textContent='V214 — Évaluation · Charge Atelier · TP · Correction';
+   document.title='V214 Évaluation · Charge Atelier · TP · Correction';
    document.getElementById('v144-version')?.remove();
  }
  setVersion(); document.addEventListener('DOMContentLoaded',setVersion,{once:true}); setTimeout(setVersion,100);
@@ -16811,7 +17456,7 @@ else install();
  });
  function compact(root=document){root.querySelectorAll?.('.v131-markbar .v131-mark').forEach(b=>{if(b.classList.contains('ok')){b.textContent='✓';b.title='Correct'}else if(b.classList.contains('bad')){b.textContent='✕';b.title='Incorrect'}else{b.textContent='—';b.title='Non évalué'}b.setAttribute('aria-label',b.title)})}
  compact(); new MutationObserver(m=>m.forEach(x=>x.addedNodes.forEach(n=>{if(n.nodeType===1)compact(n)}))).observe(document.documentElement,{childList:true,subtree:true});
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V154 — Évaluation · Charge Atelier · TP · Correction';document.title='V154 Évaluation · Charge Atelier · TP · Correction';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V214 — Évaluation · Charge Atelier · TP · Correction';document.title='V214 Évaluation · Charge Atelier · TP · Correction';
  console.info('V148 : Copies rendues stable pendant Firebase + coches compactes.');
 })();
 </script>
@@ -16996,7 +17641,7 @@ function mergeCorrections(){
 function mergeEvaluations(){return new Promise(resolve=>{
  try{const q=indexedDB.open('C2MMVP_TEST_FICTIFS_V8',2);q.onerror=()=>resolve(false);q.onsuccess=()=>{const d=q.result;try{const st=d.transaction('evaluations','readwrite').objectStore('evaluations');let left=BACKUP_EVALS.length;if(!left){d.close();return resolve(true)};BACKUP_EVALS.forEach(v=>{const g=st.get(v.id);g.onsuccess=()=>{if(g.result==null){try{st.add(v)}catch(_){}}if(--left===0){setTimeout(()=>{d.close();resolve(true)},20)}};g.onerror=()=>{if(--left===0){d.close();resolve(true)}}})}catch(e){d.close();resolve(false)}}}catch(e){resolve(false)}
 })}
-function version(){const b=document.getElementById('build-version');if(b)b.textContent='V171 — Évaluation · Charge Atelier · TP · Correction';document.title='V171 — Évaluation · Charge Atelier · TP · Correction'}
+function version(){const b=document.getElementById('build-version');if(b)b.textContent='V214 — Évaluation · Charge Atelier · TP · Correction';document.title='V214 — Évaluation · Charge Atelier · TP · Correction'}
 function installDefaultTodo(){
  const old=window.go;if(typeof old==='function'&&!old.__v171){const w=function(view){const r=old.apply(this,arguments);if(view==='correctionTp')setTimeout(()=>{const s=document.getElementById('tpc-f-status');if(s){s.value='todo';s.dispatchEvent(new Event('change',{bubbles:true}))}},120);return r};w.__v171=true;window.go=w}
 }
@@ -17049,7 +17694,7 @@ async function validate(){
  }catch(e){console.error('V172 validation',e);alert('Validation impossible : '+(e?.message||e));}
  finally{window.__v172Saving=false;if(btn){btn.disabled=false;btn.innerHTML=oldText||'💾 Valider la correction et l’évaluation'}}
 }
-function install(){window.tpCorrectionValidate=validate;const b=document.getElementById('build-version');if(b)b.textContent='V172 — Évaluation · Charge Atelier · TP · Correction';document.title='V172 — Évaluation · Charge Atelier · TP · Correction'}
+function install(){window.tpCorrectionValidate=validate;const b=document.getElementById('build-version');if(b)b.textContent='V214 — Évaluation · Charge Atelier · TP · Correction';document.title='V214 — Évaluation · Charge Atelier · TP · Correction'}
 window.addEventListener('load',()=>setTimeout(install,4200),{once:true});setTimeout(()=>{if(document.readyState==='complete')install()},5200);
 })();
 </script>
@@ -17071,7 +17716,7 @@ function lockIfCorrected(id){
 function install(){
  const oldOpen=window.tpCorrectionOpen; if(typeof oldOpen==='function'&&!oldOpen.__v173){const w=function(id){const out=oldOpen.apply(this,arguments);setTimeout(()=>lockIfCorrected(id),450);setTimeout(()=>lockIfCorrected(id),1200);return out};w.__v173=true;window.tpCorrectionOpen=w;}
  const oldVal=window.tpCorrectionValidate; if(typeof oldVal==='function'&&!oldVal.__v173){const w=async function(){const out=await oldVal.apply(this,arguments);return out};w.__v173=true;window.tpCorrectionValidate=w;}
- const b=document.getElementById('build-version');if(b)b.textContent='V173 — Évaluation · Charge Atelier · TP · Correction';document.title='V173 — Évaluation · Charge Atelier · TP · Correction';
+ const b=document.getElementById('build-version');if(b)b.textContent='V214 — Évaluation · Charge Atelier · TP · Correction';document.title='V214 — Évaluation · Charge Atelier · TP · Correction';
 }
 // Accélère l'impression de synchronisation : les données locales sont déjà enregistrées avant le cloud.
 const oldSync=window.tpV159SyncCorrectionsNow; if(typeof oldSync==='function'){window.tpV159SyncCorrectionsNow=function(){try{const p=oldSync.apply(this,arguments);if(p&&p.catch)p.catch(e=>console.warn('V173 sync',e));return Promise.resolve(true)}catch(e){console.warn('V173 sync',e);return Promise.resolve(false)}}}
@@ -17150,7 +17795,7 @@ stamp();window.addEventListener('load',()=>{stamp();setTimeout(reconcile,300)},{
 (function(){
 'use strict';
 
-const VERSION='V205 — Évaluation · Charge Atelier · TP · Correction';
+const VERSION='V214 — Évaluation · Charge Atelier · TP · Correction';
 const MODE_KEYS={
   free:'evaluation_mode_free_v190',
   professional:'evaluation_mode_professional_v190',
@@ -17459,7 +18104,7 @@ setTimeout(()=>{pullModesFirebase().catch(()=>{})},3500);
 function setVersion(){
   const b=document.getElementById('build-version');
   if(b)b.textContent=VERSION;
-  document.title='V205 — Évaluation · Charge Atelier · TP · Correction';
+  document.title='V214 — Évaluation · Charge Atelier · TP · Correction';
 }
 setVersion();
 setTimeout(setVersion,500);
@@ -17922,7 +18567,7 @@ function relabelNavigation(){
 function setVersion(){
   const b=document.getElementById('build-version');
   if(b)b.textContent=VERSION;
-  document.title='V205 — Évaluation · Charge Atelier · TP · Correction';
+  document.title='V214 — Évaluation · Charge Atelier · TP · Correction';
 }
 relabelNavigation();
 setVersion();
@@ -18012,15 +18657,36 @@ function fs(){try{return firebase.firestore()}catch(_){return null}}
 function user(){try{return firebase.auth?.().currentUser||null}catch(_){return null}}
 function root(){const d=fs();return d?d.collection('workspaces').doc(WS):null}
 
+function compactDiff(x){
+  return {id:x?.id||'',savedId:x?.savedId||'',tpCode:x?.tpCode||x?.code||'',title:x?.title||'',classId:x?.classId||'',className:x?.className||'',diffusedAt:x?.diffusedAt||'',updatedAt:x?.updatedAt||x?.diffusedAt||'',fileCount:x?.fileCount||x?.students?.length||0,students:Array.isArray(x?.students)?x.students.map(st=>({id:st?.id||st?.studentId||'',name:st?.name||[st?.nom,st?.prenom].filter(Boolean).join(' '),nom:st?.nom||'',prenom:st?.prenom||'',code:st?.code||st?.accessCode||'',state:st?.state||'',status:st?.status||''})):[],studentIds:Array.isArray(x?.studentIds)?x.studentIds.map(String):[],registryOnly:true,storageVersion:213};
+}
+function compactRows(rows){return (Array.isArray(rows)?rows:[]).map(compactDiff).filter(x=>sv(x.id)).slice(0,1000)}
 function localRows(){
-  try{const a=JSON.parse(localStorage.getItem(DKEY)||'[]');return Array.isArray(a)?a:[]}
+  try{const a=JSON.parse(localStorage.getItem(DKEY)||'[]');return compactRows(a)}
   catch(_){return[]}
 }
 function localDeleted(){
   try{const a=JSON.parse(localStorage.getItem(DELKEY)||'[]');return Array.isArray(a)?a.map(String):[]}
   catch(_){return[]}
 }
-function writeRows(rows){localStorage.setItem(DKEY,JSON.stringify((rows||[]).slice(0,1000)))}
+function writeRows(rows){
+  const compact=compactRows(rows);
+  const limits=[1000,750,500,300,150,75,30];
+  let lastErr=null;
+  for(const n of limits){
+    try{
+      localStorage.setItem(DKEY,JSON.stringify(compact.slice(0,n)));
+      window.__tpV213DiffusionCacheWarning='';
+      return true;
+    }catch(e){
+      lastErr=e;
+      if(!/quota|exceeded|storage/i.test(String(e?.message||e)))break;
+    }
+  }
+  window.__tpV213DiffusionCacheWarning=String(lastErr?.message||lastErr||'Quota localStorage');
+  console.warn('V213 : registre local Mes TP diffusés non persistant, affichage Firebase conservé.',lastErr);
+  return false;
+}
 function writeDeleted(ids){localStorage.setItem(DELKEY,JSON.stringify([...new Set(ids.map(String))].slice(-5000)))}
 function studentName(st){return sv(st?.name||[st?.nom,st?.prenom].filter(Boolean).join(' ')||'Élève')}
 function studentKeys(st,code){
@@ -18106,14 +18772,14 @@ async function cloudDiffusions(){
     const snap=await r.collection(V132).get();
     for(const doc of snap.docs){
       const rec=await readChunkedDoc(doc);
-      if(rec?.id)out.set(String(rec.id),rec);
+      if(rec?.id)out.set(String(rec.id),compactDiff(rec));
     }
   }catch(e){console.warn('V194 lecture V132',e)}
   try{
     const snap=await r.collection(V106).get();
     snap.docs.forEach(doc=>{
       const rec=doc.data()?.record;
-      if(rec?.id&&!out.has(String(rec.id)))out.set(String(rec.id),rec);
+      if(rec?.id&&!out.has(String(rec.id)))out.set(String(rec.id),compactDiff(rec));
     });
   }catch(e){console.warn('V194 lecture V106',e)}
   return [...out.values()];
@@ -18130,18 +18796,19 @@ async function tombstones(){
 async function syncRegistry(){
   const gone=await tombstones(),local=localRows(),remote=await cloudDiffusions(),map=new Map();
   for(const x of local){
-    const id=sv(x?.id);
-    if(id&&!gone.has(id))map.set(id,x);
+    const rec=compactDiff(x),id=sv(rec?.id);
+    if(id&&!gone.has(id))map.set(id,rec);
   }
   for(const x of remote){
-    const id=sv(x?.id);
+    const rec=compactDiff(x),id=sv(rec?.id);
     if(id&&!gone.has(id)){
       const old=map.get(id);
-      map.set(id,old?{...old,...x,students:x.students||old.students}:x);
+      map.set(id,compactDiff(old?{...old,...rec,students:rec.students||old.students}:rec));
     }
   }
-  const rows=[...map.values()].sort((a,b)=>sv(b.diffusedAt).localeCompare(sv(a.diffusedAt)));
-  writeRows(rows); writeDeleted([...gone]);
+  const rows=[...map.values()].map(compactDiff).sort((a,b)=>sv(b.diffusedAt).localeCompare(sv(a.diffusedAt)));
+  const cacheOk=writeRows(rows); writeDeleted([...gone]);
+  if(!cacheOk)console.info('V213 : Firebase reste la source maître malgré le cache local indisponible.');
   return rows;
 }
 
@@ -18276,6 +18943,17 @@ window.tpV76DiffusionsPage=async function(){
     const [rows,states]=await Promise.all([syncRegistry(),buildStateMap()]);
     cacheRows=rows;cacheStates=states;lastRowsSignature=rowsSignature(rows);
     drawRows(true);
+    if(window.__tpV213DiffusionCacheWarning){
+      const shell=document.querySelector('.v194-toolbar');
+      if(shell&&!document.getElementById('v213-cache-warning')){
+        const w=document.createElement('span');
+        w.id='v213-cache-warning';
+        w.className='v194-source';
+        w.style.cssText='background:#fff7ed;color:#9a3412;border-color:#fdba74';
+        w.textContent='⚠ Cache local allégé indisponible — Firebase reste maître';
+        shell.appendChild(w);
+      }
+    }
   }catch(e){
     console.error('V194 page diffusions',e);
     const el=document.getElementById('v194-list');
@@ -18386,7 +19064,7 @@ const SUITE={
   projectSchema:'evaluation.tp.v1',
   fileSignature:'FDMAHY_TP_SYSTEM',
   formatVersion:'4.1',
-  editor:'Editeur_TP_BacPro_MV_V74_Suite_V205.html',
+  editor:'Editeur_TP_BacPro_MV_V55_Suite_V205.html',
   reader:'Lecteur_TP_Eleve_V205.html',
   usb:'RECUPERER_LES_TP.cmd'
 };
@@ -18448,9 +19126,9 @@ if(typeof window.tpCorrectionImport==='function'){
 /* Habillage du Portail TP seulement : la fonction RTA existante reste disponible
    ailleurs dans le logiciel, elle n'est simplement plus dans le nom de la suite. */
 function stamp(){
-  document.title='V205 — Évaluation · Charge Atelier · TP · Correction';
+  document.title='V214 — Évaluation · Charge Atelier · TP · Correction';
   const bv=document.getElementById('build-version');
-  if(bv)bv.textContent='V205 — Évaluation · Charge Atelier · TP · Correction';
+  if(bv)bv.textContent='V214 — Évaluation · Charge Atelier · TP · Correction';
 }
 stamp();
 setTimeout(stamp,700);
@@ -18618,8 +19296,8 @@ document.addEventListener('visibilitychange',()=>{
 /* Affichage de version seulement, sans timer périodique ni MutationObserver. */
 function stampVersion(){
   const b=document.getElementById('build-version');
-  if(b)b.textContent='V205 — Évaluation · Charge Atelier · TP · Correction';
-  document.title='V205 — Évaluation · Charge Atelier · TP · Correction';
+  if(b)b.textContent='V214 — Évaluation · Charge Atelier · TP · Correction';
+  document.title='V214 — Évaluation · Charge Atelier · TP · Correction';
 }
 stampVersion();
 
@@ -18705,8 +19383,8 @@ if(typeof settings==='function'&&!settings.__v200){
 cleanUi(document);
 
 const bv=document.getElementById('build-version');
-if(bv)bv.textContent='V205 — Évaluation · Charge Atelier · TP · Correction';
-document.title='V205 — Évaluation · Charge Atelier · TP · Correction';
+if(bv)bv.textContent='V214 — Évaluation · Charge Atelier · TP · Correction';
+document.title='V214 — Évaluation · Charge Atelier · TP · Correction';
 
 console.info('V200 : RTA retirée de l’interface et des évaluations ; ancien générateur TP neutralisé au profit du Portail TP.');
 })();
@@ -19091,8 +19769,8 @@ ensureMobileMenu();
 
 /* Version : affichage uniquement, aucun timer et aucun MutationObserver. */
 const bv=document.getElementById('build-version');
-if(bv)bv.textContent='V205 — Évaluation · Charge Atelier · TP · Correction';
-document.title='V205 — Évaluation · Charge Atelier · TP · Correction';
+if(bv)bv.textContent='V214 — Évaluation · Charge Atelier · TP · Correction';
+document.title='V214 — Évaluation · Charge Atelier · TP · Correction';
 
 console.info('V201 : barre latérale scrollable + menu iPhone permanent + suppression TP V73/V159 persistante.');
 })();
@@ -19113,8 +19791,8 @@ window.V202_SETTINGS_POLICY={
   ephemeralUiLocalOnly:true
 };
 const bv=document.getElementById('build-version');
-if(bv)bv.textContent='V205 — Évaluation · Charge Atelier · TP · Correction';
-document.title='V205 — Évaluation · Charge Atelier · TP · Correction';
+if(bv)bv.textContent='V214 — Évaluation · Charge Atelier · TP · Correction';
+document.title='V214 — Évaluation · Charge Atelier · TP · Correction';
 console.info('V202 : recherche/compteur fiches + paramètres fonctionnels multiposte, démarrage inchangé.');
 })();
 </script>
@@ -19330,8 +20008,8 @@ forceActiveTpClass();
 addPortalClassBadge();
 
 const bv=document.getElementById('build-version');
-if(bv)bv.textContent='V205 — Évaluation · Charge Atelier · TP · Correction';
-document.title='V205 — Évaluation · Charge Atelier · TP · Correction';
+if(bv)bv.textContent='V214 — Évaluation · Charge Atelier · TP · Correction';
+document.title='V214 — Évaluation · Charge Atelier · TP · Correction';
 
 console.info('V204 : Portail TP filtré strictement par classe active ; classId et className doivent être cohérents.');
 })();
@@ -19350,8 +20028,8 @@ window.V204_TP_CLASS_FILTER_POLICY={
   legacyStudentIdsMustAllBelongToActiveClass:true
 };
 const bv=document.getElementById('build-version');
-if(bv)bv.textContent='V205 — Évaluation · Charge Atelier · TP · Correction';
-document.title='V205 — Évaluation · Charge Atelier · TP · Correction';
+if(bv)bv.textContent='V214 — Évaluation · Charge Atelier · TP · Correction';
+document.title='V214 — Évaluation · Charge Atelier · TP · Correction';
 console.info('V204 : filtrage strict des TP diffusés sur la classe active, démarrage inchangé.');
 })();
 </script>
@@ -19513,8 +20191,8 @@ if(typeof oldOpen==='function'&&!oldOpen.__v205){
 }
 
 const bv=document.getElementById('build-version');
-if(bv)bv.textContent='V205 — Évaluation · Charge Atelier · TP · Correction';
-document.title='V205 — Évaluation · Charge Atelier · TP · Correction';
+if(bv)bv.textContent='V214 — Évaluation · Charge Atelier · TP · Correction';
+document.title='V214 — Évaluation · Charge Atelier · TP · Correction';
 
 console.info('V205 : auto-évaluation TP lue depuis le JSON rendu ; Tableau du jour exclut les TP diffusés ; rendu le plus récent privilégié.');
 })();
