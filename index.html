@@ -14794,30 +14794,105 @@ window.tpCorrectionValidate=async function(){
 </script><style id="v73-firebase-realtime-style">
 #firebase-activity-led.firebase-activity-led{width:12px!important;height:12px!important;min-width:12px!important;min-height:12px!important;max-width:12px!important;max-height:12px!important;border-radius:50%!important;aspect-ratio:1/1!important;flex:0 0 12px!important;padding:0!important}
 </style>
+<script id="v217-correction-state">
+/* V217: correction state only. No network request, interval, or startup write. */
+(function(){
+'use strict';
+const KEY='tp_correction_local_v54',PROOFS='tp_corrected_proofs_v217';
+const stats={events:0,reconciliations:0,localWrites:0,duplicatesGrouped:0,downgradesBlocked:0,pageBuilds:0,listRenders:0,unchangedRendersSkipped:0,cloudWrites:0,cloudWriteErrors:0,cloudSnapshots:0,editorReplacements:0};
+const history=[],sources={},startedAt=new Date().toISOString();let proofs=null,proofText='',reconciling=false;
+const norm=v=>String(v??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+const readKey=k=>{try{const a=JSON.parse(localStorage.getItem(k)||'[]');return Array.isArray(a)?a:[]}catch(e){event('lecture locale impossible',{key:k,error:String(e.message)});return[]}};
+const read=()=>readKey(KEY);
+function event(type,detail={}){stats.events++;history.push({at:new Date().toISOString(),type,...detail});if(history.length>300)history.shift()}
+function time(v){if(!v)return 0;const s=String(v),m=s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);return Date.parse(m?`${m[3]}-${m[2]}-${m[1]}`:s)||0}
+function submitted(r){const d=r?.data||{};return d.dates?.rendu||d.submission?.submittedAt||d.meta?.submittedAt||d.eleve?.date||d.date||''}
+function person(r){const d=r?.data||{},e=d.identite||d.eleve||{};return String(d.studentId||e.id||'')||norm([e.nom,e.prenom].filter(Boolean).join(' ')||e.name||d.studentName)}
+function code(r){const d=r?.data||{};return norm(d.tp?.id||d.code||d.tpCode||d.tp?.titre||d.titre)}
+function attempt(r){const p=person(r),c=code(r),t=time(submitted(r));return p&&c&&t?[p,c,norm(r.data?.classe||r.data?.identite?.classe||''),t].join('|'):''}
+function same(a,b){return !!a?.id&&String(a.id)===String(b?.id)||!!attempt(a)&&attempt(a)===attempt(b)}
+function done(r){const d=r?.data||{},s=norm(r?.workflowState||d.statut||d.status);return !!r?.correctedAt||s==='corrige'||s==='corrected'||!!(d.correction?.evaluationId)||!!r?.savedEvaluationId}
+function deleted(r){try{return !!window.tpV201IsDeletedCorrection?.(r)||!!JSON.parse(localStorage.getItem('tp_correction_deleted_v70')||'{}')[String(r?.id)]}catch(_){return false}}
+function minimal(r){const d=r.data||{};return {id:r.id,data:{studentId:d.studentId,eleve:d.eleve,identite:d.identite,classe:d.classe,code:d.code,tp:d.tp?{id:d.tp.id,titre:d.tp.titre}:undefined,titre:d.titre,dates:{rendu:submitted(r)},statut:'CORRIGE'},correctedAt:r.correctedAt||d.correction?.date||d.dates?.correction||'date inconnue',workflowState:'CORRIGE',note:r.note??d.correction?.note??'',appreciation:r.appreciation||d.correction?.appreciation||'',levels:r.levels||d.correction?.competences||{},marks:r.marks||{},savedEvaluationId:r.savedEvaluationId||d.correction?.evaluationId||'',fileName:r.fileName||'',v217Source:r.v217Source||'correction locale'};}
+function loadProofs(){if(proofs)return;proofs=readKey(PROOFS);proofText=JSON.stringify(proofs)}
+function remember(r){if(!done(r)||!r?.id||deleted(r))return;loadProofs();const p=minimal(r),i=proofs.findIndex(x=>same(x,p));if(i<0)proofs.push(p);else if(time(p.correctedAt)>=time(proofs[i].correctedAt))proofs[i]=p}
+function persistProofs(){loadProofs();const text=JSON.stringify(proofs.slice(-2500));if(text===proofText)return;try{localStorage.setItem(PROOFS,text);proofText=text}catch(e){event('preuves non sauvegardées',{error:String(e.message)})}}
+function corrected(r,proof){const p=minimal(proof);return {...r,correctedAt:p.correctedAt,workflowState:'CORRIGE',savedEvaluationId:p.savedEvaluationId||r.savedEvaluationId||'',note:p.note!==''?p.note:r.note??'',appreciation:p.appreciation||r.appreciation||'',levels:Object.keys(p.levels).length?p.levels:r.levels||{},marks:Object.keys(p.marks).length?p.marks:r.marks||{},v217Source:p.v217Source,data:{...r.data,statut:'CORRIGE'}}}
+function normalize(a){
+ loadProofs();const archive=readKey('tp_correction_versions_v205');[...a,...archive].filter(done).forEach(remember);
+ const result=[],indices=new Map(),archivedDuplicates=[];
+ for(let row of a){if(!row||typeof row!=='object'||!row.id)continue;if(deleted(row))continue;
+   const proof=proofs.find(x=>same(x,row)&&!deleted(x));
+   if(proof){if(!done(row)){event('statut corrigé rétabli',{id:row.id,source:proof.v217Source});stats.downgradesBlocked++}row=corrected(row,proof)}
+   else if(done(row))row=corrected(row,row);
+   const k=attempt(row)||'id:'+row.id,ix=indices.get(k);
+   if(ix===undefined){indices.set(k,result.length);result.push(row)}else{
+     const old=result[ix],winner=done(old)?old:done(row)?row:time(row.v73UpdatedAt||row.updatedAt||row.importedAt)>time(old.v73UpdatedAt||old.updatedAt||old.importedAt)?row:old;
+     const richer=old.v217ArchiveOnly&&!row.v217ArchiveOnly?row:old;
+     result[ix]=done(winner)?corrected(richer,winner):winner;
+     const loser=String(result[ix].id)===String(old.id)?row:old;if(String(loser.id)!==String(result[ix].id)&&!archive.some(x=>String(x.id)===String(loser.id))){const retained={...loser,v205Superseded:true,v217DuplicateOf:result[ix].id};archive.push(retained);archivedDuplicates.push(loser)}
+     stats.duplicatesGrouped++;event('doublon du même rendu regroupé',{kept:result[ix].id,other:row.id});
+   }
+ }
+ if(archivedDuplicates.length){try{localStorage.setItem('tp_correction_versions_v205',JSON.stringify(archive))}catch(e){result.push(...archivedDuplicates);event('doublons conservés faute de place pour leur archive',{error:String(e.message)})}}
+ persistProofs();return result;
+}
+function reconcile(reason){if(reconciling)return read();reconciling=true;try{stats.reconciliations++;const before=read(),a=normalize(before);if(JSON.stringify(a)!==JSON.stringify(before)){localStorage.setItem(KEY,JSON.stringify(a));stats.localWrites++;event('liste locale alignée',{reason,before:before.length,after:a.length})}return a}catch(e){event('alignement interrompu',{error:String(e.message)});return read()}finally{reconciling=false}}
+function prefer(old,incoming){if(!old)return incoming;if(!same(old,incoming)){
+  const ot=time(submitted(old)),nt=time(submitted(incoming));if(ot&&nt&&ot!==nt)return null; // distinct attempts: keep both
+ }
+ if(done(old)&&!done(incoming)){stats.downgradesBlocked++;event('ancien brouillon ignoré',{id:old.id});return old}
+ if(done(incoming))return corrected({...old,...incoming,data:{...old.data,...incoming.data}},incoming);
+ return incoming;
+}
+function archiveInto(a,doc,ar){
+ if(!ar||!ar.id){event('archive sans identifiant',{doc});return a}
+ const candidate={id:ar.id,data:{studentId:ar.studentId,eleve:{nom:ar.nom,prenom:ar.prenom,date:String(ar.identity||'').split('|').pop()||''},classe:ar.classe,code:ar.tpId,titre:ar.tpTitre,dates:{rendu:String(ar.identity||'').split('|').pop()||''}},note:ar.note??'',appreciation:ar.appreciation||'',levels:ar.levels||{},marks:ar.marks||{},fileName:ar.fileName||'',correctedAt:ar.correctedAt||'date inconnue',savedEvaluationId:ar.evaluationId||'',workflowState:'CORRIGE',v217Source:'archive Firebase V159',v217ArchiveOnly:true};
+ if(deleted(candidate))return a;
+ const ix=a.findIndex(x=>String(x.id)===String(ar.id));
+ if(ix>=0){a[ix]=corrected(a[ix],candidate);remember(a[ix])}else{a.push(candidate);remember(candidate)}
+ event('archive corrigée conservée',{doc,id:ar.id});return normalize(a);
+}
+function snapshot(source,snap){stats.cloudSnapshots++;sources[source]={at:new Date().toISOString(),fromCache:!!snap.metadata?.fromCache,changes:snap.docChanges().length};event('états reçus',{source,...sources[source]})}
+function networkAllowed(){try{return typeof isFirebaseModeEnabled==='function'?isFirebaseModeEnabled():!document.body?.classList.contains('firebase-disabled-mode')}catch(_){return false}}
+function writeResult(source,ok,error){if(ok)stats.cloudWrites++;else stats.cloudWriteErrors++;event(ok?'correction synchronisée':'synchronisation différée',{source,error:error?String(error.message||error).slice(0,200):undefined})}
+// Only actual edits/imports enter the outbox; old local rows are never bulk republished.
+const OUTBOX='tp_correction_outbox_v217';
+function hash(v){let h=2166136261;for(let i=0;i<v.length;i++){h^=v.charCodeAt(i);h=Math.imul(h,16777619)}return (h>>>0).toString(36)}
+function queueSend(source,r){const token=hash(JSON.stringify(r)),a=readKey(OUTBOX),key=source+'|'+r.id,old=a.find(x=>x.key===key);if(old?.token===token)return token;const next=a.filter(x=>x.key!==key);next.push({key,source,id:r.id,token});try{localStorage.setItem(OUTBOX,JSON.stringify(next))}catch(e){event('file de synchronisation non sauvegardée',{error:String(e.message)})}return token}
+function ackSend(source,r,token){const a=readKey(OUTBOX),next=a.filter(x=>!(x.key===source+'|'+r.id&&x.token===token));if(a.length!==next.length)localStorage.setItem(OUTBOX,JSON.stringify(next))}
+function pending(source){const ids=new Set(readKey(OUTBOX).filter(x=>x.source===source).map(x=>String(x.id)));return read().filter(r=>ids.has(String(r.id))&&!deleted(r))}
+function report(){const a=read(),doneCount=a.filter(done).length;const rows=a.map(r=>({id:r.id,eleve:[r.data?.eleve?.nom,r.data?.eleve?.prenom].filter(Boolean).join(' ')||r.data?.studentName||'',classe:r.data?.classe||'',tp:r.data?.code||r.data?.tp?.id||'',rendu:submitted(r),etat:done(r)?'corrigé':'à corriger',note:r.note??'',preuve:r.v217Source|| (done(r)?'correction enregistrée':'aucune preuve exacte'),evaluation:r.savedEvaluationId||'',archiveLegere:!!r.v217ArchiveOnly}));return {format:'diagnostic-portail-correcteur-v217',createdAt:new Date().toISOString(),startedAt,version:'V217 diagnostic provisoire / démarrage V214',firebaseActive:networkAllowed(),pendingSync:readKey(OUTBOX).map(x=>({source:x.source,id:x.id})),counts:{total:a.length,corriges:doneCount,aCorriger:a.length-doneCount},stats:{...stats},sources,rows,events:[...history],limits:['Aucune lecture Firebase supplémentaire déclenchée par le diagnostic.','Une correspondance élève + TP seule ne suffit pas pour marquer un nouveau rendu comme corrigé.','La trace de session conserve les 300 derniers événements.']}}
+window.tp217={queueSend,ackSend,pending,stats,event,read,done,same,normalize,reconcile,prefer,archiveInto,snapshot,networkAllowed,writeResult,report,remember,persistProofs,corrected};
+})();
+
+</script>
 <script id="v73-tp-corrections-realtime">
 (function(){
  const KEY='tp_correction_local_v54', WORKSPACE='evaluation-mv-main', COLLECTION='tpCorrectionsV73';
  const DEVICE_KEY='tp_v73_device_id';
  const norm=v=>String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
  const rows=()=>{try{const x=JSON.parse(localStorage.getItem(KEY)||'[]');return Array.isArray(x)?x:[]}catch(e){return[]}};
- const write=a=>localStorage.setItem(KEY,JSON.stringify((Array.isArray(a)?a:[]).slice(0,2000)));
+ const write=a=>localStorage.setItem(KEY,JSON.stringify(window.tp217.normalize(Array.isArray(a)?a:[])));
  function device(){let d=localStorage.getItem(DEVICE_KEY);if(!d){d='D'+Date.now().toString(36)+Math.random().toString(36).slice(2,8);localStorage.setItem(DEVICE_KEY,d)}return d}
  function hash(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return (h>>>0).toString(36)}
  function identity(r){const d=r?.data||{}, sid=String(d.studentId||d.eleve?.id||''), name=norm([d.eleve?.nom,d.eleve?.prenom].filter(Boolean).join(' ')||d.studentName||''), code=norm(d.code||''), title=norm(d.titre||''), rawDate=String(d.eleve?.date||d.date||d.meta?.generatedAt||r?.importedAt||'').slice(0,10);return [sid||name,code||title,rawDate].join('|')}
  function key(r){return 'tp_'+hash(identity(r))}
  function stamp(r){return Date.parse(r?.correctedAt||r?.updatedAt||r?.importedAt||r?.createdAt||0)||0}
  function db(){try{return window.firebase?.firestore?.()}catch(e){return null}}
- function authReady(){try{return !!window.firebase?.auth?.().currentUser}catch(e){return false}}
+ function authReady(){try{return window.tp217.networkAllowed()&&!!window.firebase?.auth?.().currentUser}catch(e){return false}}
  function col(){const f=db();return f?f.collection('workspaces').doc(WORKSPACE).collection(COLLECTION):null}
  function led(active){const el=document.getElementById('firebase-activity-led');if(!el)return;el.style.opacity=active?'1':'.55';if(active){el.style.boxShadow='0 0 0 4px rgba(34,197,94,.15),0 0 9px rgba(34,197,94,.75)'}else el.style.boxShadow='none'}
- async function pushRow(r){if(!r||!authReady())return;const c=col();if(!c)return;led(true);try{const k=key(r), payload=JSON.parse(JSON.stringify(r));payload.v73Key=k;payload.v73Identity=identity(r);payload.v73Device=device();payload.v73UpdatedAt=new Date().toISOString();await c.doc(k).set({record:payload,deleted:false,status:r.correctedAt?'corrected':'returned',correctedAt:r.correctedAt||null,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true})}finally{led(false)}}
+ const sent=new Map();
+ async function pushRow(r){if(!r)return;const sendToken=window.tp217.queueSend('V73',r);if(!authReady())return;const c=col();if(!c)return;const fingerprint=JSON.stringify(r);if(sent.get(key(r))===fingerprint){window.tp217.ackSend('V73',r,sendToken);return;}led(true);try{const k=key(r), payload=JSON.parse(JSON.stringify(r));payload.v73Key=k;payload.v73Identity=identity(r);payload.v73Device=device();payload.v73UpdatedAt=new Date().toISOString();await c.doc(k).set({record:payload,deleted:false,status:r.correctedAt?'corrected':'returned',correctedAt:r.correctedAt||null,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});sent.set(k,fingerprint);window.tp217.ackSend('V73',r,sendToken);window.tp217.writeResult('V73',true)}catch(e){window.tp217.writeResult('V73',false,e);throw e}finally{led(false)}}
  async function tombstone(r){if(!r||!authReady())return;const c=col();if(!c)return;led(true);try{await c.doc(key(r)).set({deleted:true,status:'deleted',deletedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedAt:firebase.firestore.FieldValue.serverTimestamp(),v73Device:device()},{merge:true})}finally{led(false)}}
- function refreshViews(){clearTimeout(window.__v73Refresh);window.__v73Refresh=setTimeout(async()=>{if(document.querySelector('#main .tpc-editor'))return;try{await window.loadData?.()}catch(e){}try{if(document.querySelector('.tpc-shell:not(:has(.tpc-editor))')&&typeof window.tpCorrectionPage==='function')window.tpCorrectionPage()}catch(e){}try{window.refreshAtelierCorrections?.()}catch(e){console.warn('V74 actualisation atelier',e)}},120)}
- function mergeRemote(snapshot){let local=rows(), changed=false;const byKey=new Map(local.map(r=>[key(r),r]));snapshot.docChanges().forEach(ch=>{const v=ch.doc.data()||{}, k=ch.doc.id, old=byKey.get(k);if(v.deleted){if(old){local=local.filter(r=>key(r)!==k);byKey.delete(k);changed=true}return}const rr=v.record;if(!rr)return;if(window.tpV201IsDeletedCorrection?.(rr))return;if(old&&document.querySelector('#main .tpc-editor')&&String(old.id)===String(window.__tp55Current))return;if(!old||stamp(rr)>=stamp(old)){if(old)local=local.map(r=>key(r)===k?rr:r);else local.push(rr);byKey.set(k,rr);changed=true}});if(changed){write(local);refreshViews()}}
+ function refreshViews(){window.dispatchEvent(new CustomEvent('tp-v159-corrections-updated'));}
+ function mergeRemote(snapshot){const before=rows();let local=before.slice();window.tp217.snapshot('V73',snapshot);snapshot.docChanges().forEach(ch=>{if(ch.type==='removed')return;const v=ch.doc.data()||{},k=ch.doc.id,ix=local.findIndex(r=>String(r.id)===String(v.record?.id)||key(r)===k),old=ix<0?null:local[ix];if(v.deleted){if(old)local=local.filter(r=>key(r)!==k);return}const rr=v.record;if(!rr||window.tpV201IsDeletedCorrection?.(rr))return;if(old&&document.querySelector('#main .tpc-editor')&&String(old.id)===String(window.__tp55Current)&&!window.tp217.done(rr))return;const chosen=window.tp217.prefer(old,rr);if(chosen===null){if(!local.some(r=>String(r.id)===String(rr.id)))local.push(rr);return}if(!old)local.push(chosen);else if(window.tp217.done(chosen)||stamp(rr)>=stamp(old))local[ix]=chosen});local=window.tp217.normalize(local);if(JSON.stringify(local)!==JSON.stringify(before)){write(local);refreshViews()}}
+ let flushing=false;async function flushPending(){if(flushing||!authReady())return;flushing=true;try{for(const r of window.tp217.pending('V73'))await pushRow(r)}catch(e){window.tp217.writeResult('V73',false,e)}finally{flushing=false}}
+ window.addEventListener('online',flushPending);
  async function migrateAndListen(){if(!authReady()||window.__v73Listening)return;window.__v73Listening=true;const c=col();if(!c)return;try{
-   // Migration unique : seulement les TP encore présents localement. Ensuite, chaque changement est unitaire.
-   const local=rows();for(let i=0;i<local.length;i+=400){const batch=db().batch();for(const r of local.slice(i,i+400)){const ref=c.doc(key(r));batch.set(ref,{record:{...JSON.parse(JSON.stringify(r)),v73Key:key(r),v73Identity:identity(r),v73Device:device(),v73UpdatedAt:new Date().toISOString()},deleted:false,status:r.correctedAt?'corrected':'returned',correctedAt:r.correctedAt||null,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true})}if(local.slice(i,i+400).length)await batch.commit()}
-   window.__v73Unsub=c.onSnapshot(mergeRemote,e=>{console.warn('V73 écoute corrections TP',e);window.__v73Listening=false});
+   // V217: snapshots first; correction/import changes remain unitary writes.
+   window.__v73Unsub=c.onSnapshot(snap=>{mergeRemote(snap);flushPending()},e=>{console.warn('V73 écoute corrections TP',e);window.__v73Listening=false});
  }catch(e){console.warn('V73 initialisation corrections TP',e);window.__v73Listening=false}}
  // Empêche une double validation sur deux postes : verrou Firestore court, puis état "corrected" partagé.
  function installValidationGuard(){const old=window.tpCorrectionValidate;if(typeof old!=='function'||old.__v73)return;const w=async function(){const id=window.__tp55Current;const r=rows().find(x=>String(x.id)===String(id));if(!r)return old.apply(this,arguments);if(!authReady())return old.apply(this,arguments);const ref=col().doc(key(r)), me=device();try{await db().runTransaction(async tx=>{const s=await tx.get(ref),v=s.exists?(s.data()||{}):{},until=v.lockUntil?.toMillis?.()||0;if((v.status==='corrected'||v.correctedAt)&&!r.correctedAt)throw new Error('ALREADY_CORRECTED');if(v.status==='correcting'&&v.lockOwner!==me&&until>Date.now())throw new Error('LOCKED');tx.set(ref,{status:'correcting',lockOwner:me,lockUntil:firebase.firestore.Timestamp.fromMillis(Date.now()+120000),updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true})});}catch(e){if(e?.message==='ALREADY_CORRECTED'||e?.message==='LOCKED'){alert(e.message==='ALREADY_CORRECTED'?'Ce TP a déjà été corrigé sur un autre poste. Les données vont être actualisées.':'Ce TP est actuellement en cours de correction sur un autre poste.');try{const s=await ref.get();if(s.exists)mergeRemote({docChanges:()=>[{doc:s}]})}catch(_){}return}throw e}
@@ -15529,9 +15604,9 @@ window.tpCorrectionValidate=async function(){
  let filterState={cl:'',tp:'',name:'',status:''};
  const rows=()=>{try{const a=JSON.parse(localStorage.getItem('tp_correction_local_v54')||'[]');return Array.isArray(a)?a:[]}catch(e){return[]}};
  function capture(){const g=id=>document.getElementById(id)?.value; if(document.getElementById('tpc-f-status'))filterState={cl:g('tpc-f-class')||'',tp:g('tpc-f-tp')||'',name:g('tpc-f-name')||'',status:g('tpc-f-status')||''}}
- function stateChips(){const sel=document.getElementById('tpc-f-status'),filters=document.querySelector('.tpc-filters');if(!sel||!filters)return;sel.closest('label').style.display='none';let bar=document.getElementById('tp109-states');if(!bar){bar=document.createElement('div');bar.id='tp109-states';bar.className='tp109-states';filters.after(bar)}const a=rows(),todo=a.filter(r=>!r.correctedAt).length,done=a.length-todo;bar.innerHTML=`<span class="tp109-states-label">État des TP</span><button type="button" class="tp109-chip" data-state="" aria-pressed="false">Tous <b>${a.length}</b></button><button type="button" class="tp109-chip" data-state="todo" aria-pressed="false">À corriger <b>${todo}</b></button><button type="button" class="tp109-chip" data-state="done" aria-pressed="false">Corrigés <b>${done}</b></button>`;bar.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{sel.value=b.dataset.state;filterState.status=sel.value;window.tpCorrectionFilter?.();updateChips()}));updateChips()}
+ function stateChips(){if(window.tp217?.chips){window.tp217.chips();return;}const sel=document.getElementById('tpc-f-status'),filters=document.querySelector('.tpc-filters');if(!sel||!filters)return;sel.closest('label').style.display='none';let bar=document.getElementById('tp109-states');if(!bar){bar=document.createElement('div');bar.id='tp109-states';bar.className='tp109-states';filters.after(bar)}const a=rows(),todo=a.filter(r=>!r.correctedAt).length,done=a.length-todo;bar.innerHTML=`<span class="tp109-states-label">État des TP</span><button type="button" class="tp109-chip" data-state="" aria-pressed="false">Tous <b>${a.length}</b></button><button type="button" class="tp109-chip" data-state="todo" aria-pressed="false">À corriger <b>${todo}</b></button><button type="button" class="tp109-chip" data-state="done" aria-pressed="false">Corrigés <b>${done}</b></button>`;bar.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{sel.value=b.dataset.state;filterState.status=sel.value;window.tpCorrectionFilter?.();updateChips()}));updateChips()}
  function updateChips(){const v=document.getElementById('tpc-f-status')?.value||'';document.querySelectorAll('#tp109-states .tp109-chip').forEach(b=>{const on=b.dataset.state===v;b.classList.toggle('active',on);b.setAttribute('aria-pressed',String(on))})}
- function actions(){const bar=document.querySelector('.tpc-shell .tpc-toolbar');if(!bar)return;bar.classList.add('tp109-actionbar');bar.innerHTML=`<div class="tp109-buttons"><button type="button" class="tp109-action" id="tp109-folder">📁 Dossier des PDF</button><button type="button" class="tp109-action" id="tp109-import-folder">📂 Importer un dossier</button><button type="button" class="tp109-action" id="tp109-import-files">📥 Importer des TP</button></div><span class="tp109-folder-status tp71-foldername">Dossier PDF : …</span><span class="pill">${rows().length} TP</span><input id="tp109-folder-input" type="file" webkitdirectory multiple hidden><input id="tp109-files-input" type="file" accept=".tp,.json,application/json" multiple hidden>`;
+ function actions(){const bar=document.querySelector('.tpc-shell .tpc-toolbar');if(!bar)return;if(bar.querySelector('#tp109-import-files'))return;bar.classList.add('tp109-actionbar');bar.innerHTML=`<div class="tp109-buttons"><button type="button" class="tp109-action" id="tp109-folder">📁 Dossier des PDF</button><button type="button" class="tp109-action" id="tp109-import-folder">📂 Importer un dossier</button><button type="button" class="tp109-action" id="tp109-import-files">📥 Importer des TP</button></div><span class="tp109-folder-status tp71-foldername">Dossier PDF : …</span><span class="pill">${rows().length} TP</span><input id="tp109-folder-input" type="file" webkitdirectory multiple hidden><input id="tp109-files-input" type="file" accept=".tp,.json,application/json" multiple hidden>`;
  bar.querySelector('#tp109-folder').onclick=()=>window.tp71ChooseCorrectionFolder?.();bar.querySelector('#tp109-import-folder').onclick=()=>bar.querySelector('#tp109-folder-input').click();bar.querySelector('#tp109-import-files').onclick=()=>bar.querySelector('#tp109-files-input').click();for(const input of bar.querySelectorAll('input[type=file]'))input.onchange=async()=>{if(input.files?.length)await window.tpCorrectionImport?.(input.files);input.value=''};window.tp71UpdateFolderLabels?.();
  }
  function selectBar(){const b=document.getElementById('tpc-selectbar');if(!b)return;b.classList.add('tp109-selectbar');if(!b.querySelector('.tp109-select-btn')){const btn=document.createElement('button');btn.type='button';btn.className='tp109-select-btn';btn.textContent='☑ Sélectionner les résultats';btn.onclick=()=>{const master=document.getElementById('tpc-select-all');window.tp58ToggleAll?.(!master?.checked)};b.prepend(btn)}const clear=[...b.querySelectorAll('button')].find(x=>x.textContent.includes('Désélectionner'));if(clear)clear.textContent='Effacer la sélection'}
@@ -16319,9 +16394,9 @@ window.tpCorrectionValidate=async function(){
  const KEY='tp_correction_local_v54', WORKSPACE='evaluation-mv-main', COL='tpCorrectionWorkV159';
  let unsub=null,busy=false,remoteApply=false,timer=null;
  const rows=()=>{try{const a=JSON.parse(localStorage.getItem(KEY)||'[]');return Array.isArray(a)?a:[]}catch(_){return[]}};
- const save=a=>localStorage.setItem(KEY,JSON.stringify((a||[]).slice(0,2000)));
+ const save=a=>localStorage.setItem(KEY,JSON.stringify(window.tp217.normalize(a||[])));
  const fs=()=>{try{return window.firebase?.firestore?.()}catch(_){return null}};
- const ready=()=>!!(fs()&&window.firebase?.auth?.().currentUser);
+ const ready=()=>window.tp217.networkAllowed()&&!!(fs()&&window.firebase?.auth?.().currentUser);
  const norm=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
  function identity(r){const d=r?.data||{},e=d.identite||d.eleve||{},tp=d.tp||{};return [d.studentId||e.id||norm((e.nom||'')+' '+(e.prenom||'')),tp.id||d.code||norm(tp.titre||d.titre||''),String(d.dates?.rendu||d.submission?.submittedAt||d.date||r?.importedAt||'').slice(0,10)].join('|')}
  function hash(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return (h>>>0).toString(36)}
@@ -16329,11 +16404,14 @@ window.tpCorrectionValidate=async function(){
  const col=()=>fs().collection('workspaces').doc(WORKSPACE).collection(COL);
  function badge(state,text){let h=document.querySelector('.tpc-shell .page-header p');if(!h)return;let b=document.getElementById('v159-sync-badge');if(!b){b=document.createElement('span');b.id='v159-sync-badge';b.className='v159-sync-badge';h.appendChild(b)}b.className='v159-sync-badge '+state;b.textContent=text}
  function compactArchive(r){const d=r?.data||{},e=d.identite||d.eleve||{},tp=d.tp||{};return {id:r.id||'',identity:identity(r),studentId:d.studentId||e.id||'',nom:e.nom||'',prenom:e.prenom||'',classe:e.classe||d.classe||'',tpId:tp.id||d.code||'',tpTitre:tp.titre||d.titre||'',note:r.note??'',appreciation:r.appreciation||'',levels:r.levels||{},evaluationId:r.savedEvaluationId||'',correctedAt:r.correctedAt||new Date().toISOString(),fileName:r.fileName||''}}
- async function push(r){if(!r||!ready()||remoteApply)return false;badge('syncing','☁ Synchronisation…');const ref=col().doc(docId(r));const payload=JSON.parse(JSON.stringify(r));await ref.set({status:r.correctedAt?'corrected':'draft',record:r.correctedAt?null:payload,archive:r.correctedAt?compactArchive(r):null,updatedAt:firebase.firestore.FieldValue.serverTimestamp(),clientUpdatedAt:new Date().toISOString()},{merge:true});badge('ok',r.correctedAt?'✓ Correction synchronisée':'✓ Brouillon synchronisé');return true}
+ const sent=new Map();
+ async function push(r){if(!r||remoteApply)return false;const sendToken=window.tp217.queueSend('V159',r);if(!ready())return false;const fingerprint=JSON.stringify(r);if(sent.get(docId(r))===fingerprint){window.tp217.ackSend('V159',r,sendToken);return true;}badge('syncing','☁ Synchronisation…');const ref=col().doc(docId(r));const payload=JSON.parse(JSON.stringify(r));await ref.set({status:r.correctedAt?'corrected':'draft',record:r.correctedAt?null:payload,archive:r.correctedAt?compactArchive(r):null,updatedAt:firebase.firestore.FieldValue.serverTimestamp(),clientUpdatedAt:new Date().toISOString()},{merge:true});sent.set(docId(r),fingerprint);window.tp217.ackSend('V159',r,sendToken);window.tp217.writeResult('V159',true);badge('ok',r.correctedAt?'✓ Correction synchronisée':'✓ Brouillon synchronisé');return true}
  function current(){const id=window.__tp55Current||window.__tpCorrectionCurrent||null;return rows().find(x=>String(x.id)===String(id))}
- function queue(){clearTimeout(timer);timer=setTimeout(()=>{const r=current();if(r)push(r).catch(e=>{console.warn('V159 sync brouillon',e);badge('offline','☁ À synchroniser')})},450)}
- function mergeSnapshot(snap){if(busy)return;busy=true;try{let a=rows(),changed=false;remoteApply=true;snap.docChanges().forEach(ch=>{const v=ch.doc.data()||{};if(v.status==='corrected'&&v.archive){const ar=v.archive;const ix=a.findIndex(r=>docId(r)===ch.doc.id);if(ix>=0&&!a[ix].correctedAt){a.splice(ix,1);changed=true}return}if(v.status!=='draft'||!v.record)return;const rr=v.record;if(window.tpV201IsDeletedCorrection?.(rr))return;const ix=a.findIndex(r=>docId(r)===ch.doc.id);if(ix<0){a.push(rr);changed=true;return}const open=String(a[ix].id)===String(window.__tp55Current||window.__tpCorrectionCurrent||'')&&document.querySelector('.tpc-editor');if(open)return;const lt=Date.parse(a[ix].v159UpdatedAt||a[ix].updatedAt||a[ix].importedAt||0)||0,rt=Date.parse(v.clientUpdatedAt||rr.v159UpdatedAt||rr.updatedAt||rr.importedAt||0)||0;if(rt>=lt){a[ix]=rr;changed=true}});if(changed){save(a);window.dispatchEvent(new CustomEvent('tp-v159-corrections-updated'));/* aucune navigation / aucun rerender global */}}finally{remoteApply=false;busy=false}}
- async function listen(){if(!ready()||unsub)return;try{unsub=col().onSnapshot(mergeSnapshot,e=>{console.warn('V159 écoute corrections',e);unsub=null});const pending=rows().filter(r=>!r.correctedAt);for(const r of pending)await push(r)}catch(e){console.warn('V159 init corrections',e)}}
+ function queue(){clearTimeout(timer);timer=setTimeout(()=>{const r=current();if(r)push(r).catch(e=>{window.tp217.writeResult('V159',false,e);console.warn('V159 sync brouillon',e);badge('offline','☁ À synchroniser')})},450)}
+ function mergeSnapshot(snap){if(busy)return;busy=true;try{const before=rows();let a=before.slice();remoteApply=true;window.tp217.snapshot('V159',snap);snap.docChanges().forEach(ch=>{if(ch.type==='removed')return;const v=ch.doc.data()||{};if(v.status==='corrected'&&v.archive){a=window.tp217.archiveInto(a,ch.doc.id,v.archive);return}if(v.status!=='draft'||!v.record)return;const rr=v.record;if(window.tpV201IsDeletedCorrection?.(rr))return;const ix=a.findIndex(r=>String(r.id)===String(rr.id)||docId(r)===ch.doc.id);if(ix<0){a.push(rr);return}const open=String(a[ix].id)===String(window.__tp55Current||'')&&document.querySelector('.tpc-editor');if(open)return;const chosen=window.tp217.prefer(a[ix],rr);if(chosen===null){if(!a.some(r=>String(r.id)===String(rr.id)))a.push(rr);return}if(window.tp217.done(a[ix])&&!window.tp217.done(rr))return;const lt=Date.parse(a[ix].v159UpdatedAt||a[ix].updatedAt||a[ix].importedAt||0)||0,rt=Date.parse(v.clientUpdatedAt||rr.v159UpdatedAt||rr.updatedAt||rr.importedAt||0)||0;if(rt>=lt||window.tp217.done(chosen))a[ix]=chosen});a=window.tp217.normalize(a);if(JSON.stringify(a)!==JSON.stringify(before)){save(a);window.dispatchEvent(new CustomEvent('tp-v159-corrections-updated'))}}finally{remoteApply=false;busy=false}}
+ let flushing=false;async function flushPending(){if(flushing||!ready())return;flushing=true;try{for(const r of window.tp217.pending('V159'))await push(r)}catch(e){window.tp217.writeResult('V159',false,e)}finally{flushing=false}}
+ window.addEventListener('online',flushPending);
+ async function listen(){if(!ready()||unsub)return;try{unsub=col().onSnapshot(snap=>{mergeSnapshot(snap);flushPending()},e=>{console.warn('V159 écoute corrections',e);unsub=null});/* V217: listen before writing; never republish all old drafts at startup. */}catch(e){console.warn('V159 init corrections',e)}}
  function install(){
    // Sauvegarde de chaque modification de correction, même si les anciens wrappers ont été remplacés.
    document.addEventListener('input',e=>{if(e.target?.closest?.('.tpc-editor'))queue()},true);
@@ -16345,7 +16423,7 @@ window.tpCorrectionValidate=async function(){
  }
  function boot(){install();listen();setTimeout(install,1200);setTimeout(install,3500)}
  try{window.firebase?.auth?.().onAuthStateChanged(u=>{if(u){if(unsub){try{unsub()}catch(_){ }unsub=null}boot()}else{if(unsub){try{unsub()}catch(_){ }unsub=null}}})}catch(_){setTimeout(boot,1200)}
- window.tpV159SyncCorrectionsNow=async function(){await listen();for(const r of rows().filter(x=>!x.correctedAt))await push(r);return true};
+ window.tpV159SyncCorrectionsNow=async function(){await listen();const r=current();if(r)await push(r);return true};
  setTimeout(boot,900);
  console.info('V159 : corrections TP multiposte actives. Brouillons complets dans Firebase, archive légère après validation, sans modification du démarrage.');
 })();
@@ -16646,7 +16724,7 @@ window.v185Apply=async()=>{
   finally{busy=false}
 };
 
-function inject(){
+function inject(){if(window.tp217)return;
   const main=document.getElementById('main');
   if(!main||!/(copies rendues|correction des tp|tp à corriger|tp a corriger)/i.test(main.textContent||''))return;
   if(document.getElementById('v185-sync'))return;
@@ -16670,6 +16748,7 @@ function setVersion(){
   document.title='V214 — Évaluation · Charge Atelier · TP · Correction';
 }
 function install(){
+  if(window.tp217)return;
   inject();
   setVersion();
   window.addEventListener('load',()=>setTimeout(setVersion,5000),{once:true});
@@ -17755,17 +17834,19 @@ const currentId=()=>String(window.__tp55Current||window.__tpCorrectionCurrent||'
 function validationButton(root=document){return [...root.querySelectorAll('button')].find(b=>/valider la correction/i.test((b.textContent||'')))||null}
 function statusEls(){const root=document.querySelector('.tpc-shell');if(!root)return[];return [...root.querySelectorAll('.tpc-status,.tp105-state,.pill,span')].filter(el=>{const t=(el.textContent||'').trim().toLowerCase();return ['à corriger','a corriger','corrigé','corrige'].includes(t)})}
 function setSingleStatus(done){
+ if(!document.querySelector('.tpc-editor'))return;
  let els=statusEls();
  if(!els.length){const p=document.querySelector('.tpc-shell .page-header p');if(p){const s=document.createElement('span');s.className='tp105-state '+(done?'done':'todo');p.append(' • ',s);els=[s]}}
  if(!els.length)return;
- const keep=els[0];keep.textContent=done?'Corrigé':'À corriger';keep.classList.toggle('done',done);keep.classList.toggle('todo',!done);
+ const keep=els[0],label=done?'Corrigé':'À corriger';if(keep.textContent!==label)keep.textContent=label;keep.classList.toggle('done',done);keep.classList.toggle('todo',!done);
  els.slice(1).forEach(x=>x.remove());
 }
 function lockUI(message){
+ if(!document.querySelector('.tpc-editor'))return;
  const note=document.getElementById('tpc-note');if(note){note.disabled=true;note.readOnly=true;note.setAttribute('aria-disabled','true');note.style.pointerEvents='none'}
  const app=document.getElementById('tpc-app');if(app){app.disabled=true;app.readOnly=true}
  document.querySelectorAll('.tpc-level,.tpc-markbtn').forEach(b=>{b.disabled=true;b.setAttribute('aria-disabled','true');b.style.pointerEvents='none'});
- const btn=validationButton();if(btn){btn.disabled=true;btn.setAttribute('aria-disabled','true');btn.style.pointerEvents='none';btn.textContent=message||'✓ Correction validée — enregistrement…'}
+ const btn=validationButton();if(btn){btn.disabled=true;btn.setAttribute('aria-disabled','true');btn.style.pointerEvents='none';const label=message||'✓ Correction validée — enregistrement…';if(btn.textContent!==label)btn.textContent=label}
  setSingleStatus(true);
 }
 function unlockIfNotSaved(){
@@ -17784,7 +17865,7 @@ document.addEventListener('click',function(e){
  [0,40,120,300,700,1400].forEach(ms=>setTimeout(()=>lockUI('✓ Correction validée — enregistrement…'),ms));
  setTimeout(()=>{const id=currentId(),r=read().find(x=>String(x.id)===id);if(r?.correctedAt||String(r?.workflowState||'').toUpperCase()==='CORRIGE')lockUI('✓ Correction validée — note verrouillée');else unlockIfNotSaved()},2200);
 },true);
-function reconcile(){const id=currentId();if(!id)return;const r=read().find(x=>String(x.id)===id);if(r?.correctedAt||String(r?.workflowState||'').toUpperCase()==='CORRIGE')lockUI('✓ Correction validée — note verrouillée');else setSingleStatus(false)}
+function reconcile(){if(!document.querySelector('.tpc-editor'))return;const id=currentId();if(!id)return;const r=read().find(x=>String(x.id)===id);if(r?.correctedAt||String(r?.workflowState||'').toUpperCase()==='CORRIGE')lockUI('✓ Correction validée — note verrouillée');else setSingleStatus(false)}
 const mo=new MutationObserver(()=>{clearTimeout(window.__v175mo);window.__v175mo=setTimeout(reconcile,35)});mo.observe(document.documentElement,{childList:true,subtree:true});
 function stamp(){}
 stamp();window.addEventListener('load',()=>{stamp();setTimeout(reconcile,300)},{once:true});
@@ -19234,6 +19315,7 @@ function updateCorrectorCounters(doneCloud){
 }
 
 async function refreshCorrector(reason){
+  if(window.tp217){window.tp217.schedule?.();return;}
   if(refreshBusy)return;
   if(!document.querySelector('.tpc-shell'))return;
   if(!auth()?.currentUser)return;
@@ -20095,44 +20177,7 @@ function renderedAt(r){
   const t=Date.parse(v||'');
   return Number.isFinite(t)?t:0;
 }
-function compactLatest(){
-  const rows=read();
-  const groups=new Map();
-  rows.forEach(r=>{
-    const k=groupKey(r);
-    if(!k.replace(/\|/g,''))return;
-    (groups.get(k)||groups.set(k,[]).get(k)).push(r);
-  });
-  const keep=new Set(), moved=[];
-  for(const arr of groups.values()){
-    arr.sort((a,b)=>renderedAt(b)-renderedAt(a)||String(b.importedAt||'').localeCompare(String(a.importedAt||'')));
-    const latest=arr[0]; if(latest)keep.add(String(latest.id));
-    const older=arr.slice(1);
-    if(older.length){
-      const prevCorrected=older.find(x=>x.correctedAt||String(x.workflowState||'').toUpperCase()==='CORRIGE');
-      if(prevCorrected&&!latest.previousCorrectedVersion){
-        latest.previousCorrectedVersion={
-          id:prevCorrected.id,
-          correctedAt:prevCorrected.correctedAt||'',
-          note:prevCorrected.note??'',
-          fileName:prevCorrected.fileName||'',
-          renderedAt:new Date(renderedAt(prevCorrected)||0).toISOString()
-        };
-      }
-      older.forEach(x=>moved.push({...x,v205Superseded:true,v205ArchivedAt:new Date().toISOString()}));
-    }
-  }
-  const untouched=rows.filter(r=>!groups.has(groupKey(r)));
-  const active=rows.filter(r=>keep.has(String(r.id))).concat(untouched);
-  if(moved.length){
-    const arch=archiveRead();
-    const seen=new Set(arch.map(x=>String(x.id)));
-    moved.forEach(x=>{if(!seen.has(String(x.id)))arch.unshift(x)});
-    archiveWrite(arch);
-  }
-  if(active.length!==rows.length||JSON.stringify(active)!==JSON.stringify(rows))write(active);
-  return {active:active.length,archived:moved.length};
-}
+function compactLatest(){const a=window.tp217.reconcile('copies rendues');return {active:a.length,archived:0};}
 window.tpV205CompactLatest=compactLatest;
 
 function aeFrom(r){
@@ -20151,12 +20196,12 @@ function aeFrom(r){
   };
 }
 function injectAE(id){
+  if(String(window.__tp55Current)!==String(id))return;
   const r=read().find(x=>String(x.id)===String(id));if(!r)return;
   const left=document.querySelector('.tpc-editor')?.firstElementChild;if(!left)return;
-  left.querySelector('.v205-ae-card')?.remove();
-  left.querySelector('.v205-new-render')?.remove();
+  const previous=left.querySelector('.v205-ae-card');
 
-  if(r.previousCorrectedVersion){
+  if(r.previousCorrectedVersion&&!left.querySelector('.v205-new-render')){
     const n=document.createElement('div');
     n.className='v205-new-render';
     n.textContent='↻ Nouveau rendu plus récent : une version précédente de ce TP avait déjà été corrigée.';
@@ -20181,10 +20226,11 @@ function injectAE(id){
       ${a.modified?`<div class="v205-ae-warning">⚠ Note modifiée par l’élève · note calculée automatiquement : ${esc(calc)} / 20</div>`:`<div class="muted">Note calculée automatiquement : ${esc(calc)} / 20</div>`}
       ${a.comment?`<div style="margin-top:10px"><b>Commentaire élève</b><div style="white-space:pre-wrap;margin-top:4px">${esc(a.comment)}</div></div>`:''}`;
   }
-  left.prepend(card);
+  if(previous&&previous.innerHTML===card.innerHTML)return;
+  previous?.remove();left.prepend(card);
 }
 
-compactLatest();
+/* V217: no startup compaction. */
 
 /* Le filtre/page existant reste intact : on réduit simplement la base active
    aux rendus les plus récents avant son affichage. */
@@ -20219,4 +20265,44 @@ document.title='V214 — Évaluation · Charge Atelier · TP · Correction';
 
 console.info('V205 : auto-évaluation TP lue depuis le JSON rendu ; Tableau du jour exclut les TP diffusés ; rendu le plus récent privilégié.');
 })();
+</script>
+
+<style id="v217-diagnostic-style">#v217-diagnostic{margin-top:18px;border:1px solid #b8ccd9;background:#f7fafc}#v217-diagnostic summary{cursor:pointer}#v217-diagnostic p{line-height:1.5}#v185-sync{display:none!important}</style>
+<script id="v217-provisional-diagnostic">
+/* V217 provisional trace panel and stable portal updates. Removable independently of status fixes. */
+(function(){
+'use strict';const api=window.tp217;if(!api)return;let timer,lastKey='',force=false,opening=false,lastBox=null,lastEvalRead=0,evaluationBusy=false;
+const list=()=>!!document.getElementById('tpc-groups')&&!document.querySelector('.tpc-editor');
+const text=(el,v)=>{if(el&&el.textContent!==String(v))el.textContent=String(v)};
+function counts(){const a=api.read(),g=id=>document.getElementById(id)?.value||'',cl=g('tpc-f-class'),tp=g('tpc-f-tp'),name=g('tpc-f-name').toLowerCase();const scoped=a.filter(r=>(!cl||r.data?.classe===cl)&&(!tp||(r.data?.code||r.data?.titre)===tp)&&(!name||([r.data?.eleve?.nom,r.data?.eleve?.prenom].filter(Boolean).join(' ')||r.data?.studentName||'').toLowerCase().includes(name)));const done=scoped.filter(api.done).length;return {total:scoped.length,todo:scoped.length-done,done}}
+function chips(){if(!list())return;const filters=document.querySelector('.tpc-filters'),sel=document.getElementById('tpc-f-status');if(!filters||!sel)return;sel.closest('label').style.display='none';let bar=document.getElementById('tp109-states');if(!bar){bar=document.createElement('div');bar.id='tp109-states';bar.className='tp109-states';bar.innerHTML='<span class="tp109-states-label">État des TP</span><button type="button" class="tp109-chip" data-state="">Tous <b></b></button><button type="button" class="tp109-chip" data-state="todo">À corriger <b></b></button><button type="button" class="tp109-chip" data-state="done">Corrigés <b></b></button>';filters.after(bar);bar.addEventListener('click',e=>{const b=e.target.closest('button[data-state]');if(b){sel.value=b.dataset.state;sel.dataset.v217Touched='1';window.tpCorrectionFilter();}})}const c=counts();bar.querySelectorAll('button[data-state]').forEach(b=>{text(b.querySelector('b'),c[b.dataset.state||'total']);const on=sel.value===b.dataset.state;b.classList.toggle('active',on);if(b.getAttribute('aria-pressed')!==String(on))b.setAttribute('aria-pressed',String(on))});text(document.querySelector('.tpc-toolbar > .pill'),api.read().length+' TP');}
+api.chips=chips;
+function panel(){const shell=document.querySelector('.tpc-shell');if(!shell)return;let p=document.getElementById('v217-diagnostic');if(!p){p=document.createElement('details');p.id='v217-diagnostic';p.className='panel';p.innerHTML='<summary><b>V217 · Diagnostic provisoire du portail</b> <span id="v217-health"></span></summary><p>La trace se remplit pendant votre utilisation. Elle permet de vérifier les statuts, les compteurs et les actualisations. Elle ne lance pas de lecture Firebase supplémentaire.</p><p id="v217-summary"></p><button type="button" class="secondary" onclick="tp217ExportDiagnostic()">Télécharger la trace de diagnostic JSON</button>';shell.append(p)}const c=api.report().counts;text(document.getElementById('v217-health'),`· ${c.corriges} corrigé(s), ${c.aCorriger} à corriger`);text(document.getElementById('v217-summary'),`${api.stats.listRenders} actualisation(s) de liste · ${api.stats.unchangedRendersSkipped} rafraîchissement(s) inutile(s) évité(s) · ${api.stats.downgradesBlocked} retour(s) en brouillon empêché(s). La cohérence entre postes reste à vérifier avec la trace.`)}
+window.tp217ExportDiagnostic=function(){const report=api.report();report.display={counts:counts(),visibleRows:document.querySelectorAll('#tpc-groups .tpc-row').length,filter:document.getElementById('tpc-f-status')?.value||'',editor:!!document.querySelector('.tpc-editor')};const blob=new Blob([JSON.stringify(report,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='Diagnostic_Portail_Correcteur_V217_'+new Date().toISOString().replace(/[:.]/g,'-')+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)};
+async function evaluations(){if(evaluationBusy||Date.now()-lastEvalRead<3000)return;evaluationBusy=true;lastEvalRead=Date.now();try{if(typeof getAll!=='function')return;const es=await getAll('evaluations'),rows=api.read();let found=0;for(const r of rows){if(api.done(r))continue;const e=es.find(e=>String(e.tpCorrectionId||'')===String(r.id)||!!r.savedEvaluationId&&String(e.id)===String(r.savedEvaluationId));if(!e)continue;const p={...r,savedEvaluationId:e.id,correctedAt:e.modifiedAt?new Date(e.modifiedAt).toISOString():e.createdAt?new Date(e.createdAt).toISOString():'date inconnue',workflowState:'CORRIGE',note:e.sourceNote20??e.noteDrivenExact??r.note,v217Source:'évaluation locale liée par identifiant exact'};api.remember(p);found++}api.persistProofs();api.event('évaluations locales vérifiées',{evaluations:es.length,correctionsRetrouvees:found});if(found){api.reconcile('évaluations locales');schedule()}}catch(e){api.event('évaluations locales indisponibles',{error:String(e.message)})}finally{evaluationBusy=false}}
+function options(){for(const [id,get] of [['tpc-f-class',r=>r.data?.classe],['tpc-f-tp',r=>r.data?.code||r.data?.titre]]){const el=document.getElementById(id);if(!el)continue;const existing=new Set([...el.options].map(o=>o.value));for(const v of [...new Set(api.read().map(get).filter(Boolean))].sort()){if(!existing.has(v)){const o=document.createElement('option');o.value=v;o.textContent=v;el.append(o)}}}}
+const oldFilter=window.tpCorrectionFilter;
+window.tpCorrectionFilter=function(){if(!list())return;const rows=api.reconcile('filtre'),box=document.getElementById('tpc-groups'),filters=['tpc-f-class','tpc-f-tp','tpc-f-name','tpc-f-status'].map(id=>document.getElementById(id)?.value||'');const key=JSON.stringify([rows.map(r=>[r.id,r.data?.eleve,r.data?.studentName,r.data?.classe,r.data?.code,r.data?.titre,r.note,api.done(r)]),filters]);if(!force&&box===lastBox&&key===lastKey){api.stats.unchangedRendersSkipped++;chips();panel();return}force=false;lastBox=box;lastKey=key;api.stats.listRenders++;const out=oldFilter.apply(this,arguments);chips();panel();return out};
+for(const name of ['tp58ToggleAll','tp58ClearSelection']){const old=window[name];if(typeof old==='function')window[name]=function(){force=true;return old.apply(this,arguments)}}
+function schedule(){clearTimeout(timer);timer=setTimeout(()=>{if(list()){options();window.tpCorrectionFilter()}else if(document.querySelector('.tpc-editor')){panel();const r=api.read().find(x=>String(x.id)===String(window.__tp55Current));if(r&&api.done(r)){document.querySelectorAll('.v131-mark').forEach(b=>b.disabled=true)}}},180)}
+api.schedule=schedule;
+const oldPage=window.tpCorrectionPage;
+window.tpCorrectionPage=function(){
+ if(list()){api.reconcile('retour à la liste');options();window.tpCorrectionFilter();evaluations();return}
+ const editor=document.querySelector('.tpc-editor'),ev=window.event;
+ if(editor&&!window.__v217ReturnToList&&!window.__v76ForceTpList){api.event('navigation automatique évitée',{view:'correction'});return}
+ if(opening)return;opening=true;try{api.reconcile('ouverture portail');window.__v76ForceTpList=true;api.stats.pageBuilds++;const out=oldPage.apply(this,arguments);window.__tp55Current='';window.__tpCorrectionCurrent='';setTimeout(()=>{const sel=document.getElementById('tpc-f-status');if(sel&&!sel.dataset.v217Touched)sel.value='todo';window.tpCorrectionFilter();panel();options()},100);evaluations();return out}finally{opening=false;window.__v217ReturnToList=false}
+};
+// Explicit return/validation actions alone may leave an open correction.
+document.addEventListener('click',e=>{const b=e.target.closest?.('button');if(b&&/tpCorrectionPage\s*\(/.test(b.getAttribute('onclick')||''))window.__v217ReturnToList=true},true);
+const oldValidate=window.tpCorrectionValidate;if(typeof oldValidate==='function')window.tpCorrectionValidate=async function(){const id=window.__tp55Current;const out=await oldValidate.apply(this,arguments);const rows=api.reconcile('validation');if(rows.some(r=>String(r.id)===String(id)&&api.done(r))&&document.querySelector('.tpc-editor')){window.__v217ReturnToList=true;window.tpCorrectionPage()}schedule();return out};
+const oldOpen=window.tpCorrectionOpen;window.tpCorrectionOpen=function(id){api.reconcile('ouverture copie');api.event('copie ouverte',{id});const out=oldOpen.apply(this,arguments);setTimeout(panel,200);return out};
+window.addEventListener('tp-v159-corrections-updated',schedule);
+window.addEventListener('storage',e=>{if(e.key==='tp_correction_local_v54'||e.key==='tp_corrected_proofs_v217')schedule()});
+// Observe replacements only. No rerender is triggered by this temporary observer.
+window.addEventListener('error',e=>api.event('erreur JavaScript',{message:String(e.message||'').slice(0,250)}));
+window.addEventListener('unhandledrejection',e=>api.event('opération interrompue',{message:String(e.reason?.message||e.reason||'').slice(0,250)}));
+let observer;function observe(){const main=document.getElementById('main');if(!main)return;observer=new MutationObserver(ms=>{for(const m of ms){if(m.target.classList?.contains('tpc-editor')||m.target.parentElement?.classList?.contains('tpc-editor'))api.stats.editorReplacements++}});observer.observe(main,{childList:true,subtree:true})}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',observe,{once:true});else observe();
+})();
+
 </script>
