@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1" name="viewport"/>
-<title>V214 Évaluation · Charge Atelier · TP · Correction</title>
+<title>V223 — Évaluation · Charge Atelier · TP · Correction</title>
 <style>
 *{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f5f7fa;color:#172033}
 .app{display:flex;min-height:100vh}.side{width:235px;background:#172033;color:#fff;padding:22px 14px}.logo{font-size:19px;font-weight:700;padding:8px 10px 24px}
@@ -2734,7 +2734,7 @@ body{background:#f7f9fc;color:var(--text)}
 <!-- V88 — DONNÉES DE RÉFÉRENCE RÉINTÉGRÉES DEPUIS V86.5
      Jeux embarqués repris : référentiel compétences, élèves par défaut, seconde classe fictive, situations professionnelles.
      Les données dynamiques (classes/élèves/évaluations réellement saisies) restent chargées par IndexedDB/localStorage et Firebase. -->
-<div id="build-version">V214 — Évaluation · Charge Atelier · TP · Correction</div>
+<div id="build-version">V223 — Évaluation · Charge Atelier · TP · Correction</div>
 <div id="firebase-auth-overlay">
 <div class="firebase-login-card">
 <h2>☁️ Connexion Firebase — V89</h2>
@@ -2777,7 +2777,7 @@ body{background:#f7f9fc;color:var(--text)}
 <div class="app">
 <button aria-expanded="true" aria-label="Masquer la barre latérale" class="sidebar-toggle" id="sidebar-toggle" onclick="toggleSidebar()" title="Masquer la barre latérale" type="button">◀</button>
 <aside class="side">
-<div class="logo">COMPÉTENCES MV<br/><small style="font-size:11px;font-weight:400">V214 — Évaluation · Charge Atelier · TP · Correction</small></div>
+<div class="logo">COMPÉTENCES MV<br/><small style="font-size:11px;font-weight:400">V223 — Évaluation · Charge Atelier · TP · Correction</small></div>
 <div class="nav">
 <button id="nav-home" onclick="go('home')">🏠 <span>Accueil</span></button>
 <button id="nav-students" onclick="go('students')">👨‍🎓 <span>Élèves</span></button>
@@ -4107,8 +4107,8 @@ function home(){
     </div>`;
   /* Affichage de version de l'accueil : information uniquement, sans impact sur le bootstrap. */
   const homeVersionBadge=document.getElementById("build-version");
-  if(homeVersionBadge)homeVersionBadge.textContent='V214 — Évaluation · Charge Atelier · TP · Correction';
-  document.title='V214 — Évaluation · Charge Atelier · TP · Correction';
+  if(homeVersionBadge)homeVersionBadge.textContent='V223 — Évaluation · Charge Atelier · TP · Correction';
+  document.title='V223 — Évaluation · Charge Atelier · TP · Correction';
 }
 
 function collapseAllCollectiveRows(){
@@ -11157,6 +11157,45 @@ function openAssistanceMail(){
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<script id="v223-quota-guard">
+(function(){
+'use strict';
+const KEY='firebase_quota_pause_v223';
+let paused=localStorage.getItem(KEY)==='1';
+const sdk=window.firebase?.firestore;
+function show(){
+ let box=document.getElementById('firebase-quota-v223');
+ if(!paused){box?.remove();return}
+ if(!box){box=document.createElement('div');box.id='firebase-quota-v223';box.style.cssText='position:fixed;left:12px;right:12px;bottom:68px;z-index:2147483001;background:#fff3cd;color:#663c00;border:2px solid #d99b00;border-radius:10px;padding:12px;font:14px Arial';
+ const text=document.createElement('span');text.textContent='Quota Firebase atteint : échanges suspendus. Les données locales sont conservées. Reprendre uniquement après rétablissement du quota. ';
+ const button=document.createElement('button');button.textContent='Reprendre Firebase';button.onclick=async()=>{if(!confirm('Reprendre les échanges Firebase ? Vérifie d’abord que le quota est rétabli.'))return;try{await firebase.firestore().enableNetwork();paused=false;localStorage.removeItem(KEY);show();location.reload()}catch(e){text.textContent='Reprise impossible : '+String(e.message||e)}};
+ box.append(text,button);document.body.appendChild(box);}
+}
+function stop(e){if(!/resource-exhausted|quota exceeded|quota.*exceed|\b429\b/i.test(String(e?.code||'')+' '+String(e?.message||e)))return;
+ paused=true;localStorage.setItem(KEY,'1');try{firebase.firestore().disableNetwork().catch(()=>{})}catch(_){}show();
+}
+function blocked(){const e=new Error('Firebase suspendu après dépassement du quota. Utilisez Reprendre Firebase après rétablissement.');e.code='resource-exhausted';return e}
+if(sdk){
+ for(const [type,names] of [['DocumentReference',['get','set','update','delete']],['Query',['get']],['WriteBatch',['commit']],['Firestore',['runTransaction']]]){
+  const proto=sdk[type]?.prototype;if(!proto)continue;
+  for(const name of names){const old=proto[name];if(typeof old!=='function')continue;proto[name]=function(...args){if(paused)return Promise.reject(blocked());try{return Promise.resolve(old.apply(this,args)).catch(e=>{stop(e);throw e})}catch(e){stop(e);throw e}};}
+ }
+ for(const type of ['Query','DocumentReference']){
+  const proto=sdk[type]?.prototype,old=proto?.onSnapshot;if(typeof old!=='function')continue;
+  proto.onSnapshot=function(...args){
+   if(paused){const error=args.filter(x=>typeof x==='function')[1];if(error)Promise.resolve().then(()=>error(blocked()));return ()=>{}}
+   const callbacks=args.map((x,i)=>typeof x==='function'?i:-1).filter(i=>i>=0);
+   if(callbacks.length>=2){const i=callbacks[1],fn=args[i];args[i]=e=>{stop(e);fn(e)}}
+   else if(callbacks.length===1)args.push(e=>stop(e));
+   return old.apply(this,args);
+  };
+ }
+}
+window.firebaseQuotaPaused223=()=>paused;
+if(paused){try{firebase.firestore().disableNetwork().catch(()=>{})}catch(_){}show();}
+})();
+
+</script>
 <script id="v81-firebase-test-runtime">
 (function(){
   // V RÉFÉRENTIEL 2 — Firebase activable depuis Paramètres.
@@ -11956,7 +11995,7 @@ window.firebaseSaveCurrentConfig=async()=>{await saveFullConfig(firebaseBuildApp
 
     // V214 — écriture bornée à 5 s et non bloquante pour le bootstrap.
     try{
-      await firebaseTimeout(
+      if(!warning&&(managedActivityStable219(codes)!==managedActivityStable219(remote.codes||{})||managedActivityStable219(stableCodes)!==managedActivityStable219(remote.stableCodes||{})||readSource==='tpGenerator-legacy'))await firebaseTimeout(
         codesRef.set({
           codes,
           stableCodes,
@@ -13234,7 +13273,9 @@ window.applyPlanningToDate=function(date,showMessage){
     });addedCount++;}
   });
   t._planningAppliedDate=date;
+  if(addedCount)t.updatedAtClient=Math.max(Date.now(),Number(t.updatedAtClient||0)+1);
   localStorage.setItem(KEY,JSON.stringify(d));
+  if(addedCount&&typeof window.firebaseSaveAtelierSession==='function')window.firebaseSaveAtelierSession(t,classId,date).catch(err=>console.warn('Préparation atelier conservée localement',err));
   // La date chargée devient le contexte de travail de l'Administration : audit, cartes et publication lisent exactement la même séance classe + date.
   state.workDate=String(date||day());
   atelierPlanningSelectedDate=String(date||atelierPlanningSelectedDate||day());
@@ -15838,7 +15879,7 @@ window.tp217={queueSend,ackSend,pending,stats,event,read,done,same,normalize,rec
  const oldDiffuse=window.tpGenDiffuseSaved;window.tpGenDiffuseSaved=async function(id){const x=rows().find(r=>String(r.savedId)===String(id));if(x?.snapshot?.rawProjectStored){const raw=await getProject(id);if(raw)mem.set(String(id),raw)}return oldDiffuse?.(id)};
  const oldLocked=window.tpGenLockedSnapshot;window.tpGenLockedSnapshot=function(){const d=oldLocked?.();if(d?.rawProjectStored&&!d.rawProject){const id=String(tpGenState.currentSavedId||window.__tpDiffusionSavedId||'');const raw=mem.get(id);if(raw)d.rawProject=JSON.parse(JSON.stringify(raw))}return d};
  const oldDelete=window.tpGenDeleteSaved;window.tpGenDeleteSaved=async function(id){const before=rows().some(x=>String(x.savedId)===String(id));const ret=await oldDelete?.(id);if(before&&!rows().some(x=>String(x.savedId)===String(id)))try{await delProject(id)}catch(e){console.warn(e)}return ret};
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V214 — Évaluation · Charge Atelier · TP · Correction';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V223 — Évaluation · Charge Atelier · TP · Correction';
  migrate();
  console.info('V113 actif : projets TP lourds stockés dans IndexedDB; localStorage limité aux métadonnées.');
 })();
@@ -15898,7 +15939,7 @@ window.tp217={queueSend,ackSend,pending,stats,event,read,done,same,normalize,rec
  };
  const oldDiffPage=window.tpV76DiffusionsPage;
  if(typeof oldDiffPage==='function')window.tpV76DiffusionsPage=function(){const out=oldDiffPage.apply(this,arguments);setTimeout(()=>{const data=diffRows().filter(r=>!new Set(deletedIds()).has(String(r.id))).sort((a,b)=>String(b.diffusedAt||'').localeCompare(String(a.diffusedAt||''))),els=[...document.querySelectorAll('.v76-diff-row')];els.forEach((el,i)=>{const r=data[i];if(!r||el.querySelector('[data-v114-delete]'))return;const oldBtn=el.querySelector('button');const wrap=document.createElement('div');wrap.className='v114-diff-actions';if(oldBtn){oldBtn.replaceWith(wrap);wrap.appendChild(oldBtn)}const b=document.createElement('button');b.type='button';b.className='tpgen-btn danger';b.dataset.v114Delete='1';b.textContent='🗑️ Supprimer';b.onclick=()=>window.tp114DeleteDiffusion(r.id);wrap.appendChild(b)})},0);return out};
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V214 — Évaluation · Charge Atelier · TP · Correction';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V223 — Évaluation · Charge Atelier · TP · Correction';
  console.info('V114 actif : import TP IndexedDB corrigé et suppression individuelle des TP diffusés.');
 })();
 </script>
@@ -15982,9 +16023,9 @@ window.tp217={queueSend,ackSend,pending,stats,event,read,done,same,normalize,rec
  }
  async function getChunked(kind,doc){const d=doc.data()||{},n=Number(d.parts||0);if(!n)return null;const q=await doc.ref.collection('chunks').orderBy(firebase.firestore.FieldPath.documentId()).get();try{return JSON.parse(q.docs.map(x=>x.data()?.data||'').join(''))}catch(e){console.warn('V132 reconstruction',kind,doc.id,e);return null}}
  function idSaved(x){return String(x?.savedId||x?.id||'')}; function idDiff(x){return String(x?.id||'')}
- async function syncKind(kind,key,idfn){const r=root();if(!r)return {up:0,down:0};const local=kind==='tpDiffusionsV132'?compactList(parse(key)):parse(key), lm=new Map(local.map(x=>[idfn(x),x]).filter(x=>x[0]));const snap=await r.collection(kind).get();let up=0,down=0;
-   for(const d of snap.docs){const remoteRaw=await getChunked(kind,d);if(!remoteRaw)continue;const remote=kind==='tpDiffusionsV132'?compactDiff(remoteRaw):remoteRaw;const id=idfn(remote)||d.id, old=lm.get(id);if(!old||stamp(remote)>stamp(old)){lm.set(id,kind==='tpDiffusionsV132'?mergeRegistry(old,remote):remote);down++}}
-   for(const [id,x] of lm){const meta=snap.docs.find(d=>d.id===id)?.data()||{};const remoteTime=Date.parse(meta.clientUpdatedAt||0)||0;if(!remoteTime||stamp(x)>=remoteTime){await putChunked(kind,id,kind==='tpDiffusionsV132'?compactDiff(x):x);up++}}
+ async function syncKind(kind,key,idfn){const r=root();if(!r)return {up:0,down:0};const local=kind==='tpDiffusionsV132'?compactList(parse(key)):parse(key), lm=new Map(local.map(x=>[idfn(x),x]).filter(x=>x[0]));const snap=await r.collection(kind).get();const remoteContents=new Map();let up=0,down=0;
+   for(const d of snap.docs){const remoteRaw=await getChunked(kind,d);if(!remoteRaw)continue;const remote=kind==='tpDiffusionsV132'?compactDiff(remoteRaw):remoteRaw;const id=idfn(remote)||d.id, old=lm.get(id);remoteContents.set(id,managedActivityStable219(remote));if(!old||stamp(remote)>stamp(old)){lm.set(id,kind==='tpDiffusionsV132'?mergeRegistry(old,remote):remote);down++}}
+   for(const [id,x] of lm){const meta=snap.docs.find(d=>d.id===id)?.data()||{};const remoteTime=Date.parse(meta.clientUpdatedAt||0)||0;if(remoteContents.get(id)!==managedActivityStable219(x)&&(!remoteTime||stamp(x)>=remoteTime)){await putChunked(kind,id,kind==='tpDiffusionsV132'?compactDiff(x):x);up++}}
    const values=[...lm.values()].sort((a,b)=>stamp(b)-stamp(a));
    if(kind==='tpDiffusionsV132')writeDiffCacheRaw(localStorage,values,Storage.prototype.__tpV213RawSet||Storage.prototype.setItem);
    else try{localStorage.setItem(key,JSON.stringify(values))}catch(e){console.warn('V132 cache local impossible',e)}
@@ -16003,6 +16044,7 @@ window.tp217={queueSend,ackSend,pending,stats,event,read,done,same,normalize,rec
    window.__v132StorageHook=true;
    Storage.prototype.setItem=function(k,v){
      if(this===localStorage&&k===DIFF){
+       if(this.getItem(k)===String(v))return;
        const ok=writeDiffCacheRaw(this,v,oldSet);
        soon(k);
        return ok;
@@ -16017,7 +16059,7 @@ window.tp217={queueSend,ackSend,pending,stats,event,read,done,same,normalize,rec
  }catch(e){console.warn('V213 migration registre Mes TP diffusés',e)}
  // La photothèque n'est volontairement jamais incluse dans cette synchronisation.
  setTimeout(()=>run('demarrage'),1600);
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V214 — Évaluation · Charge Atelier · TP · Correction';document.title='V214 Évaluation · Charge Atelier · TP · Correction';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V223 — Évaluation · Charge Atelier · TP · Correction';document.title='V223 — Évaluation · Charge Atelier · TP · Correction';
  console.info('V133 : Firebase limité aux TP diffusés. TP enregistrés et photothèque restent locaux.');
 })();
 </script>
@@ -16055,7 +16097,7 @@ window.tp217={queueSend,ackSend,pending,stats,event,read,done,same,normalize,rec
  window.addEventListener('pagehide',()=>{if(!isHome())return;try{const light={at:new Date().toISOString(),version:VERSION,localStorage:Object.fromEntries(Array.from({length:localStorage.length},(_,i)=>{const k=localStorage.key(i);return[k,localStorage.getItem(k)]}))};localStorage.setItem('evaluation_emergency_backup_v133',JSON.stringify(light))}catch(_){}});
  // Outil volontaire : efface les anciennes copies cloud des TP ENREGISTRÉS V132, jamais les diffusions.
  window.v133CleanSavedTpCloud=async function(){if(!confirm('Supprimer de Firebase les anciennes copies des TP enregistrés ?\nLes TP diffusés ne seront pas touchés.'))return false;const fs=window.firebase?.firestore?.();if(!fs)throw new Error('Firebase indisponible');const col=fs.collection('workspaces').doc('evaluation-mv-main').collection('tpProjectsV132'),snap=await col.get();for(const d of snap.docs){const c=await d.ref.collection('chunks').get();for(let i=0;i<c.docs.length;i+=300){const b=fs.batch();c.docs.slice(i,i+300).forEach(x=>b.delete(x.ref));await b.commit()}await d.ref.delete()}alert(snap.size+' TP enregistrés supprimés de Firebase. Les versions locales sont conservées.');return true};
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V214 — Évaluation · Charge Atelier · TP · Correction';document.title='V214 Évaluation · Charge Atelier · TP · Correction';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V223 — Évaluation · Charge Atelier · TP · Correction';document.title='V223 — Évaluation · Charge Atelier · TP · Correction';
  console.info('V133 poste maison:',isHome()?'actif':'inactif','— TP enregistrés locaux, diffusions Firebase.');
 })();
 </script>
@@ -16101,8 +16143,8 @@ window.tp217={queueSend,ackSend,pending,stats,event,read,done,same,normalize,rec
  window.addEventListener('storage',e=>{if(e.key===DKEY)purgeDeleted()});
  window.addEventListener('tp-v133-synced',purgeDeleted);
  setInterval(purgeDeleted,4000);
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V214 — Évaluation · Charge Atelier · TP · Correction';
- document.title='V214 Évaluation · Charge Atelier · TP · Correction';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V223 — Évaluation · Charge Atelier · TP · Correction';
+ document.title='V223 — Évaluation · Charge Atelier · TP · Correction';
  console.info('V134 : page TP diffusés non intrusive et suppression Firebase V106/V132 sécurisée.');
 })();
 </script>
@@ -16122,7 +16164,7 @@ window.tp217={queueSend,ackSend,pending,stats,event,read,done,same,normalize,rec
  window.tp138ToggleStudents=function(id){const el=document.getElementById('v138-students-'+CSS.escape(String(id)));if(!el)return;const hidden=el.hidden;el.hidden=!hidden;const b=document.querySelector(`[data-v138-toggle="${CSS.escape(String(id))}"]`);if(b)b.textContent=hidden?'▾ Masquer les élèves':'▸ Voir les élèves';};
  window.tpV76DiffusionsPage=function(){window.setActive?.('tpGenerator');const rows=diffs().sort((a,b)=>String(b.diffusedAt||'').localeCompare(String(a.diffusedAt||''))),main=document.getElementById('main');if(!main)return false;main.innerHTML=`<header class="app-top-header"></header><div class="tpgen-manager-shell"><div class="tpgen-head"><div><h1>📤 Mes TP diffusés</h1><p class="muted">Registre multiposte léger : gris = diffusé, jaune = rendu, vert = corrigé. Les fichiers TP restent locaux / Dropbox.</p></div><button class="tpgen-btn secondary" onclick="tpGeneratorPage()">← Retour</button></div><div class="tpgen-card">${rows.length?rows.map(r=>{const c=counts(r),id=String(r.id||'');return `<div class="v138-diff-card"><div class="v138-top"><div><b>${esc(r.tpCode||'TP')} — ${esc(r.title||'')}</b><div class="muted">${esc(r.className||'')} • ${r.diffusedAt?new Date(r.diffusedAt).toLocaleString('fr-FR'):''} • ${(r.students||[]).length} élève(s)</div></div><div class="v138-actions"><button class="tpgen-btn primary" onclick="tpV76AddDiffusionToDay('${esc(id)}')">＋ Affecter</button><button class="tpgen-btn danger" onclick="tp114DeleteDiffusion('${esc(id)}')">🗑️ Supprimer</button></div></div><div class="v138-counts"><span class="v138-count v138-grey">⬜ Diffusé <b>${c.grey}</b></span><span class="v138-count v138-yellow">🟨 Rendu <b>${c.yellow}</b></span><span class="v138-count v138-green">🟩 Corrigé <b>${c.green}</b></span></div><button class="v138-toggle" data-v138-toggle="${esc(id)}" onclick="tp138ToggleStudents('${esc(id)}')">▸ Voir les élèves</button><div class="v138-students" id="v138-students-${esc(id)}" hidden>${(r.students||[]).map(st=>{const q=state(r,st),label=q==='green'?'Corrigé':q==='yellow'?'Rendu':'Diffusé';return `<div class="v138-student ${q}"><b>${esc(sname(st))}</b><span>${label}</span></div>`}).join('')||'<span class="muted">Liste nominative absente de cette ancienne diffusion.</span>'}</div></div>`}).join(''):'<div class="muted">Aucun TP diffusé enregistré.</div>'}</div></div>`;return true};
  // Le registre Firebase ne doit jamais contenir le projet TP lourd : la V132 a été patchée pour n'envoyer que les métadonnées + élèves.
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V214 — Évaluation · Charge Atelier · TP · Correction';document.title='V214 Évaluation · Charge Atelier · TP · Correction';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V223 — Évaluation · Charge Atelier · TP · Correction';document.title='V223 — Évaluation · Charge Atelier · TP · Correction';
  console.info('V138 : registre TP diffusés léger + élèves repliés + compteurs gris/jaune/vert.');
 })();
 </script>
@@ -16168,7 +16210,7 @@ window.tp217={queueSend,ackSend,pending,stats,event,read,done,same,normalize,rec
  const oldImport=window.tpCorrectionImport;window.tpCorrectionImport=async function(files){let before=new Set((()=>{try{return (JSON.parse(localStorage.getItem(CORR)||'[]')||[]).map(x=>String(x.id))}catch(_){return[]}})());let out=await oldImport?.apply(this,arguments);setTimeout(async()=>{try{let rows=JSON.parse(localStorage.getItem(CORR)||'[]')||[], fresh=rows.filter(x=>!before.has(String(x.id))&&!x.correctedAt);for(const light of fresh){let full=null;try{let db=await new Promise((ok,no)=>{let q=indexedDB.open('fdmahy_corrections_v129',1);q.onsuccess=()=>ok(q.result);q.onerror=()=>no(q.error)});full=await new Promise((ok,no)=>{let q=db.transaction('copies').objectStore('copies').get(String(light.id));q.onsuccess=()=>ok(q.result);q.onerror=()=>no(q.error)});db.close()}catch(_){}await cloudPut(full||light)}if(fresh.length)console.info('V139 copies rendues envoyées temporairement vers Firebase:',fresh.length)}catch(e){console.warn('V139 Firebase copies rendues',e)}},250);return out};
  const oldValidate=window.tpCorrectionValidate;window.tpCorrectionValidate=async function(){let id=window.__tp55Current||window.__tpCorrectionCurrent||null;let ret=await oldValidate?.apply(this,arguments);setTimeout(async()=>{try{let rows=JSON.parse(localStorage.getItem(CORR)||'[]')||[],r=rows.find(x=>String(x.id)===String(id));if(r?.correctedAt){await cloudDel(r.id);console.info('V139 copie lourde supprimée de Firebase après correction validée',r.id);try{window.tpV132SyncNow?.('correction-v139')}catch(_){} }}catch(e){console.warn('V139 suppression copie Firebase',e)}},300);return ret};
  // Version
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V214 — Évaluation · Charge Atelier · TP · Correction';document.title='V214 Évaluation · Charge Atelier · TP · Correction';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V223 — Évaluation · Charge Atelier · TP · Correction';document.title='V223 — Évaluation · Charge Atelier · TP · Correction';
  console.info('V139 : diffusion depuis fichier local + aperçu temporaire + registre léger + copies rendues Firebase temporaires.');
 })();
 </script>
@@ -16206,7 +16248,7 @@ window.tp217={queueSend,ackSend,pending,stats,event,read,done,same,normalize,rec
    o.querySelector('.v144-save').onclick=async()=>{const b=o.querySelector('.v144-save');b.disabled=true;b.textContent='Sauvegarde en cours…';try{const r=await window.v133SaveGlobalBackup?.();if(!r?.ok)throw Error('Sauvegarde non confirmée.');o.remove();await baseLogout?.()}catch(e){b.disabled=false;b.textContent='💾 Sauvegarder puis quitter';alert('Sauvegarde impossible : '+(e?.message||e))}};
    o.querySelector('.v144-nosave').onclick=async()=>{o.remove();await baseLogout?.()};return false;
  };
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V214 — Évaluation · Charge Atelier · TP · Correction';document.title='V214 Évaluation · Charge Atelier · TP · Correction';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V223 — Évaluation · Charge Atelier · TP · Correction';document.title='V223 — Évaluation · Charge Atelier · TP · Correction';
  console.info('V144 actif : base de démarrage V139 conservée; navigation diffusions et sortie corrigées sans modifier Firebase.');
 })();
 </script>
@@ -16240,7 +16282,7 @@ window.tp217={queueSend,ackSend,pending,stats,event,read,done,same,normalize,rec
   const mo=new MutationObserver(bind); mo.observe(document.documentElement,{childList:true,subtree:true}); bind();
   // Firebase/storage refreshes may update data but never navigate.
   window.addEventListener('tp-v133-synced',()=>{}, {passive:true});
-  const bv=document.getElementById('build-version'); if(bv) bv.textContent='V214 — Évaluation · Charge Atelier · TP · Correction';
+  const bv=document.getElementById('build-version'); if(bv) bv.textContent='V223 — Évaluation · Charge Atelier · TP · Correction';
   console.info('V145 actif : navigation Mes TP diffusés strictement réservée à une action utilisateur.');
 })();
 </script>
@@ -16255,7 +16297,7 @@ window.tp217={queueSend,ackSend,pending,stats,event,read,done,same,normalize,rec
  const clone=o=>JSON.parse(JSON.stringify(o||{}));
  const safe=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Za-z0-9_-]+/g,'-').replace(/^-+|-+$/g,'')||'TP';
  let folderHandle=null;
- function forceVersion(){const b=document.getElementById('build-version');if(b&&b.textContent!=='V214 — Évaluation · Charge Atelier · TP · Correction')b.textContent='V214 — Évaluation · Charge Atelier · TP · Correction';document.title='V214 Évaluation · Charge Atelier · TP · Correction';document.getElementById('v144-version')?.remove();}
+ function forceVersion(){const b=document.getElementById('build-version');if(b&&b.textContent!=='V223 — Évaluation · Charge Atelier · TP · Correction')b.textContent='V223 — Évaluation · Charge Atelier · TP · Correction';document.title='V223 — Évaluation · Charge Atelier · TP · Correction';document.getElementById('v144-version')?.remove();}
  forceVersion();
  document.addEventListener('DOMContentLoaded',forceVersion,{once:true});
  setTimeout(forceVersion,0);setTimeout(forceVersion,500);
@@ -16283,8 +16325,8 @@ window.tp217={queueSend,ackSend,pending,stats,event,read,done,same,normalize,rec
   // 1) Une seule version visible. Ne touche ni à l'authentification ni au démarrage Firebase.
   function applyVersion(){
     const b=document.getElementById('build-version');
-    if(b) b.textContent=APP_VERSION+' — Évaluation · Charge Atelier · TP · Correction';
-    document.title=APP_VERSION+' Évaluation · Charge Atelier · TP · Correction';
+    if(b) b.textContent='V223 — Évaluation · Charge Atelier · TP · Correction';
+    document.title='V223 — Évaluation · Charge Atelier · TP · Correction';
     document.getElementById('v144-version')?.remove();
   }
   applyVersion();
@@ -16460,7 +16502,7 @@ window.tp217={queueSend,ackSend,pending,stats,event,read,done,same,normalize,rec
  };
  function markLegacyRows(root=document){root.querySelectorAll?.('.tpc-row').forEach(row=>{const b=row.querySelector('button[onclick*="tpCorrectionOpen"]');if(!b||row.querySelector('.v158-legacy-chip'))return;const m=(b.getAttribute('onclick')||'').match(/tpCorrectionOpen\(['\"]([^'\"]+)/);if(!m)return;const r=read().find(x=>String(x.id)===m[1]);if(r&&!project(r.data)){const target=row.children?.[1]||row.firstElementChild;target?.insertAdjacentHTML('beforeend','<span class="v158-legacy-chip">Ancien format</span>')}})}
  markLegacyRows();new MutationObserver(ms=>ms.forEach(m=>m.addedNodes.forEach(n=>{if(n.nodeType===1)markLegacyRows(n)}))).observe(document.documentElement,{childList:true,subtree:true});
- function setVersion(){const b=document.getElementById('build-version');if(b)b.textContent='V214 — Évaluation · Charge Atelier · TP · Correction';document.title='V214 Évaluation · Charge Atelier · TP · Correction'}
+ function setVersion(){const b=document.getElementById('build-version');if(b)b.textContent='V223 — Évaluation · Charge Atelier · TP · Correction';document.title='V223 — Évaluation · Charge Atelier · TP · Correction'}
  setVersion();document.addEventListener('DOMContentLoaded',setVersion,{once:true});setTimeout(setVersion,250);
  console.info('V158 : compatibilité de correction des anciennes copies activée, sans modification du démarrage.');
 })();
@@ -16509,7 +16551,7 @@ window.tp217={queueSend,ackSend,pending,stats,event,read,done,same,normalize,rec
 })();
 </script>
 <script id="v159-version-display">
-(function(){const V='V159';function set(){document.querySelectorAll('.app-version-badge,.version-badge,[data-app-version]').forEach(e=>{if(/V\d+/i.test(e.textContent||''))e.textContent=(e.textContent||'').replace(/V\d+/i,V)});document.title=(document.title||'Évaluation · Charge Atelier · TP · Correction').replace(/V\d+/i,V)}set();setTimeout(set,300);setTimeout(set,1800)})();
+(function(){const V='V223';function set(){document.querySelectorAll('.app-version-badge,.version-badge,[data-app-version]').forEach(e=>{if(/V\d+/i.test(e.textContent||''))e.textContent=(e.textContent||'').replace(/V\d+/i,V)});document.title=(document.title||'Évaluation · Charge Atelier · TP · Correction').replace(/V\d+/i,V)}set();setTimeout(set,300);setTimeout(set,1800)})();
 </script>
 
 
@@ -16824,8 +16866,8 @@ function inject(){if(window.tp217)return;
    Le timer V175 a été supprimé directement dans le code source ci-dessus. */
 function setVersion(){
   const b=document.getElementById('build-version');
-  if(b)b.textContent='V214 — Évaluation · Charge Atelier · TP · Correction';
-  document.title='V214 — Évaluation · Charge Atelier · TP · Correction';
+  if(b)b.textContent='V223 — Évaluation · Charge Atelier · TP · Correction';
+  document.title='V223 — Évaluation · Charge Atelier · TP · Correction';
 }
 function install(){
   if(window.tp217)return;
@@ -17329,8 +17371,8 @@ if(typeof oldPage==='function'&&!oldPage.__v206pdf){
 }
 
 /* Version statique : pas de MutationObserver ni timer périodique. */
-const bv=document.getElementById('build-version');if(bv)bv.textContent='V214 — Évaluation · Charge Atelier · TP · Correction';
-document.title='V214 — Évaluation · Charge Atelier · TP · Correction';
+const bv=document.getElementById('build-version');if(bv)bv.textContent='V223 — Évaluation · Charge Atelier · TP · Correction';
+document.title='V223 — Évaluation · Charge Atelier · TP · Correction';
 window.tpV206PdfV74={buildPdfPages,contentUnits,summaryUnits,chooseFolder:window.tp206ChooseCorrectionFolder};
 console.info('V206 : PDF de correction fidèle à l’éditeur V74 + coches noires avant sélection + dossier PDF choisi.');
 })();
@@ -17371,7 +17413,7 @@ console.info('V206 : PDF de correction fidèle à l’éditeur V74 + coches noir
  window.tp116ViewDiffusion=function(id){const r=diffRows().find(x=>String(x.id)===String(id));if(!r)return alert('TP diffusé introuvable.');const p=r.tpProject||projectFromRaw(r.snapshot?.rawProject);const ov=document.createElement('div');ov.className='v116-preview-overlay';ov.innerHTML=`<div class="v116-preview-box"><div class="v116-preview-top"><div><b>👁 ${esc(r.tpCode)} — ${esc(r.title)}</b><div class="muted">${esc(r.className)} · ${r.students?.length||0} élève(s)</div></div><button type="button">✕ Fermer</button></div>${sheet(p)}</div>`;ov.querySelector('button').onclick=()=>ov.remove();document.body.appendChild(ov)};
  // Reconstruit Mes TP diffusés avec Voir + Affecter + Supprimer et ne dépend pas de l'ancien formulaire générateur.
  const priorPage=window.tpV76DiffusionsPage;window.tpV76DiffusionsPage=function(){priorPage?.();setTimeout(()=>{const data=diffRows().sort((a,b)=>String(b.diffusedAt||'').localeCompare(String(a.diffusedAt||''))),els=[...document.querySelectorAll('.v76-diff-row')];els.forEach((el,i)=>{const r=data[i];if(!r)return;let wrap=el.querySelector('.v114-diff-actions,.v116-diff-actions');if(!wrap){wrap=document.createElement('div');wrap.className='v116-diff-actions';const b=el.querySelector('button');if(b){b.replaceWith(wrap);wrap.appendChild(b)}}else wrap.classList.add('v116-diff-actions');if(!wrap.querySelector('[data-v116-view]')){const b=document.createElement('button');b.className='tpgen-btn secondary';b.dataset.v116View='1';b.textContent='👁 Voir le TP';b.onclick=()=>window.tp116ViewDiffusion(r.id);wrap.prepend(b)}})},0)};
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V214 — Évaluation · Charge Atelier · TP · Correction';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V223 — Évaluation · Charge Atelier · TP · Correction';
  console.info('V117 actif : rendu TP polyvalent et diffusion tracée.');
 })();
 </script><style id="v117-prof-style">
@@ -17395,7 +17437,7 @@ console.info('V206 : PDF de correction fidèle à l’éditeur V74 + coches noir
  let oldBuild=window.tpGenBuildStudentPackage;window.tpGenBuildStudentPackage=function(student,d){let m=oldBuild.apply(this,arguments),p=window.__v117Project||window.__v116CurrentProject||null;if(p){m.tpProject=clone(p);m.tpPictograms=clone(p.__pictograms||[]);m.meta=m.meta||{};m.meta.readerRequired='V117';m.type='tp-eleve-v117'}return m};
  // Hydratation complète avec pictogrammes avant export.
  ['tpGenExportClassToFolder','tpGenExportClassZip'].forEach(name=>{let prev=window[name];if(typeof prev!=='function')return;window[name]=async function(){let sid=String(tpGenState?.currentSavedId||window.__tpDiffusionSavedId||''),rr=sid?await raw(sid):null;window.__v117Project=unpack(rr);try{return await prev.apply(this,arguments)}finally{window.__v117Project=null}}});
- let bv=document.getElementById('build-version');if(bv)bv.textContent='V214 — Évaluation · Charge Atelier · TP · Correction';console.info('V117 actif : vue TP polyvalente + diffusion persistante.');
+ let bv=document.getElementById('build-version');if(bv)bv.textContent='V223 — Évaluation · Charge Atelier · TP · Correction';console.info('V117 actif : vue TP polyvalente + diffusion persistante.');
 })();
 </script><!-- V118 — concordance Editeur / Logiciel / Lecteur + diffusion transactionnelle -->
 <style id="v118-style">
@@ -17433,7 +17475,7 @@ console.info('V206 : PDF de correction fidèle à l’éditeur V74 + coches noir
  function injectRetroSettings(){let main=document.getElementById('main');if(!main||main.querySelector('#v118-retro-settings'))return;let host=main.querySelector('.rubric-other-wrap .settings-rubric-collapse-body')||main.querySelector('.settings-grid')||main;let card=document.createElement('div');card.id='v118-retro-settings';card.className='settings-card section-other';card.innerHTML=`<h3>🕘 Évaluations rétroactives</h3><p class="muted">Choisis les cartes visibles dans « Nouvelle évaluation » pour le profil administrateur.</p><div class="v118-switch-row"><div><b>Positionnement rétroactif</b><div class="muted">Afficher la création d'un positionnement à une date antérieure.</div></div><label class="v118-switch"><input type="checkbox" ${retroOn(RETRO_POS)?'checked':''} onchange="v118ToggleRetro('${RETRO_POS}',this.checked)"><span class="v118-slider"></span></label></div><div class="v118-switch-row"><div><b>Import rétroactif collectif</b><div class="muted">Afficher l'import Excel rétroactif collectif.</div></div><label class="v118-switch"><input type="checkbox" ${retroOn(RETRO_XLS)?'checked':''} onchange="v118ToggleRetro('${RETRO_XLS}',this.checked)"><span class="v118-slider"></span></label></div>`;host.appendChild(card)}
  let oldSettings=window.renderSettingsPage;if(typeof oldSettings==='function')window.renderSettingsPage=function(){let r=oldSettings.apply(this,arguments);setTimeout(injectRetroSettings,0);return r};
  let oldChoice=window.evaluationChoicePage;if(typeof oldChoice==='function')window.evaluationChoicePage=function(){let r=oldChoice.apply(this,arguments);setTimeout(()=>{document.querySelectorAll('.eval-choice-card').forEach(c=>{let t=c.textContent||'';if(/Positionnement rétroactif/i.test(t)&&!retroOn(RETRO_POS))c.remove();if(/Import rétroactif collectif/i.test(t)&&!retroOn(RETRO_XLS))c.remove()})},0);return r};
- let bv=document.getElementById('build-version');if(bv)bv.textContent='V214 — Évaluation · Charge Atelier · TP · Correction';
+ let bv=document.getElementById('build-version');if(bv)bv.textContent='V223 — Évaluation · Charge Atelier · TP · Correction';
  console.info('V118 actif : diffusion transactionnelle, générateur replié, rétroactif paramétrable.');
 })();
 </script>
@@ -17457,7 +17499,7 @@ console.info('V206 : PDF de correction fidèle à l’éditeur V74 + coches noir
  window.tpGenExportClassToFolder=async function(){try{if(!folderHandle){const ok=await window.tpGenChooseClassFolder();if(!ok)return false}const ctx=await buildFiles();let perm='granted';if(folderHandle.queryPermission)perm=await folderHandle.queryPermission({mode:'readwrite'});if(perm!=='granted'&&folderHandle.requestPermission)perm=await folderHandle.requestPermission({mode:'readwrite'});if(perm!=='granted')throw Error('Autorisation d’écriture refusée.');for(const f of ctx.files){const fh=await folderHandle.getFileHandle(f.name,{create:true}),w=await fh.createWritable();await w.write(new Blob([f.text],{type:f.name.endsWith('.tp')?'application/json;charset=utf-8':'text/plain;charset=utf-8'}));await w.close()}persist(ctx);const n=ctx.sts.length,name=folderHandle.name;window.tpGenCloseClassExport?.();window.showSuccessMessage?.(`${n} TP élève généré(s) dans « ${name} » et diffusion enregistrée dans Mes TP diffusés.`);return true}catch(e){console.error('V119 dossier',e);window.showWarningMessage?.('Génération impossible : '+(e?.message||e));return false}finally{window.__v117Project=null;window.__v116CurrentProject=null}};
  window.tpGenExportClassZip=async function(){try{const ctx=await buildFiles();const blob=window.tpGenBuildStoreZip(ctx.files);const name=[filePart(ctx.code),filePart(ctx.className),'TP_ELEVES'].filter(Boolean).join('_')+'.zip';window.tpGenDownloadBlob(blob,name);persist(ctx);window.tpGenCloseClassExport?.();window.showSuccessMessage?.(`${ctx.sts.length} TP élève correspondant(s) à « ${ctx.code} » regroupé(s) dans le ZIP et diffusion enregistrée.`);return true}catch(e){console.error('V119 ZIP',e);window.showWarningMessage?.('Génération ZIP impossible : '+(e?.message||e));return false}finally{window.__v117Project=null;window.__v116CurrentProject=null}};
  const oldDiffuse=window.tpGenDiffuseSaved;window.tpGenDiffuseSaved=function(id){folderHandle=null;window.__tpDiffusionSavedId=String(id||'');if(window.tpGenState)window.tpGenState.currentSavedId=String(id||'');return oldDiffuse?.apply(this,arguments)};
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V214 — Évaluation · Charge Atelier · TP · Correction';document.title='V214 Évaluation · Charge Atelier · TP · Correction';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V223 — Évaluation · Charge Atelier · TP · Correction';document.title='V223 — Évaluation · Charge Atelier · TP · Correction';
  console.info('V127 actif : diffusion compacte, sans duplication du projet TP dans localStorage.');
 })();
 </script>
@@ -17485,7 +17527,7 @@ console.info('V206 : PDF de correction fidèle à l’éditeur V74 + coches noir
  };
  function wire(){document.querySelectorAll('#tp109-folder-input,#tp109-files-input,.tpc-toolbar input[type=file]').forEach(input=>{input.onchange=async()=>{const f=input.files;if(f?.length)await window.tpCorrectionImport(f);input.value=''}})}
  const oldPage=window.tpCorrectionPage;window.tpCorrectionPage=function(){const r=oldPage?.apply(this,arguments);setTimeout(wire,50);return r};setTimeout(wire,500);
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V214 — Évaluation · Charge Atelier · TP · Correction';document.title='V214 Évaluation · Charge Atelier · TP · Correction';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V223 — Évaluation · Charge Atelier · TP · Correction';document.title='V223 — Évaluation · Charge Atelier · TP · Correction';
  console.info('V130 — import Copies rendues V128/V130 actif avec stockage IndexedDB anti-quota.');
 })();
 </script>
@@ -17537,7 +17579,7 @@ console.info('V206 : PDF de correction fidèle à l’éditeur V74 + coches noir
  function render(r){const d=r.data||{},p=project(d);if(!p)return'';const a=answers(d),flow=Array.isArray(p.flow)?p.flow:(p.questions||[]).map(q=>({type:'question',id:q.id}));let html='',sec='',n=0;for(const f of flow){if(f.type!=='question'){let x=obj(p,f);if(x?.parentQuestionId)continue;html+=block(r,p,f,a);continue}let q=obj(p,f);if(!q||q.excluded)continue;if((q.section||'Activité')!==sec){sec=q.section||'Activité';html+=`<h2 class="section">${esc(sec)}</h2>`}let val=a[q.id],k='q_'+q.id;html+=`<section class="q"><div class="v131-qhead"><div><div class="qtitle">${++n}. ${esc(q.text||'')}</div><div class="meta">${esc(q.competence||'')}${q.criterionId?' · '+esc(q.criterionId):''}</div></div><div data-v131-mark="${esc(k)}">${markButtons(r,k)}</div></div>${(q.images||[]).map(im=>imageTag(im,'max-width:100%;max-height:280px;object-fit:contain;margin-top:8px')).join('')}${q.answerType==='none'?'':`<div class="answer">${esc(val||'—')}</div>`}${flow.filter(z=>z.type!=='question'&&obj(p,z)?.parentQuestionId===q.id).map(z=>block(r,p,z,a)).join('')}</section>`}return `<div class="v130-copy"><div class="tphead"><div><small>BAC PRO MAINTENANCE DES VÉHICULES · COPIE ÉLÈVE</small><h1>${esc(p.publicTitle||p.title||d.titre||'TP')}</h1><div>Durée : ${esc(p.duration||'—')}</div></div><span class="code">${esc(p.publicId||p.id||d.code||'TP')}</span></div><div class="brief"><section><h3>Situation professionnelle</h3>${esc(p.intro||'')}</section><section><h3>Objectifs</h3>${esc(p.objectives||'')}</section><section><h3>Support</h3>${esc(p.support||'')}</section><section><h3>Ressources et matériels</h3>${esc(p.resources||'')}</section></div>${html}</div>`}
  const previous=window.tpCorrectionOpen;
  window.tpCorrectionOpen=function(id){const light=read().find(x=>String(x.id)===String(id));if(!light)return previous?.apply(this,arguments);previous?.apply(this,arguments);setTimeout(async()=>{const ed=document.querySelector('.tpc-editor'),left=ed?.firstElementChild;if(!left)return;left.innerHTML='<div class="v131-hydrating">Chargement de la copie complète et de ses illustrations…</div>';const stored=await full(id),r=stored||light;if(String(window.__tp55Current)!==String(id)||!left.isConnected)return;if(!project(r.data)){left.innerHTML='<div class="tpc-card">Cette copie ne contient pas le projet TP complet nécessaire à la vue fidèle.</div>';return}const local=read().find(x=>String(x.id)===String(id));if(local){r.marks={...(r.marks||{}),...(local.marks||{})};r.note=local.note;r.noteModeV215=local.noteModeV215;r.correctedAt=local.correctedAt;r.workflowState=local.workflowState;}left.innerHTML='<div class="tpc-card"><b>V216 — Une question, une évaluation.</b> ✓ Correct · ✕ Incorrect · — Non évalué. Les symboles sont clairs au repos et plus prononcés après sélection. Un seul choix par question, y compris ses tableaux et exercices.</div>'+render(r);noteUI(r)},20)};
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V214 — Évaluation · Charge Atelier · TP · Correction';document.title='V214 Évaluation · Charge Atelier · TP · Correction';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V223 — Évaluation · Charge Atelier · TP · Correction';document.title='V223 — Évaluation · Charge Atelier · TP · Correction';
  console.info('V131 correcteur : hydratation IndexedDB + images + coches par question.');
 })();
 </script><!-- V147 — correctif final diffusion TP local : DOIT rester le dernier runtime du fichier -->
@@ -17549,8 +17591,8 @@ console.info('V206 : PDF de correction fidèle à l’éditeur V74 + coches noir
  let folderHandle=null;
  function setVersion(){
    const b=document.getElementById('build-version');
-   if(b)b.textContent='V214 — Évaluation · Charge Atelier · TP · Correction';
-   document.title='V214 Évaluation · Charge Atelier · TP · Correction';
+   if(b)b.textContent='V223 — Évaluation · Charge Atelier · TP · Correction';
+   document.title='V223 — Évaluation · Charge Atelier · TP · Correction';
    document.getElementById('v144-version')?.remove();
  }
  setVersion(); document.addEventListener('DOMContentLoaded',setVersion,{once:true}); setTimeout(setVersion,100);
@@ -17638,7 +17680,7 @@ console.info('V206 : PDF de correction fidèle à l’éditeur V74 + coches noir
  });
  function compact(root=document){root.querySelectorAll?.('.v131-markbar .v131-mark').forEach(b=>{if(b.closest('[role=group]'))return;if(b.classList.contains('ok')){b.textContent='✓';b.title='Correct'}else if(b.classList.contains('bad')){b.textContent='✕';b.title='Incorrect'}else{b.textContent='—';b.title='Non évalué'}b.setAttribute('aria-label',b.title)})}
  compact(); new MutationObserver(m=>m.forEach(x=>x.addedNodes.forEach(n=>{if(n.nodeType===1)compact(n)}))).observe(document.documentElement,{childList:true,subtree:true});
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V214 — Évaluation · Charge Atelier · TP · Correction';document.title='V214 Évaluation · Charge Atelier · TP · Correction';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V223 — Évaluation · Charge Atelier · TP · Correction';document.title='V223 — Évaluation · Charge Atelier · TP · Correction';
  console.info('V148 : Copies rendues stable pendant Firebase + coches compactes.');
 })();
 </script>
@@ -17664,7 +17706,7 @@ const rows=()=>window.getManagedEvaluationActivities?.()||[];
 const sortRows=a=>a.slice().sort((x,y)=>(Number(x.numero)||99999)-(Number(y.numero)||99999));
 function save(a){window.saveManagedEvaluationActivities?.(a);}
 function comps(s){return String(s||'').split(/[,;\n]+/).map(x=>x.trim()).filter(Boolean)}
-function forceVersion(){const b=document.getElementById('build-version');if(b)b.textContent=APP+' — Évaluation · Charge Atelier · TP · Correction';document.title=APP+' Évaluation · Charge Atelier · TP · Correction';document.getElementById('v144-version')?.remove()}
+function forceVersion(){const b=document.getElementById('build-version');if(b)b.textContent='V223 — Évaluation · Charge Atelier · TP · Correction';document.title='V223 — Évaluation · Charge Atelier · TP · Correction';document.getElementById('v144-version')?.remove()}
 forceVersion();document.addEventListener('DOMContentLoaded',forceVersion,{once:true});setTimeout(forceVersion,250);setTimeout(forceVersion,1200);
 
 function installCategory(){
@@ -17826,7 +17868,7 @@ function mergeCorrections(){
 function mergeEvaluations(){return new Promise(resolve=>{
  try{const q=indexedDB.open('C2MMVP_TEST_FICTIFS_V8',2);q.onerror=()=>resolve(false);q.onsuccess=()=>{const d=q.result;try{const st=d.transaction('evaluations','readwrite').objectStore('evaluations');let left=BACKUP_EVALS.length;if(!left){d.close();return resolve(true)};BACKUP_EVALS.forEach(v=>{const g=st.get(v.id);g.onsuccess=()=>{if(g.result==null){try{st.add(v)}catch(_){}}if(--left===0){setTimeout(()=>{d.close();resolve(true)},20)}};g.onerror=()=>{if(--left===0){d.close();resolve(true)}}})}catch(e){d.close();resolve(false)}}}catch(e){resolve(false)}
 })}
-function version(){const b=document.getElementById('build-version');if(b)b.textContent='V214 — Évaluation · Charge Atelier · TP · Correction';document.title='V214 — Évaluation · Charge Atelier · TP · Correction'}
+function version(){const b=document.getElementById('build-version');if(b)b.textContent='V223 — Évaluation · Charge Atelier · TP · Correction';document.title='V223 — Évaluation · Charge Atelier · TP · Correction'}
 function installDefaultTodo(){
  const old=window.go;if(typeof old==='function'&&!old.__v171){const w=function(view){const r=old.apply(this,arguments);if(view==='correctionTp')setTimeout(()=>{const s=document.getElementById('tpc-f-status');if(s){s.value='todo';s.dispatchEvent(new Event('change',{bubbles:true}))}},120);return r};w.__v171=true;window.go=w}
 }
@@ -17879,7 +17921,7 @@ async function validate(){
  }catch(e){console.error('V172 validation',e);alert('Validation impossible : '+(e?.message||e));}
  finally{window.__v172Saving=false;if(btn){btn.disabled=false;btn.innerHTML=oldText||'💾 Valider la correction et l’évaluation'}}
 }
-function install(){window.tpCorrectionValidate=validate;const b=document.getElementById('build-version');if(b)b.textContent='V214 — Évaluation · Charge Atelier · TP · Correction';document.title='V214 — Évaluation · Charge Atelier · TP · Correction'}
+function install(){window.tpCorrectionValidate=validate;const b=document.getElementById('build-version');if(b)b.textContent='V223 — Évaluation · Charge Atelier · TP · Correction';document.title='V223 — Évaluation · Charge Atelier · TP · Correction'}
 window.addEventListener('load',()=>setTimeout(install,4200),{once:true});setTimeout(()=>{if(document.readyState==='complete')install()},5200);
 })();
 </script>
@@ -17901,7 +17943,7 @@ function lockIfCorrected(id){
 function install(){
  const oldOpen=window.tpCorrectionOpen; if(typeof oldOpen==='function'&&!oldOpen.__v173){const w=function(id){const out=oldOpen.apply(this,arguments);setTimeout(()=>lockIfCorrected(id),450);setTimeout(()=>lockIfCorrected(id),1200);return out};w.__v173=true;window.tpCorrectionOpen=w;}
  const oldVal=window.tpCorrectionValidate; if(typeof oldVal==='function'&&!oldVal.__v173){const w=async function(){const out=await oldVal.apply(this,arguments);return out};w.__v173=true;window.tpCorrectionValidate=w;}
- const b=document.getElementById('build-version');if(b)b.textContent='V214 — Évaluation · Charge Atelier · TP · Correction';document.title='V214 — Évaluation · Charge Atelier · TP · Correction';
+ const b=document.getElementById('build-version');if(b)b.textContent='V223 — Évaluation · Charge Atelier · TP · Correction';document.title='V223 — Évaluation · Charge Atelier · TP · Correction';
 }
 // Accélère l'impression de synchronisation : les données locales sont déjà enregistrées avant le cloud.
 const oldSync=window.tpV159SyncCorrectionsNow; if(typeof oldSync==='function'){window.tpV159SyncCorrectionsNow=function(){try{const p=oldSync.apply(this,arguments);if(p&&p.catch)p.catch(e=>console.warn('V173 sync',e));return Promise.resolve(true)}catch(e){console.warn('V173 sync',e);return Promise.resolve(false)}}}
@@ -17982,7 +18024,7 @@ stamp();window.addEventListener('load',()=>{stamp();setTimeout(reconcile,300)},{
 (function(){
 'use strict';
 
-const VERSION='V214 — Évaluation · Charge Atelier · TP · Correction';
+const VERSION='V223 — Évaluation · Charge Atelier · TP · Correction';
 const MODE_KEYS={
   free:'evaluation_mode_free_v190',
   professional:'evaluation_mode_professional_v190',
@@ -18291,7 +18333,7 @@ setTimeout(()=>{pullModesFirebase().catch(()=>{})},3500);
 function setVersion(){
   const b=document.getElementById('build-version');
   if(b)b.textContent=VERSION;
-  document.title='V214 — Évaluation · Charge Atelier · TP · Correction';
+  document.title='V223 — Évaluation · Charge Atelier · TP · Correction';
 }
 setVersion();
 setTimeout(setVersion,500);
@@ -18754,7 +18796,7 @@ function relabelNavigation(){
 function setVersion(){
   const b=document.getElementById('build-version');
   if(b)b.textContent=VERSION;
-  document.title='V214 — Évaluation · Charge Atelier · TP · Correction';
+  document.title='V223 — Évaluation · Charge Atelier · TP · Correction';
 }
 relabelNavigation();
 setVersion();
@@ -19202,19 +19244,12 @@ async function enforceTombstones(){
   if(enforcing)return;
   enforcing=true;
   try{
-    const gone=await tombstones();
+    const gone=new Set(localDeleted());
     if(!gone.size)return;
 
     const before=localRows();
     const after=before.filter(x=>!gone.has(String(x.id)));
     if(after.length!==before.length)writeRows(after);
-
-    const jobs=[];
-    for(const id of gone){
-      jobs.push(deleteCloudDoc(V132,id,true));
-      jobs.push(deleteCloudDoc(V106,id,false));
-    }
-    await Promise.allSettled(jobs);
 
     if(document.getElementById('v194-list')){
       const filtered=cacheRows.filter(x=>!gone.has(String(x.id)));
@@ -19233,7 +19268,7 @@ async function enforceTombstones(){
 window.addEventListener('tp-v133-synced',()=>setTimeout(enforceTombstones,150));
 window.addEventListener('tp-diffusions-changed',()=>setTimeout(enforceTombstones,150));
 setTimeout(enforceTombstones,2500);
-setInterval(enforceTombstones,15000);
+// V223: no recurring Firebase cleanup.
 
 console.info('V194 : ouverture Mes TP diffusés stable, état de ligne ouverte mémorisé.');
 })();
@@ -19313,9 +19348,9 @@ if(typeof window.tpCorrectionImport==='function'){
 /* Habillage du Portail TP seulement : la fonction RTA existante reste disponible
    ailleurs dans le logiciel, elle n'est simplement plus dans le nom de la suite. */
 function stamp(){
-  document.title='V214 — Évaluation · Charge Atelier · TP · Correction';
+  document.title='V223 — Évaluation · Charge Atelier · TP · Correction';
   const bv=document.getElementById('build-version');
-  if(bv)bv.textContent='V214 — Évaluation · Charge Atelier · TP · Correction';
+  if(bv)bv.textContent='V223 — Évaluation · Charge Atelier · TP · Correction';
 }
 stamp();
 setTimeout(stamp,700);
@@ -19484,8 +19519,8 @@ document.addEventListener('visibilitychange',()=>{
 /* Affichage de version seulement, sans timer périodique ni MutationObserver. */
 function stampVersion(){
   const b=document.getElementById('build-version');
-  if(b)b.textContent='V214 — Évaluation · Charge Atelier · TP · Correction';
-  document.title='V214 — Évaluation · Charge Atelier · TP · Correction';
+  if(b)b.textContent='V223 — Évaluation · Charge Atelier · TP · Correction';
+  document.title='V223 — Évaluation · Charge Atelier · TP · Correction';
 }
 stampVersion();
 
@@ -19571,8 +19606,8 @@ if(typeof settings==='function'&&!settings.__v200){
 cleanUi(document);
 
 const bv=document.getElementById('build-version');
-if(bv)bv.textContent='V214 — Évaluation · Charge Atelier · TP · Correction';
-document.title='V214 — Évaluation · Charge Atelier · TP · Correction';
+if(bv)bv.textContent='V223 — Évaluation · Charge Atelier · TP · Correction';
+document.title='V223 — Évaluation · Charge Atelier · TP · Correction';
 
 console.info('V200 : RTA retirée de l’interface et des évaluations ; ancien générateur TP neutralisé au profit du Portail TP.');
 })();
@@ -19958,8 +19993,8 @@ ensureMobileMenu();
 
 /* Version : affichage uniquement, aucun timer et aucun MutationObserver. */
 const bv=document.getElementById('build-version');
-if(bv)bv.textContent='V214 — Évaluation · Charge Atelier · TP · Correction';
-document.title='V214 — Évaluation · Charge Atelier · TP · Correction';
+if(bv)bv.textContent='V223 — Évaluation · Charge Atelier · TP · Correction';
+document.title='V223 — Évaluation · Charge Atelier · TP · Correction';
 
 console.info('V201 : barre latérale scrollable + menu iPhone permanent + suppression TP V73/V159 persistante.');
 })();
@@ -19980,8 +20015,8 @@ window.V202_SETTINGS_POLICY={
   ephemeralUiLocalOnly:true
 };
 const bv=document.getElementById('build-version');
-if(bv)bv.textContent='V214 — Évaluation · Charge Atelier · TP · Correction';
-document.title='V214 — Évaluation · Charge Atelier · TP · Correction';
+if(bv)bv.textContent='V223 — Évaluation · Charge Atelier · TP · Correction';
+document.title='V223 — Évaluation · Charge Atelier · TP · Correction';
 console.info('V202 : recherche/compteur fiches + paramètres fonctionnels multiposte, démarrage inchangé.');
 })();
 </script>
@@ -20197,8 +20232,8 @@ forceActiveTpClass();
 addPortalClassBadge();
 
 const bv=document.getElementById('build-version');
-if(bv)bv.textContent='V214 — Évaluation · Charge Atelier · TP · Correction';
-document.title='V214 — Évaluation · Charge Atelier · TP · Correction';
+if(bv)bv.textContent='V223 — Évaluation · Charge Atelier · TP · Correction';
+document.title='V223 — Évaluation · Charge Atelier · TP · Correction';
 
 console.info('V204 : Portail TP filtré strictement par classe active ; classId et className doivent être cohérents.');
 })();
@@ -20217,8 +20252,8 @@ window.V204_TP_CLASS_FILTER_POLICY={
   legacyStudentIdsMustAllBelongToActiveClass:true
 };
 const bv=document.getElementById('build-version');
-if(bv)bv.textContent='V214 — Évaluation · Charge Atelier · TP · Correction';
-document.title='V214 — Évaluation · Charge Atelier · TP · Correction';
+if(bv)bv.textContent='V223 — Évaluation · Charge Atelier · TP · Correction';
+document.title='V223 — Évaluation · Charge Atelier · TP · Correction';
 console.info('V204 : filtrage strict des TP diffusés sur la classe active, démarrage inchangé.');
 })();
 </script>
@@ -20344,8 +20379,8 @@ if(typeof oldOpen==='function'&&!oldOpen.__v205){
 }
 
 const bv=document.getElementById('build-version');
-if(bv)bv.textContent='V214 — Évaluation · Charge Atelier · TP · Correction';
-document.title='V214 — Évaluation · Charge Atelier · TP · Correction';
+if(bv)bv.textContent='V223 — Évaluation · Charge Atelier · TP · Correction';
+document.title='V223 — Évaluation · Charge Atelier · TP · Correction';
 
 console.info('V205 : auto-évaluation TP lue depuis le JSON rendu ; Tableau du jour exclut les TP diffusés ; rendu le plus récent privilégié.');
 })();
@@ -20401,7 +20436,7 @@ function enabled(){try{return typeof isFirebaseModeEnabled==='function'&&isFireb
 function connection(){try{if(!enabled()||!window.firebase?.auth?.().currentUser)return null;const db=firebase.firestore();return {db,ref:db.collection('workspaces').doc('evaluation-mv-main').collection('configuration').doc('application')}}catch(_){return null}}
 function status(){if(!enabled())return 'Firebase désactivé — fiches conservées localement. Elles seront synchronisées après activation et connexion.';if(!connection())return 'Fiches conservées localement — connexion Firebase nécessaire.';return message}
 function paint(){const el=document.getElementById('activities219-sync-status');if(el&&el.textContent!==status())el.textContent=status()}
-function received(pending){if(pending)schedule();paint()}
+function received(pending){if(pending)schedule();else if(localStorage.getItem(PENDING)!=='1')message='Fiches reçues — attente des prochaines modifications.';paint()}
 function schedule(){clearTimeout(timer);localStorage.setItem(PENDING,'1');message='Fiches enregistrées localement — synchronisation en attente.';paint();timer=setTimeout(sync,650)}
 async function sync(){
  const c=connection();if(!c){paint();return false}if(busy){rerun=true;return false}if(localStorage.getItem(PENDING)!=='1'){paint();return true}
@@ -20422,16 +20457,7 @@ async function sync(){
  }catch(e){lastError=String(e?.message||e);message='Fiches conservées localement — synchronisation non confirmée : '+lastError;localStorage.setItem(PENDING,'1');return false;}
  finally{busy=false;paint();if(rerun){rerun=false;if(!lastError){clearTimeout(timer);timer=setTimeout(sync,650)}}}
 }
-function watch(){const c=connection();if(!c){paint();return}const uid=firebase.auth().currentUser.uid;if(unsubscribe&&lastUser===uid)return;if(unsubscribe)unsubscribe();lastUser=uid;
- unsubscribe=c.ref.onSnapshot({includeMetadataChanges:true},snap=>{
-  const remote=snap.exists?(snap.data()?.managedEvaluationActivities||[]):[],before=managedActivityStable219(getManagedEvaluationActivities());
-  const merged=acceptManagedActivities219(remote),different=managedActivityStable219(merged)!==managedActivityStable219(mergeManagedActivities219([],remote));
-  if(different){schedule();}
-  else if(!snap.metadata?.fromCache&&!snap.metadata?.hasPendingWrites){localStorage.removeItem(PENDING);message=`✓ ${merged.length} fiche(s) synchronisée(s) dans Firebase.`;lastError='';}
-  else if(!busy)message='Fiches disponibles dans le cache — confirmation Firebase en attente.';
-  if(before!==managedActivityStable219(merged))window.refreshManagedActivities219?.();paint();
- },e=>{message='Fiches conservées localement — réception Firebase interrompue : '+String(e?.message||e);unsubscribe=null;paint()});
-}
+function watch(){if(!connection()){paint();return}if(localStorage.getItem(PENDING)==='1')schedule();}
 function boot(){try{if(!enabled()){paint();return}const auth=window.firebase?.auth?.();if(!auth)return;if(!authUnsubscribe)authUnsubscribe=auth.onAuthStateChanged(u=>{if(!u){unsubscribe?.();unsubscribe=null;lastUser='';paint();return}watch();});watch();}catch(e){message='Fiches conservées localement — connexion Firebase en attente.';paint()}}
 window.managedActivities219={schedule,sync,status,paint,received};
 window.addEventListener('online',()=>{lastError='';boot();if(localStorage.getItem(PENDING)==='1')sync()});
