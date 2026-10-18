@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1" name="viewport"/>
-<title>V226 — Évaluation · Charge Atelier · TP · Correction</title>
+<title>V227 — Évaluation · Charge Atelier · TP · Correction</title>
 <style>
 *{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f5f7fa;color:#172033}
 .app{display:flex;min-height:100vh}.side{width:235px;background:#172033;color:#fff;padding:22px 14px}.logo{font-size:19px;font-weight:700;padding:8px 10px 24px}
@@ -2734,7 +2734,7 @@ body{background:#f7f9fc;color:var(--text)}
 <!-- V88 — DONNÉES DE RÉFÉRENCE RÉINTÉGRÉES DEPUIS V86.5
      Jeux embarqués repris : référentiel compétences, élèves par défaut, seconde classe fictive, situations professionnelles.
      Les données dynamiques (classes/élèves/évaluations réellement saisies) restent chargées par IndexedDB/localStorage et Firebase. -->
-<div id="build-version">V226 — Évaluation · Charge Atelier · TP · Correction</div>
+<div id="build-version">V227 — Évaluation · Charge Atelier · TP · Correction</div>
 <div id="firebase-auth-overlay">
 <div class="firebase-login-card">
 <h2>☁️ Connexion Firebase — V89</h2>
@@ -2777,7 +2777,7 @@ body{background:#f7f9fc;color:var(--text)}
 <div class="app">
 <button aria-expanded="true" aria-label="Masquer la barre latérale" class="sidebar-toggle" id="sidebar-toggle" onclick="toggleSidebar()" title="Masquer la barre latérale" type="button">◀</button>
 <aside class="side">
-<div class="logo">COMPÉTENCES MV<br/><small style="font-size:11px;font-weight:400">V226 — Évaluation · Charge Atelier · TP · Correction</small></div>
+<div class="logo">COMPÉTENCES MV<br/><small style="font-size:11px;font-weight:400">V227 — Évaluation · Charge Atelier · TP · Correction</small></div>
 <div class="nav">
 <button id="nav-home" onclick="go('home')">🏠 <span>Accueil</span></button>
 <button id="nav-students" onclick="go('students')">👨‍🎓 <span>Élèves</span></button>
@@ -4109,8 +4109,8 @@ function home(){
     </div>`;
   /* Affichage de version de l'accueil : information uniquement, sans impact sur le bootstrap. */
   const homeVersionBadge=document.getElementById("build-version");
-  if(homeVersionBadge)homeVersionBadge.textContent='V226 — Évaluation · Charge Atelier · TP · Correction';
-  document.title='V226 — Évaluation · Charge Atelier · TP · Correction';
+  if(homeVersionBadge)homeVersionBadge.textContent='V227 — Évaluation · Charge Atelier · TP · Correction';
+  document.title='V227 — Évaluation · Charge Atelier · TP · Correction';
 }
 
 function collapseAllCollectiveRows(){
@@ -7209,7 +7209,7 @@ function renderSettingsPage(){
   const tpl=document.getElementById("settings-page-template");
   if(!main||!tpl){showWarningMessage("La page Paramètres est indisponible.");return;}
   main.innerHTML=tpl.innerHTML;
-  window.cloud226?.settings();
+  window.cloud226?.settings();window.tp227?.settings();
   makeSettingsRubricsCollapsible();
   // Toujours ouvrir Paramètres avec toutes les rubriques repliées par défaut.
   main.querySelectorAll("details.settings-rubric-collapse, details.settings-sub-collapse").forEach(d=>{d.open=false;});
@@ -11246,6 +11246,7 @@ if(paused){try{firebase.firestore().disableNetwork().catch(()=>{})}catch(_){}sho
       version:"V15",
       adminCode:localStorage.getItem("evaluation_admin_code_v71")||"1234",
       schoolSettings:school,
+      storageLimits227:(()=>{try{return JSON.parse(localStorage.getItem("evaluation_storage_limits_v227")||"null")}catch(_){return null}})(),
       cloudSettings226:(()=>{try{return JSON.parse(localStorage.getItem("evaluation_cloud_settings_v226")||"null")}catch(_){return null}})(),
       functionalPreferences:{
         retroPosition:localStorage.getItem("evaluation_show_retro_position_v118")!=="0",
@@ -11269,6 +11270,10 @@ if(paused){try{firebase.firestore().disableNetwork().catch(()=>{})}catch(_){}sho
 
   function firebaseApplyApplicationConfig(cfg){
     if(!cfg||typeof cfg!=="object")return;
+    if(cfg.storageLimits227){
+      let local={};try{local=JSON.parse(localStorage.getItem('evaluation_storage_limits_v227')||'{}')}catch(_){}
+      const x=cfg.storageLimits227;if([x.warn,x.critical,x.budget].every(Number.isFinite)&&x.warn>0&&x.critical>x.warn&&x.budget>=x.critical&&Number(x.updatedAt||0)>=Number(local.updatedAt||0))safeLocalSetItem('evaluation_storage_limits_v227',JSON.stringify(x));
+    }
     if(cfg.cloudSettings226&&typeof cfg.cloudSettings226.url==='string'){
       let local={};try{local=JSON.parse(localStorage.getItem('evaluation_cloud_settings_v226')||'{}')}catch(_){}
       if(Number(cfg.cloudSettings226.updatedAt||0)>=Number(local?.updatedAt||0))safeLocalSetItem('evaluation_cloud_settings_v226',JSON.stringify(cfg.cloudSettings226));
@@ -12768,7 +12773,7 @@ window.addEventListener("resize",function(){
 .at-custom-create input{padding:10px;border:1px solid #bac7d8;border-radius:8px;box-sizing:border-box;width:100%}@media(max-width:1050px){.at-custom-create{grid-template-columns:1fr 1fr}.at-custom-create .at-btn{grid-column:1/-1}}@media(max-width:650px){.at-custom-create{grid-template-columns:1fr}}
 </style>
 <section aria-label="Evaluation et charge atelier" class="hidden" id="atelier-app">
-<header class="at-head"><h1>Évaluation &amp; Charge atelier — Firebase</h1><span id="at-active-class"></span><button id="at-view-mode-btn" onclick="toggleAtelierViewMode()" type="button">Vue élève</button><button id="at-change-class-btn" onclick="openClassPicker()" type="button">⇄ Changer de classe</button><button id="at-return-main-btn" onclick="closeAtelierUnified()" type="button">Retour Accueil</button></header>
+<header class="at-head"><h1>Évaluation &amp; Charge atelier — Firebase</h1><span id="at-active-class"></span><button id="at-teacher-view-btn" onclick="openTeacherView227()" type="button">Vue professeur</button><button id="at-view-mode-btn" onclick="toggleAtelierViewMode()" type="button">Vue élève</button><button id="at-change-class-btn" onclick="openClassPicker()" type="button">⇄ Changer de classe</button><button id="at-return-main-btn" onclick="closeAtelierUnified()" type="button">Retour Accueil</button></header>
 <nav class="at-nav" id="at-nav"></nav><main class="at-main" id="at-main"></main>
 </section>
 <script id="atelier-unifie-v5-script">
@@ -12873,8 +12878,12 @@ function activityById(id){
   };
   return null;
 }
-function updateAtelierModeUI(){const mode=document.getElementById('at-view-mode-btn'),back=document.getElementById('at-return-main-btn'),changeClass=document.getElementById('at-change-class-btn'),app=document.getElementById('atelier-app');if(mode)mode.textContent=state.studentView?'🔒 Vision Prof':'👁 Vue élève';if(back)back.hidden=state.studentView;if(changeClass)changeClass.hidden=state.studentView;app?.classList.toggle('at-student-view',state.studentView)}
-function nav(){const items=state.studentView?[['morning','Tableau du jour'],['auto','Auto-évaluation']]:[['morning','Tableau du jour'],['teacher','Vue professeur'],['admin','Administration du jour'],['auto','Auto-évaluation'],['pending','Évaluations du jour'],['journal','Cahier de texte'],['tpSummary','Synthèse TP']];document.getElementById('at-nav').innerHTML=items.map(x=>`<button class="${state.page===x[0]?'active':''}" onclick="atelierPage('${x[0]}')">${x[1]}</button>`).join('');updateAtelierModeUI()}
+window.openTeacherView227=async function(){
+ if(state.studentView){await window.toggleAtelierViewMode();if(state.studentView)return;}
+ state.page='teacher';state.selectedActivity='';render();
+};
+function updateAtelierModeUI(){document.getElementById('atelier-app')?.classList.toggle('at-teacher-mobile227',!state.studentView&&state.page==='teacher');const mode=document.getElementById('at-view-mode-btn'),back=document.getElementById('at-return-main-btn'),changeClass=document.getElementById('at-change-class-btn'),app=document.getElementById('atelier-app');if(mode)mode.textContent=state.studentView?'🔒 Vision Prof':'👁 Vue élève';if(back)back.hidden=state.studentView;if(changeClass)changeClass.hidden=state.studentView;app?.classList.toggle('at-student-view',state.studentView)}
+function nav(){const items=state.studentView?[['morning','Tableau du jour'],['auto','Auto-évaluation']]:[['morning','Tableau du jour'],['admin','Administration du jour'],['auto','Auto-évaluation'],['pending','Évaluations du jour'],['journal','Cahier de texte'],['tpSummary','Synthèse TP']];document.getElementById('at-nav').innerHTML=items.map(x=>`<button class="${state.page===x[0]?'active':''}" onclick="atelierPage('${x[0]}')">${x[1]}</button>`).join('');updateAtelierModeUI()}
 window.openAtelierUnified=function(){if(state.studentView&&!['morning','auto'].includes(state.page))state.page='morning';document.getElementById('atelier-app').classList.remove('hidden');document.getElementById('at-active-class').textContent=classLabel();render()}
 window.closeAtelierUnified=function(){
  if(state.studentView)return;
@@ -12907,6 +12916,7 @@ function linkedTp225(t,assignment){
 }
 function renderTeacher225(){
  if(state.studentView)return;
+ const scroller=document.getElementById('atelier-app'),scrollTop=scroller?.scrollTop||0;
  const d=database(),t=today(d),ps=pupils().slice().sort((a,b)=>a.name.localeCompare(b.name,'fr'));
  const busy=ps.filter(s=>t.assignments[s.id]),free=ps.filter(s=>!t.assignments[s.id]&&!isAtAbsent(t,s.id));
  const groups=new Map();busy.forEach(s=>{const id=String(t.assignments[s.id]);if(!groups.has(id))groups.set(id,[]);groups.get(id).push(s)});
@@ -12915,13 +12925,14 @@ function renderTeacher225(){
  return `<section class="at-panel"><h3>${e(act?.title||pub?.title||id)}</h3><p>${e(pub?.support||(id===TEAM_ID?'Gestion de l’atelier pédagogique':'Support non renseigné'))}</p><p class="muted">${tp?'TP diffusé · confirmation du rendu cloud':'Activité atelier'} · ${list.length} élève(s)</p><div class="at-students">${list.map(s=>`<button type="button" class="at-student assigned" data-release-student="${e(s.id)}"><strong>${e(s.name)}</strong><small style="display:block;margin-top:8px">Libérer cet élève</small></button>`).join('')}</div></section>`;
  }).join('')||'<section class="at-panel">Aucun travail en cours pour cette classe à cette date.</section>'}</div><section class="at-panel" style="margin-top:14px"><h3>Élèves disponibles</h3><p>${free.length?free.map(s=>e(s.name)).join(' · '):'Aucun élève disponible.'}</p></section>`;
  document.querySelectorAll('[data-release-student]').forEach(b=>b.addEventListener('click',()=>requestRelease225(b.dataset.releaseStudent)));
+ if(scroller)scroller.scrollTop=scrollTop;
 }
 function requestRelease225(studentId){
  if(state.studentView)return;
  const d=database(),t=today(d),assignment=t.assignments[studentId];if(!assignment)return;
  const context={classId:atelierClassId(),date:day(),assignment,key:t.activeTask[studentId]||''};
  const pupil=pupils().find(s=>s.id===studentId),pub=publicationById(t,assignment),act=assignedActivity(t,assignment),tp=linkedTp225(t,assignment);
- const dialog=document.createElement('dialog');dialog.style.cssText='max-width:440px;width:calc(100% - 48px);border:1px solid #cbd5e1;border-radius:16px;padding:24px;color:#172033';
+ const dialog=document.createElement('dialog');dialog.className='at-confirm227';dialog.style.cssText='max-width:440px;width:calc(100% - 48px);border:1px solid #cbd5e1;border-radius:16px;padding:24px;color:#172033';
  dialog.innerHTML=`<h2 style="margin-top:0">${tp?'Le TP a t-il été rendu sur le cloud ?':'Libérer cet élève de son activité ?'}</h2><p><strong>${e(pupil?.name||studentId)}</strong><br>${e(act?.title||pub?.title||assignment)}</p><p>${tp?'En cliquant sur Oui, tu confirmes le rendu et libères l’élève.':'L’élève pourra choisir une autre activité. Son travail enregistré sera conservé.'}</p><div style="display:flex;justify-content:flex-end;gap:12px"><button type="button" class="at-btn at-light" data-no>Non</button><button type="button" class="at-btn at-success" data-yes>Oui</button></div>`;
  document.body.appendChild(dialog);
  dialog.addEventListener('close',()=>dialog.remove());
@@ -12941,7 +12952,7 @@ function requestRelease225(studentId){
    session.cloudReturns226[JSON.stringify([diffusionId,studentId])]={diffusionId,studentId,studentName:pupil?.name||studentId,className:classLabel(),tpCode:pub?.tpCode||custom?.tpCode||diffusion?.tpCode||'',title:pub?.title||custom?.title||diffusion?.title||'',confirmedAt:new Date().toISOString(),startedAt:record?.createdAt||new Date().toISOString(),pendingKey:key};
   }
   delete session.assignments[studentId];delete session.activeTask[studentId];
-  state.selectedActivity='';save(fresh);dialog.close();render();
+  const scrollTop=document.getElementById('atelier-app')?.scrollTop||0;state.selectedActivity='';save(fresh);dialog.close();render();const scroller=document.getElementById('atelier-app');if(scroller)scroller.scrollTop=scrollTop;
  };
  dialog.showModal();dialog.querySelector('[data-no]').focus();
 }
@@ -13369,7 +13380,7 @@ function v91TpDiffusionsForActiveClass(){
 function v91TpDiffusedZoneHtml(t){
   const rows=v91TpDiffusionsForActiveClass();
   const selectedCount=(t?.customActivities||[]).filter(x=>x&&x.tpDiffusionId).length;
-  return `<section class="at-admin-zone tp-diffuses"><h3>📤 TP diffusés <span class="v92-count">${selectedCount}</span></h3><p>Créer une activité du planning de charge à partir d’un TP déjà diffusé à <b>${e(classLabel())}</b>.</p><div class="v91-tp-list">${rows.length?rows.map(r=>`<div class="at-catalog-row"><div><b>${e(r.tpCode||'TP')} — ${e(r.title||'')}</b><br><small>${e(r.className||classLabel())} • ${(r.students||r.studentIds||[]).length} élève(s) • ${e(r.diffusedAt?new Date(r.diffusedAt).toLocaleDateString('fr-FR'):'')}</small></div><button type="button" class="at-btn at-primary" onclick="tpV76AddDiffusionToDay('${e(String(r.id||''))}')">＋ Créer / proposer l’activité</button></div>`).join(''):'<div class="at-empty">Aucun TP diffusé pour cette classe.</div>'}</div></section>`;
+  return `<section class="at-admin-zone tp-diffuses"><h3>📤 TP diffusés <span class="v92-count">${selectedCount}</span></h3><p>Créer une activité du planning de charge à partir d’un TP déjà diffusé à <b>${e(classLabel())}</b>.</p><label>Rechercher un TP diffusé<input class="at-search227" type="search" placeholder="Code ou titre du TP…" oninput="filterAdminTp227(this)"></label><p class="at-search-count227" role="status"></p><div class="v91-tp-list">${rows.length?rows.map(r=>`<div class="at-catalog-row" data-search227="${e((r.tpCode||'')+' '+(r.title||''))}"><div><b>${e(r.tpCode||'TP')} — ${e(r.title||'')}</b><br><small>${e(r.className||classLabel())} • ${(r.students||r.studentIds||[]).length} élève(s) • ${e(r.diffusedAt?new Date(r.diffusedAt).toLocaleDateString('fr-FR'):'')}</small></div><button type="button" class="at-btn at-primary" onclick="tpV76AddDiffusionToDay('${e(String(r.id||''))}')">＋ Créer / proposer l’activité</button></div>`).join(''):'<div class="at-empty">Aucun TP diffusé pour cette classe.</div>'}</div></section>`;
 }
 function v91CollapseAdminZones(){
   const dash=document.querySelector('#at-main .at-admin-dashboard');if(!dash)return;
@@ -13601,12 +13612,12 @@ function renderAutoEvaluation(){const d=database(),t=today(d),eligible=pupils().
  if(pending.status==='validated')return false;
  const pub=String(assignment)===String(TEAM_ID)?null:publicationById(t,assignment);
  const act=activityById(pub?.activityId||assignment);
- if(pub?.tpDiffusionId||act?.tpDiffusionId)return false; /* V205 : auto-évaluation réalisée uniquement dans le Lecteur TP */
+ if(linkedTp225(t,assignment))return false; /* V227 : auto-évaluation uniquement dans le Lecteur TP */
  return true;
 }),chosen=eligible.find(s=>s.id===state.autoStudent);if(!chosen&&eligible.length)state.autoStudent=eligible[0].id;const pupil=eligible.find(s=>s.id===state.autoStudent),pendingKey=pupil?activePendingKey(t,pupil.id):'',pending=pendingKey?t.pending[pendingKey]:null,existing=pendingKey?t.selfEvals[pendingKey]:null;if(pupil&&(!state.autoAnswers||state.autoAnswers.studentId!==pupil.id||state.autoAnswers.pendingKey!==pendingKey))state.autoAnswers={studentId:pupil.id,pendingKey,organisation:existing?.organisation||0,resultats:existing?.resultats||0,confiance:existing?.confiance||0};const aid=pupil?t.assignments[pupil.id]:null,pub=aid===TEAM_ID?{publicationId:TEAM_ID,activityId:TEAM_ID,support:"Gestion de l’atelier pédagogique"}:publicationById(t,aid),a=activityById(pub?.activityId||aid);document.getElementById('at-main').innerHTML=`<section class="at-panel"><div class="at-toolbar"><h2>Auto-évaluation des élèves</h2><span class="at-pill">${eligible.length} élève(s) avec un travail actif</span></div>${eligible.length?`<div class="at-auto-students">${eligible.map(s=>{const k=activePendingKey(t,s.id),self=k?t.selfEvals[k]:null;const leader=String(t.assignments?.[s.id]||"")===TEAM_ID;return `<button type="button" class="${self?'done':''} ${s.id===state.autoStudent?'active':''} ${leader?'team-leader':''}" onclick="selectAtAutoStudent('${e(encodeURIComponent(s.id))}')">${e(s.name)}${leader?' — Chef d’équipe':''}${self?.locked?' 🔒':self?' ✓':''}</button>`}).join('')}</div>`:'<div class="at-empty">Aucun élève n’a actuellement de travail à auto-évaluer.</div>'}</section>${pupil?`<section class="at-panel at-auto-form"><h2 class="${String(aid)===TEAM_ID?'at-team-leader-title':''}">${e(pupil.name)}${String(aid)===TEAM_ID?' — Chef d’équipe':''}</h2><div class="at-notice"><b>Activité :</b> ${e(a?.title||aid)}${pending?.sequence?` — tâche n°${e(pending.sequence)}`:''}<br><b>Support :</b> ${e(pub?.support||'Non renseigné')}</div>${existing?.locked?`<div class="at-self-lock"><strong>🔒 Auto-évaluation enregistrée et verrouillée.</strong><br>L’élève ne peut plus la modifier. Un professeur peut lui redonner la main depuis « Évaluations du jour ».</div>${state.studentView?'':`<div style="margin-top:10px">${studentSelfEvalCard(existing)}</div>`}`:`${autoQuestion('organisation','Organisation',['À revoir','Moyen','Bien','Très bien'],state.autoAnswers.organisation)}${autoQuestion('resultats',"Résultat de l’intervention",['À revoir','Moyen','Bien','Très bien'],state.autoAnswers.resultats)}${autoQuestion('confiance','Confiance / autonomie',['Non autonome','Avec aide','Presque autonome','Autonome'],state.autoAnswers.confiance)}<label><b>Note estimée /20 <span style="color:#b42318">*</span></b></label><input id="atAutoNote" type="number" min="0" max="20" step="0.5" required value="${e(existing?.note??'')}" style="width:100%;padding:10px;margin:6px 0 10px"><div class="muted" style="margin:-4px 0 10px">La note est obligatoire pour enregistrer l’auto-évaluation.</div><label><b>Commentaire de l’élève</b></label><textarea id="atAutoComment" rows="3" style="width:100%;box-sizing:border-box;padding:10px;margin-top:6px">${e(existing?.comment||'')}</textarea><div class="at-admin-actions" style="margin-top:12px"><button class="at-btn at-success" onclick="saveAtAutoEvaluation()">Valider mon auto-évaluation</button></div>`}</section>`:''}`}
 window.selectAtAutoStudent=function(encoded){state.autoStudent=decodeURIComponent(encoded);state.autoAnswers=null;renderAutoEvaluation()}
 window.pickAtAuto=function(key,value){state.autoAnswers=state.autoAnswers||{};state.autoAnswers[key]=value;renderAutoEvaluation()}
-window.saveAtAutoEvaluation=function(){const d=database(),t=today(d),id=state.autoStudent,a=state.autoAnswers||{},pendingKey=activePendingKey(t,id);if(!id||!pendingKey){alert("Aucun travail actif n’a été retrouvé pour cet élève.");return}const existing=t.selfEvals?.[pendingKey];if(existing?.locked){alert("Cette auto-évaluation est verrouillée. Un professeur doit d’abord redonner la main.");return}if(!a.organisation||!a.resultats||!a.confiance){alert('Réponds aux trois critères.');return}const rawNote=(document.getElementById('atAutoNote')?.value??'').trim();if(rawNote===''){alert('La note estimée /20 est obligatoire.');document.getElementById('atAutoNote')?.focus();return}const note=Number(rawNote);if(!Number.isFinite(note)||note<0||note>20){alert('Saisis une note entre 0 et 20.');return}const pupil=pupils().find(s=>s.id===id),assignmentId=t.assignments[id],pub=publicationById(t,assignmentId),activityId=pub?.activityId||assignmentId,act=activityById(activityId),record={studentId:id,studentName:pupil?.name||id,pendingKey,publicationId:publicationKey(pub)||String(assignmentId||''),activityId,activityTitle:act?.title||activityId,support:pub?.support||'',organisation:a.organisation,resultats:a.resultats,confiance:a.confiance,note,comment:(document.getElementById('atAutoComment')?.value||'').trim(),savedAt:new Date().toISOString(),locked:true,lockedAt:new Date().toISOString()};t.selfEvals[pendingKey]=record;
+window.saveAtAutoEvaluation=function(){const d=database(),t=today(d),id=state.autoStudent,a=state.autoAnswers||{},pendingKey=activePendingKey(t,id);if(!id||!pendingKey){alert("Aucun travail actif n’a été retrouvé pour cet élève.");return}if(linkedTp225(t,t.assignments[id])){alert('Pour ce TP diffusé, réalise ton auto-évaluation dans le Lecteur TP élève.');return}const existing=t.selfEvals?.[pendingKey];if(existing?.locked){alert("Cette auto-évaluation est verrouillée. Un professeur doit d’abord redonner la main.");return}if(!a.organisation||!a.resultats||!a.confiance){alert('Réponds aux trois critères.');return}const rawNote=(document.getElementById('atAutoNote')?.value??'').trim();if(rawNote===''){alert('La note estimée /20 est obligatoire.');document.getElementById('atAutoNote')?.focus();return}const note=Number(rawNote);if(!Number.isFinite(note)||note<0||note>20){alert('Saisis une note entre 0 et 20.');return}const pupil=pupils().find(s=>s.id===id),assignmentId=t.assignments[id],pub=publicationById(t,assignmentId),activityId=pub?.activityId||assignmentId,act=activityById(activityId),record={studentId:id,studentName:pupil?.name||id,pendingKey,publicationId:publicationKey(pub)||String(assignmentId||''),activityId,activityTitle:act?.title||activityId,support:pub?.support||'',organisation:a.organisation,resultats:a.resultats,confiance:a.confiance,note,comment:(document.getElementById('atAutoComment')?.value||'').trim(),savedAt:new Date().toISOString(),locked:true,lockedAt:new Date().toISOString()};t.selfEvals[pendingKey]=record;
 if(t.pending[pendingKey]){
  t.pending[pendingKey].selfEvaluation=record;
  t.pending[pendingKey].status='awaiting_validation';
@@ -13623,6 +13634,7 @@ alert('Auto-évaluation enregistrée. Tu es maintenant libéré et peux choisir 
 renderAutoEvaluation()}
 window.reopenAtAutoEvaluation=function(encoded){
  const key=decodeURIComponent(encoded),d=database(),t=today(d),self=t.selfEvals?.[key],task=t.pending?.[key];
+ if(linkedTp225(t,task?.publicationId||task?.activityId)){alert('Auto-évaluation disponible dans le Lecteur TP élève.');return}
  if(task?.status==='validated'){
    alert("L’évaluation professeur a déjà été enregistrée pour cette tâche. L’auto-évaluation est désormais clôturée et ne peut plus être rouverte.");
    return;
@@ -15030,15 +15042,16 @@ function prefer(old,incoming){if(!old)return incoming;if(!same(old,incoming)){
   const ot=time(submitted(old)),nt=time(submitted(incoming));if(ot&&nt&&ot!==nt)return null; // distinct attempts: keep both
  }
  if(done(old)&&!done(incoming)){stats.downgradesBlocked++;event('ancien brouillon ignoré',{id:old.id});return old}
- if(done(incoming))return corrected({...old,...incoming,data:{...old.data,...incoming.data}},incoming);
+ if(done(incoming)){const keepFull=incoming.firebaseArchive227?.mediaRemoved&&!old.firebaseArchive227?.mediaRemoved;return corrected({...old,...incoming,data:keepFull?old.data:{...old.data,...incoming.data},v217ArchiveOnly:keepFull?!!old.v217ArchiveOnly:incoming.v217ArchiveOnly,firebaseArchive227:keepFull?{...incoming.firebaseArchive227,mediaRemoved:false}:incoming.firebaseArchive227||old.firebaseArchive227},incoming);}
  return incoming;
 }
 function archiveInto(a,doc,ar){
  if(!ar||!ar.id){event('archive sans identifiant',{doc});return a}
  const candidate={id:ar.id,data:{studentId:ar.studentId,eleve:{nom:ar.nom,prenom:ar.prenom,date:String(ar.identity||'').split('|').pop()||''},classe:ar.classe,code:ar.tpId,titre:ar.tpTitre,dates:{rendu:String(ar.identity||'').split('|').pop()||''}},note:ar.note??'',appreciation:ar.appreciation||'',levels:ar.levels||{},marks:ar.marks||{},fileName:ar.fileName||'',correctedAt:ar.correctedAt||'date inconnue',savedEvaluationId:ar.evaluationId||'',workflowState:'CORRIGE',v217Source:'archive Firebase V159',v217ArchiveOnly:true};
+ if(ar.justification227){candidate.data=ar.justification227.data||candidate.data;candidate.marks=ar.justification227.marks||candidate.marks;candidate.firebaseArchive227=ar.justification227.firebaseArchive227;candidate.v217ArchiveOnly=true;}
  if(deleted(candidate))return a;
  const ix=a.findIndex(x=>String(x.id)===String(ar.id));
- if(ix>=0){a[ix]=corrected(a[ix],candidate);remember(a[ix])}else{a.push(candidate);remember(candidate)}
+ if(ix>=0){const old=a[ix];a[ix]=corrected(old,candidate);if(ar.justification227){if(old.v217ArchiveOnly||old.firebaseArchive227?.mediaRemoved)a[ix].data=candidate.data;a[ix].firebaseArchive227={...candidate.firebaseArchive227,mediaRemoved:!!(old.v217ArchiveOnly||old.firebaseArchive227?.mediaRemoved)};}remember(a[ix])}else{a.push(candidate);remember(candidate)}
  event('archive corrigée conservée',{doc,id:ar.id});return normalize(a);
 }
 function snapshot(source,snap){stats.cloudSnapshots++;sources[source]={at:new Date().toISOString(),fromCache:!!snap.metadata?.fromCache,changes:snap.docChanges().length};event('états reçus',{source,...sources[source]})}
@@ -15052,6 +15065,83 @@ function ackSend(source,r,token){const a=readKey(OUTBOX),next=a.filter(x=>!(x.ke
 function pending(source){const ids=new Set(readKey(OUTBOX).filter(x=>x.source===source).map(x=>String(x.id)));return read().filter(r=>ids.has(String(r.id))&&!deleted(r))}
 function report(){const a=read(),doneCount=a.filter(done).length;const rows=a.map(r=>({id:r.id,eleve:[r.data?.eleve?.nom,r.data?.eleve?.prenom].filter(Boolean).join(' ')||r.data?.studentName||'',classe:r.data?.classe||'',tp:r.data?.code||r.data?.tp?.id||'',rendu:submitted(r),etat:done(r)?'corrigé':'à corriger',note:r.note??'',preuve:r.v217Source|| (done(r)?'correction enregistrée':'aucune preuve exacte'),evaluation:r.savedEvaluationId||'',archiveLegere:!!r.v217ArchiveOnly}));return {format:'diagnostic-portail-correcteur-v217',createdAt:new Date().toISOString(),startedAt,version:'V217 diagnostic provisoire / démarrage V214',firebaseActive:networkAllowed(),pendingSync:readKey(OUTBOX).map(x=>({source:x.source,id:x.id})),counts:{total:a.length,corriges:doneCount,aCorriger:a.length-doneCount},stats:{...stats},sources,rows,events:[...history],limits:['Aucune lecture Firebase supplémentaire déclenchée par le diagnostic.','Une correspondance élève + TP seule ne suffit pas pour marquer un nouveau rendu comme corrigé.','La trace de session conserve les 300 derniers événements.']}}
 window.tp217={queueSend,ackSend,pending,stats,event,read,done,same,normalize,reconcile,prefer,archiveInto,snapshot,networkAllowed,writeResult,report,remember,persistProofs,corrected};
+})();
+
+</script>
+<script id="v227-archive-core">
+(function(){
+'use strict';
+const KEY='tp_correction_local_v54',PENDING='tp_archive_cleanup_pending_v227',STATE='tp_archive_cleanup_status_v227';
+const read=(k,f)=>{try{return JSON.parse(localStorage.getItem(k)||'null')||f}catch(_){return f}};
+const rows=()=>read(KEY,[]),clone=x=>JSON.parse(JSON.stringify(x)),size=x=>new Blob([JSON.stringify(x)]).size;
+const done=r=>!!window.tp217?.done(r);
+function scrub(v,key=''){
+ if(Array.isArray(v))return v.map(x=>scrub(x,key));
+ if(v&&typeof v==='object'){const o={};for(const [k,x] of Object.entries(v)){if(/^(access|teacherAccess|password|base64|binary|imageData|thumbnailData)$/i.test(k))continue;o[k]=scrub(x,k)}return o}
+ if(typeof v!=='string')return v;
+ if(/^(data:|blob:)|\[IMAGE_STOCKEE_INDEXEDDB\]/i.test(v)||(/^(src|image|photo|thumbnail|preview|url)$/i.test(key)&&/^https?:/i.test(v)))return '[MÉDIA CONSERVÉ DANS LA COPIE COMPLÈTE]';
+ if(v.length>256&&/^[A-Za-z0-9+/=\r\n]+$/.test(v))return '[CONTENU BINAIRE CONSERVÉ DANS LA COPIE COMPLÈTE]';
+ return v.replace(/<img\b[^>]*>/gi,'[Illustration dans la copie complète]').replace(/data:[^\s"'<>)]*/gi,'[Média dans la copie complète]');
+}
+function mergeFull(base,light){
+ if(typeof light==='string'&&(/\[IMAGE_STOCKEE_INDEXEDDB\]/.test(light)||light==='[MÉDIA CONSERVÉ DANS LA COPIE COMPLÈTE]'))return base??light;
+ if(Array.isArray(light)){if(!Array.isArray(base))return light;return light.map((v,i)=>mergeFull(base[i],v))}
+ if(light&&typeof light==='object'){const out={...(base&&typeof base==='object'?base:{})};for(const [k,v] of Object.entries(light))out[k]=mergeFull(base?.[k],v);return out}return light;
+}
+function db(){return new Promise((ok,no)=>{const q=indexedDB.open('fdmahy_corrections_v129',1);q.onupgradeneeded=()=>{if(!q.result.objectStoreNames.contains('copies'))q.result.createObjectStore('copies',{keyPath:'id'})};q.onsuccess=()=>ok(q.result);q.onerror=()=>no(q.error)})}
+async function stored(id){const d=await db();try{return await new Promise((ok,no)=>{const q=d.transaction('copies').objectStore('copies').get(String(id));q.onsuccess=()=>ok(q.result||null);q.onerror=()=>no(q.error)})}finally{d.close()}}
+async function full(r){
+ let original=null;try{original=await stored(r.id)}catch(e){if(r.fullDataStored)throw e}
+ if(!original&&(r.fullDataStored||r.v217ArchiveOnly||r.firebaseArchive227?.mediaRemoved))throw Error('La copie complète n’est pas disponible sur ce poste. Utilise le poste ayant importé le TP ou réimporte sa sauvegarde complète.');
+ const out=mergeFull(original||{},r);if(/\[IMAGE_STOCKEE_INDEXEDDB\]/.test(JSON.stringify(out)))throw Error('Certaines images manquent sur ce poste : allègement refusé.');
+ delete out.fullDataStored;delete out.v217ArchiveOnly;
+ out.data=out.data||{};if(done(r)){out.data.statut='CORRIGE';out.data.dates={...out.data.dates,correction:r.correctedAt};out.data.correction={...out.data.correction,note:r.note,appreciation:r.appreciation,competences:r.levels||{},marquages:r.marks||{},evaluationId:r.savedEvaluationId,date:r.correctedAt};}
+ return out;
+}
+function latest(r){return rows().find(x=>String(x.id)===String(r?.id))||r}
+async function cloudRow(r){
+ r=latest(r);
+ if(!done(r)||!r.firebaseArchive227?.backupConfirmedAt)return clone(r);
+ let source=r;
+ // A compact archive arriving from another workstation is already complete as a justification.
+ if(!r.firebaseArchive227.mediaRemoved)source=await full(r);
+ const out=scrub(source);delete out.fullDataStored;out.firebaseArchive227={...r.firebaseArchive227,mediaRemoved:true};out.v217ArchiveOnly=true;return out;
+}
+function setStatus(id,text){const m=read(STATE,{});m[id]=text;localStorage.setItem(STATE,JSON.stringify(m));window.tp227?.paintStorage()}
+function network(){return !!window.tp217?.networkAllowed()&&!!window.firebase?.auth?.().currentUser&&!window.firebaseQuotaPaused223?.()}
+async function cleanup(r){
+ if(!r?.firebaseArchive227?.backupConfirmedAt||!network())return false;
+ const ref=firebase.firestore().collection('workspaces').doc('evaluation-mv-main').collection('tpPendingCopiesV139').doc(String(r.id));
+ const snap=await ref.collection('chunks').get();
+ for(let i=0;i<snap.docs.length;i+=100){const batch=firebase.firestore().batch();snap.docs.slice(i,i+100).forEach(d=>batch.delete(d.ref));await batch.commit()}
+ // Keep a lightweight receipt: idempotent and no resurrection by this version.
+ await ref.set({id:r.id,status:'CORRIGE',chunks:0,archive227:true,clientUpdatedAt:new Date().toISOString()},{merge:false});return true;
+}
+const running=new Set();
+async function finish(id){
+ if(running.has(id))return;const r=rows().find(x=>String(x.id)===String(id));if(!r||!done(r)||!r.firebaseArchive227?.backupConfirmedAt)return;
+ if(!network()){setStatus(id,'Sauvegarde confirmée — allègement en attente de connexion');return}
+ running.add(id);try{
+  setStatus(id,'Allègement Firebase en cours…');
+  const a=await window.tp227Push73(r),b=await window.tp227Push159(r);
+  if(!a||!b)throw Error('Envoi non confirmé');
+  if(!await cleanup(r))throw Error('Nettoyage en attente');
+  localStorage.setItem(PENDING,JSON.stringify(read(PENDING,[]).filter(x=>x!==String(id))));setStatus(id,'Archive allégée synchronisée dans Firebase');
+ }catch(e){setStatus(id,'Allègement à reprendre : '+(e?.message||e));console.warn('Archive V227 conservée, nettoyage différé',e)}finally{running.delete(id)}
+}
+async function approve(id,expected){
+ const a=rows(),r=a.find(x=>String(x.id)===String(id));if(!r||!done(r))throw Error('Correction non validée');
+ if(expected!==backupToken(r))throw Error('La correction a changé. Télécharge une nouvelle sauvegarde avant de confirmer.');
+ r.firebaseArchive227={backupConfirmedAt:new Date().toISOString(),mediaRemoved:false};localStorage.setItem(KEY,JSON.stringify(a));
+ const pending=new Set(read(PENDING,[]));pending.add(String(id));localStorage.setItem(PENDING,JSON.stringify([...pending]));
+ window.tp217?.queueSend?.('V73',r);window.tp217?.queueSend?.('V159',r);
+ await finish(String(id));
+}
+function backupToken(r){return JSON.stringify([r.id,r.correctedAt,r.note,r.appreciation,r.levels,r.marks,r.savedEvaluationId])}
+async function resume(){for(const id of read(PENDING,[])){if(!network())break;await finish(id);const state=read(STATE,{})[id]||'';if(state.startsWith('Allègement à reprendre'))break}}
+window.tp227={latest,read,rows,done,scrub,full,cloudRow,size,backupToken,approve,finish,cleanup,resume,paintStorage(){},settings(){}};
+window.addEventListener('online',resume);
+window.addEventListener('load',()=>setTimeout(resume,1500),{once:true});
 })();
 
 </script>
@@ -15072,7 +15162,14 @@ window.tp217={queueSend,ackSend,pending,stats,event,read,done,same,normalize,rec
  function col(){const f=db();return f?f.collection('workspaces').doc(WORKSPACE).collection(COLLECTION):null}
  function led(active){const el=document.getElementById('firebase-activity-led');if(!el)return;el.style.opacity=active?'1':'.55';if(active){el.style.boxShadow='0 0 0 4px rgba(34,197,94,.15),0 0 9px rgba(34,197,94,.75)'}else el.style.boxShadow='none'}
  const sent=new Map();
- async function pushRow(r){if(!r)return;const sendToken=window.tp217.queueSend('V73',r);if(!authReady())return;const c=col();if(!c)return;const fingerprint=JSON.stringify(r);if(sent.get(key(r))===fingerprint){window.tp217.ackSend('V73',r,sendToken);return;}led(true);try{const k=key(r), payload=JSON.parse(JSON.stringify(r));payload.v73Key=k;payload.v73Identity=identity(r);payload.v73Device=device();payload.v73UpdatedAt=new Date().toISOString();await c.doc(k).set({record:payload,deleted:false,status:r.correctedAt?'corrected':'returned',correctedAt:r.correctedAt||null,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});sent.set(k,fingerprint);window.tp217.ackSend('V73',r,sendToken);window.tp217.writeResult('V73',true)}catch(e){window.tp217.writeResult('V73',false,e);throw e}finally{led(false)}}
+ async function pushRow(r){
+ if(!r)return false;r=window.tp227.latest(r);const sendToken=window.tp217.queueSend('V73',r);if(!authReady())return false;const c=col();if(!c)return false;
+ const fingerprint=JSON.stringify(r);if(sent.get(key(r))===fingerprint){window.tp217.ackSend('V73',r,sendToken);return true;}
+ led(true);try{const k=key(r),payload=await window.tp227.cloudRow(r);payload.v73Key=k;payload.v73Identity=identity(r);payload.v73Device=device();payload.v73UpdatedAt=new Date().toISOString();
+ await c.doc(k).set({record:payload,deleted:false,status:r.correctedAt?'corrected':'returned',correctedAt:r.correctedAt||null,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{mergeFields:['record','deleted','status','correctedAt','updatedAt']});
+ sent.set(k,fingerprint);window.tp217.ackSend('V73',r,sendToken);window.tp217.writeResult('V73',true);return true;
+ }catch(e){window.tp217.writeResult('V73',false,e);throw e}finally{led(false)}}
+ window.tp227Push73=pushRow;
  async function tombstone(r){if(!r||!authReady())return;const c=col();if(!c)return;led(true);try{await c.doc(key(r)).set({deleted:true,status:'deleted',deletedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedAt:firebase.firestore.FieldValue.serverTimestamp(),v73Device:device()},{merge:true})}finally{led(false)}}
  function refreshViews(){window.dispatchEvent(new CustomEvent('tp-v159-corrections-updated'));}
  function mergeRemote(snapshot){const before=rows();let local=before.slice();window.tp217.snapshot('V73',snapshot);snapshot.docChanges().forEach(ch=>{if(ch.type==='removed')return;const v=ch.doc.data()||{},k=ch.doc.id,ix=local.findIndex(r=>String(r.id)===String(v.record?.id)||key(r)===k),old=ix<0?null:local[ix];if(v.deleted){if(old)local=local.filter(r=>key(r)!==k);return}const rr=v.record;if(!rr||window.tpV201IsDeletedCorrection?.(rr))return;if(old&&document.querySelector('#main .tpc-editor')&&String(old.id)===String(window.__tp55Current)&&!window.tp217.done(rr))return;const chosen=window.tp217.prefer(old,rr);if(chosen===null){if(!local.some(r=>String(r.id)===String(rr.id)))local.push(rr);return}if(!old)local.push(chosen);else if(window.tp217.done(chosen)||stamp(rr)>=stamp(old))local[ix]=chosen});local=window.tp217.normalize(local);if(JSON.stringify(local)!==JSON.stringify(before)){write(local);refreshViews()}}
@@ -15727,7 +15824,7 @@ window.tp217={queueSend,ackSend,pending,stats,event,read,done,same,normalize,rec
  const read=k=>{try{const a=JSON.parse(localStorage.getItem(k)||'[]');return Array.isArray(a)?a:[]}catch(e){return[]}};
  const diff=()=>read(DKEY),corr=()=>read(CKEY);
  const coll=()=>{try{return firebase.auth().currentUser?firebase.firestore().collection('workspaces').doc('evaluation-mv-main').collection('tpDiffusionsV106'):null}catch(e){return null}};
- let unsub=null,starting=false,started=false,refreshTimer=null,query='',visibleSummary=false,selected=null,selectionClass='';
+ let unsub=null,starting=false,started=false,refreshTimer=null,query='',visibleSummary=false,selected=null,selectionClass='',summarySearch='';
  const id=r=>String(r?.id||'');
  function merge(remote){let deleted=[];try{deleted=JSON.parse(localStorage.getItem('tp_diffusions_deleted_v114')||'[]')||[]}catch(_){deleted=[]}const gone=new Set(deleted.map(String)),m=new Map(diff().filter(r=>id(r)&&!gone.has(id(r))).map(r=>[id(r),r]));for(const r of remote)if(id(r)&&!gone.has(id(r)))m.set(id(r),r);localStorage.setItem(DKEY,JSON.stringify([...m.values()].sort((a,b)=>String(b.diffusedAt||'').localeCompare(String(a.diffusedAt||'')))))}
  function refresh(){clearTimeout(refreshTimer);refreshTimer=setTimeout(()=>{if(document.querySelector('.tp106-diff-search')&&!document.activeElement?.classList?.contains('tp106-diff-search'))window.tpV76DiffusionsPage?.();if(document.querySelector('#at-nav button.active')?.textContent?.includes('Synthèse TP'))window.renderAtelierTpSummary?.()},200)}
@@ -15753,14 +15850,16 @@ window.tp217={queueSend,ackSend,pending,stats,event,read,done,same,normalize,rec
  for(const r of cs){const d=corrData(r),codes=tpCodes(d);if(!codes.length)continue;const existing=[...by.values()].find(c=>codes.some(x=>c.aliases.includes(x)));if(!existing){const k=codes[0];by.set(k,{key:k,code:d.code||d.tp?.id||'',title:d.titre||d.tp?.titre||'',level:d.niveau||d.level||'',aliases:codes})}}
  return {people,ds,cs,columns:[...by.values()]};}
  function groupOf(c){const l=norm(c.level);return l.includes('debut')?'Débutant':l.includes('seconde')?'Seconde':l.includes('premiere')?'Première':l.includes('terminal')?'Terminale':'Sans niveau'}
- function chooser(){const data=catalog(),cl=String(getActiveClassId());if(selectionClass!==cl){selected=null;selectionClass=cl;visibleSummary=false}const box=document.getElementById('at-main');if(!box)return;if(selected===null)selected=new Set(data.columns.map(c=>c.key));const counts={};data.columns.forEach(c=>counts[groupOf(c)]=(counts[groupOf(c)]||0)+1);
- box.innerHTML=`<section class="at-panel"><div class="at-toolbar"><div><h2>📊 Synthèse TP — ${esc(activeClassName())}</h2><p class="muted">Choisis les TP à présenter à la classe, puis affiche le tableau.</p></div><button class="at-btn at-light" type="button" onclick="tp106SyncDiffusions()">↻ Actualiser les TP</button></div><div class="tp107-toolbar"><button type="button" onclick="tp107ChooseGroup('all')">Tous les TP</button>${Object.keys(counts).map(g=>`<button type="button" data-tp107-group="${esc(g)}">${esc(g)} (${counts[g]})</button>`).join('')}<button type="button" onclick="tp107ChooseGroup('none')">Tout décocher</button></div><div class="tp107-chooser">${data.columns.map(c=>`<label class="tp107-choice"><input type="checkbox" data-tp107-key="${esc(c.key)}" ${selected.has(c.key)?'checked':''}><span><b>${esc(c.code||c.title||'TP')}</b> — ${esc(c.title)}<small>${esc(groupOf(c))}</small></span></label>`).join('')}</div><button type="button" class="at-btn at-primary" onclick="tp107ShowSummary()">Afficher la synthèse sélectionnée</button>${!data.columns.length?'<p class="at-empty">Aucun TP diffusé ou rendu retrouvé pour cette classe. Vérifie la connexion Firebase et ouvre cette version sur les postes qui contiennent les anciennes diffusions.</p>':''}<div id="tp107-result"></div></section>`;
- box.querySelectorAll('[data-tp107-key]').forEach(el=>el.addEventListener('change',()=>{el.checked?selected.add(el.dataset.tp107Key):selected.delete(el.dataset.tp107Key);visibleSummary=false;document.getElementById('tp107-result').innerHTML=''}));box.querySelectorAll('[data-tp107-group]').forEach(el=>el.addEventListener('click',()=>window.tp107ChooseGroup(el.dataset.tp107Group)));if(visibleSummary)showTable(data);
+ function chooser(){const data=catalog(),cl=String(getActiveClassId());if(selectionClass!==cl){selected=null;selectionClass=cl;visibleSummary=false;summarySearch='' }const box=document.getElementById('at-main');if(!box)return;if(selected===null)selected=new Set(data.columns.map(c=>c.key));const counts={};data.columns.forEach(c=>counts[groupOf(c)]=(counts[groupOf(c)]||0)+1);
+ box.innerHTML=`<section class="at-panel"><div class="at-toolbar"><div><h2>📊 Synthèse TP — ${esc(activeClassName())}</h2><p class="muted">Choisis les TP à présenter à la classe, puis affiche le tableau.</p></div><button class="at-btn at-light" type="button" onclick="tp106SyncDiffusions()">↻ Actualiser les TP</button></div><div class="tp107-toolbar"><button type="button" onclick="tp107ChooseGroup('all')">Tous les TP</button>${Object.keys(counts).map(g=>`<button type="button" data-tp107-group="${esc(g)}">${esc(g)} (${counts[g]})</button>`).join('')}<button type="button" onclick="tp107ChooseGroup('none')">Tout décocher</button></div><label>Rechercher un TP<input id="tp227-summary-search" class="at-search227" type="search" placeholder="Code ou titre du TP…" value="${esc(summarySearch)}"></label><p id="tp227-summary-count" role="status"></p><button type="button" class="at-btn at-light" onclick="tp227SelectResults()">Sélectionner uniquement les résultats</button><div class="tp107-chooser">${data.columns.map(c=>`<label class="tp107-choice" data-search227="${esc(c.code+' '+c.title)}"><input type="checkbox" data-tp107-key="${esc(c.key)}" ${selected.has(c.key)?'checked':''}><span><b>${esc(c.code||c.title||'TP')}</b> — ${esc(c.title)}<small>${esc(groupOf(c))}</small></span></label>`).join('')}</div><button type="button" class="at-btn at-primary" onclick="tp107ShowSummary()">Afficher la synthèse sélectionnée</button>${!data.columns.length?'<p class="at-empty">Aucun TP diffusé ou rendu retrouvé pour cette classe. Vérifie la connexion Firebase et ouvre cette version sur les postes qui contiennent les anciennes diffusions.</p>':''}<div id="tp107-result"></div></section>`;
+ box.querySelectorAll('[data-tp107-key]').forEach(el=>el.addEventListener('change',()=>{el.checked?selected.add(el.dataset.tp107Key):selected.delete(el.dataset.tp107Key);visibleSummary=false;document.getElementById('tp107-result').innerHTML=''}));box.querySelectorAll('[data-tp107-group]').forEach(el=>el.addEventListener('click',()=>window.tp107ChooseGroup(el.dataset.tp107Group)));const search=box.querySelector('#tp227-summary-search');search.addEventListener('input',()=>{summarySearch=search.value;filterSummary227()});filterSummary227();if(visibleSummary)showTable(data);
  }
+ function filterSummary227(){const q=norm(summarySearch);let n=0;document.querySelectorAll('.tp107-choice[data-search227]').forEach(el=>{el.hidden=!!q&&!norm(el.dataset.search227).includes(q);if(!el.hidden)n++});const label=document.getElementById('tp227-summary-count');if(label)label.textContent=n+' TP trouvé(s) · '+selected.size+' sélectionné(s)';}
+ window.tp227SelectResults=function(){const q=norm(summarySearch);selected=new Set(catalog().columns.filter(c=>!q||norm(c.code+' '+c.title).includes(q)).map(c=>c.key));visibleSummary=false;chooser()};
  window.tp107ChooseGroup=function(g){const cols=catalog().columns;if(g==='all')selected=new Set(cols.map(c=>c.key));else if(g==='none')selected=new Set();else selected=new Set(cols.filter(c=>groupOf(c)===g).map(c=>c.key));visibleSummary=false;chooser()};
  function showTable(data){const cols=data.columns.filter(c=>selected.has(c.key)),target=document.getElementById('tp107-result');if(!target)return;if(!cols.length){target.innerHTML='<p class="at-notice">Sélectionne au moins un TP.</p>';return}
- const body=data.people.map(s=>`<tr><th scope="row">${esc(s.name)}</th>${cols.map(col=>{const assigned=data.ds.filter(d=>col.aliases.includes(key(d))&&((d.students||[]).some(x=>String(x.id||'')===s.id||norm(x.name)===norm(s.name))||(d.studentIds||[]).some(x=>String(x)===s.id)));const returned=data.cs.filter(r=>personMatch(s,r)&&tpCodes(corrData(r)).some(x=>col.aliases.includes(x))).sort((a,b)=>String(b.correctedAt||b.importedAt||'').localeCompare(String(a.correctedAt||a.importedAt||'')))[0];return `<td class="${returned?'tp107-done':assigned.length?'tp107-todo':'tp107-none'}">${returned?(returned.correctedAt?'✓ Corrigé':'✓ Rendu'):assigned.length?'● À faire':'—'}</td>`}).join('')}</tr>`).join('');
- target.innerHTML=`<p class="at-notice">🟢 Rendu ou corrigé · 🟠 Diffusé et à faire · — Pas attribué</p><div class="tp107-wrap"><table class="tp107-table"><thead><tr><th>Élève</th>${cols.map(c=>`<th>${esc(c.code||'TP')}<small>${esc(c.title)}</small></th>`).join('')}</tr></thead><tbody>${body}</tbody></table></div>`;
+ const body=data.people.map(s=>`<tr><th scope="row">${esc(s.name)}</th>${cols.map(col=>{const assigned=data.ds.filter(d=>col.aliases.includes(key(d))&&((d.students||[]).some(x=>String(x.id||'')===s.id||norm(x.name)===norm(s.name))||(d.studentIds||[]).some(x=>String(x)===s.id)));const returned=data.cs.filter(r=>personMatch(s,r)&&tpCodes(corrData(r)).some(x=>col.aliases.includes(x))).sort((a,b)=>String(b.correctedAt||b.importedAt||'').localeCompare(String(a.correctedAt||a.importedAt||'')))[0];const receipt=(window.cloud226?.receipts()||[]).filter(r=>String(r.classId)===String(getActiveClassId())&&String(r.studentId)===String(s.id)&&col.aliases.includes(norm(r.tpCode))).sort((a,b)=>String(b.confirmedAt).localeCompare(String(a.confirmedAt)))[0];const receiptState=receipt?window.cloud226.diffusionState({id:receipt.diffusionId},{id:s.id},returned?.correctedAt?'green':'grey'):null;const status=receiptState||(returned?(returned.correctedAt?'green':'yellow'):assigned.length?'todo':'none');return `<td class="${status==='green'?'tp107-done':status==='yellow'?'tp227-returned':status==='todo'?'tp107-todo':'tp107-none'}">${status==='green'?'✓ Corrigé':status==='yellow'?'✓ Rendu':status==='todo'?'● À faire':'—'}</td>`}).join('')}</tr>`).join('');
+ target.innerHTML=`<p class="at-notice">🟢 Corrigé · 🟡 Rendu · 🟠 Diffusé et à faire · — Pas attribué</p><div class="tp107-wrap"><table class="tp107-table"><thead><tr><th>Élève</th>${cols.map(c=>`<th>${esc(c.code||'TP')}<small>${esc(c.title)}</small></th>`).join('')}</tr></thead><tbody>${body}</tbody></table></div>`;
  }
  window.tp107ShowSummary=function(){visibleSummary=true;showTable(catalog())};
  window.renderAtelierTpSummary=function(){chooser();start()};
@@ -15946,7 +16045,7 @@ window.tp217={queueSend,ackSend,pending,stats,event,read,done,same,normalize,rec
  const oldDiffuse=window.tpGenDiffuseSaved;window.tpGenDiffuseSaved=async function(id){const x=rows().find(r=>String(r.savedId)===String(id));if(x?.snapshot?.rawProjectStored){const raw=await getProject(id);if(raw)mem.set(String(id),raw)}return oldDiffuse?.(id)};
  const oldLocked=window.tpGenLockedSnapshot;window.tpGenLockedSnapshot=function(){const d=oldLocked?.();if(d?.rawProjectStored&&!d.rawProject){const id=String(tpGenState.currentSavedId||window.__tpDiffusionSavedId||'');const raw=mem.get(id);if(raw)d.rawProject=JSON.parse(JSON.stringify(raw))}return d};
  const oldDelete=window.tpGenDeleteSaved;window.tpGenDeleteSaved=async function(id){const before=rows().some(x=>String(x.savedId)===String(id));const ret=await oldDelete?.(id);if(before&&!rows().some(x=>String(x.savedId)===String(id)))try{await delProject(id)}catch(e){console.warn(e)}return ret};
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V226 — Évaluation · Charge Atelier · TP · Correction';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V227 — Évaluation · Charge Atelier · TP · Correction';
  migrate();
  console.info('V113 actif : projets TP lourds stockés dans IndexedDB; localStorage limité aux métadonnées.');
 })();
@@ -16006,7 +16105,7 @@ window.tp217={queueSend,ackSend,pending,stats,event,read,done,same,normalize,rec
  };
  const oldDiffPage=window.tpV76DiffusionsPage;
  if(typeof oldDiffPage==='function')window.tpV76DiffusionsPage=function(){const out=oldDiffPage.apply(this,arguments);setTimeout(()=>{const data=diffRows().filter(r=>!new Set(deletedIds()).has(String(r.id))).sort((a,b)=>String(b.diffusedAt||'').localeCompare(String(a.diffusedAt||''))),els=[...document.querySelectorAll('.v76-diff-row')];els.forEach((el,i)=>{const r=data[i];if(!r||el.querySelector('[data-v114-delete]'))return;const oldBtn=el.querySelector('button');const wrap=document.createElement('div');wrap.className='v114-diff-actions';if(oldBtn){oldBtn.replaceWith(wrap);wrap.appendChild(oldBtn)}const b=document.createElement('button');b.type='button';b.className='tpgen-btn danger';b.dataset.v114Delete='1';b.textContent='🗑️ Supprimer';b.onclick=()=>window.tp114DeleteDiffusion(r.id);wrap.appendChild(b)})},0);return out};
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V226 — Évaluation · Charge Atelier · TP · Correction';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V227 — Évaluation · Charge Atelier · TP · Correction';
  console.info('V114 actif : import TP IndexedDB corrigé et suppression individuelle des TP diffusés.');
 })();
 </script>
@@ -16126,7 +16225,7 @@ window.tp217={queueSend,ackSend,pending,stats,event,read,done,same,normalize,rec
  }catch(e){console.warn('V213 migration registre Mes TP diffusés',e)}
  // La photothèque n'est volontairement jamais incluse dans cette synchronisation.
  setTimeout(()=>run('demarrage'),1600);
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V226 — Évaluation · Charge Atelier · TP · Correction';document.title='V226 — Évaluation · Charge Atelier · TP · Correction';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V227 — Évaluation · Charge Atelier · TP · Correction';document.title='V227 — Évaluation · Charge Atelier · TP · Correction';
  console.info('V133 : Firebase limité aux TP diffusés. TP enregistrés et photothèque restent locaux.');
 })();
 </script>
@@ -16164,7 +16263,7 @@ window.tp217={queueSend,ackSend,pending,stats,event,read,done,same,normalize,rec
  window.addEventListener('pagehide',()=>{if(!isHome())return;try{const light={at:new Date().toISOString(),version:VERSION,localStorage:Object.fromEntries(Array.from({length:localStorage.length},(_,i)=>{const k=localStorage.key(i);return[k,localStorage.getItem(k)]}))};localStorage.setItem('evaluation_emergency_backup_v133',JSON.stringify(light))}catch(_){}});
  // Outil volontaire : efface les anciennes copies cloud des TP ENREGISTRÉS V132, jamais les diffusions.
  window.v133CleanSavedTpCloud=async function(){if(!confirm('Supprimer de Firebase les anciennes copies des TP enregistrés ?\nLes TP diffusés ne seront pas touchés.'))return false;const fs=window.firebase?.firestore?.();if(!fs)throw new Error('Firebase indisponible');const col=fs.collection('workspaces').doc('evaluation-mv-main').collection('tpProjectsV132'),snap=await col.get();for(const d of snap.docs){const c=await d.ref.collection('chunks').get();for(let i=0;i<c.docs.length;i+=300){const b=fs.batch();c.docs.slice(i,i+300).forEach(x=>b.delete(x.ref));await b.commit()}await d.ref.delete()}alert(snap.size+' TP enregistrés supprimés de Firebase. Les versions locales sont conservées.');return true};
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V226 — Évaluation · Charge Atelier · TP · Correction';document.title='V226 — Évaluation · Charge Atelier · TP · Correction';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V227 — Évaluation · Charge Atelier · TP · Correction';document.title='V227 — Évaluation · Charge Atelier · TP · Correction';
  console.info('V133 poste maison:',isHome()?'actif':'inactif','— TP enregistrés locaux, diffusions Firebase.');
 })();
 </script>
@@ -16210,8 +16309,8 @@ window.tp217={queueSend,ackSend,pending,stats,event,read,done,same,normalize,rec
  window.addEventListener('storage',e=>{if(e.key===DKEY)purgeDeleted()});
  window.addEventListener('tp-v133-synced',purgeDeleted);
  setInterval(purgeDeleted,4000);
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V226 — Évaluation · Charge Atelier · TP · Correction';
- document.title='V226 — Évaluation · Charge Atelier · TP · Correction';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V227 — Évaluation · Charge Atelier · TP · Correction';
+ document.title='V227 — Évaluation · Charge Atelier · TP · Correction';
  console.info('V134 : page TP diffusés non intrusive et suppression Firebase V106/V132 sécurisée.');
 })();
 </script>
@@ -16231,7 +16330,7 @@ window.tp217={queueSend,ackSend,pending,stats,event,read,done,same,normalize,rec
  window.tp138ToggleStudents=function(id){const el=document.getElementById('v138-students-'+CSS.escape(String(id)));if(!el)return;const hidden=el.hidden;el.hidden=!hidden;const b=document.querySelector(`[data-v138-toggle="${CSS.escape(String(id))}"]`);if(b)b.textContent=hidden?'▾ Masquer les élèves':'▸ Voir les élèves';};
  window.tpV76DiffusionsPage=function(){window.setActive?.('tpGenerator');const rows=diffs().sort((a,b)=>String(b.diffusedAt||'').localeCompare(String(a.diffusedAt||''))),main=document.getElementById('main');if(!main)return false;main.innerHTML=`<header class="app-top-header"></header><div class="tpgen-manager-shell"><div class="tpgen-head"><div><h1>📤 Mes TP diffusés</h1><p class="muted">Registre multiposte léger : gris = diffusé, jaune = rendu, vert = corrigé. Les fichiers TP restent locaux / Dropbox.</p></div><button class="tpgen-btn secondary" onclick="tpGeneratorPage()">← Retour</button></div><div class="tpgen-card">${rows.length?rows.map(r=>{const c=counts(r),id=String(r.id||'');return `<div class="v138-diff-card"><div class="v138-top"><div><b>${esc(r.tpCode||'TP')} — ${esc(r.title||'')}</b><div class="muted">${esc(r.className||'')} • ${r.diffusedAt?new Date(r.diffusedAt).toLocaleString('fr-FR'):''} • ${(r.students||[]).length} élève(s)</div></div><div class="v138-actions"><button class="tpgen-btn primary" onclick="tpV76AddDiffusionToDay('${esc(id)}')">＋ Affecter</button><button class="tpgen-btn danger" onclick="tp114DeleteDiffusion('${esc(id)}')">🗑️ Supprimer</button></div></div><div class="v138-counts"><span class="v138-count v138-grey">⬜ Diffusé <b>${c.grey}</b></span><span class="v138-count v138-yellow">🟨 Rendu <b>${c.yellow}</b></span><span class="v138-count v138-green">🟩 Corrigé <b>${c.green}</b></span></div><button class="v138-toggle" data-v138-toggle="${esc(id)}" onclick="tp138ToggleStudents('${esc(id)}')">▸ Voir les élèves</button><div class="v138-students" id="v138-students-${esc(id)}" hidden>${(r.students||[]).map(st=>{const q=state(r,st),label=q==='green'?'Corrigé':q==='yellow'?'Rendu':'Diffusé';return `<div class="v138-student ${q}"><b>${esc(sname(st))}</b><span>${label}</span></div>`}).join('')||'<span class="muted">Liste nominative absente de cette ancienne diffusion.</span>'}</div></div>`}).join(''):'<div class="muted">Aucun TP diffusé enregistré.</div>'}</div></div>`;return true};
  // Le registre Firebase ne doit jamais contenir le projet TP lourd : la V132 a été patchée pour n'envoyer que les métadonnées + élèves.
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V226 — Évaluation · Charge Atelier · TP · Correction';document.title='V226 — Évaluation · Charge Atelier · TP · Correction';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V227 — Évaluation · Charge Atelier · TP · Correction';document.title='V227 — Évaluation · Charge Atelier · TP · Correction';
  console.info('V138 : registre TP diffusés léger + élèves repliés + compteurs gris/jaune/vert.');
 })();
 </script>
@@ -16272,12 +16371,12 @@ window.tp217={queueSend,ackSend,pending,stats,event,read,done,same,normalize,rec
  window.tpV76DiffusionsPage=function(){window.setActive?.('tpGenerator');let rows=diffRows().sort((a,b)=>String(b.diffusedAt||'').localeCompare(String(a.diffusedAt||''))),main=document.getElementById('main');if(!main)return false;main.innerHTML=`<header class="app-top-header"></header><div class="tpgen-manager-shell"><div class="tpgen-head"><div><h1>📤 Mes TP diffusés</h1><p class="muted">Registre consolidé : gris = diffusé, jaune = rendu, vert = corrigé. Les fichiers TP ne sont pas stockés ici.</p></div><button class="tpgen-btn secondary" onclick="tpGeneratorPage()">← Retour</button></div><div class="tpgen-card">${rows.length?rows.map(r=>{let n={grey:0,yellow:0,green:0};(r.students||[]).forEach(st=>n[stState(r,st)]++);let id=String(r.id||'');return `<div class="v138-diff-card"><div class="v138-top"><div><b>${esc(r.tpCode||'TP')} — ${esc(r.title||'')}</b><div class="muted">${esc(r.className||'')} • ${r.diffusedAt?new Date(r.diffusedAt).toLocaleString('fr-FR'):''} • ${(r.students||[]).length} élève(s)</div></div><div class="v138-actions"><button class="tpgen-btn primary" onclick="tpV76AddDiffusionToDay('${esc(id)}')">＋ Affecter</button><button class="tpgen-btn danger" onclick="tp114DeleteDiffusion('${esc(id)}')">🗑️ Supprimer</button></div></div><div class="v138-counts"><span class="v138-count v138-grey">⬜ Diffusé <b>${n.grey}</b></span><span class="v138-count v138-yellow">🟨 Rendu <b>${n.yellow}</b></span><span class="v138-count v138-green">🟩 Corrigé <b>${n.green}</b></span></div><button class="v138-toggle" data-v139-toggle="${esc(id)}" onclick="tp139ToggleStudents('${esc(id)}')">▸ Voir les élèves</button><div class="v138-students" id="v138-students-${esc(id)}" hidden>${(r.students||[]).map(st=>{let q=stState(r,st),lab=q==='green'?'Corrigé':q==='yellow'?'Rendu':'Diffusé';return `<div class="v138-student ${q}"><b>${esc(stName(st))}</b><span>${lab}</span></div>`}).join('')||'<span class="muted">Liste nominative absente de cette ancienne diffusion.</span>'}</div></div>`}).join(''):'<div class="muted">Aucun TP diffusé enregistré.</div>'}</div></div>`;return true};
  // Firebase : copies rendues complètes temporaires, découpées en chunks; suppression après correction validée.
  function fsroot(){try{return firebase.auth().currentUser?firebase.firestore().collection('workspaces').doc('evaluation-mv-main').collection(CROOT):null}catch(_){return null}}
- async function cloudPut(row){let col=fsroot();if(!col)return;let id=String(row.id),txt=JSON.stringify(row),size=650000,ch=[];for(let i=0;i<txt.length;i+=size)ch.push(txt.slice(i,i+size));let ref=col.doc(id),old=await ref.collection('chunks').get();for(let i=0;i<old.docs.length;i+=300){let b=firebase.firestore().batch();old.docs.slice(i,i+300).forEach(d=>b.delete(d.ref));await b.commit()}await ref.set({id,fileName:row.fileName||'',tpCode:row.data?.code||'',studentName:[row.data?.eleve?.nom,row.data?.eleve?.prenom].filter(Boolean).join(' '),importedAt:row.importedAt||new Date().toISOString(),chunks:ch.length,status:'RENDU',clientUpdatedAt:new Date().toISOString()},{merge:true});for(let i=0;i<ch.length;i++)await ref.collection('chunks').doc(String(i).padStart(5,'0')).set({i,data:ch[i]})}
+ async function cloudPut(row){if(window.tp227.done(window.tp227.latest(row)))return;let col=fsroot();if(!col)return;let id=String(row.id),txt=JSON.stringify(row),size=650000,ch=[];for(let i=0;i<txt.length;i+=size)ch.push(txt.slice(i,i+size));let ref=col.doc(id),old=await ref.collection('chunks').get();for(let i=0;i<old.docs.length;i+=300){let b=firebase.firestore().batch();old.docs.slice(i,i+300).forEach(d=>b.delete(d.ref));await b.commit()}await ref.set({id,fileName:row.fileName||'',tpCode:row.data?.code||'',studentName:[row.data?.eleve?.nom,row.data?.eleve?.prenom].filter(Boolean).join(' '),importedAt:row.importedAt||new Date().toISOString(),chunks:ch.length,status:'RENDU',clientUpdatedAt:new Date().toISOString()},{merge:true});for(let i=0;i<ch.length;i++)await ref.collection('chunks').doc(String(i).padStart(5,'0')).set({i,data:ch[i]})}
  async function cloudDel(id){let col=fsroot();if(!col)return;let ref=col.doc(String(id)),s=await ref.collection('chunks').get();for(let i=0;i<s.docs.length;i+=300){let b=firebase.firestore().batch();s.docs.slice(i,i+300).forEach(d=>b.delete(d.ref));await b.commit()}await ref.delete()}
  const oldImport=window.tpCorrectionImport;window.tpCorrectionImport=async function(files){let before=new Set((()=>{try{return (JSON.parse(localStorage.getItem(CORR)||'[]')||[]).map(x=>String(x.id))}catch(_){return[]}})());let out=await oldImport?.apply(this,arguments);setTimeout(async()=>{try{let rows=JSON.parse(localStorage.getItem(CORR)||'[]')||[], fresh=rows.filter(x=>!before.has(String(x.id))&&!x.correctedAt);for(const light of fresh){let full=null;try{let db=await new Promise((ok,no)=>{let q=indexedDB.open('fdmahy_corrections_v129',1);q.onsuccess=()=>ok(q.result);q.onerror=()=>no(q.error)});full=await new Promise((ok,no)=>{let q=db.transaction('copies').objectStore('copies').get(String(light.id));q.onsuccess=()=>ok(q.result);q.onerror=()=>no(q.error)});db.close()}catch(_){}await cloudPut(full||light)}if(fresh.length)console.info('V139 copies rendues envoyées temporairement vers Firebase:',fresh.length)}catch(e){console.warn('V139 Firebase copies rendues',e)}},250);return out};
- const oldValidate=window.tpCorrectionValidate;window.tpCorrectionValidate=async function(){let id=window.__tp55Current||window.__tpCorrectionCurrent||null;let ret=await oldValidate?.apply(this,arguments);setTimeout(async()=>{try{let rows=JSON.parse(localStorage.getItem(CORR)||'[]')||[],r=rows.find(x=>String(x.id)===String(id));if(r?.correctedAt){await cloudDel(r.id);console.info('V139 copie lourde supprimée de Firebase après correction validée',r.id);try{window.tpV132SyncNow?.('correction-v139')}catch(_){} }}catch(e){console.warn('V139 suppression copie Firebase',e)}},300);return ret};
+ // V227 : nettoyage des fragments après sauvegarde complète confirmée, via tp227.
  // Version
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V226 — Évaluation · Charge Atelier · TP · Correction';document.title='V226 — Évaluation · Charge Atelier · TP · Correction';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V227 — Évaluation · Charge Atelier · TP · Correction';document.title='V227 — Évaluation · Charge Atelier · TP · Correction';
  console.info('V139 : diffusion depuis fichier local + aperçu temporaire + registre léger + copies rendues Firebase temporaires.');
 })();
 </script>
@@ -16315,7 +16414,7 @@ window.tp217={queueSend,ackSend,pending,stats,event,read,done,same,normalize,rec
    o.querySelector('.v144-save').onclick=async()=>{const b=o.querySelector('.v144-save');b.disabled=true;b.textContent='Sauvegarde en cours…';try{const r=await window.v133SaveGlobalBackup?.();if(!r?.ok)throw Error('Sauvegarde non confirmée.');o.remove();await baseLogout?.()}catch(e){b.disabled=false;b.textContent='💾 Sauvegarder puis quitter';alert('Sauvegarde impossible : '+(e?.message||e))}};
    o.querySelector('.v144-nosave').onclick=async()=>{o.remove();await baseLogout?.()};return false;
  };
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V226 — Évaluation · Charge Atelier · TP · Correction';document.title='V226 — Évaluation · Charge Atelier · TP · Correction';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V227 — Évaluation · Charge Atelier · TP · Correction';document.title='V227 — Évaluation · Charge Atelier · TP · Correction';
  console.info('V144 actif : base de démarrage V139 conservée; navigation diffusions et sortie corrigées sans modifier Firebase.');
 })();
 </script>
@@ -16349,7 +16448,7 @@ window.tp217={queueSend,ackSend,pending,stats,event,read,done,same,normalize,rec
   const mo=new MutationObserver(bind); mo.observe(document.documentElement,{childList:true,subtree:true}); bind();
   // Firebase/storage refreshes may update data but never navigate.
   window.addEventListener('tp-v133-synced',()=>{}, {passive:true});
-  const bv=document.getElementById('build-version'); if(bv) bv.textContent='V226 — Évaluation · Charge Atelier · TP · Correction';
+  const bv=document.getElementById('build-version'); if(bv) bv.textContent='V227 — Évaluation · Charge Atelier · TP · Correction';
   console.info('V145 actif : navigation Mes TP diffusés strictement réservée à une action utilisateur.');
 })();
 </script>
@@ -16364,7 +16463,7 @@ window.tp217={queueSend,ackSend,pending,stats,event,read,done,same,normalize,rec
  const clone=o=>JSON.parse(JSON.stringify(o||{}));
  const safe=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Za-z0-9_-]+/g,'-').replace(/^-+|-+$/g,'')||'TP';
  let folderHandle=null;
- function forceVersion(){const b=document.getElementById('build-version');if(b&&b.textContent!=='V226 — Évaluation · Charge Atelier · TP · Correction')b.textContent='V226 — Évaluation · Charge Atelier · TP · Correction';document.title='V226 — Évaluation · Charge Atelier · TP · Correction';document.getElementById('v144-version')?.remove();}
+ function forceVersion(){const b=document.getElementById('build-version');if(b&&b.textContent!=='V227 — Évaluation · Charge Atelier · TP · Correction')b.textContent='V227 — Évaluation · Charge Atelier · TP · Correction';document.title='V227 — Évaluation · Charge Atelier · TP · Correction';document.getElementById('v144-version')?.remove();}
  forceVersion();
  document.addEventListener('DOMContentLoaded',forceVersion,{once:true});
  setTimeout(forceVersion,0);setTimeout(forceVersion,500);
@@ -16392,8 +16491,8 @@ window.tp217={queueSend,ackSend,pending,stats,event,read,done,same,normalize,rec
   // 1) Une seule version visible. Ne touche ni à l'authentification ni au démarrage Firebase.
   function applyVersion(){
     const b=document.getElementById('build-version');
-    if(b) b.textContent='V226 — Évaluation · Charge Atelier · TP · Correction';
-    document.title='V226 — Évaluation · Charge Atelier · TP · Correction';
+    if(b) b.textContent='V227 — Évaluation · Charge Atelier · TP · Correction';
+    document.title='V227 — Évaluation · Charge Atelier · TP · Correction';
     document.getElementById('v144-version')?.remove();
   }
   applyVersion();
@@ -16569,7 +16668,7 @@ window.tp217={queueSend,ackSend,pending,stats,event,read,done,same,normalize,rec
  };
  function markLegacyRows(root=document){root.querySelectorAll?.('.tpc-row').forEach(row=>{const b=row.querySelector('button[onclick*="tpCorrectionOpen"]');if(!b||row.querySelector('.v158-legacy-chip'))return;const m=(b.getAttribute('onclick')||'').match(/tpCorrectionOpen\(['\"]([^'\"]+)/);if(!m)return;const r=read().find(x=>String(x.id)===m[1]);if(r&&!project(r.data)){const target=row.children?.[1]||row.firstElementChild;target?.insertAdjacentHTML('beforeend','<span class="v158-legacy-chip">Ancien format</span>')}})}
  markLegacyRows();new MutationObserver(ms=>ms.forEach(m=>m.addedNodes.forEach(n=>{if(n.nodeType===1)markLegacyRows(n)}))).observe(document.documentElement,{childList:true,subtree:true});
- function setVersion(){const b=document.getElementById('build-version');if(b)b.textContent='V226 — Évaluation · Charge Atelier · TP · Correction';document.title='V226 — Évaluation · Charge Atelier · TP · Correction'}
+ function setVersion(){const b=document.getElementById('build-version');if(b)b.textContent='V227 — Évaluation · Charge Atelier · TP · Correction';document.title='V227 — Évaluation · Charge Atelier · TP · Correction'}
  setVersion();document.addEventListener('DOMContentLoaded',setVersion,{once:true});setTimeout(setVersion,250);
  console.info('V158 : compatibilité de correction des anciennes copies activée, sans modification du démarrage.');
 })();
@@ -16594,7 +16693,14 @@ window.tp217={queueSend,ackSend,pending,stats,event,read,done,same,normalize,rec
  function badge(state,text){let h=document.querySelector('.tpc-shell .page-header p');if(!h)return;let b=document.getElementById('v159-sync-badge');if(!b){b=document.createElement('span');b.id='v159-sync-badge';b.className='v159-sync-badge';h.appendChild(b)}b.className='v159-sync-badge '+state;b.textContent=text}
  function compactArchive(r){const d=r?.data||{},e=d.identite||d.eleve||{},tp=d.tp||{};return {id:r.id||'',identity:identity(r),studentId:d.studentId||e.id||'',nom:e.nom||'',prenom:e.prenom||'',classe:e.classe||d.classe||'',tpId:tp.id||d.code||'',tpTitre:tp.titre||d.titre||'',note:r.note??'',appreciation:r.appreciation||'',levels:r.levels||{},evaluationId:r.savedEvaluationId||'',correctedAt:r.correctedAt||new Date().toISOString(),fileName:r.fileName||''}}
  const sent=new Map();
- async function push(r){if(!r||remoteApply)return false;const sendToken=window.tp217.queueSend('V159',r);if(!ready())return false;const fingerprint=JSON.stringify(r);if(sent.get(docId(r))===fingerprint){window.tp217.ackSend('V159',r,sendToken);return true;}badge('syncing','☁ Synchronisation…');const ref=col().doc(docId(r));const payload=JSON.parse(JSON.stringify(r));await ref.set({status:r.correctedAt?'corrected':'draft',record:r.correctedAt?null:payload,archive:r.correctedAt?compactArchive(r):null,updatedAt:firebase.firestore.FieldValue.serverTimestamp(),clientUpdatedAt:new Date().toISOString()},{merge:true});sent.set(docId(r),fingerprint);window.tp217.ackSend('V159',r,sendToken);window.tp217.writeResult('V159',true);badge('ok',r.correctedAt?'✓ Correction synchronisée':'✓ Brouillon synchronisé');return true}
+ async function push(r){
+ if(!r||remoteApply)return false;r=window.tp227.latest(r);const sendToken=window.tp217.queueSend('V159',r);if(!ready())return false;const fingerprint=JSON.stringify(r);
+ if(sent.get(docId(r))===fingerprint){window.tp217.ackSend('V159',r,sendToken);return true;}
+ badge('syncing','☁ Synchronisation…');const ref=col().doc(docId(r)),payload=await window.tp227.cloudRow(r),slim=!!payload.firebaseArchive227?.mediaRemoved;
+ await ref.set({status:r.correctedAt?'corrected':'draft',record:r.correctedAt&&slim?null:payload,archive:r.correctedAt?{...compactArchive(r),marks:payload.marks||{},justification227:slim?payload:null}:null,updatedAt:firebase.firestore.FieldValue.serverTimestamp(),clientUpdatedAt:new Date().toISOString()},{mergeFields:['status','record','archive','updatedAt','clientUpdatedAt']});
+ sent.set(docId(r),fingerprint);window.tp217.ackSend('V159',r,sendToken);window.tp217.writeResult('V159',true);badge('ok',r.correctedAt?'✓ Correction synchronisée':'✓ Brouillon synchronisé');return true;
+ }
+ window.tp227Push159=push;
  function current(){const id=window.__tp55Current||window.__tpCorrectionCurrent||null;return rows().find(x=>String(x.id)===String(id))}
  function queue(){clearTimeout(timer);timer=setTimeout(()=>{const r=current();if(r)push(r).catch(e=>{window.tp217.writeResult('V159',false,e);console.warn('V159 sync brouillon',e);badge('offline','☁ À synchroniser')})},450)}
  function mergeSnapshot(snap){if(busy)return;busy=true;try{const before=rows();let a=before.slice();remoteApply=true;window.tp217.snapshot('V159',snap);snap.docChanges().forEach(ch=>{if(ch.type==='removed')return;const v=ch.doc.data()||{};if(v.status==='corrected'&&v.archive){a=window.tp217.archiveInto(a,ch.doc.id,v.archive);return}if(v.status!=='draft'||!v.record)return;const rr=v.record;if(window.tpV201IsDeletedCorrection?.(rr))return;const ix=a.findIndex(r=>String(r.id)===String(rr.id)||docId(r)===ch.doc.id);if(ix<0){a.push(rr);return}const open=String(a[ix].id)===String(window.__tp55Current||'')&&document.querySelector('.tpc-editor');if(open)return;const chosen=window.tp217.prefer(a[ix],rr);if(chosen===null){if(!a.some(r=>String(r.id)===String(rr.id)))a.push(rr);return}if(window.tp217.done(a[ix])&&!window.tp217.done(rr))return;const lt=Date.parse(a[ix].v159UpdatedAt||a[ix].updatedAt||a[ix].importedAt||0)||0,rt=Date.parse(v.clientUpdatedAt||rr.v159UpdatedAt||rr.updatedAt||rr.importedAt||0)||0;if(rt>=lt||window.tp217.done(chosen))a[ix]=chosen});a=window.tp217.normalize(a);if(JSON.stringify(a)!==JSON.stringify(before)){save(a);window.dispatchEvent(new CustomEvent('tp-v159-corrections-updated'))}}finally{remoteApply=false;busy=false}}
@@ -16618,7 +16724,7 @@ window.tp217={queueSend,ackSend,pending,stats,event,read,done,same,normalize,rec
 })();
 </script>
 <script id="v159-version-display">
-(function(){const V='V224';function set(){document.querySelectorAll('.app-version-badge,.version-badge,[data-app-version]').forEach(e=>{if(/V\d+/i.test(e.textContent||''))e.textContent=(e.textContent||'').replace(/V\d+/i,V)});document.title=(document.title||'Évaluation · Charge Atelier · TP · Correction').replace(/V\d+/i,V)}set();setTimeout(set,300);setTimeout(set,1800)})();
+(function(){const V='V227';function set(){document.querySelectorAll('.app-version-badge,.version-badge,[data-app-version]').forEach(e=>{if(/V\d+/i.test(e.textContent||''))e.textContent=(e.textContent||'').replace(/V\d+/i,V)});document.title=(document.title||'Évaluation · Charge Atelier · TP · Correction').replace(/V\d+/i,V)}set();setTimeout(set,300);setTimeout(set,1800)})();
 </script>
 
 
@@ -16933,8 +17039,8 @@ function inject(){if(window.tp217)return;
    Le timer V175 a été supprimé directement dans le code source ci-dessus. */
 function setVersion(){
   const b=document.getElementById('build-version');
-  if(b)b.textContent='V226 — Évaluation · Charge Atelier · TP · Correction';
-  document.title='V226 — Évaluation · Charge Atelier · TP · Correction';
+  if(b)b.textContent='V227 — Évaluation · Charge Atelier · TP · Correction';
+  document.title='V227 — Évaluation · Charge Atelier · TP · Correction';
 }
 function install(){
   if(window.tp217)return;
@@ -17438,8 +17544,8 @@ if(typeof oldPage==='function'&&!oldPage.__v206pdf){
 }
 
 /* Version statique : pas de MutationObserver ni timer périodique. */
-const bv=document.getElementById('build-version');if(bv)bv.textContent='V226 — Évaluation · Charge Atelier · TP · Correction';
-document.title='V226 — Évaluation · Charge Atelier · TP · Correction';
+const bv=document.getElementById('build-version');if(bv)bv.textContent='V227 — Évaluation · Charge Atelier · TP · Correction';
+document.title='V227 — Évaluation · Charge Atelier · TP · Correction';
 window.tpV206PdfV74={buildPdfPages,contentUnits,summaryUnits,chooseFolder:window.tp206ChooseCorrectionFolder};
 console.info('V206 : PDF de correction fidèle à l’éditeur V74 + coches noires avant sélection + dossier PDF choisi.');
 })();
@@ -17480,7 +17586,7 @@ console.info('V206 : PDF de correction fidèle à l’éditeur V74 + coches noir
  window.tp116ViewDiffusion=function(id){const r=diffRows().find(x=>String(x.id)===String(id));if(!r)return alert('TP diffusé introuvable.');const p=r.tpProject||projectFromRaw(r.snapshot?.rawProject);const ov=document.createElement('div');ov.className='v116-preview-overlay';ov.innerHTML=`<div class="v116-preview-box"><div class="v116-preview-top"><div><b>👁 ${esc(r.tpCode)} — ${esc(r.title)}</b><div class="muted">${esc(r.className)} · ${r.students?.length||0} élève(s)</div></div><button type="button">✕ Fermer</button></div>${sheet(p)}</div>`;ov.querySelector('button').onclick=()=>ov.remove();document.body.appendChild(ov)};
  // Reconstruit Mes TP diffusés avec Voir + Affecter + Supprimer et ne dépend pas de l'ancien formulaire générateur.
  const priorPage=window.tpV76DiffusionsPage;window.tpV76DiffusionsPage=function(){priorPage?.();setTimeout(()=>{const data=diffRows().sort((a,b)=>String(b.diffusedAt||'').localeCompare(String(a.diffusedAt||''))),els=[...document.querySelectorAll('.v76-diff-row')];els.forEach((el,i)=>{const r=data[i];if(!r)return;let wrap=el.querySelector('.v114-diff-actions,.v116-diff-actions');if(!wrap){wrap=document.createElement('div');wrap.className='v116-diff-actions';const b=el.querySelector('button');if(b){b.replaceWith(wrap);wrap.appendChild(b)}}else wrap.classList.add('v116-diff-actions');if(!wrap.querySelector('[data-v116-view]')){const b=document.createElement('button');b.className='tpgen-btn secondary';b.dataset.v116View='1';b.textContent='👁 Voir le TP';b.onclick=()=>window.tp116ViewDiffusion(r.id);wrap.prepend(b)}})},0)};
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V226 — Évaluation · Charge Atelier · TP · Correction';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V227 — Évaluation · Charge Atelier · TP · Correction';
  console.info('V117 actif : rendu TP polyvalent et diffusion tracée.');
 })();
 </script><style id="v117-prof-style">
@@ -17504,7 +17610,7 @@ console.info('V206 : PDF de correction fidèle à l’éditeur V74 + coches noir
  let oldBuild=window.tpGenBuildStudentPackage;window.tpGenBuildStudentPackage=function(student,d){let m=oldBuild.apply(this,arguments),p=window.__v117Project||window.__v116CurrentProject||null;if(p){m.tpProject=clone(p);m.tpPictograms=clone(p.__pictograms||[]);m.meta=m.meta||{};m.meta.readerRequired='V117';m.type='tp-eleve-v117'}return m};
  // Hydratation complète avec pictogrammes avant export.
  ['tpGenExportClassToFolder','tpGenExportClassZip'].forEach(name=>{let prev=window[name];if(typeof prev!=='function')return;window[name]=async function(){let sid=String(tpGenState?.currentSavedId||window.__tpDiffusionSavedId||''),rr=sid?await raw(sid):null;window.__v117Project=unpack(rr);try{return await prev.apply(this,arguments)}finally{window.__v117Project=null}}});
- let bv=document.getElementById('build-version');if(bv)bv.textContent='V226 — Évaluation · Charge Atelier · TP · Correction';console.info('V117 actif : vue TP polyvalente + diffusion persistante.');
+ let bv=document.getElementById('build-version');if(bv)bv.textContent='V227 — Évaluation · Charge Atelier · TP · Correction';console.info('V117 actif : vue TP polyvalente + diffusion persistante.');
 })();
 </script><!-- V118 — concordance Editeur / Logiciel / Lecteur + diffusion transactionnelle -->
 <style id="v118-style">
@@ -17542,7 +17648,7 @@ console.info('V206 : PDF de correction fidèle à l’éditeur V74 + coches noir
  function injectRetroSettings(){let main=document.getElementById('main');if(!main||main.querySelector('#v118-retro-settings'))return;let host=main.querySelector('.rubric-other-wrap .settings-rubric-collapse-body')||main.querySelector('.settings-grid')||main;let card=document.createElement('div');card.id='v118-retro-settings';card.className='settings-card section-other';card.innerHTML=`<h3>🕘 Évaluations rétroactives</h3><p class="muted">Choisis les cartes visibles dans « Nouvelle évaluation » pour le profil administrateur.</p><div class="v118-switch-row"><div><b>Positionnement rétroactif</b><div class="muted">Afficher la création d'un positionnement à une date antérieure.</div></div><label class="v118-switch"><input type="checkbox" ${retroOn(RETRO_POS)?'checked':''} onchange="v118ToggleRetro('${RETRO_POS}',this.checked)"><span class="v118-slider"></span></label></div><div class="v118-switch-row"><div><b>Import rétroactif collectif</b><div class="muted">Afficher l'import Excel rétroactif collectif.</div></div><label class="v118-switch"><input type="checkbox" ${retroOn(RETRO_XLS)?'checked':''} onchange="v118ToggleRetro('${RETRO_XLS}',this.checked)"><span class="v118-slider"></span></label></div>`;host.appendChild(card)}
  let oldSettings=window.renderSettingsPage;if(typeof oldSettings==='function')window.renderSettingsPage=function(){let r=oldSettings.apply(this,arguments);setTimeout(injectRetroSettings,0);return r};
  let oldChoice=window.evaluationChoicePage;if(typeof oldChoice==='function')window.evaluationChoicePage=function(){let r=oldChoice.apply(this,arguments);setTimeout(()=>{document.querySelectorAll('.eval-choice-card').forEach(c=>{let t=c.textContent||'';if(/Positionnement rétroactif/i.test(t)&&!retroOn(RETRO_POS))c.remove();if(/Import rétroactif collectif/i.test(t)&&!retroOn(RETRO_XLS))c.remove()})},0);return r};
- let bv=document.getElementById('build-version');if(bv)bv.textContent='V226 — Évaluation · Charge Atelier · TP · Correction';
+ let bv=document.getElementById('build-version');if(bv)bv.textContent='V227 — Évaluation · Charge Atelier · TP · Correction';
  console.info('V118 actif : diffusion transactionnelle, générateur replié, rétroactif paramétrable.');
 })();
 </script>
@@ -17566,7 +17672,7 @@ console.info('V206 : PDF de correction fidèle à l’éditeur V74 + coches noir
  window.tpGenExportClassToFolder=async function(){try{if(!folderHandle){const ok=await window.tpGenChooseClassFolder();if(!ok)return false}const ctx=await buildFiles();let perm='granted';if(folderHandle.queryPermission)perm=await folderHandle.queryPermission({mode:'readwrite'});if(perm!=='granted'&&folderHandle.requestPermission)perm=await folderHandle.requestPermission({mode:'readwrite'});if(perm!=='granted')throw Error('Autorisation d’écriture refusée.');for(const f of ctx.files){const fh=await folderHandle.getFileHandle(f.name,{create:true}),w=await fh.createWritable();await w.write(new Blob([f.text],{type:f.name.endsWith('.tp')?'application/json;charset=utf-8':'text/plain;charset=utf-8'}));await w.close()}persist(ctx);const n=ctx.sts.length,name=folderHandle.name;window.tpGenCloseClassExport?.();window.showSuccessMessage?.(`${n} TP élève généré(s) dans « ${name} » et diffusion enregistrée dans Mes TP diffusés.`);return true}catch(e){console.error('V119 dossier',e);window.showWarningMessage?.('Génération impossible : '+(e?.message||e));return false}finally{window.__v117Project=null;window.__v116CurrentProject=null}};
  window.tpGenExportClassZip=async function(){try{const ctx=await buildFiles();const blob=window.tpGenBuildStoreZip(ctx.files);const name=[filePart(ctx.code),filePart(ctx.className),'TP_ELEVES'].filter(Boolean).join('_')+'.zip';window.tpGenDownloadBlob(blob,name);persist(ctx);window.tpGenCloseClassExport?.();window.showSuccessMessage?.(`${ctx.sts.length} TP élève correspondant(s) à « ${ctx.code} » regroupé(s) dans le ZIP et diffusion enregistrée.`);return true}catch(e){console.error('V119 ZIP',e);window.showWarningMessage?.('Génération ZIP impossible : '+(e?.message||e));return false}finally{window.__v117Project=null;window.__v116CurrentProject=null}};
  const oldDiffuse=window.tpGenDiffuseSaved;window.tpGenDiffuseSaved=function(id){folderHandle=null;window.__tpDiffusionSavedId=String(id||'');if(window.tpGenState)window.tpGenState.currentSavedId=String(id||'');return oldDiffuse?.apply(this,arguments)};
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V226 — Évaluation · Charge Atelier · TP · Correction';document.title='V226 — Évaluation · Charge Atelier · TP · Correction';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V227 — Évaluation · Charge Atelier · TP · Correction';document.title='V227 — Évaluation · Charge Atelier · TP · Correction';
  console.info('V127 actif : diffusion compacte, sans duplication du projet TP dans localStorage.');
 })();
 </script>
@@ -17594,7 +17700,7 @@ console.info('V206 : PDF de correction fidèle à l’éditeur V74 + coches noir
  };
  function wire(){document.querySelectorAll('#tp109-folder-input,#tp109-files-input,.tpc-toolbar input[type=file]').forEach(input=>{input.onchange=async()=>{const f=input.files;if(f?.length)await window.tpCorrectionImport(f);input.value=''}})}
  const oldPage=window.tpCorrectionPage;window.tpCorrectionPage=function(){const r=oldPage?.apply(this,arguments);setTimeout(wire,50);return r};setTimeout(wire,500);
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V226 — Évaluation · Charge Atelier · TP · Correction';document.title='V226 — Évaluation · Charge Atelier · TP · Correction';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V227 — Évaluation · Charge Atelier · TP · Correction';document.title='V227 — Évaluation · Charge Atelier · TP · Correction';
  console.info('V130 — import Copies rendues V128/V130 actif avec stockage IndexedDB anti-quota.');
 })();
 </script>
@@ -17646,7 +17752,7 @@ console.info('V206 : PDF de correction fidèle à l’éditeur V74 + coches noir
  function render(r){const d=r.data||{},p=project(d);if(!p)return'';const a=answers(d),flow=Array.isArray(p.flow)?p.flow:(p.questions||[]).map(q=>({type:'question',id:q.id}));let html='',sec='',n=0;for(const f of flow){if(f.type!=='question'){let x=obj(p,f);if(x?.parentQuestionId)continue;html+=block(r,p,f,a);continue}let q=obj(p,f);if(!q||q.excluded)continue;if((q.section||'Activité')!==sec){sec=q.section||'Activité';html+=`<h2 class="section">${esc(sec)}</h2>`}let val=a[q.id],k='q_'+q.id;html+=`<section class="q"><div class="v131-qhead"><div><div class="qtitle">${++n}. ${esc(q.text||'')}</div><div class="meta">${esc(q.competence||'')}${q.criterionId?' · '+esc(q.criterionId):''}</div></div><div data-v131-mark="${esc(k)}">${markButtons(r,k)}</div></div>${(q.images||[]).map(im=>imageTag(im,'max-width:100%;max-height:280px;object-fit:contain;margin-top:8px')).join('')}${q.answerType==='none'?'':`<div class="answer">${esc(val||'—')}</div>`}${flow.filter(z=>z.type!=='question'&&obj(p,z)?.parentQuestionId===q.id).map(z=>block(r,p,z,a)).join('')}</section>`}return `<div class="v130-copy"><div class="tphead"><div><small>BAC PRO MAINTENANCE DES VÉHICULES · COPIE ÉLÈVE</small><h1>${esc(p.publicTitle||p.title||d.titre||'TP')}</h1><div>Durée : ${esc(p.duration||'—')}</div></div><span class="code">${esc(p.publicId||p.id||d.code||'TP')}</span></div><div class="brief"><section><h3>Situation professionnelle</h3>${esc(p.intro||'')}</section><section><h3>Objectifs</h3>${esc(p.objectives||'')}</section><section><h3>Support</h3>${esc(p.support||'')}</section><section><h3>Ressources et matériels</h3>${esc(p.resources||'')}</section></div>${html}</div>`}
  const previous=window.tpCorrectionOpen;
  window.tpCorrectionOpen=function(id){const light=read().find(x=>String(x.id)===String(id));if(!light)return previous?.apply(this,arguments);previous?.apply(this,arguments);setTimeout(async()=>{const ed=document.querySelector('.tpc-editor'),left=ed?.firstElementChild;if(!left)return;left.innerHTML='<div class="v131-hydrating">Chargement de la copie complète et de ses illustrations…</div>';const stored=await full(id),r=stored||light;if(String(window.__tp55Current)!==String(id)||!left.isConnected)return;if(!project(r.data)){left.innerHTML='<div class="tpc-card">Cette copie ne contient pas le projet TP complet nécessaire à la vue fidèle.</div>';return}const local=read().find(x=>String(x.id)===String(id));if(local){r.marks={...(r.marks||{}),...(local.marks||{})};r.note=local.note;r.noteModeV215=local.noteModeV215;r.correctedAt=local.correctedAt;r.workflowState=local.workflowState;}left.innerHTML='<div class="tpc-card"><b>V216 — Une question, une évaluation.</b> ✓ Correct · ✕ Incorrect · — Non évalué. Les symboles sont clairs au repos et plus prononcés après sélection. Un seul choix par question, y compris ses tableaux et exercices.</div>'+render(r);noteUI(r)},20)};
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V226 — Évaluation · Charge Atelier · TP · Correction';document.title='V226 — Évaluation · Charge Atelier · TP · Correction';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V227 — Évaluation · Charge Atelier · TP · Correction';document.title='V227 — Évaluation · Charge Atelier · TP · Correction';
  console.info('V131 correcteur : hydratation IndexedDB + images + coches par question.');
 })();
 </script><!-- V147 — correctif final diffusion TP local : DOIT rester le dernier runtime du fichier -->
@@ -17658,8 +17764,8 @@ console.info('V206 : PDF de correction fidèle à l’éditeur V74 + coches noir
  let folderHandle=null;
  function setVersion(){
    const b=document.getElementById('build-version');
-   if(b)b.textContent='V226 — Évaluation · Charge Atelier · TP · Correction';
-   document.title='V226 — Évaluation · Charge Atelier · TP · Correction';
+   if(b)b.textContent='V227 — Évaluation · Charge Atelier · TP · Correction';
+   document.title='V227 — Évaluation · Charge Atelier · TP · Correction';
    document.getElementById('v144-version')?.remove();
  }
  setVersion(); document.addEventListener('DOMContentLoaded',setVersion,{once:true}); setTimeout(setVersion,100);
@@ -17747,7 +17853,7 @@ console.info('V206 : PDF de correction fidèle à l’éditeur V74 + coches noir
  });
  function compact(root=document){root.querySelectorAll?.('.v131-markbar .v131-mark').forEach(b=>{if(b.closest('[role=group]'))return;if(b.classList.contains('ok')){b.textContent='✓';b.title='Correct'}else if(b.classList.contains('bad')){b.textContent='✕';b.title='Incorrect'}else{b.textContent='—';b.title='Non évalué'}b.setAttribute('aria-label',b.title)})}
  compact(); new MutationObserver(m=>m.forEach(x=>x.addedNodes.forEach(n=>{if(n.nodeType===1)compact(n)}))).observe(document.documentElement,{childList:true,subtree:true});
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V226 — Évaluation · Charge Atelier · TP · Correction';document.title='V226 — Évaluation · Charge Atelier · TP · Correction';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V227 — Évaluation · Charge Atelier · TP · Correction';document.title='V227 — Évaluation · Charge Atelier · TP · Correction';
  console.info('V148 : Copies rendues stable pendant Firebase + coches compactes.');
 })();
 </script>
@@ -17773,7 +17879,7 @@ const rows=()=>window.getManagedEvaluationActivities?.()||[];
 const sortRows=a=>a.slice().sort((x,y)=>(Number(x.numero)||99999)-(Number(y.numero)||99999));
 function save(a){window.saveManagedEvaluationActivities?.(a);}
 function comps(s){return String(s||'').split(/[,;\n]+/).map(x=>x.trim()).filter(Boolean)}
-function forceVersion(){const b=document.getElementById('build-version');if(b)b.textContent='V226 — Évaluation · Charge Atelier · TP · Correction';document.title='V226 — Évaluation · Charge Atelier · TP · Correction';document.getElementById('v144-version')?.remove()}
+function forceVersion(){const b=document.getElementById('build-version');if(b)b.textContent='V227 — Évaluation · Charge Atelier · TP · Correction';document.title='V227 — Évaluation · Charge Atelier · TP · Correction';document.getElementById('v144-version')?.remove()}
 forceVersion();document.addEventListener('DOMContentLoaded',forceVersion,{once:true});setTimeout(forceVersion,250);setTimeout(forceVersion,1200);
 
 function installCategory(){
@@ -17935,7 +18041,7 @@ function mergeCorrections(){
 function mergeEvaluations(){return new Promise(resolve=>{
  try{const q=indexedDB.open('C2MMVP_TEST_FICTIFS_V8',2);q.onerror=()=>resolve(false);q.onsuccess=()=>{const d=q.result;try{const st=d.transaction('evaluations','readwrite').objectStore('evaluations');let left=BACKUP_EVALS.length;if(!left){d.close();return resolve(true)};BACKUP_EVALS.forEach(v=>{const g=st.get(v.id);g.onsuccess=()=>{if(g.result==null){try{st.add(v)}catch(_){}}if(--left===0){setTimeout(()=>{d.close();resolve(true)},20)}};g.onerror=()=>{if(--left===0){d.close();resolve(true)}}})}catch(e){d.close();resolve(false)}}}catch(e){resolve(false)}
 })}
-function version(){const b=document.getElementById('build-version');if(b)b.textContent='V226 — Évaluation · Charge Atelier · TP · Correction';document.title='V226 — Évaluation · Charge Atelier · TP · Correction'}
+function version(){const b=document.getElementById('build-version');if(b)b.textContent='V227 — Évaluation · Charge Atelier · TP · Correction';document.title='V227 — Évaluation · Charge Atelier · TP · Correction'}
 function installDefaultTodo(){
  const old=window.go;if(typeof old==='function'&&!old.__v171){const w=function(view){const r=old.apply(this,arguments);if(view==='correctionTp')setTimeout(()=>{const s=document.getElementById('tpc-f-status');if(s){s.value='todo';s.dispatchEvent(new Event('change',{bubbles:true}))}},120);return r};w.__v171=true;window.go=w}
 }
@@ -17988,7 +18094,7 @@ async function validate(){
  }catch(e){console.error('V172 validation',e);alert('Validation impossible : '+(e?.message||e));}
  finally{window.__v172Saving=false;if(btn){btn.disabled=false;btn.innerHTML=oldText||'💾 Valider la correction et l’évaluation'}}
 }
-function install(){window.tpCorrectionValidate=validate;const b=document.getElementById('build-version');if(b)b.textContent='V226 — Évaluation · Charge Atelier · TP · Correction';document.title='V226 — Évaluation · Charge Atelier · TP · Correction'}
+function install(){window.tpCorrectionValidate=validate;const b=document.getElementById('build-version');if(b)b.textContent='V227 — Évaluation · Charge Atelier · TP · Correction';document.title='V227 — Évaluation · Charge Atelier · TP · Correction'}
 window.addEventListener('load',()=>setTimeout(install,4200),{once:true});setTimeout(()=>{if(document.readyState==='complete')install()},5200);
 })();
 </script>
@@ -18010,7 +18116,7 @@ function lockIfCorrected(id){
 function install(){
  const oldOpen=window.tpCorrectionOpen; if(typeof oldOpen==='function'&&!oldOpen.__v173){const w=function(id){const out=oldOpen.apply(this,arguments);setTimeout(()=>lockIfCorrected(id),450);setTimeout(()=>lockIfCorrected(id),1200);return out};w.__v173=true;window.tpCorrectionOpen=w;}
  const oldVal=window.tpCorrectionValidate; if(typeof oldVal==='function'&&!oldVal.__v173){const w=async function(){const out=await oldVal.apply(this,arguments);return out};w.__v173=true;window.tpCorrectionValidate=w;}
- const b=document.getElementById('build-version');if(b)b.textContent='V226 — Évaluation · Charge Atelier · TP · Correction';document.title='V226 — Évaluation · Charge Atelier · TP · Correction';
+ const b=document.getElementById('build-version');if(b)b.textContent='V227 — Évaluation · Charge Atelier · TP · Correction';document.title='V227 — Évaluation · Charge Atelier · TP · Correction';
 }
 // Accélère l'impression de synchronisation : les données locales sont déjà enregistrées avant le cloud.
 const oldSync=window.tpV159SyncCorrectionsNow; if(typeof oldSync==='function'){window.tpV159SyncCorrectionsNow=function(){try{const p=oldSync.apply(this,arguments);if(p&&p.catch)p.catch(e=>console.warn('V173 sync',e));return Promise.resolve(true)}catch(e){console.warn('V173 sync',e);return Promise.resolve(false)}}}
@@ -18091,7 +18197,7 @@ stamp();window.addEventListener('load',()=>{stamp();setTimeout(reconcile,300)},{
 (function(){
 'use strict';
 
-const VERSION='V226 — Évaluation · Charge Atelier · TP · Correction';
+const VERSION='V227 — Évaluation · Charge Atelier · TP · Correction';
 const MODE_KEYS={
   free:'evaluation_mode_free_v190',
   professional:'evaluation_mode_professional_v190',
@@ -18400,7 +18506,7 @@ setTimeout(()=>{pullModesFirebase().catch(()=>{})},3500);
 function setVersion(){
   const b=document.getElementById('build-version');
   if(b)b.textContent=VERSION;
-  document.title='V226 — Évaluation · Charge Atelier · TP · Correction';
+  document.title='V227 — Évaluation · Charge Atelier · TP · Correction';
 }
 setVersion();
 setTimeout(setVersion,500);
@@ -18863,7 +18969,7 @@ function relabelNavigation(){
 function setVersion(){
   const b=document.getElementById('build-version');
   if(b)b.textContent=VERSION;
-  document.title='V226 — Évaluation · Charge Atelier · TP · Correction';
+  document.title='V227 — Évaluation · Charge Atelier · TP · Correction';
 }
 relabelNavigation();
 setVersion();
@@ -19415,9 +19521,9 @@ if(typeof window.tpCorrectionImport==='function'){
 /* Habillage du Portail TP seulement : la fonction RTA existante reste disponible
    ailleurs dans le logiciel, elle n'est simplement plus dans le nom de la suite. */
 function stamp(){
-  document.title='V226 — Évaluation · Charge Atelier · TP · Correction';
+  document.title='V227 — Évaluation · Charge Atelier · TP · Correction';
   const bv=document.getElementById('build-version');
-  if(bv)bv.textContent='V226 — Évaluation · Charge Atelier · TP · Correction';
+  if(bv)bv.textContent='V227 — Évaluation · Charge Atelier · TP · Correction';
 }
 stamp();
 setTimeout(stamp,700);
@@ -19586,8 +19692,8 @@ document.addEventListener('visibilitychange',()=>{
 /* Affichage de version seulement, sans timer périodique ni MutationObserver. */
 function stampVersion(){
   const b=document.getElementById('build-version');
-  if(b)b.textContent='V226 — Évaluation · Charge Atelier · TP · Correction';
-  document.title='V226 — Évaluation · Charge Atelier · TP · Correction';
+  if(b)b.textContent='V227 — Évaluation · Charge Atelier · TP · Correction';
+  document.title='V227 — Évaluation · Charge Atelier · TP · Correction';
 }
 stampVersion();
 
@@ -19673,8 +19779,8 @@ if(typeof settings==='function'&&!settings.__v200){
 cleanUi(document);
 
 const bv=document.getElementById('build-version');
-if(bv)bv.textContent='V226 — Évaluation · Charge Atelier · TP · Correction';
-document.title='V226 — Évaluation · Charge Atelier · TP · Correction';
+if(bv)bv.textContent='V227 — Évaluation · Charge Atelier · TP · Correction';
+document.title='V227 — Évaluation · Charge Atelier · TP · Correction';
 
 console.info('V200 : RTA retirée de l’interface et des évaluations ; ancien générateur TP neutralisé au profit du Portail TP.');
 })();
@@ -20060,8 +20166,8 @@ ensureMobileMenu();
 
 /* Version : affichage uniquement, aucun timer et aucun MutationObserver. */
 const bv=document.getElementById('build-version');
-if(bv)bv.textContent='V226 — Évaluation · Charge Atelier · TP · Correction';
-document.title='V226 — Évaluation · Charge Atelier · TP · Correction';
+if(bv)bv.textContent='V227 — Évaluation · Charge Atelier · TP · Correction';
+document.title='V227 — Évaluation · Charge Atelier · TP · Correction';
 
 console.info('V201 : barre latérale scrollable + menu iPhone permanent + suppression TP V73/V159 persistante.');
 })();
@@ -20082,8 +20188,8 @@ window.V202_SETTINGS_POLICY={
   ephemeralUiLocalOnly:true
 };
 const bv=document.getElementById('build-version');
-if(bv)bv.textContent='V226 — Évaluation · Charge Atelier · TP · Correction';
-document.title='V226 — Évaluation · Charge Atelier · TP · Correction';
+if(bv)bv.textContent='V227 — Évaluation · Charge Atelier · TP · Correction';
+document.title='V227 — Évaluation · Charge Atelier · TP · Correction';
 console.info('V202 : recherche/compteur fiches + paramètres fonctionnels multiposte, démarrage inchangé.');
 })();
 </script>
@@ -20299,8 +20405,8 @@ forceActiveTpClass();
 addPortalClassBadge();
 
 const bv=document.getElementById('build-version');
-if(bv)bv.textContent='V226 — Évaluation · Charge Atelier · TP · Correction';
-document.title='V226 — Évaluation · Charge Atelier · TP · Correction';
+if(bv)bv.textContent='V227 — Évaluation · Charge Atelier · TP · Correction';
+document.title='V227 — Évaluation · Charge Atelier · TP · Correction';
 
 console.info('V204 : Portail TP filtré strictement par classe active ; classId et className doivent être cohérents.');
 })();
@@ -20319,8 +20425,8 @@ window.V204_TP_CLASS_FILTER_POLICY={
   legacyStudentIdsMustAllBelongToActiveClass:true
 };
 const bv=document.getElementById('build-version');
-if(bv)bv.textContent='V226 — Évaluation · Charge Atelier · TP · Correction';
-document.title='V226 — Évaluation · Charge Atelier · TP · Correction';
+if(bv)bv.textContent='V227 — Évaluation · Charge Atelier · TP · Correction';
+document.title='V227 — Évaluation · Charge Atelier · TP · Correction';
 console.info('V204 : filtrage strict des TP diffusés sur la classe active, démarrage inchangé.');
 })();
 </script>
@@ -20446,8 +20552,8 @@ if(typeof oldOpen==='function'&&!oldOpen.__v205){
 }
 
 const bv=document.getElementById('build-version');
-if(bv)bv.textContent='V226 — Évaluation · Charge Atelier · TP · Correction';
-document.title='V226 — Évaluation · Charge Atelier · TP · Correction';
+if(bv)bv.textContent='V227 — Évaluation · Charge Atelier · TP · Correction';
+document.title='V227 — Évaluation · Charge Atelier · TP · Correction';
 
 console.info('V205 : auto-évaluation TP lue depuis le JSON rendu ; Tableau du jour exclut les TP diffusés ; rendu le plus récent privilégié.');
 })();
@@ -20461,7 +20567,7 @@ console.info('V205 : auto-évaluation TP lue depuis le JSON rendu ; Tableau du j
 const list=()=>!!document.getElementById('tpc-groups')&&!document.querySelector('.tpc-editor');
 const text=(el,v)=>{if(el&&el.textContent!==String(v))el.textContent=String(v)};
 function counts(){const a=api.read(),g=id=>document.getElementById(id)?.value||'',cl=g('tpc-f-class'),tp=g('tpc-f-tp'),name=g('tpc-f-name').toLowerCase();const scoped=a.filter(r=>(!cl||r.data?.classe===cl)&&(!tp||(r.data?.code||r.data?.titre)===tp)&&(!name||([r.data?.eleve?.nom,r.data?.eleve?.prenom].filter(Boolean).join(' ')||r.data?.studentName||'').toLowerCase().includes(name)));const done=scoped.filter(api.done).length;return {total:scoped.length,todo:scoped.length-done,done}}
-function chips(){if(!list())return;window.cloud226?.options();const filters=document.querySelector('.tpc-filters'),sel=document.getElementById('tpc-f-status');if(!filters||!sel)return;sel.closest('label').style.display='none';let bar=document.getElementById('tp109-states');if(!bar){bar=document.createElement('div');bar.id='tp109-states';bar.className='tp109-states';bar.innerHTML='<span class="tp109-states-label">État des TP</span><button type="button" class="tp109-chip" data-state="">Tous <b></b></button><button type="button" class="tp109-chip" data-state="todo">À corriger <b></b></button><button type="button" class="tp109-chip" data-state="done">Corrigés <b></b></button><button type="button" class="tp109-chip" data-state="cloud">CloudFlare <b></b></button><button type="button" class="tp109-chip" onclick="cloud226Open()">☁ Ouvrir le Cloud ↗</button>';filters.after(bar);bar.addEventListener('click',e=>{const b=e.target.closest('button[data-state]');if(b){sel.value=b.dataset.state;sel.dataset.v217Touched='1';window.tpCorrectionFilter();}})}const c=counts();c.cloud=window.cloud226?.scoped().length||0;bar.querySelectorAll('button[data-state]').forEach(b=>{text(b.querySelector('b'),c[b.dataset.state||'total']);const on=sel.value===b.dataset.state;b.classList.toggle('active',on);if(b.getAttribute('aria-pressed')!==String(on))b.setAttribute('aria-pressed',String(on))});text(document.querySelector('.tpc-toolbar > .pill'),api.read().length+' TP');}
+function chips(){if(!list())return;window.cloud226?.options();window.tp227?.paintStorage();const filters=document.querySelector('.tpc-filters'),sel=document.getElementById('tpc-f-status');if(!filters||!sel)return;sel.closest('label').style.display='none';let bar=document.getElementById('tp109-states');if(!bar){bar=document.createElement('div');bar.id='tp109-states';bar.className='tp109-states';bar.innerHTML='<span class="tp109-states-label">État des TP</span><button type="button" class="tp109-chip" data-state="">Tous <b></b></button><button type="button" class="tp109-chip" data-state="todo">À corriger <b></b></button><button type="button" class="tp109-chip" data-state="done">Corrigés <b></b></button><button type="button" class="tp109-chip" data-state="cloud">CloudFlare <b></b></button><button type="button" class="tp109-chip" onclick="cloud226Open()">☁ Ouvrir le Cloud ↗</button>';filters.after(bar);bar.addEventListener('click',e=>{const b=e.target.closest('button[data-state]');if(b){sel.value=b.dataset.state;sel.dataset.v217Touched='1';window.tpCorrectionFilter();}})}const c=counts();c.cloud=window.cloud226?.scoped().length||0;bar.querySelectorAll('button[data-state]').forEach(b=>{text(b.querySelector('b'),c[b.dataset.state||'total']);const on=sel.value===b.dataset.state;b.classList.toggle('active',on);if(b.getAttribute('aria-pressed')!==String(on))b.setAttribute('aria-pressed',String(on))});text(document.querySelector('.tpc-toolbar > .pill'),api.read().length+' TP');}
 api.chips=chips;
 function panel(){const shell=document.querySelector('.tpc-shell');if(!shell)return;let p=document.getElementById('v217-diagnostic');if(!p){p=document.createElement('details');p.id='v217-diagnostic';p.className='panel';p.innerHTML='<summary><b>V217 · Diagnostic provisoire du portail</b> <span id="v217-health"></span></summary><p>La trace se remplit pendant votre utilisation. Elle permet de vérifier les statuts, les compteurs et les actualisations. Elle ne lance pas de lecture Firebase supplémentaire.</p><p id="v217-summary"></p><button type="button" class="secondary" onclick="tp217ExportDiagnostic()">Télécharger la trace de diagnostic JSON</button>';shell.append(p)}const c=api.report().counts;text(document.getElementById('v217-health'),`· ${c.corriges} corrigé(s), ${c.aCorriger} à corriger`);text(document.getElementById('v217-summary'),`${api.stats.listRenders} actualisation(s) de liste · ${api.stats.unchangedRendersSkipped} rafraîchissement(s) inutile(s) évité(s) · ${api.stats.downgradesBlocked} retour(s) en brouillon empêché(s). La cohérence entre postes reste à vérifier avec la trace.`)}
 window.tp217ExportDiagnostic=function(){const report=api.report();report.display={counts:counts(),visibleRows:document.querySelectorAll('#tpc-groups .tpc-row').length,filter:document.getElementById('tpc-f-status')?.value||'',editor:!!document.querySelector('.tpc-editor')};const blob=new Blob([JSON.stringify(report,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='Diagnostic_Portail_Correcteur_V217_'+new Date().toISOString().replace(/[:.]/g,'-')+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)};
@@ -20624,6 +20730,101 @@ async function acknowledge(){
 window.cloud226={diffusionState,receipts,queue,scoped,importedMatch,renderQueue,showOrdinary,options,settings,acknowledge,returned:(diff,st)=>receipts().some(r=>String(r.diffusionId)===String(diff.id)&&String(r.studentId)===String(st.id||st.studentId))};
 const oldRefresh=window.refreshAtelierFromFirebase;window.refreshAtelierFromFirebase=function(){const out=oldRefresh?.apply(this,arguments);if(document.getElementById('tpc-groups'))window.tpCorrectionFilter?.();return out};
 const oldImport=window.tpCorrectionImport;window.tpCorrectionImport=async function(){const out=await oldImport.apply(this,arguments);await acknowledge();window.tpCorrectionFilter?.();return out};
+})();
+
+</script>
+
+<style id="v227-mobile-storage">
+#at-teacher-view-btn{background:#ecfdf5;color:#065f46;border:2px solid #6ee7b7;min-height:48px}
+#atelier-app .at-head{flex-wrap:wrap;padding-top:max(12px,env(safe-area-inset-top));gap:8px}
+#atelier-app .at-head h1{flex:1 1 260px}
+.at-teacher-mobile227 #at-main{padding-bottom:calc(28px + env(safe-area-inset-bottom))}
+.at-teacher-mobile227 .at-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr))}
+.at-teacher-mobile227 .at-students{grid-template-columns:repeat(auto-fit,minmax(min(100%,160px),1fr))}
+.at-teacher-mobile227 .at-student{min-height:80px;font-size:17px;padding:16px;touch-action:manipulation;overflow-wrap:anywhere}
+.at-teacher-mobile227 .at-student:active{background:#bbf7d0;transform:scale(.99)}
+.at-teacher-mobile227 .at-panel{min-width:0;overflow-wrap:anywhere}
+.at-confirm227{box-sizing:border-box;max-height:85dvh;overflow:auto}
+.at-confirm227::backdrop{background:#0f172a99}
+.at-confirm227 button{min-height:52px;min-width:100px;font-size:17px;touch-action:manipulation}
+.at-search227{display:block;box-sizing:border-box;width:100%;font-size:16px;padding:12px;margin:8px 0;border:1px solid #94a3b8;border-radius:9px}
+.tp107-choice[hidden],.at-catalog-row[hidden]{display:none!important}
+.tp227-returned{background:#fef3c7;color:#854d0e;font-weight:750}
+#tp227-storage progress{display:block;width:100%;height:24px;accent-color:#16a34a}
+#tp227-storage[data-level=warn] progress{accent-color:#ea580c}
+#tp227-storage[data-level=critical] progress{accent-color:#dc2626}
+#tp227-storage .tp227-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+#tp227-storage small{display:block;margin-top:8px}
+.tp227-archive-dialog{box-sizing:border-box;width:calc(100% - 32px);max-width:620px;max-height:85dvh;overflow:auto;border:1px solid #94a3b8;border-radius:14px;padding:22px}
+.tp227-archive-dialog::backdrop{background:#0f172a99}
+.tp227-archive-dialog button{min-height:44px;margin:6px 5px 6px 0}.tp227-archive-dialog label{display:block;margin:12px 0}
+@media(max-width:600px){
+ #atelier-app .at-head{padding:10px 12px;padding-top:max(10px,env(safe-area-inset-top))}
+ #atelier-app .at-head h1{font-size:16px;flex-basis:100%}
+ #at-active-class{flex-basis:100%;font-size:13px}
+ #at-teacher-view-btn,#at-view-mode-btn{flex:1 1 calc(50% - 8px);min-height:48px;font-size:15px}
+ #atelier-app .at-head button{white-space:normal}
+ .at-teacher-mobile227 #at-main{padding:10px 10px 40px}
+ .at-teacher-mobile227 .at-grid{grid-template-columns:1fr}
+ .at-teacher-mobile227 .at-panel{padding:12px}
+ #atelier-app .at-nav{padding:10px;gap:6px}.at-teacher-mobile227 .at-nav button{min-height:44px}
+ .at-confirm227{padding:20px!important}.at-confirm227 h2{font-size:21px}
+}
+
+</style>
+<script id="v227-ui">
+(function(){
+'use strict';const api=window.tp227,KEY='tp_correction_local_v54',LIMITS='evaluation_storage_limits_v227';
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const norm=v=>String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+window.filterAdminTp227=function(input){const zone=input.closest('.at-admin-zone'),q=norm(input.value).trim();let n=0;zone.querySelectorAll('[data-search227]').forEach(row=>{row.hidden=!!q&&!norm(row.dataset.search227).includes(q);if(!row.hidden)n++});zone.querySelector('.at-search-count227').textContent=n+' TP trouvé(s)'};
+const limits=()=>({...{warn:350,critical:450,budget:500},...api.read(LIMITS,{})});
+let signature='',measurement=null,busy=false,requested=false;
+function identity(r){const d=r.data||{},p=d.identite||d.eleve||{};return [p.nom,p.prenom].filter(Boolean).join(' ')||d.studentName||r.id}
+function renderStats(){
+ const shell=document.querySelector('.tpc-shell');if(!shell||document.querySelector('.tpc-editor')||!document.getElementById('tpc-groups'))return;
+ let panel=document.getElementById('tp227-storage');if(!panel){panel=document.createElement('section');panel.id='tp227-storage';panel.className='panel';const filters=document.getElementById('tpc-groups');filters.before(panel)}
+ const l=limits(),m=measurement,value=m?m.bytes/1e6:0,level=value>=l.critical?'critical':value>=l.warn?'warn':'normal';panel.dataset.level=level;
+ const corrected=api.rows().filter(api.done),pending=api.read('tp_archive_cleanup_pending_v227',[]),status=api.read('tp_archive_cleanup_status_v227',{});
+ const html=`<h2>Stockage des TP non corrigés</h2><p>${m?`<b>${m.count} copie(s) · ${m.missing?'au moins ':''}${value.toLocaleString('fr-FR',{maximumFractionDigits:1})} Mo</b> estimés sur ce poste`:'Calcul local en cours…'}</p><progress max="${l.budget}" value="${Math.min(value,l.budget)}" aria-label="Volume estimé des copies non corrigées"></progress><p>Vigilance : ${l.warn} Mo · Critique : ${l.critical} Mo · Budget : ${l.budget} Mo</p><small>Estimation du contenu des copies disponibles, toutes classes confondues. Ce n’est pas la mesure du stockage total Firestore : index, autres collections et éventuelles copies multiples non inclus. Aucune lecture Firebase pour cette jauge.${m?.missing?` ${m.missing} copie(s) complète(s) indisponible(s) : estimation partielle.`:''}</small><div class="tp227-actions"><button class="secondary" type="button" onclick="tp227.measure(true)">Recalculer localement</button><button class="secondary" type="button" onclick="tp227ChooseArchive()">Sauvegarder / alléger une copie corrigée (${corrected.length})</button>${pending.length?`<button class="secondary" type="button" onclick="tp227.resume()">Reprendre les allègements en attente (${pending.length})</button>`:''}</div>${pending.length?`<details><summary>État des allègements</summary>${pending.map(id=>`<p>${esc(identity(corrected.find(r=>String(r.id)===id)||{id}))} : ${esc(status[id]||'En attente')}</p>`).join('')}</details>`:''}`;
+ if(panel.innerHTML!==html)panel.innerHTML=html;
+}
+async function measure(force=false){
+ if(!document.getElementById('tpc-groups'))return;
+ if(busy){requested=true;return}const list=api.rows().filter(r=>!api.done(r));const sig=JSON.stringify(list.map(r=>[r.id,r.importedAt,r.data,r.fullDataStored]));
+ if(!force&&sig===signature){renderStats();return}busy=true;signature=sig;renderStats();
+ try{let bytes=0,missing=0;for(const r of list){try{bytes+=api.size(await api.full(r))}catch(_){bytes+=api.size(r);missing++}}measurement={bytes,missing,count:list.length};renderStats()}finally{busy=false;if(requested){requested=false;measure()}}
+}
+api.measure=measure;api.paintStorage=function(){renderStats();measure()};
+api.settings=function(){
+ const main=document.getElementById('main');if(!main||main.querySelector('#storage227-settings'))return;
+ const l=limits(),box=document.createElement('details');box.id='storage227-settings';box.className='settings-rubric-collapse';box.innerHTML=`<summary class="settings-rubric-title">Stockage des copies TP</summary><div class="settings-card"><p>Seuils d’alerte du volume estimé des TP non corrigés, en Mo. Ils ne constituent pas un blocage d’importation.</p><label>Vigilance <input type="number" id="storage227-warn" min="1" value="${l.warn}"></label><label>Critique <input type="number" id="storage227-critical" min="1" value="${l.critical}"></label><label>Budget <input type="number" id="storage227-budget" min="1" value="${l.budget}"></label><button type="button" class="primary" onclick="tp227SaveLimits()">Enregistrer les seuils</button><p id="storage227-status" role="status"></p><p>Après correction, sauvegarde complète puis confirmation avant allègement Firebase. Le fichier complet reste conservé sur le poste d’importation ; aucune copie complète n’est automatiquement envoyée à CloudFlare.</p></div>`;main.append(box);
+};
+window.tp227SaveLimits=function(){const warn=Number(document.getElementById('storage227-warn').value),critical=Number(document.getElementById('storage227-critical').value),budget=Number(document.getElementById('storage227-budget').value);if(![warn,critical,budget].every(Number.isFinite)||warn<=0||critical<=warn||budget<critical){alert('Choisis des seuils positifs : vigilance < critique ≤ budget.');return}localStorage.setItem(LIMITS,JSON.stringify({warn,critical,budget,updatedAt:Date.now()}));window.syncFirebaseApplicationConfigSoon?.();document.getElementById('storage227-status').textContent='Seuils enregistrés ; synchronisation via les paramètres Firebase.'};
+function download(row){
+ const blob=new Blob([JSON.stringify(row.data,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');
+ a.href=url;a.download=(identity(row)+'_'+(row.data?.code||row.data?.tp?.id||'TP')+'_CORRIGE_COMPLET').replace(/[^a-zA-Z0-9_\-À-ÿ]/g,'_')+'.json';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
+}
+window.tp227ChooseArchive=function(){
+ const rows=api.rows().filter(api.done);if(!rows.length){alert('Aucune copie corrigée.');return}
+ const d=document.createElement('dialog');d.className='tp227-archive-dialog';d.innerHTML='<h2>Copies corrigées</h2><label>Choisir la copie<select style="width:100%;font-size:16px" id="archive227-choice">'+rows.map((r,i)=>`<option value="${i}">${esc(identity(r))} — ${esc(r.data?.code||r.data?.tp?.id||'TP')} — ${esc(r.correctedAt?.slice(0,10)||'')}</option>`).join('')+'</select></label><button type="button" class="primary" data-next>Préparer la sauvegarde</button><button type="button" class="secondary" data-cancel>Fermer</button>';document.body.append(d);d.addEventListener('close',()=>d.remove());d.querySelector('[data-cancel]').onclick=()=>d.close();d.querySelector('[data-next]').onclick=()=>{const r=rows[Number(d.querySelector('select').value)];d.close();window.tp227ArchiveDialog(r.id)};d.showModal();
+};
+window.tp227ArchiveDialog=async function(id){
+ if(document.getElementById('archive227-dialog'))return;
+ const row=api.rows().find(r=>String(r.id)===String(id));if(!row||!api.done(row))return;
+ const d=document.createElement('dialog');d.id='archive227-dialog';d.className='tp227-archive-dialog';d.innerHTML=`<h2>Copie corrigée — sauvegarde et allègement</h2><p><b>${esc(identity(row))}</b> — ${esc(row.data?.code||row.data?.tp?.id||'TP')}</p><p>Le fichier complet contient les illustrations, les réponses et la correction. Firebase conservera les consignes, réponses, auto-évaluation, coches, compétences, note et appréciation, sans les médias.</p><p data-status role="status">Préparation de la copie complète…</p><button type="button" class="primary" data-download disabled>Télécharger la copie corrigée complète</button><label><input type="checkbox" data-confirm disabled> J’ai vérifié que le fichier complet est enregistré sur mon PC ou sur CloudFlare.</label><button type="button" class="primary" data-approve disabled>Confirmer la sauvegarde et alléger Firebase</button><button type="button" class="secondary" data-close>Plus tard</button>`;
+ document.body.append(d);d.addEventListener('close',()=>d.remove());d.querySelector('[data-close]').onclick=()=>d.close();d.showModal();
+ const status=d.querySelector('[data-status]'),dl=d.querySelector('[data-download]'),check=d.querySelector('[data-confirm]'),apply=d.querySelector('[data-approve]');
+ try{const full=await api.full(row),token=api.backupToken(row);if(!d.isConnected)return;const slim=api.scrub(full);status.textContent=`Copie complète : ${(api.size(full)/1e6).toLocaleString('fr-FR',{maximumFractionDigits:2})} Mo · contenu allégé estimé : ${(api.size(slim)/1000).toLocaleString('fr-FR',{maximumFractionDigits:1})} ko.`;dl.disabled=false;
+ dl.onclick=()=>{download(full);check.disabled=false;status.textContent='Téléchargement lancé. Vérifie le fichier sauvegardé, puis coche la confirmation.'};check.onchange=()=>{apply.disabled=!check.checked};
+ apply.onclick=async()=>{if(!check.checked)return;apply.disabled=true;dl.disabled=true;check.disabled=true;try{await api.approve(id,token);status.textContent=api.read('tp_archive_cleanup_status_v227',{})[id]||'Sauvegarde confirmée.';d.querySelector('[data-close]').textContent='Fermer';renderStats()}catch(e){status.textContent=e.message;apply.disabled=false;check.disabled=false;dl.disabled=false}};
+ }catch(e){status.textContent=e.message}
+};
+const validate=window.tpCorrectionValidate;
+window.tpCorrectionValidate=async function(){const id=window.__tp55Current||window.__tpCorrectionCurrent,previous=api.rows().find(r=>String(r.id)===String(id));const out=await validate.apply(this,arguments);const r=api.rows().find(r=>String(r.id)===String(id));if(r&&api.done(r)&&(!api.done(previous)||r.correctedAt!==previous?.correctedAt))window.tp227ArchiveDialog(id);return out};
+// Archive UI is available even if the copy was corrected in a previous version.
+const open=window.tpCorrectionOpen;window.tpCorrectionOpen=function(id){const out=open.apply(this,arguments);setTimeout(()=>{if(String(window.__tp55Current)!==String(id))return;const r=api.rows().find(x=>String(x.id)===String(id)),ed=document.querySelector('.tpc-editor');if(!r||!api.done(r)||!ed||document.getElementById('archive227-button'))return;const b=document.createElement('button');b.id='archive227-button';b.type='button';b.className='secondary';b.textContent='Sauvegarder / alléger Firebase';b.onclick=()=>window.tp227ArchiveDialog(id);ed.before(b);if(r.firebaseArchive227?.mediaRemoved){const note=document.createElement('p');note.textContent='Archive Firebase allégée : les médias restent dans la sauvegarde complète.';b.after(note)}},250);return out};
+const importOld=window.tpCorrectionImport;window.tpCorrectionImport=async function(){const out=await importOld.apply(this,arguments);signature='';api.paintStorage();return out};
 })();
 
 </script>
