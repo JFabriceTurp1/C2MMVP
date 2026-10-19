@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1" name="viewport"/>
-<title>V229 — Évaluation · Charge Atelier · TP · Correction</title>
+<title>V230 — Évaluation · Charge Atelier · TP · Correction</title>
 <style>
 *{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f5f7fa;color:#172033}
 .app{display:flex;min-height:100vh}.side{width:235px;background:#172033;color:#fff;padding:22px 14px}.logo{font-size:19px;font-weight:700;padding:8px 10px 24px}
@@ -2734,7 +2734,7 @@ body{background:#f7f9fc;color:var(--text)}
 <!-- V88 — DONNÉES DE RÉFÉRENCE RÉINTÉGRÉES DEPUIS V86.5
      Jeux embarqués repris : référentiel compétences, élèves par défaut, seconde classe fictive, situations professionnelles.
      Les données dynamiques (classes/élèves/évaluations réellement saisies) restent chargées par IndexedDB/localStorage et Firebase. -->
-<div id="build-version">V229 — Évaluation · Charge Atelier · TP · Correction</div>
+<div id="build-version">V230 — Évaluation · Charge Atelier · TP · Correction</div>
 <div id="firebase-auth-overlay">
 <div class="firebase-login-card">
 <h2>☁️ Connexion Firebase — V89</h2>
@@ -2777,7 +2777,7 @@ body{background:#f7f9fc;color:var(--text)}
 <div class="app">
 <button aria-expanded="true" aria-label="Masquer la barre latérale" class="sidebar-toggle" id="sidebar-toggle" onclick="toggleSidebar()" title="Masquer la barre latérale" type="button">◀</button>
 <aside class="side">
-<div class="logo">COMPÉTENCES MV<br/><small style="font-size:11px;font-weight:400">V229 — Évaluation · Charge Atelier · TP · Correction</small></div>
+<div class="logo">COMPÉTENCES MV<br/><small style="font-size:11px;font-weight:400">V230 — Évaluation · Charge Atelier · TP · Correction</small></div>
 <div class="nav">
 <button id="nav-home" onclick="go('home')">🏠 <span>Accueil</span></button>
 <button id="nav-students" onclick="go('students')">👨‍🎓 <span>Élèves</span></button>
@@ -2997,6 +2997,61 @@ body{background:#f7f9fc;color:var(--text)}
 </div>
 </template>
 <!-- Firebase SDK désactivé dans cette version TEST LOCAL -->
+<script id="v230-lineage">(function(){
+'use strict';
+const REFERENCE={"source": "Référentiel 2025 et Audit critères — Catalogue_TP_BacPro_MV_Audit_2025.xlsx ; C1.4 — Extraction_structure_REFERENTIEL_BAC_CORRIGEE(1).pdf", "competences": [{"code": "C1.1", "title": "Organiser un entretien périodique", "criteria": [{"code": "C1.1-01", "label": "L'organisation du poste de travail, les moyens de prévention et le choix des équipements de protection collective et individuelle sont adaptés à l'intervention"}, {"code": "C1.1-02", "label": "Les risques liés à l'intervention sont identifiés et signalés"}, {"code": "C1.1-03", "label": "Les consignes d'hygiène et de sécurité sont respectées"}, {"code": "C1.1-04", "label": "Les éléments de protection du véhicule sont adaptés et correctement utilisés"}, {"code": "C1.1-05", "label": "Aucune détérioration n'est constatée"}, {"code": "C1.1-06", "label": "La propreté du véhicule est préservée"}, {"code": "C1.1-07", "label": "Le tri des déchets est réalisé"}, {"code": "C1.1-08", "label": "La réglementation environnementale est respectée"}, {"code": "C1.1-09", "label": "Le véhicule est identifié (VIN, plaque d'immatriculation)"}, {"code": "C1.1-10", "label": "L'outillage est conforme et adapté à l'intervention"}, {"code": "C1.1-11", "label": "Les informations collectées (historique, documentation, plan de maintenance, etc.) sont conformes et adaptées à l'intervention à réaliser"}, {"code": "C1.1-12", "label": "Les étapes de l'intervention sont identifiées et organisées"}, {"code": "C1.1-13", "label": "La disponibilité et la conformité des pièces y compris celles de réemploi sont vérifiées"}]}, {"code": "C1.2", "title": "Identifier les anomalies dans le cadre d’un entretien périodique", "criteria": [{"code": "C1.2-01", "label": "L'organisation du poste de travail, les moyens de prévention et le choix des équipements de protection collective et individuelle sont adaptés à l'intervention"}, {"code": "C1.2-02", "label": "Les risques liés à l'intervention sont identifiés et signalés"}, {"code": "C1.2-03", "label": "Les consignes d'hygiène et de sécurité sont respectées"}, {"code": "C1.2-04", "label": "Les éléments de protection du véhicule sont adaptés et correctement utilisés"}, {"code": "C1.2-05", "label": "Aucune détérioration n'est constatée"}, {"code": "C1.2-06", "label": "La propreté du véhicule est préservée"}, {"code": "C1.2-07", "label": "Les contrôles sont identifiés et hiérarchisés y compris, dans le cadre du pré-contrôle technique"}, {"code": "C1.2-08", "label": "Les contrôles et mesures sont réalisés en tenant compte des particularités des systèmes et du type de motorisation"}, {"code": "C1.2-09", "label": "Toutes les anomalies sont identifiées et retranscrites suivant la procédure prescrite"}]}, {"code": "C1.3", "title": "Réaliser les opérations de remplacement, d’ajustement dans le cadre de l’entretien périodique", "criteria": [{"code": "C1.3-01", "label": "L'organisation du poste de travail, les moyens de prévention et le choix des équipements de protection collective et individuelle sont adaptés à l'intervention"}, {"code": "C1.3-02", "label": "Les risques liés à l'intervention sont identifiés et signalés"}, {"code": "C1.3-03", "label": "Les consignes d'hygiène et de sécurité sont respectées"}, {"code": "C1.3-04", "label": "Les éléments de protection du véhicule sont adaptés et correctement utilisés"}, {"code": "C1.3-05", "label": "Aucune détérioration n'est constatée"}, {"code": "C1.3-06", "label": "La propreté du véhicule est préservée"}, {"code": "C1.3-07", "label": "Le tri des déchets est réalisé"}, {"code": "C1.3-08", "label": "La réglementation environnementale est respectée"}, {"code": "C1.3-09", "label": "Le temps imparti de l'intervention est respecté"}, {"code": "C1.3-10", "label": "Le remplacement des pièces d'usure et des fluides respecte les procédures du constructeur et de l'entreprise"}, {"code": "C1.3-11", "label": "Les niveaux et les pressions sont ajustés conformément aux procédures du constructeur et de l'entreprise"}, {"code": "C1.3-12", "label": "La procédure d'apprentissage, de paramétrage ou de réinitialisation est effectuée"}, {"code": "C1.3-13", "label": "Les indicateurs de maintenance sont mis à jour"}, {"code": "C1.3-14", "label": "L'ordre de réparation est complété"}]}, {"code": "C1.4", "title": "Apporter des conseils techniques à la clientèle sur l’entretien du véhicule", "criteria": [{"code": "C1.4-01", "label": "Les conseils à la clientèle sur l’utilisation et l’entretien du véhicule sont conformes aux règles de sécurité, aux procédures du constructeur et de l’entreprise"}, {"code": "C1.4-02", "label": "Les anomalies détectées sont présentées au client"}, {"code": "C1.4-03", "label": "Le client est informé du programme d’entretien à venir"}, {"code": "C1.4-04", "label": "La proposition de service, de produit est en lien avec les besoins du client"}, {"code": "C1.4-05", "label": "Le client est renseigné sur les pratiques d’usage du véhicule"}, {"code": "C1.4-06", "label": "Les procédures qualités sont respectées"}]}, {"code": "C2.1", "title": "Préparer une intervention corrective", "criteria": [{"code": "C2.1-01", "label": "L'organisation du poste de travail, les moyens de prévention et le choix des équipements de protection collective et individuelle sont adaptés à l'intervention"}, {"code": "C2.1-02", "label": "Les risques liés à l'intervention sont identifiés et signalés"}, {"code": "C2.1-03", "label": "Les consignes d'hygiène et de sécurité sont respectées"}, {"code": "C2.1-04", "label": "Les éléments de protection du véhicule sont adaptés et correctement utilisés"}, {"code": "C2.1-05", "label": "Aucune détérioration n'est constatée"}, {"code": "C2.1-06", "label": "La propreté du véhicule est préservée"}, {"code": "C2.1-07", "label": "Le tri des déchets est réalisé"}, {"code": "C2.1-08", "label": "La réglementation environnementale est respectée"}, {"code": "C2.1-09", "label": "Le véhicule est identifié (VIN, plaque d'immatriculation, spécificité technique etc...)"}, {"code": "C2.1-10", "label": "L'ordre de réparation est complété"}, {"code": "C2.1-11", "label": "L'outillage est conforme et adapté à l'intervention"}, {"code": "C2.1-12", "label": "Les informations collectées sont conformes et adaptées à l'intervention à réaliser"}, {"code": "C2.1-13", "label": "Les étapes de l'intervention sont identifiées"}, {"code": "C2.1-14", "label": "Le temps imparti de l'intervention est identifié"}, {"code": "C2.1-15", "label": "La disponibilité et la conformité des pièces sont vérifiées"}]}, {"code": "C2.2", "title": "Réaliser le remplacement ou la réparation des composants", "criteria": [{"code": "C2.2-01", "label": "L'organisation du poste de travail, les moyens de prévention et le choix des équipements de protection collective et individuelle sont adaptés à l'intervention"}, {"code": "C2.2-02", "label": "Les risques liés à l'intervention sont identifiés et signalés"}, {"code": "C2.2-03", "label": "Les consignes d'hygiène et de sécurité sont respectées"}, {"code": "C2.2-04", "label": "Les éléments de protection du véhicule sont adaptés et correctement utilisés"}, {"code": "C2.2-05", "label": "Aucune détérioration n'est constatée"}, {"code": "C2.2-06", "label": "La propreté du véhicule est préservée"}, {"code": "C2.2-07", "label": "Le tri des déchets est réalisé"}, {"code": "C2.2-08", "label": "La réglementation environnementale est respectée"}, {"code": "C2.2-09", "label": "Le temps imparti de l'intervention est respecté"}, {"code": "C2.2-10", "label": "Le remplacement des pièces respecte les procédures du constructeur et de l'entreprise"}, {"code": "C2.2-11", "label": "Les informations collectées (documentation, procédure du constructeur, etc.) sont adaptées à l'intervention à réaliser"}]}, {"code": "C2.3", "title": "Réaliser le réglage ou le paramétrage des systèmes", "criteria": [{"code": "C2.3-01", "label": "L'organisation du poste de travail, les moyens de prévention et le choix des équipements de protection collective et individuelle sont adaptés à l'intervention"}, {"code": "C2.3-02", "label": "Les risques liés à l'intervention sont identifiés et signalés"}, {"code": "C2.3-03", "label": "Les consignes d'hygiène et de sécurité sont respectées"}, {"code": "C2.3-04", "label": "Les éléments de protection du véhicule sont adaptés et correctement utilisés"}, {"code": "C2.3-05", "label": "Aucune détérioration n'est constatée"}, {"code": "C2.3-06", "label": "La propreté du véhicule est préservée"}, {"code": "C2.3-07", "label": "Les paramétrages respectent les caractéristiques et la configuration du véhicule"}]}, {"code": "C2.4", "title": "Réaliser le contrôle qualité d’une intervention corrective", "criteria": [{"code": "C2.4-01", "label": "Les procédures qualité de l'entreprise sont respectées"}, {"code": "C2.4-02", "label": "Les dossiers relatifs aux interventions sont complétés"}]}, {"code": "C3.1", "title": "Constater un dysfonctionnement", "criteria": [{"code": "C3.1-01", "label": "L'organisation du poste de travail, les moyens de prévention et le choix des équipements de protection collective et individuelle sont adaptés à l'intervention"}, {"code": "C3.1-02", "label": "Les risques liés à l'intervention sont identifiés et signalés"}, {"code": "C3.1-03", "label": "Les consignes d'hygiène et de sécurité sont respectées"}, {"code": "C3.1-04", "label": "Les éléments de protection du véhicule sont adaptés et correctement utilisés"}, {"code": "C3.1-05", "label": "Aucune détérioration n'est constatée"}, {"code": "C3.1-06", "label": "La propreté du véhicule est préservée"}, {"code": "C3.1-07", "label": "L'ordre de réparation est pris en compte puis complété"}, {"code": "C3.1-08", "label": "Le véhicule est identifié (VIN, plaque d'immatriculation)"}, {"code": "C3.1-09", "label": "Les informations collectées (historique, documentation, plan de maintenance, recueil des symptômes auprès du client etc.) sont conformes et adaptées au dysfonctionnement"}, {"code": "C3.1-10", "label": "L'utilisation est conforme et adaptée à l'intervention"}, {"code": "C3.1-11", "label": "Le dysfonctionnement et/ou l'anomalie sont confirmés"}, {"code": "C3.1-12", "label": "Les tests préliminaires réalisés recréent le contexte d'apparition de la panne"}, {"code": "C3.1-13", "label": "Les différentes conditions et les paramètres qui peuvent influencer l'apparition des symptômes sont identifiés"}, {"code": "C3.1-14", "label": "Les résultats sont explicités en utilisant un langage professionnel clair"}, {"code": "C3.1-15", "label": "Les essais ont été réalisés en respectant les procédures du constructeur"}, {"code": "C3.1-16", "label": "L'anomalie détectée est retranscrite"}]}, {"code": "C3.2", "title": "Hiérarchiser les hypothèses", "criteria": [{"code": "C3.2-01", "label": "L'organisation du poste de travail, les moyens de prévention et le choix des équipements de protection collective et individuelle sont adaptés à l'intervention"}, {"code": "C3.2-02", "label": "Les risques liés à l'intervention sont identifiés et signalés"}, {"code": "C3.2-03", "label": "Les consignes d'hygiène et de sécurité sont respectées"}, {"code": "C3.2-04", "label": "Les informations collectées (historique, documentation, plan de maintenance, recueil des symptômes auprès du client, système embarqué de diagnostic prédictif) sont conformes et adaptées au dysfonctionnement"}, {"code": "C3.2-05", "label": "Les propositions sont pertinentes"}, {"code": "C3.2-06", "label": "Les hypothèses sont hiérarchisées selon une logique liée à la probabilité, à l'accessibilité, la rentabilité et la disponibilité"}]}, {"code": "C3.3", "title": "Mettre en œuvre un protocole d’intervention existant ou à définir", "criteria": [{"code": "C3.3-01", "label": "L'organisation du poste de travail, les moyens de prévention et le choix des équipements de protection collective et individuelle sont adaptés à l'intervention"}, {"code": "C3.3-02", "label": "Les risques liés à l'intervention sont identifiés et signalés"}, {"code": "C3.3-03", "label": "Les consignes d'hygiène et de sécurité sont respectées"}, {"code": "C3.3-04", "label": "Les éléments de protection du véhicule sont adaptés et correctement utilisés"}, {"code": "C3.3-05", "label": "Aucune détérioration n'est constatée"}, {"code": "C3.3-06", "label": "La propreté du véhicule est préservée"}, {"code": "C3.3-07", "label": "La liste des contrôles et des mesures est pertinente compte tenu des hypothèses"}, {"code": "C3.3-08", "label": "L'utilisation des outils de mesure et de contrôle est conforme et adaptée à la situation"}, {"code": "C3.3-09", "label": "Les résultats, les relevés obtenus ou les observations sont interprétés selon les valeurs de référence"}, {"code": "C3.3-10", "label": "L'interprétation des données recueillies permet d'expliquer l'origine de la défaillance"}, {"code": "C3.3-11", "label": "Un test alternatif permet de confirmer la panne"}, {"code": "C3.3-12", "label": "Les anomalies sont identifiées et retranscrites suivant la procédure prescrite"}, {"code": "C3.3-13", "label": "L'ordre de réparation est complété"}]}, {"code": "C3.4", "title": "Identifier les solutions correctives", "criteria": [{"code": "C3.4-01", "label": "Les opérations de remise en conformité sont identifiées et cohérentes avec l'origine de la panne"}, {"code": "C3.4-02", "label": "Les conséquences sur les autres éléments sont prises en compte"}]}]};
+const clone=x=>JSON.parse(JSON.stringify(x));
+const text=v=>String(v??'').trim();
+const norm=v=>text(v).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');
+const esc=v=>text(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function project(d){const p=d?.tpProject||d?.sourceProject||d?.project||d?.projet||d?.tp?.project;return p?.schema==='evaluation.tp.v1'?p.data:p}
+function extract(d){
+ if(d?.tpSelection230?.version===1)return clone(d.tpSelection230);
+ const p=project(d);if(!p)return null;
+ const groups=new Map(),issues=[],links=[],cover=Array.isArray(p.evaluationCoverGroups)?p.evaluationCoverGroups:[];
+ const group=code=>{if(!groups.has(code)){const ref=REFERENCE.competences.find(c=>c.code===code);groups.set(code,{id:code,name:cover.find(g=>g.code===code)?.title||ref?.title||code,criteria:[]})}return groups.get(code)};
+ function add(code,id,label,source){
+  code=text(code)||text(id).match(/^(C\d+\.\d+)/)?.[1]||'';if(!code)return;
+  const g=group(code);id=text(id);label=text(label);if(!id&&!label)return;
+  const ref=cover.find(g=>g.code===code)?.criteria?.find(c=>c.code===id);
+  label=label||ref?.label||'';
+  if(id&&!id.startsWith(code+'-'))issues.push('Critère '+id+' incompatible avec '+code);
+  if(!label)issues.push('Libellé absent pour '+(id||code));
+  const key=id||label,old=g.criteria.find(c=>c.sourceId===key);
+  if(old){if(label&&old.label&&norm(label)!==norm(old.label))issues.push('Libellés contradictoires : '+key);if(source&&!old.sources.includes(source))old.sources.push(source)}
+  else g.criteria.push({sourceId:key,label,sources:source?[source]:[]});
+ }
+ for(const g of cover){group(g.code);for(const c of g.criteria||[])add(g.code,c.code,c.label,'tableau-editeur');}
+ const arr={question:p.questions||[],table:p.tableBlocks||[],text:p.textBlocks||[],image:p.imageBlocks||[],match:p.matchBlocks||[],placement:p.placementBlocks||[]};
+ const flow=Array.isArray(p.flow)?p.flow:Object.entries(arr).flatMap(([type,xs])=>xs.map(x=>({type,id:x.id})));
+ const visible=new Set(flow.map(f=>String(f.id)));
+ for(const f of flow){const o=arr[f.type]?.find(x=>String(x.id)===String(f.id));if(!o||o.excluded)continue;const parent=o.parentQuestionId?arr.question.find(x=>x.id===o.parentQuestionId):null;if(parent&&(parent.excluded||!visible.has(String(parent.id))))continue;
+  const role=['evaluated','preparatory','support'].includes(o.evaluationRole)?o.evaluationRole:['question','table','match','placement'].includes(f.type)?'evaluated':'support';
+  if(role!=='evaluated')continue;add(o.competence,o.criterionId,o.criterion,o.id);
+  if(o.competence||o.criterionId)links.push({blockId:o.id,questionId:parent?.id||(f.type==='question'?o.id:''),competence:o.competence||'',criterionId:o.criterionId||'',role});
+ }
+ for(const id of new Set(text(p.criteresRetenus).match(/C\d+\.\d+-\d+/g)||[])){
+  const code=id.match(/^C\d+\.\d+/)[0];if(!groups.get(code)?.criteria.some(c=>c.sourceId===id))add(code,id,'','selection-explicite');
+ }
+ for(const code of new Set(text(p.competencesRetenues).match(/C\d+\.\d+/g)||[]))group(code);
+ return {version:1,tpCode:p.publicId||p.id||d.code||'',groups:[...groups.values()].sort((a,b)=>a.id.localeCompare(b.id,'fr',{numeric:true})),links,issues:[...new Set(issues)],source:'Choix du projet TP exporté'};
+}
+function ensure(d){const s=extract(d);if(s){d.tpSelection230=s;d.competences=s.groups.map(g=>({code:g.id,label:g.name}));}return s}
+function ids(d){const s=ensure(d);return s?s.groups.map(g=>g.id):(d?.competences||d?.competencies||[]).map(c=>typeof c==='string'?c:c.code||c.id).filter(Boolean)}
+function build(r){
+ const s=ensure(r.data);if(!s)return null;
+ const errors=[...s.issues];if(!s.groups.length)errors.push('Aucune compétence évaluée dans le projet TP');
+ for(const g of s.groups)if(!g.criteria.length)errors.push(g.id+' : aucun critère sélectionné dans le TP');
+ if(errors.length)throw Error('Liaison éditeur / évaluation à compléter : '+errors.join(' ; '));
+ const refs=s.groups.map(g=>({id:g.id,name:g.name,criteria:g.criteria.map(c=>({code:c.sourceId,text:c.label,sources:c.sources}))})),levels={},obs={};
+ for(const g of refs)g.criteria.forEach((c,i)=>{const level=r.criteriaLevels230?.[c.code]||r.levels?.[g.id];if(!['Non observé','À renforcer','Maîtrisé','Autonome'].includes(level))throw Error('Positionne le critère '+c.code);levels[g.id+'-'+i]=level;obs[g.id+'-'+i]='Critère éditeur : '+c.code+(c.sources.length?' · Sources : '+c.sources.join(', '):'');});
+ return {comps:refs.map(g=>g.id),levels,obs,disabledCriteria:{},tpSelection230:clone(s),tpReference230:refs,tpMarks230:clone(r.marks||{})};
+}
+function resolve(e,id,fallback){return e?.tpReference230?.find(c=>c.id===id)||fallback}
+function panel(r,interactive=false){const s=ensure(r.data);if(!s)return '<p>Ancienne copie : projet éditeur absent, liaison détaillée non vérifiable.</p>';return '<h3>Critères retenus dans l’éditeur</h3><p>Le niveau de la compétence s’applique à ses critères. Un niveau choisi ci-dessous le remplace pour ce critère.</p>'+s.groups.map(g=>`<div><h4>${esc(g.id)} — ${esc(g.name)}</h4>${g.criteria.map(c=>`<div style="border-top:1px solid #ddd;padding:8px 0"><b>${esc(c.sourceId)}</b> — ${esc(c.label)}<br><small>${esc(c.sources.join(', '))}</small>${interactive?`<select aria-label="Niveau ${esc(c.sourceId)}" data-criterion230="${esc(c.sourceId)}" style="display:block;max-width:100%;margin-top:6px"><option value="">Niveau de la compétence (${esc(r.levels?.[g.id]||'à choisir')})</option>${['Non observé','À renforcer','Maîtrisé','Autonome'].map(v=>`<option ${r.criteriaLevels230?.[c.sourceId]===v?'selected':''}>${v}</option>`).join('')}</select>`:`<p>${esc(r.criteriaLevels230?.[c.sourceId]||r.levels?.[g.id]||'Non positionné')}</p>`}</div>`).join('')||'<p>Critère manquant : à renseigner dans le projet.</p>'}</div>`).join('')+(s.issues.length?'<p role="alert">'+s.issues.map(esc).join('<br>')+'</p>':'');}
+window.tp230={extract,ensure,ids,build,resolve,panel,project};
+})();
+</script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -4109,8 +4164,8 @@ function home(){
     </div>`;
   /* Affichage de version de l'accueil : information uniquement, sans impact sur le bootstrap. */
   const homeVersionBadge=document.getElementById("build-version");
-  if(homeVersionBadge)homeVersionBadge.textContent='V229 — Évaluation · Charge Atelier · TP · Correction';
-  document.title='V229 — Évaluation · Charge Atelier · TP · Correction';
+  if(homeVersionBadge)homeVersionBadge.textContent='V230 — Évaluation · Charge Atelier · TP · Correction';
+  document.title='V230 — Évaluation · Charge Atelier · TP · Correction';
 }
 
 function collapseAllCollectiveRows(){
@@ -4286,10 +4341,10 @@ function viewEvaluationPage(){
   const e=viewedEvaluation;
   if(!e){go("history");return;}
   const cBlocks=e.rentreeEvaluation?rentreeViewHtml(e):e.ficheActiviteEvaluation?activityViewHtml(e):(e.comps||[]).map(cid=>{
-    const c=competencies.find(x=>x.id===cid);if(!c)return "";
+    const c=window.tp230.resolve(e,cid,competencies.find(x=>x.id===cid));if(!c)return "";
     const rows=(c.criteria||[]).map((cr,i)=>{
       const key=cid+"-"+i,level=e.levels?.[key]||"Non observé",obs=e.obs?.[key]||"";
-      return `<div style="padding:12px 0;border-top:1px solid #edf0f4"><div><b>${i+1}.</b> ${esc(cr.text||cr)}</div><div style="margin-top:6px"><span class="pill">${esc(level)}</span></div>${obs?`<div style="margin-top:6px"><b>Observation :</b> ${esc(obs)}</div>`:""}</div>`;
+      return `<div style="padding:12px 0;border-top:1px solid #edf0f4"><div><b>${esc(cr.code||String(i+1))}.</b> ${esc(cr.text||cr)}</div><div style="margin-top:6px"><span class="pill">${esc(level)}</span></div>${obs?`<div style="margin-top:6px"><b>Observation :</b> ${esc(obs)}</div>`:""}</div>`;
     }).join("");
     return `<div class="panel" style="margin-top:16px"><h2>${c.id} — ${esc(c.name)}</h2>${c.activity?`<p class="muted">${esc(c.activity)}</p>`:""}${rows}</div>`;
   }).join("");
@@ -4337,6 +4392,7 @@ async function editEvaluation(evaluationId,studentIdHint){
   selectedStudent=owner.id;
   draft={
     editId:ev.id,
+    tpReference230:ev.tpReference230||null,tpSelection230:ev.tpSelection230||null,
     title:ev.title||"",
     date:ev.date||"",
     place:ev.place||"Lycée",
@@ -6038,7 +6094,7 @@ function applyNoteToStandardEvaluation(raw){
   if(!draft.comps?.length){showWarningMessage("Sélectionne d’abord une situation professionnelle ou au moins une compétence.");evaluationPage();return;}
   const active=[];
   (draft.comps||[]).forEach(compId=>{
-    const comp=competencies.find(c=>c.id===compId); if(!comp)return;
+    const comp=window.tp230.resolve(draft,compId,competencies.find(c=>c.id===compId)); if(!comp)return;
     (comp.criteria||[]).forEach((_,i)=>{const key=compId+"-"+i;if(!(draft.disabledCriteria&&draft.disabledCriteria[key]))active.push(key);});
   });
   if(!active.length){showWarningMessage("Aucun critère actif à positionner.");evaluationPage();return;}
@@ -6104,7 +6160,7 @@ function applyRetroEstimatedNote(raw){
 
   const active=[];
   (draft.comps||[]).forEach(compId=>{
-    const comp=competencies.find(c=>c.id===compId);
+    const comp=window.tp230.resolve(draft,compId,competencies.find(c=>c.id===compId));
     if(!comp)return;
     (comp.criteria||[]).forEach((_,i)=>{
       const key=compId+"-"+i;
@@ -6446,7 +6502,7 @@ function applyProfessionalSituation(){
   draft.title=p.title+(suffix?" — "+suffix:"");
   const allowed=new Set();
   draft.comps.forEach(cid=>{
-    const c=competencies.find(x=>x.id===cid);
+    const c=window.tp230.resolve(draft,cid,competencies.find(x=>x.id===cid));
     (c?.criteria||[]).forEach((_,i)=>allowed.add(cid+"-"+i));
   });
   Object.keys(draft.levels||{}).forEach(k=>{if(!allowed.has(k))delete draft.levels[k];});
@@ -6644,7 +6700,7 @@ function competenceToneClass(id){
   return "competence-tone-"+(idx>=0?idx:Math.abs(String(id).split("").reduce((a,c)=>a+c.charCodeAt(0),0))%9);
 }
 function renderCompetence(id){
-const c=competencies.find(x=>x.id===id);
+const c=window.tp230.resolve(draft,id,competencies.find(x=>x.id===id));
 if(!c)return "";
 const grouped=c.criteria.some(x=>typeof x==="object"&&x.group);
 const groups={};
@@ -6684,7 +6740,7 @@ function toggleCompetence(compId,btn){
   if(!draft)return;
   if(!draft.disabledCriteria) draft.disabledCriteria={};
   if(!draft.disabledCompetencies) draft.disabledCompetencies={};
-  const comp=competencies.find(c=>c.id===compId);
+  const comp=window.tp230.resolve(draft,compId,competencies.find(c=>c.id===compId));
   if(!comp)return;
   const isDisabled=!!draft.disabledCompetencies[compId];
 
@@ -6738,7 +6794,7 @@ function toggleCompetence(compId,btn){
 function criterionIdentityFromKey(key){
   const match=String(key||"").match(/^(C\d+\.\d+)-(\d+)$/);
   if(!match)return "";
-  const comp=competencies.find(c=>c.id===match[1]);
+  const comp=window.tp230.resolve(draft,match[1],competencies.find(c=>c.id===match[1]));
   const index=Number(match[2]);
   if(!comp || !comp.criteria || !comp.criteria[index])return "";
   const criterion=comp.criteria[index];
@@ -6751,7 +6807,7 @@ function synchronizedCriterionKeys(key){
   if(!identity)return [key];
   const keys=[];
   (draft.comps||[]).forEach(compId=>{
-    const comp=competencies.find(c=>c.id===compId);
+    const comp=window.tp230.resolve(draft,compId,competencies.find(c=>c.id===compId));
     if(!comp)return;
     (comp.criteria||[]).forEach((_,i)=>{
       const candidate=compId+"-"+i;
@@ -6828,7 +6884,7 @@ function updateLiveEvaluationScore(){
 function selectedCriterionKeys(){
   const keys=[];
   (draft?.comps||[]).forEach(compId=>{
-    const comp=competencies.find(c=>c.id===compId);
+    const comp=window.tp230.resolve(draft,compId,competencies.find(c=>c.id===compId));
     if(!comp)return;
     (comp.criteria||[]).forEach((_,i)=>keys.push(compId+"-"+i));
   });
@@ -7008,7 +7064,7 @@ function toggleCriterion(key,btn){
 }
 function summary(){
 const lines=draft.comps.map(id=>{
-const c=competencies.find(x=>x.id===id);
+const c=window.tp230.resolve(draft,id,competencies.find(x=>x.id===id));
 const active=c.criteria.filter((_,i)=>!draft.disabledCriteria[id+"-"+i]);
 const n=active.filter((_,i)=>{
   const originalIndex=c.criteria.indexOf(_);
@@ -7669,7 +7725,7 @@ async function exportFullArchiveExcel(snapshot,options={}){
   snapshot.evaluations.forEach(ev=>{
     const st=snapshot.students.find(x=>String(x.id)===String(ev.studentId));
     (ev.comps||[]).forEach(cid=>{
-      const comp=snapshot.competencies.find(c=>String(c.id)===String(cid));
+      const comp=window.tp230.resolve(ev,cid,snapshot.competencies.find(c=>String(c.id)===String(cid)));
       (comp?.criteria||[]).forEach((cr,i)=>{
         const key=cid+"-"+i;
         criterionRows.push([ev.id,st?.name||"",archiveClassName(st?.classId,snapshot),ev.date||"",cid,
@@ -7748,7 +7804,7 @@ async function exportStudentsOnlyExcel(snapshot){
   snapshot.evaluations.forEach(ev=>{
     const st=snapshot.students.find(x=>String(x.id)===String(ev.studentId));
     (ev.comps||[]).forEach(cid=>{
-      const comp=snapshot.competencies.find(c=>String(c.id)===String(cid));
+      const comp=window.tp230.resolve(ev,cid,snapshot.competencies.find(c=>String(c.id)===String(cid)));
       (comp?.criteria||[]).forEach((cr,i)=>{
         const key=cid+"-"+i;
         criterionRows.push([st?.name||"",archiveClassName(st?.classId,snapshot),ev.date||"",cid,comp?.name||comp?.title||"",cr?.text||cr?.label||String(cr||""),ev.disabledCriteria?.[key]?"Désactivé":(ev.levels?.[key]||"")]);
@@ -8281,7 +8337,7 @@ function exportStudentDeletionExcel(studentsSnapshot, deletionDate){
       const comps=ev.comps||[];
       let hadCriterion=false;
       comps.forEach(cid=>{
-        const comp=competencies.find(c=>String(c.id)===String(cid));
+        const comp=window.tp230.resolve(ev,cid,competencies.find(c=>String(c.id)===String(cid)));
         if(!comp){
           rows.push({nom,prenom,date:ev.date||"",situation:ev.title||"",type:ev.type||"",competenceCode:String(cid),competenceName:"",critere:"",niveau:"",dateSuppression:deletionDate});
           return;
@@ -8334,7 +8390,7 @@ function exportStudentDeletionPDF(studentsSnapshot, deletionDate){
     rows+=`<table><thead><tr><th>Date</th><th>Situation</th><th>Code</th><th>Nom de la compétence</th><th>Critère</th><th>Niveau</th></tr></thead><tbody>`;
     evals.forEach(ev=>{
       (ev.comps||[]).forEach(cid=>{
-        const comp=competencies.find(c=>String(c.id)===String(cid));
+        const comp=window.tp230.resolve(ev,cid,competencies.find(c=>String(c.id)===String(cid)));
         const criteria=comp?.criteria||[];
         criteria.forEach((cr,i)=>{
           const key=cid+"-"+i, disabled=ev.disabledCriteria?.[key];
@@ -9750,7 +9806,7 @@ if(!draft.comps.length){showWarningMessage("Sélectionne au moins une compétenc
 // Un critère désactivé est volontairement ignoré. Les critères actifs
 // doivent tous avoir un niveau sélectionné.
 for(const compId of draft.comps){
-  const comp=competencies.find(c=>c.id===compId);
+  const comp=window.tp230.resolve(draft,compId,competencies.find(c=>c.id===compId));
   if(!comp) continue;
   const missing=comp.criteria.some((cr,i)=>{
     const key=compId+"-"+i;
@@ -9882,7 +9938,7 @@ function evaluationScore20(e){
   }
   const vals=[];
   (e.comps||[]).forEach(cid=>{
-    const c=competencies.find(x=>x.id===cid);
+    const c=window.tp230.resolve(e,cid,competencies.find(x=>x.id===cid));
     if(!c)return;
     c.criteria.forEach((_,i)=>{
       const key=cid+"-"+i;
@@ -9913,7 +9969,7 @@ function latestCompetenceScore(s,c){
   const es=visibleEvaluations(s.evaluations||[]).filter(e=>(e.comps||[]).includes(c.id));
   const last=es.at(-1);
   if(!last) return null;
-  const vals=c.criteria.map((_,i)=>levelScore(last.levels[c.id+"-"+i])).filter(x=>x>0);
+  const vals=window.tp230.resolve(last,c.id,c).criteria.map((_,i)=>levelScore(last.levels[c.id+"-"+i])).filter(x=>x>0);
   return vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : 0;
 }
 function drawRadar(){
@@ -10543,7 +10599,7 @@ function positionPage(isExample=false){
       ${competencies.map(c=>{
         const es=visibleEvaluations(s.evaluations||[]).filter(e=>(e.comps||[]).includes(c.id));
         const last=es.at(-1);
-        const vals=last?c.criteria.map((_,i)=>last.levels[c.id+"-"+i]).filter(Boolean):[];
+        const vals=last?window.tp230.resolve(last,c.id,c).criteria.map((_,i)=>last.levels[c.id+"-"+i]).filter(Boolean):[];
         const score=vals.length?vals.reduce((a,v)=>a+levelScore(v),0)/vals.length:null;
         const label=score===null?"Non observée":score>=3.5?"Maîtrisé / Autonome":score>=2.5?"À consolider":score>=1.5?"En cours":"À renforcer";
         return `<tr><td><b>${c.id}</b> — ${esc(c.name)}</td><td><span style="display:inline-flex;align-items:center;gap:7px"><i class="dot" style="background:${colorForScore(score)}"></i><b>${label}</b></span></td><td>${last?esc(last.date):"—"}</td></tr>`;
@@ -10794,7 +10850,7 @@ function competenceAverageScoreFromEvaluations(evaluations,c){
 
     // Évaluations classiques / rétroactives : moyenne des critères observés
     // de cette compétence dans l'évaluation.
-    const vals=(c.criteria||[]).map((_,i)=>{
+    const vals=(window.tp230.resolve(e,c.id,c).criteria||[]).map((_,i)=>{
       const key=c.id+"-"+i;
       if(e.disabledCriteria && e.disabledCriteria[key])return 0;
       return levelScore((e.levels||{})[key]);
@@ -14218,7 +14274,7 @@ const oldDraft=window.tpGenCurrentDraft;window.tpGenCurrentDraft=function(){cons
         const note=evaluationScore20(e);
         return note===null?null:Math.max(0,Math.min(4,Number(note)/5));
       }
-      const vals=(c.criteria||[]).map((_,i)=>{
+      const vals=(window.tp230.resolve(e,c.id,c).criteria||[]).map((_,i)=>{
         const key=c.id+"-"+i;
         if(e.disabledCriteria&&e.disabledCriteria[key])return 0;
         return levelScore((e.levels||{})[key]);
@@ -14945,7 +15001,7 @@ function mark(r,k){return r.marks?.[k]||''}
 window.tp55Mark=function(k,v){const rows=rd(),r=rows.find(x=>x.id===cur);if(!r)return;r.marks=r.marks||{};r.marks[k]=r.marks[k]===v?'':v;wr(rows);const bar=window.event?.target?.closest?.('.tpc-markbar');if(bar){bar.querySelectorAll('.tpc-markbtn').forEach(btn=>btn.classList.toggle('active',btn.classList.contains(r.marks[k]==='ok'?'ok':'bad')&&!!r.marks[k]));return}const y=window.scrollY;window.tpCorrectionOpen(cur);window.scrollTo(0,y)};
 function markbar(r,k){const v=mark(r,k);return `<div class="tpc-markbar"><span class="muted">Correction :</span><button class="tpc-markbtn ok ${v==='ok'?'active':''}" title="Correct" onclick="tp55Mark('${k}','ok')">✓</button><button class="tpc-markbtn bad ${v==='bad'?'active':''}" title="À corriger" onclick="tp55Mark('${k}','bad')">✕</button></div>`}
 function esc2(x){return typeof esc==='function'?esc(String(x??'')):String(x??'').replace(/[&<>]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]))}
-function comps(d){return (d.competences||d.competencies||[]).map(x=>typeof x==='string'?x:(x.code||x.id)).filter(Boolean)}
+function comps(d){return window.tp230.ids(d)}
 function lev(n){n=Number(n);return n<12?'À renforcer':n<16?'Maîtrisé':'Autonome'}
 window.tpCorrectionOpen=function(id){cur=id;window.__tp55Current=id;const r=rd().find(x=>x.id===id);if(!r)return;const d=r.data||{},rep=d.reponses||{},meas=rep.controles||d.controlsTable||[],cs=comps(d),st=match(r),se=selfEval(r,st);setActive('correctionTp');const ans=(title,key,val)=>`<div class="tpc-answer"><h3>${title}</h3>${markbar(r,key)}<div>${esc2(val||'—').replace(/\n/g,'<br>')}</div></div>`;document.getElementById('main').innerHTML=`<header class="app-top-header"></header><div class="tpc-shell"><div class="page-header"><div><h1>${esc2(d.code||'TP')} — ${esc2(d.titre||'Correction')}</h1><p><b>${esc2(nm(d))}</b> • ${esc2(d.classe||'')} • <span class="${st?'tpc-student-ok':'tpc-student-bad'}">${st?'✓ élève reconnu : '+esc2(st.name):'⚠ élève non reconnu'}</span></p></div><button class="secondary" onclick="tpCorrectionPage()">← Liste des TP</button></div><div class="tpc-editor"><div>${se?`<div class="tpc-card tpc-self"><h2>👤 Auto-évaluation de l’élève</h2><div class="tpc-self-grid"><div class="tpc-self-item"><b>Note</b><br>${esc2(se.note??'—')} / 20</div><div class="tpc-self-item"><b>Organisation</b><br>${esc2(se.organisation??'—')} / 4</div><div class="tpc-self-item"><b>Résultat</b><br>${esc2(se.resultats??'—')} / 4</div><div class="tpc-self-item"><b>Autonomie</b><br>${esc2(se.confiance??'—')} / 4</div></div><b>Appréciation / commentaire de l’élève</b><div style="margin-top:6px;white-space:pre-wrap">${esc2(se.comment||'—')}</div></div>`:`<div class="tpc-card tpc-self"><h2>👤 Auto-évaluation de l’élève</h2><p class="muted">Aucune auto-évaluation correspondante retrouvée dans le planning local.</p></div>`}<div class="tpc-card"><h2>Travail rendu par l’élève</h2>${ans('Travail demandé / compte rendu','travail',rep.travailDemande)}${ans('Données techniques','donnees',rep.donneesTechniques)}${ans('Préparation / risques','risques',rep.preparationRisques)}${ans('Bilan élève','bilan',rep.bilanEleve)}</div><div class="tpc-card"><h2>Tableau de mesures et contrôles</h2>${meas.length?`<div style="overflow:auto"><table class="tpc-measures"><thead><tr><th>Correction</th><th>Contrôle / mesure</th><th>Valeur relevée</th><th>Référence</th><th>Conclusion</th></tr></thead><tbody>${meas.map((x,i)=>`<tr><td class="markcell">${markbar(r,'mes'+i)}</td><td>${esc2(x.controle||x.label||'')}</td><td>${esc2(x.valeur||x.student||'')}</td><td>${esc2(x.reference||x.expected||'')}</td><td>${esc2(x.conclusion||'')}</td></tr>`).join('')}</tbody></table></div>`:'<p class="muted">Aucun tableau de mesure renseigné.</p>'}</div></div><aside><div class="tpc-card"><h2>Correction professeur</h2><label>Note / 20<input id="tpc-note" type="number" min="0" max="20" step="0.5" value="${esc2(r.note)}" oninput="tp55NoteTyping(this.value)" onchange="tp55NoteFinished(this.value)" onblur="tp55NoteFinished(this.value)"></label><div class="tpc-note" id="tpc-note-show">${r.note!==''?esc2(r.note):'—'} / 20</div><p class="muted">Les couleurs ne sont recalculées qu’une fois la saisie de la note terminée.</p><label>Appréciation professeur<textarea id="tpc-app" rows="5" oninput="tpCorrectionDraftSave()">${esc2(r.appreciation||'')}</textarea></label></div><div class="tpc-card"><h2>Compétences du TP</h2><p class="muted">La note positionne automatiquement les couleurs ; tu peux ensuite modifier chaque compétence.</p>${cs.map(c=>{const lv=r.levels?.[c]||'',ref=(window.competencies||[]).find(x=>x.id===c);return `<div class="tpc-comp"><b>${esc2(c)}${ref?' — '+esc2(ref.name):''}</b><div class="tpc-levels">${[['Non observé','n0'],['À renforcer','n1'],['Maîtrisé','n3'],['Autonome','n4']].map(([l,cl])=>`<button class="tpc-level ${cl} ${lv===l?'active':''}" onclick="tpCorrectionSetLevel('${esc2(c)}','${l}')">${l}</button>`).join('')}</div></div>`}).join('')||'<p class="muted">Aucune compétence trouvée dans ce TP.</p>'}<button class="primary" style="width:100%;margin-top:12px" onclick="tpCorrectionValidate()">💾 Valider la correction et l’évaluation</button><div class="tpc-pdfhint">La validation enregistre l’évaluation dans l’historique de l’élève et génère le PDF de correction.</div></div></aside></div></div>`}
 window.tp55NoteTyping=function(v){const rows=rd(),r=rows.find(x=>x.id===cur);if(!r)return;r.note=v;wr(rows);const sh=document.getElementById('tpc-note-show');if(sh)sh.textContent=(v||'—')+' / 20'};
@@ -15048,6 +15104,7 @@ function prefer(old,incoming){if(!old)return incoming;if(!same(old,incoming)){
 function archiveInto(a,doc,ar){
  if(!ar||!ar.id){event('archive sans identifiant',{doc});return a}
  const candidate={id:ar.id,data:{studentId:ar.studentId,eleve:{nom:ar.nom,prenom:ar.prenom,date:String(ar.identity||'').split('|').pop()||''},classe:ar.classe,code:ar.tpId,titre:ar.tpTitre,dates:{rendu:String(ar.identity||'').split('|').pop()||''}},note:ar.note??'',appreciation:ar.appreciation||'',levels:ar.levels||{},marks:ar.marks||{},fileName:ar.fileName||'',correctedAt:ar.correctedAt||'date inconnue',savedEvaluationId:ar.evaluationId||'',workflowState:'CORRIGE',v217Source:'archive Firebase V159',v217ArchiveOnly:true};
+ if(ar.tpSelection230){candidate.data.tpSelection230=ar.tpSelection230;candidate.criteriaLevels230=ar.criteriaLevels230||{};}
  if(ar.justification227){candidate.data=ar.justification227.data||candidate.data;candidate.marks=ar.justification227.marks||candidate.marks;candidate.firebaseArchive227=ar.justification227.firebaseArchive227;candidate.v217ArchiveOnly=true;}
  if(deleted(candidate))return a;
  const ix=a.findIndex(x=>String(x.id)===String(ar.id));
@@ -16045,7 +16102,7 @@ window.addEventListener('load',()=>setTimeout(resume,1500),{once:true});
  const oldDiffuse=window.tpGenDiffuseSaved;window.tpGenDiffuseSaved=async function(id){const x=rows().find(r=>String(r.savedId)===String(id));if(x?.snapshot?.rawProjectStored){const raw=await getProject(id);if(raw)mem.set(String(id),raw)}return oldDiffuse?.(id)};
  const oldLocked=window.tpGenLockedSnapshot;window.tpGenLockedSnapshot=function(){const d=oldLocked?.();if(d?.rawProjectStored&&!d.rawProject){const id=String(tpGenState.currentSavedId||window.__tpDiffusionSavedId||'');const raw=mem.get(id);if(raw)d.rawProject=JSON.parse(JSON.stringify(raw))}return d};
  const oldDelete=window.tpGenDeleteSaved;window.tpGenDeleteSaved=async function(id){const before=rows().some(x=>String(x.savedId)===String(id));const ret=await oldDelete?.(id);if(before&&!rows().some(x=>String(x.savedId)===String(id)))try{await delProject(id)}catch(e){console.warn(e)}return ret};
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V229 — Évaluation · Charge Atelier · TP · Correction';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V230 — Évaluation · Charge Atelier · TP · Correction';
  migrate();
  console.info('V113 actif : projets TP lourds stockés dans IndexedDB; localStorage limité aux métadonnées.');
 })();
@@ -16105,7 +16162,7 @@ window.addEventListener('load',()=>setTimeout(resume,1500),{once:true});
  };
  const oldDiffPage=window.tpV76DiffusionsPage;
  if(typeof oldDiffPage==='function')window.tpV76DiffusionsPage=function(){const out=oldDiffPage.apply(this,arguments);setTimeout(()=>{const data=diffRows().filter(r=>!new Set(deletedIds()).has(String(r.id))).sort((a,b)=>String(b.diffusedAt||'').localeCompare(String(a.diffusedAt||''))),els=[...document.querySelectorAll('.v76-diff-row')];els.forEach((el,i)=>{const r=data[i];if(!r||el.querySelector('[data-v114-delete]'))return;const oldBtn=el.querySelector('button');const wrap=document.createElement('div');wrap.className='v114-diff-actions';if(oldBtn){oldBtn.replaceWith(wrap);wrap.appendChild(oldBtn)}const b=document.createElement('button');b.type='button';b.className='tpgen-btn danger';b.dataset.v114Delete='1';b.textContent='🗑️ Supprimer';b.onclick=()=>window.tp114DeleteDiffusion(r.id);wrap.appendChild(b)})},0);return out};
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V229 — Évaluation · Charge Atelier · TP · Correction';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V230 — Évaluation · Charge Atelier · TP · Correction';
  console.info('V114 actif : import TP IndexedDB corrigé et suppression individuelle des TP diffusés.');
 })();
 </script>
@@ -16260,7 +16317,7 @@ const style=document.createElement('style');style.id='tp228-blocks';style.textCo
  }catch(e){console.warn('V213 migration registre Mes TP diffusés',e)}
  // La photothèque n'est volontairement jamais incluse dans cette synchronisation.
  setTimeout(()=>run('demarrage'),1600);
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V229 — Évaluation · Charge Atelier · TP · Correction';document.title='V229 — Évaluation · Charge Atelier · TP · Correction';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V230 — Évaluation · Charge Atelier · TP · Correction';document.title='V230 — Évaluation · Charge Atelier · TP · Correction';
  console.info('V133 : Firebase limité aux TP diffusés. TP enregistrés et photothèque restent locaux.');
 })();
 </script>
@@ -16298,7 +16355,7 @@ const style=document.createElement('style');style.id='tp228-blocks';style.textCo
  window.addEventListener('pagehide',()=>{if(!isHome())return;try{const light={at:new Date().toISOString(),version:VERSION,localStorage:Object.fromEntries(Array.from({length:localStorage.length},(_,i)=>{const k=localStorage.key(i);return[k,localStorage.getItem(k)]}))};localStorage.setItem('evaluation_emergency_backup_v133',JSON.stringify(light))}catch(_){}});
  // Outil volontaire : efface les anciennes copies cloud des TP ENREGISTRÉS V132, jamais les diffusions.
  window.v133CleanSavedTpCloud=async function(){if(!confirm('Supprimer de Firebase les anciennes copies des TP enregistrés ?\nLes TP diffusés ne seront pas touchés.'))return false;const fs=window.firebase?.firestore?.();if(!fs)throw new Error('Firebase indisponible');const col=fs.collection('workspaces').doc('evaluation-mv-main').collection('tpProjectsV132'),snap=await col.get();for(const d of snap.docs){const c=await d.ref.collection('chunks').get();for(let i=0;i<c.docs.length;i+=300){const b=fs.batch();c.docs.slice(i,i+300).forEach(x=>b.delete(x.ref));await b.commit()}await d.ref.delete()}alert(snap.size+' TP enregistrés supprimés de Firebase. Les versions locales sont conservées.');return true};
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V229 — Évaluation · Charge Atelier · TP · Correction';document.title='V229 — Évaluation · Charge Atelier · TP · Correction';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V230 — Évaluation · Charge Atelier · TP · Correction';document.title='V230 — Évaluation · Charge Atelier · TP · Correction';
  console.info('V133 poste maison:',isHome()?'actif':'inactif','— TP enregistrés locaux, diffusions Firebase.');
 })();
 </script>
@@ -16344,8 +16401,8 @@ const style=document.createElement('style');style.id='tp228-blocks';style.textCo
  window.addEventListener('storage',e=>{if(e.key===DKEY)purgeDeleted()});
  window.addEventListener('tp-v133-synced',purgeDeleted);
  setInterval(purgeDeleted,4000);
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V229 — Évaluation · Charge Atelier · TP · Correction';
- document.title='V229 — Évaluation · Charge Atelier · TP · Correction';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V230 — Évaluation · Charge Atelier · TP · Correction';
+ document.title='V230 — Évaluation · Charge Atelier · TP · Correction';
  console.info('V134 : page TP diffusés non intrusive et suppression Firebase V106/V132 sécurisée.');
 })();
 </script>
@@ -16365,7 +16422,7 @@ const style=document.createElement('style');style.id='tp228-blocks';style.textCo
  window.tp138ToggleStudents=function(id){const el=document.getElementById('v138-students-'+CSS.escape(String(id)));if(!el)return;const hidden=el.hidden;el.hidden=!hidden;const b=document.querySelector(`[data-v138-toggle="${CSS.escape(String(id))}"]`);if(b)b.textContent=hidden?'▾ Masquer les élèves':'▸ Voir les élèves';};
  window.tpV76DiffusionsPage=function(){window.setActive?.('tpGenerator');const rows=diffs().sort((a,b)=>String(b.diffusedAt||'').localeCompare(String(a.diffusedAt||''))),main=document.getElementById('main');if(!main)return false;main.innerHTML=`<header class="app-top-header"></header><div class="tpgen-manager-shell"><div class="tpgen-head"><div><h1>📤 Mes TP diffusés</h1><p class="muted">Registre multiposte léger : gris = diffusé, jaune = rendu, vert = corrigé. Les fichiers TP restent locaux / Dropbox.</p></div><button class="tpgen-btn secondary" onclick="tpGeneratorPage()">← Retour</button></div><div class="tpgen-card">${rows.length?rows.map(r=>{const c=counts(r),id=String(r.id||'');return `<div class="v138-diff-card"><div class="v138-top"><div><b>${esc(r.tpCode||'TP')} — ${esc(r.title||'')}</b><div class="muted">${esc(r.className||'')} • ${r.diffusedAt?new Date(r.diffusedAt).toLocaleString('fr-FR'):''} • ${(r.students||[]).length} élève(s)</div></div><div class="v138-actions"><button class="tpgen-btn primary" onclick="tpV76AddDiffusionToDay('${esc(id)}')">＋ Affecter</button><button class="tpgen-btn danger" onclick="tp114DeleteDiffusion('${esc(id)}')">🗑️ Supprimer</button></div></div><div class="v138-counts"><span class="v138-count v138-grey">⬜ Diffusé <b>${c.grey}</b></span><span class="v138-count v138-yellow">🟨 Rendu <b>${c.yellow}</b></span><span class="v138-count v138-green">🟩 Corrigé <b>${c.green}</b></span></div><button class="v138-toggle" data-v138-toggle="${esc(id)}" onclick="tp138ToggleStudents('${esc(id)}')">▸ Voir les élèves</button><div class="v138-students" id="v138-students-${esc(id)}" hidden>${(r.students||[]).map(st=>{const q=state(r,st),label=q==='green'?'Corrigé':q==='yellow'?'Rendu':'Diffusé';return `<div class="v138-student ${q}"><b>${esc(sname(st))}</b><span>${label}</span></div>`}).join('')||'<span class="muted">Liste nominative absente de cette ancienne diffusion.</span>'}</div></div>`}).join(''):'<div class="muted">Aucun TP diffusé enregistré.</div>'}</div></div>`;return true};
  // Le registre Firebase ne doit jamais contenir le projet TP lourd : la V132 a été patchée pour n'envoyer que les métadonnées + élèves.
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V229 — Évaluation · Charge Atelier · TP · Correction';document.title='V229 — Évaluation · Charge Atelier · TP · Correction';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V230 — Évaluation · Charge Atelier · TP · Correction';document.title='V230 — Évaluation · Charge Atelier · TP · Correction';
  console.info('V138 : registre TP diffusés léger + élèves repliés + compteurs gris/jaune/vert.');
 })();
 </script>
@@ -16411,7 +16468,7 @@ const style=document.createElement('style');style.id='tp228-blocks';style.textCo
  const oldImport=window.tpCorrectionImport;window.tpCorrectionImport=async function(files){let before=new Set((()=>{try{return (JSON.parse(localStorage.getItem(CORR)||'[]')||[]).map(x=>String(x.id))}catch(_){return[]}})());let out=await oldImport?.apply(this,arguments);setTimeout(async()=>{try{let rows=JSON.parse(localStorage.getItem(CORR)||'[]')||[], fresh=rows.filter(x=>!before.has(String(x.id))&&!x.correctedAt);for(const light of fresh){let full=null;try{let db=await new Promise((ok,no)=>{let q=indexedDB.open('fdmahy_corrections_v129',1);q.onsuccess=()=>ok(q.result);q.onerror=()=>no(q.error)});full=await new Promise((ok,no)=>{let q=db.transaction('copies').objectStore('copies').get(String(light.id));q.onsuccess=()=>ok(q.result);q.onerror=()=>no(q.error)});db.close()}catch(_){}await cloudPut(full||light)}if(fresh.length)console.info('V139 copies rendues envoyées temporairement vers Firebase:',fresh.length)}catch(e){console.warn('V139 Firebase copies rendues',e)}},250);return out};
  // V227 : nettoyage des fragments après sauvegarde complète confirmée, via tp227.
  // Version
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V229 — Évaluation · Charge Atelier · TP · Correction';document.title='V229 — Évaluation · Charge Atelier · TP · Correction';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V230 — Évaluation · Charge Atelier · TP · Correction';document.title='V230 — Évaluation · Charge Atelier · TP · Correction';
  console.info('V139 : diffusion depuis fichier local + aperçu temporaire + registre léger + copies rendues Firebase temporaires.');
 })();
 </script>
@@ -16449,7 +16506,7 @@ const style=document.createElement('style');style.id='tp228-blocks';style.textCo
    o.querySelector('.v144-save').onclick=async()=>{const b=o.querySelector('.v144-save');b.disabled=true;b.textContent='Sauvegarde en cours…';try{const r=await window.v133SaveGlobalBackup?.();if(!r?.ok)throw Error('Sauvegarde non confirmée.');o.remove();await baseLogout?.()}catch(e){b.disabled=false;b.textContent='💾 Sauvegarder puis quitter';alert('Sauvegarde impossible : '+(e?.message||e))}};
    o.querySelector('.v144-nosave').onclick=async()=>{o.remove();await baseLogout?.()};return false;
  };
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V229 — Évaluation · Charge Atelier · TP · Correction';document.title='V229 — Évaluation · Charge Atelier · TP · Correction';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V230 — Évaluation · Charge Atelier · TP · Correction';document.title='V230 — Évaluation · Charge Atelier · TP · Correction';
  console.info('V144 actif : base de démarrage V139 conservée; navigation diffusions et sortie corrigées sans modifier Firebase.');
 })();
 </script>
@@ -16483,7 +16540,7 @@ const style=document.createElement('style');style.id='tp228-blocks';style.textCo
   const mo=new MutationObserver(bind); mo.observe(document.documentElement,{childList:true,subtree:true}); bind();
   // Firebase/storage refreshes may update data but never navigate.
   window.addEventListener('tp-v133-synced',()=>{}, {passive:true});
-  const bv=document.getElementById('build-version'); if(bv) bv.textContent='V229 — Évaluation · Charge Atelier · TP · Correction';
+  const bv=document.getElementById('build-version'); if(bv) bv.textContent='V230 — Évaluation · Charge Atelier · TP · Correction';
   console.info('V145 actif : navigation Mes TP diffusés strictement réservée à une action utilisateur.');
 })();
 </script>
@@ -16498,7 +16555,7 @@ const style=document.createElement('style');style.id='tp228-blocks';style.textCo
  const clone=o=>JSON.parse(JSON.stringify(o||{}));
  const safe=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Za-z0-9_-]+/g,'-').replace(/^-+|-+$/g,'')||'TP';
  let folderHandle=null;
- function forceVersion(){const b=document.getElementById('build-version');if(b&&b.textContent!=='V229 — Évaluation · Charge Atelier · TP · Correction')b.textContent='V229 — Évaluation · Charge Atelier · TP · Correction';document.title='V229 — Évaluation · Charge Atelier · TP · Correction';document.getElementById('v144-version')?.remove();}
+ function forceVersion(){const b=document.getElementById('build-version');if(b&&b.textContent!=='V230 — Évaluation · Charge Atelier · TP · Correction')b.textContent='V230 — Évaluation · Charge Atelier · TP · Correction';document.title='V230 — Évaluation · Charge Atelier · TP · Correction';document.getElementById('v144-version')?.remove();}
  forceVersion();
  document.addEventListener('DOMContentLoaded',forceVersion,{once:true});
  setTimeout(forceVersion,0);setTimeout(forceVersion,500);
@@ -16526,8 +16583,8 @@ const style=document.createElement('style');style.id='tp228-blocks';style.textCo
   // 1) Une seule version visible. Ne touche ni à l'authentification ni au démarrage Firebase.
   function applyVersion(){
     const b=document.getElementById('build-version');
-    if(b) b.textContent='V229 — Évaluation · Charge Atelier · TP · Correction';
-    document.title='V229 — Évaluation · Charge Atelier · TP · Correction';
+    if(b) b.textContent='V230 — Évaluation · Charge Atelier · TP · Correction';
+    document.title='V230 — Évaluation · Charge Atelier · TP · Correction';
     document.getElementById('v144-version')?.remove();
   }
   applyVersion();
@@ -16703,7 +16760,7 @@ const style=document.createElement('style');style.id='tp228-blocks';style.textCo
  };
  function markLegacyRows(root=document){root.querySelectorAll?.('.tpc-row').forEach(row=>{const b=row.querySelector('button[onclick*="tpCorrectionOpen"]');if(!b||row.querySelector('.v158-legacy-chip'))return;const m=(b.getAttribute('onclick')||'').match(/tpCorrectionOpen\(['\"]([^'\"]+)/);if(!m)return;const r=read().find(x=>String(x.id)===m[1]);if(r&&!project(r.data)){const target=row.children?.[1]||row.firstElementChild;target?.insertAdjacentHTML('beforeend','<span class="v158-legacy-chip">Ancien format</span>')}})}
  markLegacyRows();new MutationObserver(ms=>ms.forEach(m=>m.addedNodes.forEach(n=>{if(n.nodeType===1)markLegacyRows(n)}))).observe(document.documentElement,{childList:true,subtree:true});
- function setVersion(){const b=document.getElementById('build-version');if(b)b.textContent='V229 — Évaluation · Charge Atelier · TP · Correction';document.title='V229 — Évaluation · Charge Atelier · TP · Correction'}
+ function setVersion(){const b=document.getElementById('build-version');if(b)b.textContent='V230 — Évaluation · Charge Atelier · TP · Correction';document.title='V230 — Évaluation · Charge Atelier · TP · Correction'}
  setVersion();document.addEventListener('DOMContentLoaded',setVersion,{once:true});setTimeout(setVersion,250);
  console.info('V158 : compatibilité de correction des anciennes copies activée, sans modification du démarrage.');
 })();
@@ -16726,7 +16783,7 @@ const style=document.createElement('style');style.id='tp228-blocks';style.textCo
  const docId=r=>'c_'+hash(identity(r));
  const col=()=>fs().collection('workspaces').doc(WORKSPACE).collection(COL);
  function badge(state,text){let h=document.querySelector('.tpc-shell .page-header p');if(!h)return;let b=document.getElementById('v159-sync-badge');if(!b){b=document.createElement('span');b.id='v159-sync-badge';b.className='v159-sync-badge';h.appendChild(b)}b.className='v159-sync-badge '+state;b.textContent=text}
- function compactArchive(r){const d=r?.data||{},e=d.identite||d.eleve||{},tp=d.tp||{};return {id:r.id||'',identity:identity(r),studentId:d.studentId||e.id||'',nom:e.nom||'',prenom:e.prenom||'',classe:e.classe||d.classe||'',tpId:tp.id||d.code||'',tpTitre:tp.titre||d.titre||'',note:r.note??'',appreciation:r.appreciation||'',levels:r.levels||{},evaluationId:r.savedEvaluationId||'',correctedAt:r.correctedAt||new Date().toISOString(),fileName:r.fileName||''}}
+ function compactArchive(r){const d=r?.data||{},e=d.identite||d.eleve||{},tp=d.tp||{};return {tpSelection230:d.tpSelection230||null,criteriaLevels230:r.criteriaLevels230||{},id:r.id||'',identity:identity(r),studentId:d.studentId||e.id||'',nom:e.nom||'',prenom:e.prenom||'',classe:e.classe||d.classe||'',tpId:tp.id||d.code||'',tpTitre:tp.titre||d.titre||'',note:r.note??'',appreciation:r.appreciation||'',levels:r.levels||{},evaluationId:r.savedEvaluationId||'',correctedAt:r.correctedAt||new Date().toISOString(),fileName:r.fileName||''}}
  const sent=new Map();
  async function push(r){
  if(!r||remoteApply)return false;r=window.tp227.latest(r);const sendToken=window.tp217.queueSend('V159',r);if(!ready())return false;const fingerprint=JSON.stringify(r);
@@ -16759,7 +16816,7 @@ const style=document.createElement('style');style.id='tp228-blocks';style.textCo
 })();
 </script>
 <script id="v159-version-display">
-(function(){const V='V229';function set(){document.querySelectorAll('.app-version-badge,.version-badge,[data-app-version]').forEach(e=>{if(/V\d+/i.test(e.textContent||''))e.textContent=(e.textContent||'').replace(/V\d+/i,V)});document.title=(document.title||'Évaluation · Charge Atelier · TP · Correction').replace(/V\d+/i,V)}set();setTimeout(set,300);setTimeout(set,1800)})();
+(function(){const V='V230';function set(){document.querySelectorAll('.app-version-badge,.version-badge,[data-app-version]').forEach(e=>{if(/V\d+/i.test(e.textContent||''))e.textContent=(e.textContent||'').replace(/V\d+/i,V)});document.title=(document.title||'Évaluation · Charge Atelier · TP · Correction').replace(/V\d+/i,V)}set();setTimeout(set,300);setTimeout(set,1800)})();
 </script>
 
 
@@ -17074,8 +17131,8 @@ function inject(){if(window.tp217)return;
    Le timer V175 a été supprimé directement dans le code source ci-dessus. */
 function setVersion(){
   const b=document.getElementById('build-version');
-  if(b)b.textContent='V229 — Évaluation · Charge Atelier · TP · Correction';
-  document.title='V229 — Évaluation · Charge Atelier · TP · Correction';
+  if(b)b.textContent='V230 — Évaluation · Charge Atelier · TP · Correction';
+  document.title='V230 — Évaluation · Charge Atelier · TP · Correction';
 }
 function install(){
   if(window.tp217)return;
@@ -17381,7 +17438,7 @@ function summaryUnits(r,p){
   units.push(`<section class="v206pdf-summary-card v206pdf-atomic"><h2>Correction / Évaluation</h2><div class="v206pdf-summary-grid"><div><b>Élève</b><br>${esc(personName(d))}</div><div><b>Classe</b><br>${esc(d.classe||d.identite?.classe||'—')}</div><div><b>TP</b><br>${esc(p.publicId||p.id||d.code||'TP')}</div><div><b>Date de correction</b><br>${esc(frDate(r.correctedAt||new Date().toISOString()))}</div></div></section>`);
   units.push(`<section class="v206pdf-summary-card v206pdf-atomic"><h2>Évaluation professeur</h2><div class="v206pdf-prof-note">${esc(r.note??'—')} / 20</div><p><b>Appréciation :</b></p><div class="v206pdf-app">${esc(r.appreciation||'—').replace(/\n/g,'<br>')}</div></section>`);
   units.push(`<section class="v206pdf-summary-card v206pdf-atomic"><h2>Auto-évaluation de l’élève</h2>${ae?`<table class="v206pdf-summary-table"><tbody><tr><th>Organisation</th><td>${esc(ae.organisation??'—')} / 4</td></tr><tr><th>Résultats</th><td>${esc(ae.resultats??'—')} / 4</td></tr><tr><th>Autonomie</th><td>${esc(ae.autonomie??'—')} / 4</td></tr><tr><th>Note élève</th><td><b>${esc(fmtNum(ae.note))} / 20</b></td></tr><tr><th>Note calculée automatiquement</th><td>${esc(fmtNum(ae.calc))} / 20</td></tr>${ae.modified?'<tr><th>Information</th><td>La note a été modifiée par l’élève.</td></tr>':''}<tr><th>Commentaire élève</th><td>${esc(ae.comment||'—')}</td></tr></tbody></table>`:'<p>Aucune auto-évaluation embarquée dans cette copie.</p>'}</section>`);
-  const comps=[...new Set((p.questions||[]).map(q=>q.competence).filter(Boolean).concat(Object.keys(r.levels||{})))];
+  const comps=window.tp230.ids(d);if(window.tp230.extract(d))units.push('<section class="v206pdf-summary-card">'+window.tp230.panel(r)+'</section>');
   for(let i=0;i<comps.length;i+=12){
     const part=comps.slice(i,i+12);
     units.push(`<section class="v206pdf-summary-card v206pdf-atomic"><h2>Compétences évaluées${comps.length>12?` (${i+1}–${i+part.length}/${comps.length})`:''}</h2><table class="v206pdf-summary-table"><thead><tr><th>Compétence</th><th>Niveau validé</th></tr></thead><tbody>${part.map(c=>`<tr><td><b>${esc(c)}</b></td><td>${esc(r.levels?.[c]||'—')}</td></tr>`).join('')}</tbody></table></section>`);
@@ -17580,8 +17637,8 @@ if(typeof oldPage==='function'&&!oldPage.__v206pdf){
 }
 
 /* Version statique : pas de MutationObserver ni timer périodique. */
-const bv=document.getElementById('build-version');if(bv)bv.textContent='V229 — Évaluation · Charge Atelier · TP · Correction';
-document.title='V229 — Évaluation · Charge Atelier · TP · Correction';
+const bv=document.getElementById('build-version');if(bv)bv.textContent='V230 — Évaluation · Charge Atelier · TP · Correction';
+document.title='V230 — Évaluation · Charge Atelier · TP · Correction';
 window.tp228Blocks.screen=(r,p,x,a)=>window.tp228Blocks.render(x,a,{format:formattedText,frame:blockFrameStyle(x),prefix:pictogram(r.data,p,x),suffix:callProfessor(x)});
 window.tpV206PdfV74={buildPdfPages,contentUnits,summaryUnits,chooseFolder:window.tp206ChooseCorrectionFolder};
 console.info('V206 : PDF de correction fidèle à l’éditeur V74 + coches noires avant sélection + dossier PDF choisi.');
@@ -17623,7 +17680,7 @@ console.info('V206 : PDF de correction fidèle à l’éditeur V74 + coches noir
  window.tp116ViewDiffusion=function(id){const r=diffRows().find(x=>String(x.id)===String(id));if(!r)return alert('TP diffusé introuvable.');const p=r.tpProject||projectFromRaw(r.snapshot?.rawProject);const ov=document.createElement('div');ov.className='v116-preview-overlay';ov.innerHTML=`<div class="v116-preview-box"><div class="v116-preview-top"><div><b>👁 ${esc(r.tpCode)} — ${esc(r.title)}</b><div class="muted">${esc(r.className)} · ${r.students?.length||0} élève(s)</div></div><button type="button">✕ Fermer</button></div>${sheet(p)}</div>`;ov.querySelector('button').onclick=()=>ov.remove();document.body.appendChild(ov)};
  // Reconstruit Mes TP diffusés avec Voir + Affecter + Supprimer et ne dépend pas de l'ancien formulaire générateur.
  const priorPage=window.tpV76DiffusionsPage;window.tpV76DiffusionsPage=function(){priorPage?.();setTimeout(()=>{const data=diffRows().sort((a,b)=>String(b.diffusedAt||'').localeCompare(String(a.diffusedAt||''))),els=[...document.querySelectorAll('.v76-diff-row')];els.forEach((el,i)=>{const r=data[i];if(!r)return;let wrap=el.querySelector('.v114-diff-actions,.v116-diff-actions');if(!wrap){wrap=document.createElement('div');wrap.className='v116-diff-actions';const b=el.querySelector('button');if(b){b.replaceWith(wrap);wrap.appendChild(b)}}else wrap.classList.add('v116-diff-actions');if(!wrap.querySelector('[data-v116-view]')){const b=document.createElement('button');b.className='tpgen-btn secondary';b.dataset.v116View='1';b.textContent='👁 Voir le TP';b.onclick=()=>window.tp116ViewDiffusion(r.id);wrap.prepend(b)}})},0)};
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V229 — Évaluation · Charge Atelier · TP · Correction';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V230 — Évaluation · Charge Atelier · TP · Correction';
  console.info('V117 actif : rendu TP polyvalent et diffusion tracée.');
 })();
 </script><style id="v117-prof-style">
@@ -17644,10 +17701,10 @@ console.info('V206 : PDF de correction fidèle à l’éditeur V74 + coches noir
  async function rec(){let sid=String(tpGenState?.currentSavedId||window.__tpDiffusionSavedId||''),x=rows().find(r=>String(r.savedId)===sid),rr=sid?await raw(sid):null,p=unpack(rr||x?.snapshot?.rawProject),boxes=[...document.querySelectorAll('#tpgen-class-students input[type=checkbox]:checked')],students=boxes.map(e=>({id:String(e.value),name:e.closest('label')?.innerText?.replace('🔐','').trim()||''}));if(!x||!students.length)return null;let classId=String(tpGenState?.diffusionClassId||''),className='';try{let c=(classes?.()||[]).find(c=>String(c.id)===classId);className=c?.name||''}catch(_){}return {id:'DIFF117-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,6),tpCode:p?.publicId||x.snapshot.importedPublicId||tpGenTpCode(x.snapshot),title:p?.publicTitle||p?.title||x.snapshot.activity||'TP',classId,className:className||x.snapshot.className||'',students,studentIds:students.map(s=>s.id),diffusedAt:new Date().toISOString(),savedId:sid,tpProject:p?clone(p):null,tpPictograms:clone(p?.__pictograms||[])} }
  ['tpGenExportClassToFolder','tpGenExportClassZip'].forEach(name=>{let prev=window[name];if(typeof prev!=='function')return;window[name]=async function(){let r=await rec();let out=await prev.apply(this,arguments);if(r){let a=diffs();let duplicate=a.some(d=>d.savedId===r.savedId&&d.classId===r.classId&&Math.abs(new Date(d.diffusedAt)-new Date(r.diffusedAt))<10000);if(!duplicate){a.unshift(r);saveDiff(a)}showSuccessMessage?.('TP diffusé : '+r.students.length+' fichier(s) élève(s) généré(s) et diffusion enregistrée.')}return out}});
  // Emballe projet + pictogrammes dans les fichiers élèves.
- let oldBuild=window.tpGenBuildStudentPackage;window.tpGenBuildStudentPackage=function(student,d){let m=oldBuild.apply(this,arguments),p=window.__v117Project||window.__v116CurrentProject||null;if(p){m.tpProject=clone(p);m.tpPictograms=clone(p.__pictograms||[]);m.meta=m.meta||{};m.meta.readerRequired='V117';m.type='tp-eleve-v117'}return m};
+ let oldBuild=window.tpGenBuildStudentPackage;window.tpGenBuildStudentPackage=function(student,d){let m=oldBuild.apply(this,arguments),p=window.__v117Project||window.__v116CurrentProject||null;if(p){m.tpProject=clone(p);m.tpPictograms=clone(p.__pictograms||[]);m.meta=m.meta||{};m.meta.readerRequired='V117';m.type='tp-eleve-v117';window.tp230.ensure(m)}return m};
  // Hydratation complète avec pictogrammes avant export.
  ['tpGenExportClassToFolder','tpGenExportClassZip'].forEach(name=>{let prev=window[name];if(typeof prev!=='function')return;window[name]=async function(){let sid=String(tpGenState?.currentSavedId||window.__tpDiffusionSavedId||''),rr=sid?await raw(sid):null;window.__v117Project=unpack(rr);try{return await prev.apply(this,arguments)}finally{window.__v117Project=null}}});
- let bv=document.getElementById('build-version');if(bv)bv.textContent='V229 — Évaluation · Charge Atelier · TP · Correction';console.info('V117 actif : vue TP polyvalente + diffusion persistante.');
+ let bv=document.getElementById('build-version');if(bv)bv.textContent='V230 — Évaluation · Charge Atelier · TP · Correction';console.info('V117 actif : vue TP polyvalente + diffusion persistante.');
 })();
 </script><!-- V118 — concordance Editeur / Logiciel / Lecteur + diffusion transactionnelle -->
 <style id="v118-style">
@@ -17685,7 +17742,7 @@ console.info('V206 : PDF de correction fidèle à l’éditeur V74 + coches noir
  function injectRetroSettings(){let main=document.getElementById('main');if(!main||main.querySelector('#v118-retro-settings'))return;let host=main.querySelector('.rubric-other-wrap .settings-rubric-collapse-body')||main.querySelector('.settings-grid')||main;let card=document.createElement('div');card.id='v118-retro-settings';card.className='settings-card section-other';card.innerHTML=`<h3>🕘 Évaluations rétroactives</h3><p class="muted">Choisis les cartes visibles dans « Nouvelle évaluation » pour le profil administrateur.</p><div class="v118-switch-row"><div><b>Positionnement rétroactif</b><div class="muted">Afficher la création d'un positionnement à une date antérieure.</div></div><label class="v118-switch"><input type="checkbox" ${retroOn(RETRO_POS)?'checked':''} onchange="v118ToggleRetro('${RETRO_POS}',this.checked)"><span class="v118-slider"></span></label></div><div class="v118-switch-row"><div><b>Import rétroactif collectif</b><div class="muted">Afficher l'import Excel rétroactif collectif.</div></div><label class="v118-switch"><input type="checkbox" ${retroOn(RETRO_XLS)?'checked':''} onchange="v118ToggleRetro('${RETRO_XLS}',this.checked)"><span class="v118-slider"></span></label></div>`;host.appendChild(card)}
  let oldSettings=window.renderSettingsPage;if(typeof oldSettings==='function')window.renderSettingsPage=function(){let r=oldSettings.apply(this,arguments);setTimeout(injectRetroSettings,0);return r};
  let oldChoice=window.evaluationChoicePage;if(typeof oldChoice==='function')window.evaluationChoicePage=function(){let r=oldChoice.apply(this,arguments);setTimeout(()=>{document.querySelectorAll('.eval-choice-card').forEach(c=>{let t=c.textContent||'';if(/Positionnement rétroactif/i.test(t)&&!retroOn(RETRO_POS))c.remove();if(/Import rétroactif collectif/i.test(t)&&!retroOn(RETRO_XLS))c.remove()})},0);return r};
- let bv=document.getElementById('build-version');if(bv)bv.textContent='V229 — Évaluation · Charge Atelier · TP · Correction';
+ let bv=document.getElementById('build-version');if(bv)bv.textContent='V230 — Évaluation · Charge Atelier · TP · Correction';
  console.info('V118 actif : diffusion transactionnelle, générateur replié, rétroactif paramétrable.');
 })();
 </script>
@@ -17709,7 +17766,7 @@ console.info('V206 : PDF de correction fidèle à l’éditeur V74 + coches noir
  window.tpGenExportClassToFolder=async function(){try{if(!folderHandle){const ok=await window.tpGenChooseClassFolder();if(!ok)return false}const ctx=await buildFiles();let perm='granted';if(folderHandle.queryPermission)perm=await folderHandle.queryPermission({mode:'readwrite'});if(perm!=='granted'&&folderHandle.requestPermission)perm=await folderHandle.requestPermission({mode:'readwrite'});if(perm!=='granted')throw Error('Autorisation d’écriture refusée.');for(const f of ctx.files){const fh=await folderHandle.getFileHandle(f.name,{create:true}),w=await fh.createWritable();await w.write(new Blob([f.text],{type:f.name.endsWith('.tp')?'application/json;charset=utf-8':'text/plain;charset=utf-8'}));await w.close()}persist(ctx);const n=ctx.sts.length,name=folderHandle.name;window.tpGenCloseClassExport?.();window.showSuccessMessage?.(`${n} TP élève généré(s) dans « ${name} » et diffusion enregistrée dans Mes TP diffusés.`);return true}catch(e){console.error('V119 dossier',e);window.showWarningMessage?.('Génération impossible : '+(e?.message||e));return false}finally{window.__v117Project=null;window.__v116CurrentProject=null}};
  window.tpGenExportClassZip=async function(){try{const ctx=await buildFiles();const blob=window.tpGenBuildStoreZip(ctx.files);const name=[filePart(ctx.code),filePart(ctx.className),'TP_ELEVES'].filter(Boolean).join('_')+'.zip';window.tpGenDownloadBlob(blob,name);persist(ctx);window.tpGenCloseClassExport?.();window.showSuccessMessage?.(`${ctx.sts.length} TP élève correspondant(s) à « ${ctx.code} » regroupé(s) dans le ZIP et diffusion enregistrée.`);return true}catch(e){console.error('V119 ZIP',e);window.showWarningMessage?.('Génération ZIP impossible : '+(e?.message||e));return false}finally{window.__v117Project=null;window.__v116CurrentProject=null}};
  const oldDiffuse=window.tpGenDiffuseSaved;window.tpGenDiffuseSaved=function(id){folderHandle=null;window.__tpDiffusionSavedId=String(id||'');if(window.tpGenState)window.tpGenState.currentSavedId=String(id||'');return oldDiffuse?.apply(this,arguments)};
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V229 — Évaluation · Charge Atelier · TP · Correction';document.title='V229 — Évaluation · Charge Atelier · TP · Correction';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V230 — Évaluation · Charge Atelier · TP · Correction';document.title='V230 — Évaluation · Charge Atelier · TP · Correction';
  console.info('V127 actif : diffusion compacte, sans duplication du projet TP dans localStorage.');
 })();
 </script>
@@ -17724,20 +17781,20 @@ console.info('V206 : PDF de correction fidèle à l’éditeur V74 + coches noir
  function stripHeavy(v){if(Array.isArray(v))return v.map(stripHeavy);if(v&&typeof v==='object'){const o={};for(const [k,x] of Object.entries(v))o[k]=stripHeavy(x);return o}if(typeof v==='string'&&v.startsWith('data:image/')&&v.length>10000)return '[IMAGE_STOCKEE_INDEXEDDB]';return v}
  function compactRow(row){const r=clone(row);r.data=stripHeavy(r.data);r.fullDataStored='indexeddb-v129';return r}
  function valid(d){return !!(d&&typeof d==='object'&&(d.signature==='FDMAHY_TP_SYSTEM'||d.type==='tp-eleve'||d.tpProject||d.reponses||d.answers)&&((d.code||d.tp?.id||d.meta?.activityId)||(d.titre||d.tp?.titre)))}
- function normalize(d){d=clone(d);d.eleve=d.eleve||{};d.identite={...(d.identite||{}),nom:d.identite?.nom||d.eleve.nom||'',prenom:d.identite?.prenom||d.eleve.prenom||'',classe:d.identite?.classe||d.classe||''};d.tp={...(d.tp||{}),id:d.tp?.id||d.code||d.meta?.activityId||'',titre:d.tp?.titre||d.titre||''};d.statut=String(d.statut||'RENDU').toUpperCase();return d}
+ function normalize(d){d=clone(d);d.eleve=d.eleve||{};d.identite={...(d.identite||{}),nom:d.identite?.nom||d.eleve.nom||'',prenom:d.identite?.prenom||d.eleve.prenom||'',classe:d.identite?.classe||d.classe||''};d.tp={...(d.tp||{}),id:d.tp?.id||d.code||d.meta?.activityId||'',titre:d.tp?.titre||d.titre||''};d.statut=String(d.statut||'RENDU').toUpperCase();window.tp230.ensure(d);return d}
  function signature(d,f){return [d.studentId||'',d.identite?.nom||'',d.identite?.prenom||'',d.tp?.id||d.code||'',d.dates?.rendu||d.submission?.submittedAt||'',f.name].join('|')}
  window.tpCorrectionImport=async function(files){
    const fs=[...(files||[])].filter(f=>/\.(tp|json)$/i.test(f.name||''));if(!fs.length){alert('Aucun fichier TP compatible sélectionné.');return}
    let rows=read(),ok=0,dup=0,bad=[];document.body.classList.add('tp129-importing');
    try{
     for(const f of fs){try{let d=normalize(JSON.parse(await f.text()));if(!valid(d))throw Error('format TP non reconnu');const sig=signature(d,f);if(rows.some(x=>x.signature===sig)){dup++;continue}const row={id:'TPC-V130-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2),signature:sig,fileName:f.name,importedAt:new Date().toISOString(),data:d,note:d.correction?.note??'',appreciation:d.correction?.appreciation||d.professeurZone?.appreciation||'',levels:d.correction?.competences||{},marks:{},savedEvaluationId:'',correctedAt:d.statut==='CORRIGE'?(d.dates?.correction||new Date().toISOString()):'',workflowState:d.statut==='CORRIGE'?'CORRIGE':'RECU'};await putFull(row);rows.unshift(compactRow(row));ok++}catch(e){console.error('V130 import',f.name,e);bad.push(f.name+' : '+(e?.message||e))}}
-    try{localStorage.setItem(KEY,JSON.stringify(rows.slice(0,500)))}catch(e){const tiny=rows.slice(0,500).map(r=>({...r,data:{code:r.data?.code||r.data?.tp?.id||'',titre:r.data?.titre||r.data?.tp?.titre||'',classe:r.data?.classe||r.data?.identite?.classe||'',eleve:r.data?.eleve||r.data?.identite||{},statut:r.data?.statut||'RENDU'},fullDataStored:'indexeddb-v129'}));localStorage.setItem(KEY,JSON.stringify(tiny))}
+    try{localStorage.setItem(KEY,JSON.stringify(rows.slice(0,500)))}catch(e){const tiny=rows.slice(0,500).map(r=>({...r,data:{tpSelection230:r.data?.tpSelection230||null,competences:r.data?.competences||[],studentId:r.data?.studentId||'',code:r.data?.code||r.data?.tp?.id||'',titre:r.data?.titre||r.data?.tp?.titre||'',classe:r.data?.classe||r.data?.identite?.classe||'',eleve:r.data?.eleve||r.data?.identite||{},statut:r.data?.statut||'RENDU'},fullDataStored:'indexeddb-v129'}));localStorage.setItem(KEY,JSON.stringify(tiny))}
    }finally{document.body.classList.remove('tp129-importing')}
    alert(`${ok} TP rendu(s) importé(s) dans Copies rendues.${dup?'\n'+dup+' doublon(s) ignoré(s).':''}${bad.length?'\n\nFichiers refusés :\n'+bad.join('\n'):''}`);window.tpCorrectionPage?.();
  };
  function wire(){document.querySelectorAll('#tp109-folder-input,#tp109-files-input,.tpc-toolbar input[type=file]').forEach(input=>{input.onchange=async()=>{const f=input.files;if(f?.length)await window.tpCorrectionImport(f);input.value=''}})}
  const oldPage=window.tpCorrectionPage;window.tpCorrectionPage=function(){const r=oldPage?.apply(this,arguments);setTimeout(wire,50);return r};setTimeout(wire,500);
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V229 — Évaluation · Charge Atelier · TP · Correction';document.title='V229 — Évaluation · Charge Atelier · TP · Correction';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V230 — Évaluation · Charge Atelier · TP · Correction';document.title='V230 — Évaluation · Charge Atelier · TP · Correction';
  console.info('V130 — import Copies rendues V128/V130 actif avec stockage IndexedDB anti-quota.');
 })();
 </script>
@@ -17776,7 +17833,7 @@ console.info('V206 : PDF de correction fidèle à l’éditeur V74 + coches noir
  function score(r){const keys=questionKeys(),values=keys.map(k=>r.marks?.[k]),evaluated=values.filter(v=>v==='correct'||v==='wrong');return {total:keys.length,count:evaluated.length,note:evaluated.length?Math.round(200*evaluated.filter(v=>v==='correct').length/evaluated.length)/10:null}}
  function manual(r){return r.noteModeV215==='manual'||(!r.noteModeV215&&r.note!==''&&r.note!=null)}
  function noteUI(r){const input=document.getElementById('tpc-note');if(!input)return;input.step='0.1';let box=document.getElementById('v215-note-info');if(!box){box=document.createElement('div');box.id='v215-note-info';input.closest('label').after(box)}const s=score(r);box.innerHTML=`<p class="muted">Note calculée : <b>${s.note==null?'—':s.note+' / 20'}</b> · ${s.count}/${s.total} question(s) évaluée(s).<br>Chaque question a le même poids. Gris : exclue du calcul.<br>${manual(r)?'Note ajustée manuellement conservée.':'Note automatique, modifiable ci-dessus.'}</p><button type="button" class="secondary" onclick="tp215AutomaticNote()" ${locked(r)||s.note==null?'disabled':''}>Reprendre la note calculée</button>`}
- function applyAutomaticLevels(r){if(r.note===''||r.note==null)return;const n=Number(r.note),lv=n<12?'À renforcer':n<16?'Maîtrisé':'Autonome';r.levels=r.levels||{};(r.data?.competences||r.data?.competencies||[]).map(x=>typeof x==='string'?x:(x.code||x.id)).filter(Boolean).forEach(c=>r.levels[c]=lv);document.querySelectorAll('.tpc-level').forEach(b=>b.classList.toggle('active',b.textContent.trim()===lv))}
+ function applyAutomaticLevels(r){if(r.note===''||r.note==null)return;const n=Number(r.note),lv=n<12?'À renforcer':n<16?'Maîtrisé':'Autonome';r.levels=r.levels||{};window.tp230.ids(r.data).forEach(c=>r.levels[c]=lv);document.querySelectorAll('.tpc-level').forEach(b=>b.classList.toggle('active',b.textContent.trim()===lv))}
  function setNoteUI(r){const input=document.getElementById('tpc-note'),show=document.getElementById('tpc-note-show');if(input)input.value=r.note??'';if(show)show.textContent=(r.note===''||r.note==null?'—':r.note)+' / 20';noteUI(r)}
  function persistFull(r){try{const req=indexedDB.open(DB,1);req.onsuccess=()=>{const db=req.result;if(!db.objectStoreNames.contains(STORE)){db.close();return}const tx=db.transaction(STORE,'readwrite'),q=tx.objectStore(STORE).get(String(r.id));q.onsuccess=()=>{const x=q.result;if(x){Object.assign(x,{marks:r.marks,note:r.note,noteModeV215:r.noteModeV215,levels:r.levels});tx.objectStore(STORE).put(x)}};tx.oncomplete=()=>db.close();tx.onerror=()=>db.close()}}catch(e){console.warn('V215 sauvegarde copie',e)}}
  window.tp131Mark=function(id,k,v){const a=read(),r=a.find(x=>String(x.id)===String(id));if(!r||locked(r)||!questionKeys().includes(k)||!['correct','wrong','neutral'].includes(v))return;const keepManual=manual(r);r.marks=r.marks||{};r.marks[k]=v;const result=score(r);if(!keepManual){r.noteModeV215='auto';r.note=result.note==null?'':String(result.note);applyAutomaticLevels(r)}else r.noteModeV215='manual';write(a);document.querySelectorAll(`[data-v131-mark="${CSS.escape(k)}"]`).forEach(b=>{b.innerHTML=markButtons(r,k)});setNoteUI(r);persistFull(r)};
@@ -17789,7 +17846,7 @@ console.info('V206 : PDF de correction fidèle à l’éditeur V74 + coches noir
  function render(r){const d=r.data||{},p=project(d);if(!p)return'';const a=answers(d),flow=Array.isArray(p.flow)?p.flow:(p.questions||[]).map(q=>({type:'question',id:q.id}));let html='',sec='',n=0;for(const f of flow){if(f.type!=='question'){let x=obj(p,f);if(x?.parentQuestionId)continue;html+=block(r,p,f,a);continue}let q=obj(p,f);if(!q||q.excluded)continue;if((q.section||'Activité')!==sec){sec=q.section||'Activité';html+=`<h2 class="section">${esc(sec)}</h2>`}let val=a[q.id],k='q_'+q.id;html+=`<section class="q"><div class="v131-qhead"><div><div class="qtitle">${++n}. ${esc(q.text||'')}</div><div class="meta">${esc(q.competence||'')}${q.criterionId?' · '+esc(q.criterionId):''}</div></div><div data-v131-mark="${esc(k)}">${markButtons(r,k)}</div></div>${(q.images||[]).map(im=>imageTag(im,'max-width:100%;max-height:280px;object-fit:contain;margin-top:8px')).join('')}${q.answerType==='none'?'':`<div class="answer">${esc(val||'—')}</div>`}${flow.filter(z=>z.type!=='question'&&obj(p,z)?.parentQuestionId===q.id).map(z=>block(r,p,z,a)).join('')}</section>`}return `<div class="v130-copy"><div class="tphead"><div><small>BAC PRO MAINTENANCE DES VÉHICULES · COPIE ÉLÈVE</small><h1>${esc(p.publicTitle||p.title||d.titre||'TP')}</h1><div>Durée : ${esc(p.duration||'—')}</div></div><span class="code">${esc(p.publicId||p.id||d.code||'TP')}</span></div><div class="brief"><section><h3>Situation professionnelle</h3>${esc(p.intro||'')}</section><section><h3>Objectifs</h3>${esc(p.objectives||'')}</section><section><h3>Support</h3>${esc(p.support||'')}</section><section><h3>Ressources et matériels</h3>${esc(p.resources||'')}</section></div>${html}</div>`}
  const previous=window.tpCorrectionOpen;
  window.tpCorrectionOpen=function(id){const light=read().find(x=>String(x.id)===String(id));if(!light)return previous?.apply(this,arguments);previous?.apply(this,arguments);setTimeout(async()=>{const ed=document.querySelector('.tpc-editor'),left=ed?.firstElementChild;if(!left)return;left.innerHTML='<div class="v131-hydrating">Chargement de la copie complète et de ses illustrations…</div>';const stored=await full(id),r=stored||light;if(String(window.__tp55Current)!==String(id)||!left.isConnected)return;if(!project(r.data)){left.innerHTML='<div class="tpc-card">Cette copie ne contient pas le projet TP complet nécessaire à la vue fidèle.</div>';return}const local=read().find(x=>String(x.id)===String(id));if(local){r.marks={...(r.marks||{}),...(local.marks||{})};r.note=local.note;r.noteModeV215=local.noteModeV215;r.correctedAt=local.correctedAt;r.workflowState=local.workflowState;}left.innerHTML='<div class="tpc-card"><b>V216 — Une question, une évaluation.</b> ✓ Correct · ✕ Incorrect · — Non évalué. Les symboles sont clairs au repos et plus prononcés après sélection. Un seul choix par question, y compris ses tableaux et exercices.</div>'+render(r);noteUI(r)},20)};
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V229 — Évaluation · Charge Atelier · TP · Correction';document.title='V229 — Évaluation · Charge Atelier · TP · Correction';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V230 — Évaluation · Charge Atelier · TP · Correction';document.title='V230 — Évaluation · Charge Atelier · TP · Correction';
  console.info('V131 correcteur : hydratation IndexedDB + images + coches par question.');
 })();
 </script><!-- V147 — correctif final diffusion TP local : DOIT rester le dernier runtime du fichier -->
@@ -17801,8 +17858,8 @@ console.info('V206 : PDF de correction fidèle à l’éditeur V74 + coches noir
  let folderHandle=null;
  function setVersion(){
    const b=document.getElementById('build-version');
-   if(b)b.textContent='V229 — Évaluation · Charge Atelier · TP · Correction';
-   document.title='V229 — Évaluation · Charge Atelier · TP · Correction';
+   if(b)b.textContent='V230 — Évaluation · Charge Atelier · TP · Correction';
+   document.title='V230 — Évaluation · Charge Atelier · TP · Correction';
    document.getElementById('v144-version')?.remove();
  }
  setVersion(); document.addEventListener('DOMContentLoaded',setVersion,{once:true}); setTimeout(setVersion,100);
@@ -17890,7 +17947,7 @@ console.info('V206 : PDF de correction fidèle à l’éditeur V74 + coches noir
  });
  function compact(root=document){root.querySelectorAll?.('.v131-markbar .v131-mark').forEach(b=>{if(b.closest('[role=group]'))return;if(b.classList.contains('ok')){b.textContent='✓';b.title='Correct'}else if(b.classList.contains('bad')){b.textContent='✕';b.title='Incorrect'}else{b.textContent='—';b.title='Non évalué'}b.setAttribute('aria-label',b.title)})}
  compact(); new MutationObserver(m=>m.forEach(x=>x.addedNodes.forEach(n=>{if(n.nodeType===1)compact(n)}))).observe(document.documentElement,{childList:true,subtree:true});
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V229 — Évaluation · Charge Atelier · TP · Correction';document.title='V229 — Évaluation · Charge Atelier · TP · Correction';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V230 — Évaluation · Charge Atelier · TP · Correction';document.title='V230 — Évaluation · Charge Atelier · TP · Correction';
  console.info('V148 : Copies rendues stable pendant Firebase + coches compactes.');
 })();
 </script>
@@ -17916,7 +17973,7 @@ const rows=()=>window.getManagedEvaluationActivities?.()||[];
 const sortRows=a=>a.slice().sort((x,y)=>(Number(x.numero)||99999)-(Number(y.numero)||99999));
 function save(a){window.saveManagedEvaluationActivities?.(a);}
 function comps(s){return String(s||'').split(/[,;\n]+/).map(x=>x.trim()).filter(Boolean)}
-function forceVersion(){const b=document.getElementById('build-version');if(b)b.textContent='V229 — Évaluation · Charge Atelier · TP · Correction';document.title='V229 — Évaluation · Charge Atelier · TP · Correction';document.getElementById('v144-version')?.remove()}
+function forceVersion(){const b=document.getElementById('build-version');if(b)b.textContent='V230 — Évaluation · Charge Atelier · TP · Correction';document.title='V230 — Évaluation · Charge Atelier · TP · Correction';document.getElementById('v144-version')?.remove()}
 forceVersion();document.addEventListener('DOMContentLoaded',forceVersion,{once:true});setTimeout(forceVersion,250);setTimeout(forceVersion,1200);
 
 function installCategory(){
@@ -18078,7 +18135,7 @@ function mergeCorrections(){
 function mergeEvaluations(){return new Promise(resolve=>{
  try{const q=indexedDB.open('C2MMVP_TEST_FICTIFS_V8',2);q.onerror=()=>resolve(false);q.onsuccess=()=>{const d=q.result;try{const st=d.transaction('evaluations','readwrite').objectStore('evaluations');let left=BACKUP_EVALS.length;if(!left){d.close();return resolve(true)};BACKUP_EVALS.forEach(v=>{const g=st.get(v.id);g.onsuccess=()=>{if(g.result==null){try{st.add(v)}catch(_){}}if(--left===0){setTimeout(()=>{d.close();resolve(true)},20)}};g.onerror=()=>{if(--left===0){d.close();resolve(true)}}})}catch(e){d.close();resolve(false)}}}catch(e){resolve(false)}
 })}
-function version(){const b=document.getElementById('build-version');if(b)b.textContent='V229 — Évaluation · Charge Atelier · TP · Correction';document.title='V229 — Évaluation · Charge Atelier · TP · Correction'}
+function version(){const b=document.getElementById('build-version');if(b)b.textContent='V230 — Évaluation · Charge Atelier · TP · Correction';document.title='V230 — Évaluation · Charge Atelier · TP · Correction'}
 function installDefaultTodo(){
  const old=window.go;if(typeof old==='function'&&!old.__v171){const w=function(view){const r=old.apply(this,arguments);if(view==='correctionTp')setTimeout(()=>{const s=document.getElementById('tpc-f-status');if(s){s.value='todo';s.dispatchEvent(new Event('change',{bubbles:true}))}},120);return r};w.__v171=true;window.go=w}
 }
@@ -18093,7 +18150,7 @@ const KEY='tp_correction_local_v54';
 const norm=v=>String(v||'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
 const read=()=>{try{const a=JSON.parse(localStorage.getItem(KEY)||'[]');return Array.isArray(a)?a:[]}catch(_){return[]}};
 const write=a=>localStorage.setItem(KEY,JSON.stringify(a.slice(0,2000)));
-function comps(d){return (d?.competences||d?.competencies||[]).map(x=>typeof x==='string'?x:(x?.code||x?.id)).filter(Boolean)}
+function comps(d){return window.tp230.ids(d)}
 function person(d){return {id:String(d?.studentId||d?.meta?.studentId||d?.eleve?.id||''),name:norm([d?.eleve?.nom,d?.eleve?.prenom].filter(Boolean).join(' ')||d?.eleve?.name||d?.studentName||'')}}
 function open(){return new Promise((ok,no)=>{const q=indexedDB.open('C2MMVP_TEST_FICTIFS_V8',2);q.onsuccess=()=>ok(q.result);q.onerror=()=>no(q.error)})}
 async function student(db,r){const p=person(r.data||{}), all=await new Promise((ok,no)=>{const q=db.transaction('students','readonly').objectStore('students').getAll();q.onsuccess=()=>ok(q.result||[]);q.onerror=()=>no(q.error)});let st=p.id?all.find(x=>String(x.id)===p.id):null;if(st)return st;if(p.name){st=all.find(x=>norm(x.name||[x.nom,x.prenom].filter(Boolean).join(' '))===p.name);if(st)return st;const rev=p.name.split(' ').reverse().join(' ');st=all.find(x=>norm(x.name||[x.nom,x.prenom].filter(Boolean).join(' '))===rev);if(st)return st}return null}
@@ -18105,9 +18162,9 @@ async function validate(){
   const id=window.__tp55Current||window.__tpCorrectionCurrent; const rows=read(),r=rows.find(x=>String(x.id)===String(id)); if(!r)throw Error('TP introuvable dans Copies rendues.');
   const ne=document.getElementById('tpc-note'),ae=document.getElementById('tpc-app'); if(ne)r.note=ne.value;if(ae)r.appreciation=ae.value;
   const n=Number(String(r.note).replace(',','.')); if(!Number.isFinite(n)||n<0||n>20)throw Error('Saisis une note comprise entre 0 et 20.');
-  const cs=comps(r.data);r.levels=r.levels||{};const missing=cs.filter(c=>!r.levels[c]);if(missing.length)throw Error('Positionne toutes les compétences : '+missing.join(', ')+'.');
-  const db=await open();const st=await student(db,r);if(!st){db.close();throw Error('Élève non reconnu : '+([r.data?.eleve?.nom,r.data?.eleve?.prenom].filter(Boolean).join(' ')||'identité absente')+'.');}
-  const levels={},disabledCriteria={};cs.forEach(c=>{const cp=(window.competencies||[]).find(x=>x.id===c),count=Math.max(1,cp?.criteria?.length||1);for(let i=0;i<count;i++)levels[c+'-'+i]=r.levels[c]});
+  window.tp230.ensure(r.data);const cs=comps(r.data);r.levels=r.levels||{};const missing=cs.filter(c=>!r.levels[c]);if(missing.length)throw Error('Positionne toutes les compétences : '+missing.join(', ')+'.');
+  const aligned=window.tp230.build(r);const db=await open();const st=await student(db,r);if(!st){db.close();throw Error('Élève non reconnu : '+([r.data?.eleve?.nom,r.data?.eleve?.prenom].filter(Boolean).join(' ')||'identité absente')+'.');}
+  const levels={},disabledCriteria={};cs.forEach(c=>{const cp=(typeof competencies!=='undefined'?competencies:(window.competencies||[])).find(x=>x.id===c),count=Math.max(1,cp?.criteria?.length||1);for(let i=0;i<count;i++)levels[c+'-'+i]=r.levels[c]});
   const evId=r.savedEvaluationId||('EVAL_TP_'+(crypto?.randomUUID?.()||Date.now()+'_'+Math.random().toString(36).slice(2)));
   const aeRaw=r.data?.autoEvaluation||r.data?.auto_evaluation||null;
   const studentSelfEvaluation=aeRaw?{
@@ -18121,8 +18178,8 @@ async function validate(){
     completedAt:aeRaw.completedAt||aeRaw.dateValidation||''
   }:null;
   const ev={id:evId,studentId:st.id,date:dateFr(r.data),title:`${r.data?.code||'TP'} — ${r.data?.titre||'TP corrigé'}`,place:'Lycée',type:'TP',comps:cs,levels,obs:{},disabledCriteria,evaluationObservation:r.appreciation||'',activitySupport:r.data?.vehicule?.modele||r.data?.support?.label||'',sourceNote20:n,noteDrivenEvaluation:true,noteDrivenRequested:n,noteDrivenExact:n,tpCorrection:true,tpCode:r.data?.code||'',tpActivityId:r.data?.meta?.activityId||r.data?.activityId||'',tpPendingKey:r.data?.meta?.pendingKey||'',tpCorrectionId:r.id,tpImportedFile:r.fileName,studentSelfEvaluation,createdAt:r.correctedAt?new Date(r.correctedAt).getTime():Date.now(),modifiedAt:r.correctedAt?Date.now():null};
-  await new Promise((ok,no)=>{const tx=db.transaction('evaluations','readwrite'),q=tx.objectStore('evaluations').put(ev);q.onerror=()=>no(q.error);tx.oncomplete=()=>ok();tx.onerror=()=>no(tx.error)});db.close();
-  r.savedEvaluationId=evId;r.correctedAt=r.correctedAt||new Date().toISOString();r.workflowState='CORRIGE';if(r.data){r.data.statut='CORRIGE';r.data.status='CORRIGE';r.data.correction={...(r.data.correction||{}),note:n,appreciation:r.appreciation||'',competences:r.levels,date:r.correctedAt,evaluationId:evId}}write(rows);
+  db.close();if(aligned)Object.assign(ev,aligned);await persistEvaluation(ev,false);
+  r.savedEvaluationId=evId;r.correctedAt=r.correctedAt||new Date().toISOString();r.workflowState='CORRIGE';if(r.data){r.data.statut='CORRIGE';r.data.status='CORRIGE';r.data.correction={...(r.data.correction||{}),note:n,appreciation:r.appreciation||'',competences:r.levels,criteres:r.criteriaLevels230||{},selection230:r.data.tpSelection230,date:r.correctedAt,evaluationId:evId}}write(rows);
   try{await window.loadData?.()}catch(e){console.warn('V172 loadData',e)}
   try{await window.tpV159SyncCorrectionsNow?.()}catch(e){console.warn('V172 sync différée',e)}
   try{if(typeof window.tp61GenerateCorrectionPdf==='function')await window.tp61GenerateCorrectionPdf(r.id)}catch(e){console.warn('V172 PDF',e)}
@@ -18131,8 +18188,8 @@ async function validate(){
  }catch(e){console.error('V172 validation',e);alert('Validation impossible : '+(e?.message||e));}
  finally{window.__v172Saving=false;if(btn){btn.disabled=false;btn.innerHTML=oldText||'💾 Valider la correction et l’évaluation'}}
 }
-function install(){window.tpCorrectionValidate=validate;const b=document.getElementById('build-version');if(b)b.textContent='V229 — Évaluation · Charge Atelier · TP · Correction';document.title='V229 — Évaluation · Charge Atelier · TP · Correction'}
-window.addEventListener('load',()=>setTimeout(install,4200),{once:true});setTimeout(()=>{if(document.readyState==='complete')install()},5200);
+function install(){window.tpCorrectionValidate=validate;const b=document.getElementById('build-version');if(b)b.textContent='V230 — Évaluation · Charge Atelier · TP · Correction';document.title='V230 — Évaluation · Charge Atelier · TP · Correction'}
+install();
 })();
 </script>
 \n<script id="v173-lock-fast-sync">
@@ -18153,7 +18210,7 @@ function lockIfCorrected(id){
 function install(){
  const oldOpen=window.tpCorrectionOpen; if(typeof oldOpen==='function'&&!oldOpen.__v173){const w=function(id){const out=oldOpen.apply(this,arguments);setTimeout(()=>lockIfCorrected(id),450);setTimeout(()=>lockIfCorrected(id),1200);return out};w.__v173=true;window.tpCorrectionOpen=w;}
  const oldVal=window.tpCorrectionValidate; if(typeof oldVal==='function'&&!oldVal.__v173){const w=async function(){const out=await oldVal.apply(this,arguments);return out};w.__v173=true;window.tpCorrectionValidate=w;}
- const b=document.getElementById('build-version');if(b)b.textContent='V229 — Évaluation · Charge Atelier · TP · Correction';document.title='V229 — Évaluation · Charge Atelier · TP · Correction';
+ const b=document.getElementById('build-version');if(b)b.textContent='V230 — Évaluation · Charge Atelier · TP · Correction';document.title='V230 — Évaluation · Charge Atelier · TP · Correction';
 }
 // Accélère l'impression de synchronisation : les données locales sont déjà enregistrées avant le cloud.
 const oldSync=window.tpV159SyncCorrectionsNow; if(typeof oldSync==='function'){window.tpV159SyncCorrectionsNow=function(){try{const p=oldSync.apply(this,arguments);if(p&&p.catch)p.catch(e=>console.warn('V173 sync',e));return Promise.resolve(true)}catch(e){console.warn('V173 sync',e);return Promise.resolve(false)}}}
@@ -18234,7 +18291,7 @@ stamp();window.addEventListener('load',()=>{stamp();setTimeout(reconcile,300)},{
 (function(){
 'use strict';
 
-const VERSION='V229 — Évaluation · Charge Atelier · TP · Correction';
+const VERSION='V230 — Évaluation · Charge Atelier · TP · Correction';
 const MODE_KEYS={
   free:'evaluation_mode_free_v190',
   professional:'evaluation_mode_professional_v190',
@@ -18543,7 +18600,7 @@ setTimeout(()=>{pullModesFirebase().catch(()=>{})},3500);
 function setVersion(){
   const b=document.getElementById('build-version');
   if(b)b.textContent=VERSION;
-  document.title='V229 — Évaluation · Charge Atelier · TP · Correction';
+  document.title='V230 — Évaluation · Charge Atelier · TP · Correction';
 }
 setVersion();
 setTimeout(setVersion,500);
@@ -19006,7 +19063,7 @@ function relabelNavigation(){
 function setVersion(){
   const b=document.getElementById('build-version');
   if(b)b.textContent=VERSION;
-  document.title='V229 — Évaluation · Charge Atelier · TP · Correction';
+  document.title='V230 — Évaluation · Charge Atelier · TP · Correction';
 }
 relabelNavigation();
 setVersion();
@@ -19565,9 +19622,9 @@ if(typeof window.tpCorrectionImport==='function'){
 /* Habillage du Portail TP seulement : la fonction RTA existante reste disponible
    ailleurs dans le logiciel, elle n'est simplement plus dans le nom de la suite. */
 function stamp(){
-  document.title='V229 — Évaluation · Charge Atelier · TP · Correction';
+  document.title='V230 — Évaluation · Charge Atelier · TP · Correction';
   const bv=document.getElementById('build-version');
-  if(bv)bv.textContent='V229 — Évaluation · Charge Atelier · TP · Correction';
+  if(bv)bv.textContent='V230 — Évaluation · Charge Atelier · TP · Correction';
 }
 stamp();
 setTimeout(stamp,700);
@@ -19736,8 +19793,8 @@ document.addEventListener('visibilitychange',()=>{
 /* Affichage de version seulement, sans timer périodique ni MutationObserver. */
 function stampVersion(){
   const b=document.getElementById('build-version');
-  if(b)b.textContent='V229 — Évaluation · Charge Atelier · TP · Correction';
-  document.title='V229 — Évaluation · Charge Atelier · TP · Correction';
+  if(b)b.textContent='V230 — Évaluation · Charge Atelier · TP · Correction';
+  document.title='V230 — Évaluation · Charge Atelier · TP · Correction';
 }
 stampVersion();
 
@@ -19823,8 +19880,8 @@ if(typeof settings==='function'&&!settings.__v200){
 cleanUi(document);
 
 const bv=document.getElementById('build-version');
-if(bv)bv.textContent='V229 — Évaluation · Charge Atelier · TP · Correction';
-document.title='V229 — Évaluation · Charge Atelier · TP · Correction';
+if(bv)bv.textContent='V230 — Évaluation · Charge Atelier · TP · Correction';
+document.title='V230 — Évaluation · Charge Atelier · TP · Correction';
 
 console.info('V200 : RTA retirée de l’interface et des évaluations ; ancien générateur TP neutralisé au profit du Portail TP.');
 })();
@@ -20210,8 +20267,8 @@ ensureMobileMenu();
 
 /* Version : affichage uniquement, aucun timer et aucun MutationObserver. */
 const bv=document.getElementById('build-version');
-if(bv)bv.textContent='V229 — Évaluation · Charge Atelier · TP · Correction';
-document.title='V229 — Évaluation · Charge Atelier · TP · Correction';
+if(bv)bv.textContent='V230 — Évaluation · Charge Atelier · TP · Correction';
+document.title='V230 — Évaluation · Charge Atelier · TP · Correction';
 
 console.info('V201 : barre latérale scrollable + menu iPhone permanent + suppression TP V73/V159 persistante.');
 })();
@@ -20232,8 +20289,8 @@ window.V202_SETTINGS_POLICY={
   ephemeralUiLocalOnly:true
 };
 const bv=document.getElementById('build-version');
-if(bv)bv.textContent='V229 — Évaluation · Charge Atelier · TP · Correction';
-document.title='V229 — Évaluation · Charge Atelier · TP · Correction';
+if(bv)bv.textContent='V230 — Évaluation · Charge Atelier · TP · Correction';
+document.title='V230 — Évaluation · Charge Atelier · TP · Correction';
 console.info('V202 : recherche/compteur fiches + paramètres fonctionnels multiposte, démarrage inchangé.');
 })();
 </script>
@@ -20449,8 +20506,8 @@ forceActiveTpClass();
 addPortalClassBadge();
 
 const bv=document.getElementById('build-version');
-if(bv)bv.textContent='V229 — Évaluation · Charge Atelier · TP · Correction';
-document.title='V229 — Évaluation · Charge Atelier · TP · Correction';
+if(bv)bv.textContent='V230 — Évaluation · Charge Atelier · TP · Correction';
+document.title='V230 — Évaluation · Charge Atelier · TP · Correction';
 
 console.info('V204 : Portail TP filtré strictement par classe active ; classId et className doivent être cohérents.');
 })();
@@ -20469,8 +20526,8 @@ window.V204_TP_CLASS_FILTER_POLICY={
   legacyStudentIdsMustAllBelongToActiveClass:true
 };
 const bv=document.getElementById('build-version');
-if(bv)bv.textContent='V229 — Évaluation · Charge Atelier · TP · Correction';
-document.title='V229 — Évaluation · Charge Atelier · TP · Correction';
+if(bv)bv.textContent='V230 — Évaluation · Charge Atelier · TP · Correction';
+document.title='V230 — Évaluation · Charge Atelier · TP · Correction';
 console.info('V204 : filtrage strict des TP diffusés sur la classe active, démarrage inchangé.');
 })();
 </script>
@@ -20596,8 +20653,8 @@ if(typeof oldOpen==='function'&&!oldOpen.__v205){
 }
 
 const bv=document.getElementById('build-version');
-if(bv)bv.textContent='V229 — Évaluation · Charge Atelier · TP · Correction';
-document.title='V229 — Évaluation · Charge Atelier · TP · Correction';
+if(bv)bv.textContent='V230 — Évaluation · Charge Atelier · TP · Correction';
+document.title='V230 — Évaluation · Charge Atelier · TP · Correction';
 
 console.info('V205 : auto-évaluation TP lue depuis le JSON rendu ; Tableau du jour exclut les TP diffusés ; rendu le plus récent privilégié.');
 })();
@@ -20871,4 +20928,40 @@ const open=window.tpCorrectionOpen;window.tpCorrectionOpen=function(id){const ou
 const importOld=window.tpCorrectionImport;window.tpCorrectionImport=async function(){const out=await importOld.apply(this,arguments);signature='';api.paintStorage();return out};
 })();
 
+</script>
+
+<script id="v230-lineage-ui">(function(){
+'use strict';
+const KEY='tp_correction_local_v54',api=window.tp230;
+const read=()=>{try{return JSON.parse(localStorage.getItem(KEY)||'[]')}catch(_){return []}};
+let openToken=0;
+const previous=window.tpCorrectionOpen;
+window.tpCorrectionOpen=async function(id){
+ const token=++openToken;let rows=read(),r=rows.find(x=>String(x.id)===String(id));if(!r)return previous.apply(this,arguments);
+ if(!api.project(r.data)&&!r.data?.tpSelection230&&r.fullDataStored){try{const full=await window.tp227.full(r);r.data=full.data}catch(e){alert('Impossible de vérifier les compétences : '+e.message);return}}
+ if(token!==openToken)return;
+ api.ensure(r.data);localStorage.setItem(KEY,JSON.stringify(rows));
+ const out=await previous.apply(this,arguments);
+ const aside=document.querySelector('.tpc-editor aside');if(!aside||token!==openToken)return out;
+ const box=document.createElement('section');box.className='tpc-card';box.id='tp230-criteria';box.innerHTML=api.panel(r,!r.correctedAt);
+ if(r.correctedAt){const b=document.createElement('button');b.type='button';b.className='secondary';b.textContent='Rétablir les compétences et critères dans l’évaluation';b.onclick=()=>repair(r.id,b);box.append(b)}
+ box.addEventListener('change',e=>{const key=e.target.dataset.criterion230;if(!key)return;const list=read(),row=list.find(x=>String(x.id)===String(id));if(!row||row.correctedAt)return;row.criteriaLevels230=row.criteriaLevels230||{};if(e.target.value)row.criteriaLevels230[key]=e.target.value;else delete row.criteriaLevels230[key];localStorage.setItem(KEY,JSON.stringify(list));});
+ aside.append(box);return out;
+};
+async function repair(id,button){
+ button.disabled=true;try{
+  const list=read(),r=list.find(x=>String(x.id)===String(id));if(!r?.correctedAt)throw Error('Copie non corrigée');
+  const selection=api.ensure(r.data);if(!selection)throw Error('Projet éditeur absent : critères non récupérables sur cette copie.');
+  await openDB();const all=await getAll('evaluations');const matches=all.filter(e=>r.savedEvaluationId?String(e.id)===String(r.savedEvaluationId):String(e.tpCorrectionId)===String(r.id));if(matches.length!==1)throw Error('Évaluation associée introuvable ou ambiguë.');
+  const ev=matches[0];if(r.data.studentId&&String(ev.studentId)!==String(r.data.studentId))throw Error('Identité élève différente : rapprochement refusé.');
+  const work=JSON.parse(JSON.stringify(r)),note=Number(ev.sourceNote20??r.note);work.levels=work.levels||{};
+  for(const c of api.ids(work.data))if(!work.levels[c]){if(!Number.isFinite(note))throw Error('Positionnement manquant pour '+c);work.levels[c]=note<12?'À renforcer':note<16?'Maîtrisé':'Autonome';}
+  const aligned=api.build(work);if(!aligned)throw Error('Projet TP manquant');
+  if(!confirm('Rétablir '+aligned.comps.length+' compétence(s) et '+Object.keys(aligned.levels).length+' critère(s) dans cette évaluation ?\nLa note et l’appréciation existantes seront conservées. Les compétences sans ancien niveau reprendront le niveau correspondant à la note.'))return;
+  let backups={};try{backups=JSON.parse(localStorage.getItem('tp_lineage230_repair_backups')||'{}')}catch(_){}backups[ev.id]=backups[ev.id]||ev;localStorage.setItem('tp_lineage230_repair_backups',JSON.stringify(backups));
+  await persistEvaluation({...ev,...aligned,modifiedAt:Date.now(),tpLineageRepairedAt:new Date().toISOString()},false);
+  r.data.tpSelection230=work.data.tpSelection230;r.levels=work.levels;localStorage.setItem(KEY,JSON.stringify(list));await loadData();alert('Compétences et critères rétablis dans l’évaluation. Note et appréciation conservées.');
+ }catch(e){alert('Rétablissement impossible : '+e.message)}finally{button.disabled=false}
+}
+})();
 </script>
