@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1" name="viewport"/>
-<title>V232 — Évaluation · Charge Atelier · TP · Correction</title>
+<title>V233 — Évaluation · Charge Atelier · TP · Correction</title>
 <style>
 *{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f5f7fa;color:#172033}
 .app{display:flex;min-height:100vh}.side{width:235px;background:#172033;color:#fff;padding:22px 14px}.logo{font-size:19px;font-weight:700;padding:8px 10px 24px}
@@ -2734,7 +2734,7 @@ body{background:#f7f9fc;color:var(--text)}
 <!-- V88 — DONNÉES DE RÉFÉRENCE RÉINTÉGRÉES DEPUIS V86.5
      Jeux embarqués repris : référentiel compétences, élèves par défaut, seconde classe fictive, situations professionnelles.
      Les données dynamiques (classes/élèves/évaluations réellement saisies) restent chargées par IndexedDB/localStorage et Firebase. -->
-<div id="build-version">V232 — Évaluation · Charge Atelier · TP · Correction</div>
+<div id="build-version">V233 — Évaluation · Charge Atelier · TP · Correction</div>
 <div id="firebase-auth-overlay">
 <div class="firebase-login-card">
 <h2>☁️ Connexion Firebase — V89</h2>
@@ -2777,7 +2777,7 @@ body{background:#f7f9fc;color:var(--text)}
 <div class="app">
 <button aria-expanded="true" aria-label="Masquer la barre latérale" class="sidebar-toggle" id="sidebar-toggle" onclick="toggleSidebar()" title="Masquer la barre latérale" type="button">◀</button>
 <aside class="side">
-<div class="logo">COMPÉTENCES MV<br/><small style="font-size:11px;font-weight:400">V232 — Évaluation · Charge Atelier · TP · Correction</small></div>
+<div class="logo">COMPÉTENCES MV<br/><small style="font-size:11px;font-weight:400">V233 — Évaluation · Charge Atelier · TP · Correction</small></div>
 <div class="nav">
 <button id="nav-home" onclick="go('home')">🏠 <span>Accueil</span></button>
 <button id="nav-students" onclick="go('students')">👨‍🎓 <span>Élèves</span></button>
@@ -3034,7 +3034,7 @@ function extract(d){
   const code=id.match(/^C\d+\.\d+/)[0];if(!groups.get(code)?.criteria.some(c=>c.sourceId===id))add(code,id,'','selection-explicite');
  }
  for(const code of new Set(text(p.competencesRetenues).match(/C\d+\.\d+/g)||[]))group(code);
- return {version:1,tpCode:p.publicId||p.id||d.code||'',groups:[...groups.values()].sort((a,b)=>a.id.localeCompare(b.id,'fr',{numeric:true})),links,issues:[...new Set(issues)],source:'Choix du projet TP exporté'};
+ return {...(p.reference233?{reference233:clone(p.reference233)}:{}),version:1,tpCode:p.publicId||p.id||d.code||'',groups:[...groups.values()].sort((a,b)=>a.id.localeCompare(b.id,'fr',{numeric:true})),links,issues:[...new Set(issues)],source:'Choix du projet TP exporté'};
 }
 function ensure(d){const s=extract(d);if(s){d.tpSelection230=s;d.competences=s.groups.map(g=>({code:g.id,label:g.name}));}return s}
 function ids(d){const s=ensure(d);return s?s.groups.map(g=>g.id):(d?.competences||d?.competencies||[]).map(c=>typeof c==='string'?c:c.code||c.id).filter(Boolean)}
@@ -3057,6 +3057,25 @@ window.tp230={extract,ensure,ids,build,resolve,panel,project};
 function result(r,id){const s=window.tp230.ensure(r.data),links=(s?.links||[]).filter(l=>l.criterionId===id);const keys=[...new Set(links.map(l=>l.questionId?'q_'+l.questionId:'q_'+l.blockId))];const values=keys.map(k=>r.marks?.[k]).filter(v=>v==='correct'||v==='wrong');const override=r.criteriaLevels230?.[id];const proposed=values.length?values.every(v=>v==='correct')?'Maîtrisé':'À renforcer':'Non observé';return {level:override||proposed,proposed,automatic:!override,count:values.length,total:keys.length,keys};}
 function effective(r){const s=window.tp230.ensure(r.data),out={};for(const g of s?.groups||[])for(const c of g.criteria)out[c.sourceId]=result(r,c.sourceId).level;return out}
 window.tp232={result,effective};
+})();
+</script>
+<script id="reference-v233">(function(){
+'use strict';
+const bundled={"ref_cap": {"schema": "atelier.referential.future.v233", "referentialId": "ref_cap", "version": "ref_cap-2026-10-21-v233", "name": "CAP Maintenance des véhicules", "source": "Extraction_structure_referentiel_CAP_V89_3_1.pdf : contenu CAP existant, codes stables ajoutés", "scope": "Nouvelles évaluations et nouvelles diffusions uniquement", "competencies": [{"id": "C1.1", "name": "Organiser un entretien périodique", "activity": "A1.1 — Organisation de l’intervention", "criteria": [{"group": "A", "label": "Les règles d’hygiène et de sécurité sont respectées", "text": "L’organisation du poste de travail, les moyens de prévention et le choix des équipements de protection collective et individuelle sont adaptés à l’intervention.", "code": "C1.1-01"}, {"group": "A", "label": "Les règles d’hygiène et de sécurité sont respectées", "text": "Les risques liés à l’intervention sont identifiés et signalés.", "code": "C1.1-02"}, {"group": "A", "label": "Les règles d’hygiène et de sécurité sont respectées", "text": "Les consignes d’hygiène et de sécurité sont respectées.", "code": "C1.1-03"}, {"group": "B", "label": "L’intégrité du véhicule est garantie", "text": "Les éléments de protection du véhicule sont identifiés et adaptés.", "code": "C1.1-04"}, {"group": "B", "label": "L’intégrité du véhicule est garantie", "text": "La mise en sécurité du véhicule est conforme à l’intervention.", "code": "C1.1-05"}, {"group": "C", "label": "L’environnement est préservé", "text": "Le tri des déchets est préparé.", "code": "C1.1-06"}, {"group": "D", "label": "La préparation de l’intervention respecte les procédures du constructeur et de l’entreprise", "text": "Le véhicule est identifié (VIN, plaque d’immatriculation).", "code": "C1.1-07"}, {"group": "D", "label": "La préparation de l’intervention respecte les procédures du constructeur et de l’entreprise", "text": "L’outillage est conforme et adapté à l’intervention.", "code": "C1.1-08"}, {"group": "D", "label": "La préparation de l’intervention respecte les procédures du constructeur et de l’entreprise", "text": "Les informations collectées (historique, documentation, plan de maintenance, etc.) sont conformes et adaptées à l’intervention à réaliser.", "code": "C1.1-09"}, {"group": "D", "label": "La préparation de l’intervention respecte les procédures du constructeur et de l’entreprise", "text": "Les étapes de l’intervention sont identifiées et organisées.", "code": "C1.1-10"}, {"group": "D", "label": "La préparation de l’intervention respecte les procédures du constructeur et de l’entreprise", "text": "La disponibilité et la conformité des pièces y compris celles de réemploi sont vérifiées.", "code": "C1.1-11"}]}, {"id": "C1.2", "name": "Identifierles anomalies dans le cadre d’un entretien périodique", "level": "Niveau 3", "activities": ["A1.2 Réalisation des contrôles définis par une procédure", "A1.4Réalisation d'opérations préparatoires au contrôle technique"], "criteria": [{"group": "A", "label": "Les règles d’hygiène et de sécurité sont respectées", "text": "L’organisation du poste de travail, les moyens de prévention et le choix des équipements de protection collective et individuelle sont adaptés à l’intervention.", "code": "C1.2-01"}, {"group": "A", "label": "Les règles d’hygiène et de sécurité sont respectées", "text": "Les risques liés à l’intervention sont identifiés et signalés.", "code": "C1.2-02"}, {"group": "A", "label": "Les règles d’hygiène et de sécurité sont respectées", "text": "Les consignes d’hygiène et de sécurité sont respectées.", "code": "C1.2-03"}, {"group": "B", "label": "L’intégrité du véhicule est garantie tout au long de l’intervention", "text": "Les éléments de protection du véhicule sont adaptés et mis en place.", "code": "C1.2-04"}, {"group": "B", "label": "L’intégrité du véhicule est garantie tout au long de l’intervention", "text": "Aucune détérioration n’est constatée.", "code": "C1.2-05"}, {"group": "B", "label": "L’intégrité du véhicule est garantie tout au long de l’intervention", "text": "La propreté du véhicule est préservée.", "code": "C1.2-06"}, {"group": "C", "label": "Les contrôles et mesures respectent la réglementation en vigueur, les procédures du constructeur et de l’entreprise", "text": "Les contrôles sont identifiés y compris, dans le cadre du pré-contrôle technique.", "code": "C1.2-07"}, {"group": "C", "label": "Les contrôles et mesures respectent la réglementation en vigueur, les procédures du constructeur et de l’entreprise", "text": "Les contrôles et mesures sont réalisés en tenant compte des particularités des systèmes et du type de motorisation.", "code": "C1.2-08"}, {"group": "C", "label": "Les contrôles et mesures respectent la réglementation en vigueur, les procédures du constructeur et de l’entreprise", "text": "Toutes les anomalies sont identifiées et retranscrites suivant la procédure prescrite.", "code": "C1.2-09"}]}, {"id": "C1.3", "name": "Réaliser les opérations de remplacement, d’ajustement dans le cadre de l’entretien périodique", "activity": "A1.3 — Remplacement de pièces d’usure, de fluides et/ou ajustement des niveaux et pressions pneumatiques", "criteria": [{"group": "A", "label": "Les règles d’hygiène et de sécurité sont respectées", "text": "L’organisation du poste de travail, les moyens de prévention et le choix des équipements de protection collective et individuelle sont adaptés à l’intervention.", "code": "C1.3-01"}, {"group": "A", "label": "Les règles d’hygiène et de sécurité sont respectées", "text": "Les risques liés à l’intervention sont identifiés et signalés.", "code": "C1.3-02"}, {"group": "A", "label": "Les règles d’hygiène et de sécurité sont respectées", "text": "Les règles d’hygiène et de sécurité sont appliquées.", "code": "C1.3-03"}, {"group": "B", "label": "L’intégrité du véhicule est garantie tout au long de l’intervention", "text": "Les éléments de protection du véhicule sont adaptés et mis en place.", "code": "C1.3-04"}, {"group": "B", "label": "L’intégrité du véhicule est garantie tout au long de l’intervention", "text": "Aucune détérioration n’est constatée.", "code": "C1.3-05"}, {"group": "B", "label": "L’intégrité du véhicule est garantie tout au long de l’intervention", "text": "La propreté du véhicule est préservée.", "code": "C1.3-06"}, {"group": "C", "label": "L’environnement est préservé", "text": "Le tri des déchets est réalisé.", "code": "C1.3-07"}, {"group": "C", "label": "L’environnement est préservé", "text": "La réglementation environnementale est respectée.", "code": "C1.3-08"}, {"group": "D", "label": "Les opérations d’entretien périodiques respectent les procédures du constructeur et de l’entreprise", "text": "Le temps imparti de l’intervention est respecté.", "code": "C1.3-09"}, {"group": "D", "label": "Les opérations d’entretien périodiques respectent les procédures du constructeur et de l’entreprise", "text": "Le remplacement des pièces d’usure et des fluides respecte les procédures du constructeur et de l’entreprise.", "code": "C1.3-10"}, {"group": "D", "label": "Les opérations d’entretien périodiques respectent les procédures du constructeur et de l’entreprise", "text": "Les niveaux et les pressions sont ajustés conformément aux procédures du constructeur et de l’entreprise.", "code": "C1.3-11"}, {"group": "D", "label": "Les opérations d’entretien périodiques respectent les procédures du constructeur et de l’entreprise", "text": "La procédure d’apprentissage de réinitialisation est effectuée.", "code": "C1.3-12"}, {"group": "D", "label": "Les opérations d’entretien périodiques respectent les procédures du constructeur et de l’entreprise", "text": "Les indicateurs de maintenance sont mis à jour.", "code": "C1.3-13"}, {"group": "D", "label": "Les opérations d’entretien périodiques respectent les procédures du constructeur et de l’entreprise", "text": "L’ordre de réparation est complété.", "code": "C1.3-14"}]}, {"id": "C1.4", "name": "Apporter des conseils techniques à la clientèle sur l’entretien du véhicule", "activity": "A1.5 — Conseils techniques et d’entretien du véhicule auprès de la clientèle", "criteria": [{"group": "A", "label": "Les conseils à la clientèle sur l’utilisation et l’entretien du véhicule sont conformes aux règles de sécurité, aux procédures du constructeur et de l’entreprise", "text": "Les anomalies détectées sont présentées au client.", "code": "C1.4-01"}, {"group": "A", "label": "Les conseils à la clientèle sur l’utilisation et l’entretien du véhicule sont conformes aux règles de sécurité, aux procédures du constructeur et de l’entreprise", "text": "Le client est informé du programme d’entretien à venir.", "code": "C1.4-02"}, {"group": "A", "label": "Les conseils à la clientèle sur l’utilisation et l’entretien du véhicule sont conformes aux règles de sécurité, aux procédures du constructeur et de l’entreprise", "text": "La proposition de service, de produit est en lien avec les besoins du client.", "code": "C1.4-03"}, {"group": "A", "label": "Les conseils à la clientèle sur l’utilisation et l’entretien du véhicule sont conformes aux règles de sécurité, aux procédures du constructeur et de l’entreprise", "text": "Le client est renseigné sur les pratiques d’usage du véhicule*.", "code": "C1.4-04"}, {"group": "A", "label": "Les conseils à la clientèle sur l’utilisation et l’entretien du véhicule sont conformes aux règles de sécurité, aux procédures du constructeur et de l’entreprise", "text": "Les procédures qualités sont respectées.", "code": "C1.4-05"}, {"group": "A", "label": "Les conseils à la clientèle sur l’utilisation et l’entretien du véhicule sont conformes aux règles de sécurité, aux procédures du constructeur et de l’entreprise", "text": "Les échanges avec le client s’inscrivent dans une démarche de satisfaction client.", "code": "C1.4-06"}]}, {"id": "C2.1", "name": "Préparer une intervention corrective", "activity": "A2.1 — Préparation de l’intervention", "criteria": [{"group": "A", "label": "Les règles d’hygiène et de sécurité sont respectées", "text": "L’organisation du poste de travail, les moyens de prévention et le choix des équipements de protection collective et individuelle sont adaptés à l’intervention.", "code": "C2.1-01"}, {"group": "A", "label": "Les règles d’hygiène et de sécurité sont respectées", "text": "Les risques liés à l’intervention sont identifiés et signalés.", "code": "C2.1-02"}, {"group": "A", "label": "Les règles d’hygiène et de sécurité sont respectées", "text": "Les consignes d’hygiène et de sécurité sont respectées.", "code": "C2.1-03"}, {"group": "B", "label": "L’intégrité du véhicule est garantie", "text": "Les éléments de protection du véhicule sont adaptés et correctement utilisés.", "code": "C2.1-04"}, {"group": "B", "label": "L’intégrité du véhicule est garantie", "text": "La propreté du véhicule est préservée.", "code": "C2.1-05"}, {"group": "B", "label": "L’intégrité du véhicule est garantie", "text": "La mise en sécurité du véhicule est conforme à l’intervention.", "code": "C2.1-06"}, {"group": "C", "label": "L’environnement est préservé", "text": "Le tri des déchets est préparé.", "code": "C2.1-07"}, {"group": "D", "label": "La préparation de l’intervention respecte les procédures du constructeur et de l’entreprise", "text": "Le véhicule est identifié (VIN, plaque d’immatriculation, spécificité technique, etc.).", "code": "C2.1-08"}, {"group": "D", "label": "La préparation de l’intervention respecte les procédures du constructeur et de l’entreprise", "text": "L’ordre de réparation est complété.", "code": "C2.1-09"}, {"group": "D", "label": "La préparation de l’intervention respecte les procédures du constructeur et de l’entreprise", "text": "L’outillage est conforme et adapté à l’intervention.", "code": "C2.1-10"}, {"group": "D", "label": "La préparation de l’intervention respecte les procédures du constructeur et de l’entreprise", "text": "Les informations collectées sont conformes et adaptées à l’intervention à réaliser.", "code": "C2.1-11"}, {"group": "D", "label": "La préparation de l’intervention respecte les procédures du constructeur et de l’entreprise", "text": "Les étapes de l’intervention sont identifiées.", "code": "C2.1-12"}, {"group": "D", "label": "La préparation de l’intervention respecte les procédures du constructeur et de l’entreprise", "text": "Le temps imparti de l’intervention est identifié.", "code": "C2.1-13"}, {"group": "D", "label": "La préparation de l’intervention respecte les procédures du constructeur et de l’entreprise", "text": "La disponibilité et la conformité des pièces sont vérifiées.", "code": "C2.1-14"}]}, {"id": "C2.2", "name": "Réaliser le remplacement ou la réparation des composants", "activity": "A2.2 — Remise en conformité des systèmes", "criteria": [{"group": "A", "label": "Les règles d’hygiène et de sécurité sont respectées", "text": "L’organisation du poste de travail, les moyens de prévention et le choix des équipements de protection collective et individuelle sont adaptés à l’intervention.", "code": "C2.2-01"}, {"group": "A", "label": "Les règles d’hygiène et de sécurité sont respectées", "text": "Les risques liés à l’intervention sont identifiés et signalés.", "code": "C2.2-02"}, {"group": "A", "label": "Les règles d’hygiène et de sécurité sont respectées", "text": "Les consignes d’hygiène et de sécurité sont respectées.", "code": "C2.2-03"}, {"group": "B", "label": "L’intégrité du véhicule est garantie", "text": "Les éléments de protection du véhicule sont adaptés et correctement utilisés.", "code": "C2.2-04"}, {"group": "B", "label": "L’intégrité du véhicule est garantie", "text": "Aucune détérioration n’est constatée.", "code": "C2.2-05"}, {"group": "B", "label": "L’intégrité du véhicule est garantie", "text": "La propreté du véhicule est préservée.", "code": "C2.2-06"}, {"group": "C", "label": "L’environnement est préservé", "text": "Le tri des déchets est réalisé.", "code": "C2.2-07"}, {"group": "C", "label": "L’environnement est préservé", "text": "La réglementation environnementale est respectée.", "code": "C2.2-08"}, {"group": "D", "label": "L’intervention respecte les procédures du constructeur et de l’entreprise", "text": "Le temps imparti de l’intervention est respecté.", "code": "C2.2-09"}, {"group": "D", "label": "L’intervention respecte les procédures du constructeur et de l’entreprise", "text": "Le remplacement des pièces respecte les procédures du constructeur et de l’entreprise.", "code": "C2.2-10"}, {"group": "D", "label": "L’intervention respecte les procédures du constructeur et de l’entreprise", "text": "Les informations collectées (documentation, procédure du constructeur, etc.) sont adaptées à l’intervention à réaliser.", "code": "C2.2-11"}]}, {"id": "C2.3", "name": "Réaliser le réglage des systèmes", "activity": "A2.2 — Remise en conformité des systèmes", "criteria": [{"group": "A", "label": "Les règles d’hygiène et de sécurité sont respectées", "text": "L’organisation du poste de travail, les moyens de prévention et le choix des équipements de protection collective et individuelle sont adaptés à l’intervention.", "code": "C2.3-01"}, {"group": "A", "label": "Les règles d’hygiène et de sécurité sont respectées", "text": "Les risques liés à l’intervention sont identifiés et signalés.", "code": "C2.3-02"}, {"group": "A", "label": "Les règles d’hygiène et de sécurité sont respectées", "text": "Les consignes d’hygiène et de sécurité sont respectées.", "code": "C2.3-03"}, {"group": "B", "label": "L’intégrité du véhicule est garantie", "text": "Les éléments de protection du véhicule sont adaptés et correctement utilisés.", "code": "C2.3-04"}, {"group": "B", "label": "L’intégrité du véhicule est garantie", "text": "Aucune détérioration n’est constatée.", "code": "C2.3-05"}, {"group": "B", "label": "L’intégrité du véhicule est garantie", "text": "La propreté du véhicule est préservée.", "code": "C2.3-06"}, {"group": "C", "label": "Les réglages sont conformes aux procédures du constructeur et à la réglementation en vigueur", "text": "Les réglages sont conformes aux procédures du constructeur et à la réglementation en vigueur.", "code": "C2.3-07"}]}, {"id": "C2.4", "name": "Réaliser le contrôle qualité d’une intervention corrective", "activity": "A2.2 — Remise en conformité des systèmes", "criteria": [{"text": "Les procédures qualité de l’entreprise sont respectées", "code": "C2.4-01"}, {"text": "Les dossiers relatifs aux interventions sont complétés", "code": "C2.4-02"}]}, {"id": "C2.5", "name": "Réaliser le diagnostic de premier niveau", "activity": "A2.3 — Réalisation de diagnostic de premier niveau", "criteria": [{"group": "A", "label": "Les consignes d’hygiène et de sécurité sont respectées", "text": "Les consignes d’hygiène et de sécurité sont respectées.", "code": "C2.5-01"}, {"group": "B", "label": "L’intégrité du véhicule est garantie", "text": "Les éléments de protection du véhicule sont adaptés et correctement utilisés.", "code": "C2.5-02"}, {"group": "B", "label": "L’intégrité du véhicule est garantie", "text": "Aucune détérioration n’est constatée.", "code": "C2.5-03"}, {"group": "B", "label": "L’intégrité du véhicule est garantie", "text": "La propreté du véhicule est préservée.", "code": "C2.5-04"}, {"group": "C", "label": "La panne ou les dysfonctionnements sont constatés", "text": "L’état du système est identifié.", "code": "C2.5-05"}, {"group": "C", "label": "La panne ou les dysfonctionnements sont constatés", "text": "Les essais ont été réalisés en respectant les règles du constructeur.", "code": "C2.5-06"}, {"group": "C", "label": "La panne ou les dysfonctionnements sont constatés", "text": "L’anomalie détectée est retranscrite afin d’assurer la processus qualité de l’entreprise.", "code": "C2.5-07"}, {"group": "D", "label": "La mise en œuvre du protocole de diagnostic est respectée", "text": "La mise en œuvre du protocole de mesure respecte les règles de sécurité.", "code": "C2.5-08"}, {"group": "D", "label": "La mise en œuvre du protocole de diagnostic est respectée", "text": "Les résultats, les relevés obtenus ou les observations sont correctement interprétés.", "code": "C2.5-09"}]}]}, "ref_bac": {"schema": "atelier.referential.future.v233", "referentialId": "ref_bac", "version": "ref_bac-2026-10-21-v233", "name": "Bac Pro Maintenance des véhicules", "source": "Catalogue_TP_BacPro_MV_Audit_2025.xlsx et Extraction_structure_REFERENTIEL_BAC_CORRIGEE(1).pdf, C1.4 page 5", "scope": "Nouvelles évaluations et nouvelles diffusions uniquement", "competencies": [{"id": "C1.1", "name": "Organiser un entretien périodique", "criteria": [{"code": "C1.1-01", "text": "L'organisation du poste de travail, les moyens de prévention et le choix des équipements de protection collective et individuelle sont adaptés à l'intervention"}, {"code": "C1.1-02", "text": "Les risques liés à l'intervention sont identifiés et signalés"}, {"code": "C1.1-03", "text": "Les consignes d'hygiène et de sécurité sont respectées"}, {"code": "C1.1-04", "text": "Les éléments de protection du véhicule sont adaptés et correctement utilisés"}, {"code": "C1.1-05", "text": "Aucune détérioration n'est constatée"}, {"code": "C1.1-06", "text": "La propreté du véhicule est préservée"}, {"code": "C1.1-07", "text": "Le tri des déchets est réalisé"}, {"code": "C1.1-08", "text": "La réglementation environnementale est respectée"}, {"code": "C1.1-09", "text": "Le véhicule est identifié (VIN, plaque d'immatriculation)"}, {"code": "C1.1-10", "text": "L'outillage est conforme et adapté à l'intervention"}, {"code": "C1.1-11", "text": "Les informations collectées (historique, documentation, plan de maintenance, etc.) sont conformes et adaptées à l'intervention à réaliser"}, {"code": "C1.1-12", "text": "Les étapes de l'intervention sont identifiées et organisées"}, {"code": "C1.1-13", "text": "La disponibilité et la conformité des pièces y compris celles de réemploi sont vérifiées"}]}, {"id": "C1.2", "name": "Identifier les anomalies dans le cadre d’un entretien périodique", "criteria": [{"code": "C1.2-01", "text": "L'organisation du poste de travail, les moyens de prévention et le choix des équipements de protection collective et individuelle sont adaptés à l'intervention"}, {"code": "C1.2-02", "text": "Les risques liés à l'intervention sont identifiés et signalés"}, {"code": "C1.2-03", "text": "Les consignes d'hygiène et de sécurité sont respectées"}, {"code": "C1.2-04", "text": "Les éléments de protection du véhicule sont adaptés et correctement utilisés"}, {"code": "C1.2-05", "text": "Aucune détérioration n'est constatée"}, {"code": "C1.2-06", "text": "La propreté du véhicule est préservée"}, {"code": "C1.2-07", "text": "Les contrôles sont identifiés et hiérarchisés y compris, dans le cadre du pré-contrôle technique"}, {"code": "C1.2-08", "text": "Les contrôles et mesures sont réalisés en tenant compte des particularités des systèmes et du type de motorisation"}, {"code": "C1.2-09", "text": "Toutes les anomalies sont identifiées et retranscrites suivant la procédure prescrite"}]}, {"id": "C1.3", "name": "Réaliser les opérations de remplacement, d’ajustement dans le cadre de l’entretien périodique", "criteria": [{"code": "C1.3-01", "text": "L'organisation du poste de travail, les moyens de prévention et le choix des équipements de protection collective et individuelle sont adaptés à l'intervention"}, {"code": "C1.3-02", "text": "Les risques liés à l'intervention sont identifiés et signalés"}, {"code": "C1.3-03", "text": "Les consignes d'hygiène et de sécurité sont respectées"}, {"code": "C1.3-04", "text": "Les éléments de protection du véhicule sont adaptés et correctement utilisés"}, {"code": "C1.3-05", "text": "Aucune détérioration n'est constatée"}, {"code": "C1.3-06", "text": "La propreté du véhicule est préservée"}, {"code": "C1.3-07", "text": "Le tri des déchets est réalisé"}, {"code": "C1.3-08", "text": "La réglementation environnementale est respectée"}, {"code": "C1.3-09", "text": "Le temps imparti de l'intervention est respecté"}, {"code": "C1.3-10", "text": "Le remplacement des pièces d'usure et des fluides respecte les procédures du constructeur et de l'entreprise"}, {"code": "C1.3-11", "text": "Les niveaux et les pressions sont ajustés conformément aux procédures du constructeur et de l'entreprise"}, {"code": "C1.3-12", "text": "La procédure d'apprentissage, de paramétrage ou de réinitialisation est effectuée"}, {"code": "C1.3-13", "text": "Les indicateurs de maintenance sont mis à jour"}, {"code": "C1.3-14", "text": "L'ordre de réparation est complété"}]}, {"id": "C1.4", "name": "Apporter des conseils techniques à la clientèle sur l’entretien du véhicule", "criteria": [{"code": "C1.4-01", "text": "Les anomalies détectées sont présentées au client"}, {"code": "C1.4-02", "text": "Le client est informé du programme d’entretien à venir"}, {"code": "C1.4-03", "text": "La proposition de service, de produit est en lien avec les besoins du client"}, {"code": "C1.4-04", "text": "Le client est renseigné sur les pratiques d’usage du véhicule"}, {"code": "C1.4-05", "text": "Les procédures qualités sont respectées"}, {"code": "C1.4-06", "text": "Les échanges avec le client s’inscrivent dans une démarche de satisfaction client"}]}, {"id": "C2.1", "name": "Préparer une intervention corrective", "criteria": [{"code": "C2.1-01", "text": "L'organisation du poste de travail, les moyens de prévention et le choix des équipements de protection collective et individuelle sont adaptés à l'intervention"}, {"code": "C2.1-02", "text": "Les risques liés à l'intervention sont identifiés et signalés"}, {"code": "C2.1-03", "text": "Les consignes d'hygiène et de sécurité sont respectées"}, {"code": "C2.1-04", "text": "Les éléments de protection du véhicule sont adaptés et correctement utilisés"}, {"code": "C2.1-05", "text": "Aucune détérioration n'est constatée"}, {"code": "C2.1-06", "text": "La propreté du véhicule est préservée"}, {"code": "C2.1-07", "text": "Le tri des déchets est réalisé"}, {"code": "C2.1-08", "text": "La réglementation environnementale est respectée"}, {"code": "C2.1-09", "text": "Le véhicule est identifié (VIN, plaque d'immatriculation, spécificité technique etc...)"}, {"code": "C2.1-10", "text": "L'ordre de réparation est complété"}, {"code": "C2.1-11", "text": "L'outillage est conforme et adapté à l'intervention"}, {"code": "C2.1-12", "text": "Les informations collectées sont conformes et adaptées à l'intervention à réaliser"}, {"code": "C2.1-13", "text": "Les étapes de l'intervention sont identifiées"}, {"code": "C2.1-14", "text": "Le temps imparti de l'intervention est identifié"}, {"code": "C2.1-15", "text": "La disponibilité et la conformité des pièces sont vérifiées"}]}, {"id": "C2.2", "name": "Réaliser le remplacement ou la réparation des composants", "criteria": [{"code": "C2.2-01", "text": "L'organisation du poste de travail, les moyens de prévention et le choix des équipements de protection collective et individuelle sont adaptés à l'intervention"}, {"code": "C2.2-02", "text": "Les risques liés à l'intervention sont identifiés et signalés"}, {"code": "C2.2-03", "text": "Les consignes d'hygiène et de sécurité sont respectées"}, {"code": "C2.2-04", "text": "Les éléments de protection du véhicule sont adaptés et correctement utilisés"}, {"code": "C2.2-05", "text": "Aucune détérioration n'est constatée"}, {"code": "C2.2-06", "text": "La propreté du véhicule est préservée"}, {"code": "C2.2-07", "text": "Le tri des déchets est réalisé"}, {"code": "C2.2-08", "text": "La réglementation environnementale est respectée"}, {"code": "C2.2-09", "text": "Le temps imparti de l'intervention est respecté"}, {"code": "C2.2-10", "text": "Le remplacement des pièces respecte les procédures du constructeur et de l'entreprise"}, {"code": "C2.2-11", "text": "Les informations collectées (documentation, procédure du constructeur, etc.) sont adaptées à l'intervention à réaliser"}]}, {"id": "C2.3", "name": "Réaliser le réglage ou le paramétrage des systèmes", "criteria": [{"code": "C2.3-01", "text": "L'organisation du poste de travail, les moyens de prévention et le choix des équipements de protection collective et individuelle sont adaptés à l'intervention"}, {"code": "C2.3-02", "text": "Les risques liés à l'intervention sont identifiés et signalés"}, {"code": "C2.3-03", "text": "Les consignes d'hygiène et de sécurité sont respectées"}, {"code": "C2.3-04", "text": "Les éléments de protection du véhicule sont adaptés et correctement utilisés"}, {"code": "C2.3-05", "text": "Aucune détérioration n'est constatée"}, {"code": "C2.3-06", "text": "La propreté du véhicule est préservée"}, {"code": "C2.3-07", "text": "Les paramétrages respectent les caractéristiques et la configuration du véhicule"}]}, {"id": "C2.4", "name": "Réaliser le contrôle qualité d’une intervention corrective", "criteria": [{"code": "C2.4-01", "text": "Les procédures qualité de l'entreprise sont respectées"}, {"code": "C2.4-02", "text": "Les dossiers relatifs aux interventions sont complétés"}]}, {"id": "C3.1", "name": "Constater un dysfonctionnement", "criteria": [{"code": "C3.1-01", "text": "L'organisation du poste de travail, les moyens de prévention et le choix des équipements de protection collective et individuelle sont adaptés à l'intervention"}, {"code": "C3.1-02", "text": "Les risques liés à l'intervention sont identifiés et signalés"}, {"code": "C3.1-03", "text": "Les consignes d'hygiène et de sécurité sont respectées"}, {"code": "C3.1-04", "text": "Les éléments de protection du véhicule sont adaptés et correctement utilisés"}, {"code": "C3.1-05", "text": "Aucune détérioration n'est constatée"}, {"code": "C3.1-06", "text": "La propreté du véhicule est préservée"}, {"code": "C3.1-07", "text": "L'ordre de réparation est pris en compte puis complété"}, {"code": "C3.1-08", "text": "Le véhicule est identifié (VIN, plaque d'immatriculation)"}, {"code": "C3.1-09", "text": "Les informations collectées (historique, documentation, plan de maintenance, recueil des symptômes auprès du client etc.) sont conformes et adaptées au dysfonctionnement"}, {"code": "C3.1-10", "text": "L'utilisation est conforme et adaptée à l'intervention"}, {"code": "C3.1-11", "text": "Le dysfonctionnement et/ou l'anomalie sont confirmés"}, {"code": "C3.1-12", "text": "Les tests préliminaires réalisés recréent le contexte d'apparition de la panne"}, {"code": "C3.1-13", "text": "Les différentes conditions et les paramètres qui peuvent influencer l'apparition des symptômes sont identifiés"}, {"code": "C3.1-14", "text": "Les résultats sont explicités en utilisant un langage professionnel clair"}, {"code": "C3.1-15", "text": "Les essais ont été réalisés en respectant les procédures du constructeur"}, {"code": "C3.1-16", "text": "L'anomalie détectée est retranscrite"}]}, {"id": "C3.2", "name": "Hiérarchiser les hypothèses", "criteria": [{"code": "C3.2-01", "text": "L'organisation du poste de travail, les moyens de prévention et le choix des équipements de protection collective et individuelle sont adaptés à l'intervention"}, {"code": "C3.2-02", "text": "Les risques liés à l'intervention sont identifiés et signalés"}, {"code": "C3.2-03", "text": "Les consignes d'hygiène et de sécurité sont respectées"}, {"code": "C3.2-04", "text": "Les informations collectées (historique, documentation, plan de maintenance, recueil des symptômes auprès du client, système embarqué de diagnostic prédictif) sont conformes et adaptées au dysfonctionnement"}, {"code": "C3.2-05", "text": "Les propositions sont pertinentes"}, {"code": "C3.2-06", "text": "Les hypothèses sont hiérarchisées selon une logique liée à la probabilité, à l'accessibilité, la rentabilité et la disponibilité"}]}, {"id": "C3.3", "name": "Mettre en œuvre un protocole d’intervention existant ou à définir", "criteria": [{"code": "C3.3-01", "text": "L'organisation du poste de travail, les moyens de prévention et le choix des équipements de protection collective et individuelle sont adaptés à l'intervention"}, {"code": "C3.3-02", "text": "Les risques liés à l'intervention sont identifiés et signalés"}, {"code": "C3.3-03", "text": "Les consignes d'hygiène et de sécurité sont respectées"}, {"code": "C3.3-04", "text": "Les éléments de protection du véhicule sont adaptés et correctement utilisés"}, {"code": "C3.3-05", "text": "Aucune détérioration n'est constatée"}, {"code": "C3.3-06", "text": "La propreté du véhicule est préservée"}, {"code": "C3.3-07", "text": "La liste des contrôles et des mesures est pertinente compte tenu des hypothèses"}, {"code": "C3.3-08", "text": "L'utilisation des outils de mesure et de contrôle est conforme et adaptée à la situation"}, {"code": "C3.3-09", "text": "Les résultats, les relevés obtenus ou les observations sont interprétés selon les valeurs de référence"}, {"code": "C3.3-10", "text": "L'interprétation des données recueillies permet d'expliquer l'origine de la défaillance"}, {"code": "C3.3-11", "text": "Un test alternatif permet de confirmer la panne"}, {"code": "C3.3-12", "text": "Les anomalies sont identifiées et retranscrites suivant la procédure prescrite"}, {"code": "C3.3-13", "text": "L'ordre de réparation est complété"}]}, {"id": "C3.4", "name": "Identifier les solutions correctives", "criteria": [{"code": "C3.4-01", "text": "Les opérations de remise en conformité sont identifiées et cohérentes avec l'origine de la panne"}, {"code": "C3.4-02", "text": "Les conséquences sur les autres éléments sont prises en compte"}]}]}},clone=x=>JSON.parse(JSON.stringify(x)),norm=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[’']/g,'').replace(/[^a-zA-Z0-9]/g,'').toLowerCase();
+function catalog(id){return clone((typeof getReferentialRegistry==='function'?getReferentialRegistry()?.future233?.[id]:null)||bundled[id]||bundled.ref_cap)}
+function refId(e){if(e?.reference233?.referentialId)return e.reference233.referentialId;const st=(typeof allStudents!=='undefined'?allStudents:[]).find(s=>String(s.id)===String(e?.studentId));return st?.classId?getClassReferentialId(st.classId):getActiveReferentialId()}
+function stamp(e,full=false){const r=catalog(refId(e));const ids=[...new Set([...(e.comps||[]),...(e.associatedComps||[])])];e.reference233={referentialId:r.referentialId,version:r.version,name:r.name,competencies:clone(full?r.competencies:r.competencies.filter(c=>ids.includes(c.id)))};return e}
+function results(e){if(!e.reference233)return;const refs=e.tpReference230||e.reference233.competencies;e.criteriaResults233={};for(const c of refs||[])for(const [i,k] of (c.criteria||[]).entries()){const key=c.id+'-'+i;e.criteriaResults233[k.code]={competence:c.id,label:k.text,level:e.levels?.[key]||'Non observé',disabled:!!e.disabledCriteria?.[key],observation:e.obs?.[key]||''}}}
+function context(){if(typeof ready==='undefined'||!ready)return;const current=getReferentialDefinition(getActiveReferentialId());if(page==='eval'&&draft){if(!draft.editId&&!draft.tpReference230&&!draft.reference233)stamp(draft,true);competencies=clone(draft.reference233?.competencies||draft.tpReference230||current?.competencies||[])}else if(['rentreeChoice','rentreeEval','activityChoice','activityEval','rtaChoice','retroExcel'].includes(page)){const d=page==='rentreeEval'?rentreeDraft:page==='activityEval'?activityDraft:null;competencies=clone(d?.editId?current?.competencies||[]:catalog(getActiveReferentialId()).competencies)}else competencies=clone(current?.competencies||[])}
+function prepare(e,isEdit){if(isEdit){if(e.reference233)results(e);return e}if(e.tpCorrection||e.tpReference230){if(e.reference233)results(e);return e}if(!e.reference233){if(typeof draft!=='undefined'&&draft?.reference233&&!draft.editId){e.reference233=clone(draft.reference233);e.reference233.competencies=e.reference233.competencies.filter(c=>[...(e.comps||[]),...(e.associatedComps||[])].includes(c.id))}else stamp(e)}results(e);return e}
+function validate(raw){if(raw?.schema!=='atelier.referential.future.v233'||!bundled[raw.referentialId])throw Error('Format ou diplôme non reconnu.');if(!raw.version||!Array.isArray(raw.competencies)||!raw.competencies.length)throw Error('Référentiel incomplet.');const seen=new Set();for(const c of raw.competencies){if(!c.id||!c.name||seen.has(c.id))throw Error('Compétence absente ou dupliquée.');seen.add(c.id);if(!Array.isArray(c.criteria)||!c.criteria.length)throw Error('Critères absents : '+c.id);for(const k of c.criteria){if(!new RegExp('^'+c.id.replace('.','\\.')+'-\\d{2,}$').test(k.code)||!k.text||seen.has(k.code))throw Error('Code ou libellé incorrect : '+k.code);seen.add(k.code)}}return clone(raw)}
+async function install(raw){const r=validate(raw),target=selectedReferentialImportTarget();const previous=catalog(r.referentialId);if(previous.version===r.version&&JSON.stringify(previous.competencies)!==JSON.stringify(r.competencies))throw Error('Le contenu a changé : attribue une nouvelle version au référentiel.');if(target!==r.referentialId)throw Error('Choisis le diplôme '+r.name+' dans la cible d’import.');const n=r.competencies.reduce((s,c)=>s+c.criteria.length,0);if(!confirm('Activer '+r.name+' : '+r.competencies.length+' compétences, '+n+' critères ?\nUniquement pour les nouvelles évaluations et diffusions. Les anciens référentiels et résultats sont conservés.'))return;await ensureMultiReferentialsRegistry();const reg=getReferentialRegistry();reg.future233=reg.future233||{};reg.future233[r.referentialId]=r;await saveMultiReferentialsRegistry();showSuccessMessage('Nouveau format activé pour '+r.name+'. Aucun historique modifié.');renderSettingsReferentialsManager()}
+function project(p,id='ref_bac'){const x=clone(p),r=catalog(id),oldVersion=x.reference233?.version;if(x.reference233?.referentialId&&x.reference233.referentialId!==id)throw Error('Le diplôme du TP ne correspond pas à celui de la classe.');if(!x.reference233&&id==='ref_cap')throw Error('Ce projet non versionné provient du catalogue Bac Pro. Sélectionne un projet CAP identifié avant diffusion à une classe CAP.');const lookup=new Map(r.competencies.flatMap(c=>c.criteria.map(k=>[k.code,{...k,competence:c.id}])));function convert(o,codeKey,labelKey,compKey){const code=o[codeKey];if(!code)return;const k=lookup.get(code);let match=k;if(oldVersion!==r.version&&String(code).startsWith('C1.4-')&&id==='ref_bac'){match=[...lookup.values()].find(k=>k.competence==='C1.4'&&norm(k.text)===norm(o[labelKey]));if(!match)throw Error('C1.4 : sélectionner un critère détaillé dans l’éditeur pour « '+(o[labelKey]||code)+' ».')}if(!match|| (o[compKey]&&o[compKey]!==match.competence))throw Error('Critère incompatible avec '+r.name+' : '+code);o[codeKey]=match.code;o[labelKey]=match.text;if(compKey)o[compKey]=match.competence;return [code,match.code]}
+const changes=new Map();for(const a of ['questions','tableBlocks','textBlocks','imageBlocks','matchBlocks','placementBlocks'])for(const o of x[a]||[]){const change=convert(o,'criterionId','criterion','competence');if(change)changes.set(...change)}
+for(const g of x.evaluationCoverGroups||[]){const c=r.competencies.find(c=>c.id===g.code);if(!c)throw Error('Compétence incompatible : '+g.code);g.title=c.name;for(const k of g.criteria||[]){const change=convert(k,'code','label',null);if(change)changes.set(...change)}}
+if(x.criteresRetenus)x.criteresRetenus=x.criteresRetenus.replace(/C\d+\.\d+-\d+/g,k=>changes.get(k)||k);
+x.reference233={referentialId:r.referentialId,version:r.version,name:r.name};return x}
+window.tp233={catalog,stamp,prepare,results,context,install,validate,project};
 })();
 </script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -3767,6 +3786,7 @@ async function loadData(){
   if(!document.querySelector("#main .tpc-editor")) render();
 }
 async function persistEvaluation(e,isEdit=false){
+  window.tp233.prepare(e,isEdit);
   await openDB();
   if(isEdit){await deleteFromStore("evaluations",e.id);await put("evaluations",e);return e.id;}
   // V18 : identifiant permanent unique entre tous les postes.
@@ -4065,6 +4085,7 @@ function updateTeacherNavigationButtons(){
 }
 
 function render(){
+ window.tp233?.context();
  if(!ready){document.getElementById("main").innerHTML='<div class="panel"><h2>Chargement de la base de données…</h2><p class="muted">Initialisation du stockage local.</p></div>';return;}
  if(page==="home")home();
  else if(page==="students")studentsPage();
@@ -4171,8 +4192,8 @@ function home(){
     </div>`;
   /* Affichage de version de l'accueil : information uniquement, sans impact sur le bootstrap. */
   const homeVersionBadge=document.getElementById("build-version");
-  if(homeVersionBadge)homeVersionBadge.textContent='V232 — Évaluation · Charge Atelier · TP · Correction';
-  document.title='V232 — Évaluation · Charge Atelier · TP · Correction';
+  if(homeVersionBadge)homeVersionBadge.textContent='V233 — Évaluation · Charge Atelier · TP · Correction';
+  document.title='V233 — Évaluation · Charge Atelier · TP · Correction';
 }
 
 function collapseAllCollectiveRows(){
@@ -4399,6 +4420,7 @@ async function editEvaluation(evaluationId,studentIdHint){
   selectedStudent=owner.id;
   draft={
     editId:ev.id,
+    reference233:ev.reference233?JSON.parse(JSON.stringify(ev.reference233)):null,
     tpReference230:ev.tpReference230||null,tpSelection230:ev.tpSelection230||null,
     title:ev.title||"",
     date:ev.date||"",
@@ -6716,7 +6738,7 @@ const renderCriterion=(cr,i)=>{
   const key=id+"-"+i,val=draft.levels[key]||"";
   return `<div class="criterion" data-criterion-key="${esc(key)}" ${val?`data-selected-level="${esc(val)}"`:""} style="padding:14px 0;display:${draft.disabledCriteria[key]?"none":""}">
     <div class="row" style="align-items:center;gap:12px">
-      <div class="criterion-text" style="flex:1"><b>${i+1}.</b> ${esc(cr.text||cr)}</div>
+      <div class="criterion-text" style="flex:1"><b>${esc(cr.code||String(i+1))}.</b> ${esc(cr.text||cr)}</div>
       <button type="button" class="criterion-toggle-switch"
         role="switch"
         aria-checked="${draft.disabledCriteria[key]?"false":"true"}"
@@ -9038,7 +9060,7 @@ function normalizeStructuredReferentielJsonVRef2(raw,fileName="Référentiel JSO
         });
       }else{
         const t=String(cr.text||cr.value||cr.criterion||cr.critere||label||"").trim();
-        if(t) out.push({group,label,text:t});
+        if(t) out.push({group,label,text:t,...(cr.code?{code:String(cr.code)}:{})});
       }
     });
     return out;
@@ -9082,6 +9104,7 @@ async function importReferentielJsonFile(input){
     const rawText=await file.text();
     let raw;
     try{raw=JSON.parse(rawText);}catch(e){throw new Error("Le fichier sélectionné n'est pas un JSON valide.");}
+    if(raw?.schema==='atelier.referential.future.v233'){await window.tp233.install(raw);input.value='';return;}
     const parsed=normalizeStructuredReferentielJsonVRef2(raw,file.name);
     const payload={
       fileName:file.name,
@@ -11108,6 +11131,7 @@ function competenceActivities(c){
 }
 
 function renderCriteriaForCompetence(c,draft){
+ c=window.tp230.resolve(draft,c.id,c);
   if(!c.criteria.some(x=>typeof x==="object"&&x.group)){
     return c.criteria.map((crit,i)=>{
       const key=c.id+"-"+i, val=draft.levels[key]||"Non observé";
@@ -11123,7 +11147,7 @@ function renderCriteriaForCompetence(c,draft){
       ${items.map(crit=>{
         const key=c.id+"-"+crit.i, val=draft.levels[key]||"Non observé";
         return `<div class="c11-criterion">
-          <div class="c11-criterion-text"><b>${crit.i+1}.</b> ${esc(crit.text)}</div>
+          <div class="c11-criterion-text"><b>${esc(crit.code||String(crit.i+1))}.</b> ${esc(crit.text)}</div>
           <div class="levels">${["À renforcer","En cours","À consolider","Maîtrisé"].map(v=>`<button class="${val===v?"selected ":""}level-${levelScore(v)}" onclick="setLevel('${key}','${v}')">${v}</button>`).join("")}</div>
         </div>`;
       }).join("")}
@@ -16119,7 +16143,7 @@ window.addEventListener('load',()=>setTimeout(resume,1500),{once:true});
  const oldDiffuse=window.tpGenDiffuseSaved;window.tpGenDiffuseSaved=async function(id){const x=rows().find(r=>String(r.savedId)===String(id));if(x?.snapshot?.rawProjectStored){const raw=await getProject(id);if(raw)mem.set(String(id),raw)}return oldDiffuse?.(id)};
  const oldLocked=window.tpGenLockedSnapshot;window.tpGenLockedSnapshot=function(){const d=oldLocked?.();if(d?.rawProjectStored&&!d.rawProject){const id=String(tpGenState.currentSavedId||window.__tpDiffusionSavedId||'');const raw=mem.get(id);if(raw)d.rawProject=JSON.parse(JSON.stringify(raw))}return d};
  const oldDelete=window.tpGenDeleteSaved;window.tpGenDeleteSaved=async function(id){const before=rows().some(x=>String(x.savedId)===String(id));const ret=await oldDelete?.(id);if(before&&!rows().some(x=>String(x.savedId)===String(id)))try{await delProject(id)}catch(e){console.warn(e)}return ret};
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V232 — Évaluation · Charge Atelier · TP · Correction';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V233 — Évaluation · Charge Atelier · TP · Correction';
  migrate();
  console.info('V113 actif : projets TP lourds stockés dans IndexedDB; localStorage limité aux métadonnées.');
 })();
@@ -16179,7 +16203,7 @@ window.addEventListener('load',()=>setTimeout(resume,1500),{once:true});
  };
  const oldDiffPage=window.tpV76DiffusionsPage;
  if(typeof oldDiffPage==='function')window.tpV76DiffusionsPage=function(){const out=oldDiffPage.apply(this,arguments);setTimeout(()=>{const data=diffRows().filter(r=>!new Set(deletedIds()).has(String(r.id))).sort((a,b)=>String(b.diffusedAt||'').localeCompare(String(a.diffusedAt||''))),els=[...document.querySelectorAll('.v76-diff-row')];els.forEach((el,i)=>{const r=data[i];if(!r||el.querySelector('[data-v114-delete]'))return;const oldBtn=el.querySelector('button');const wrap=document.createElement('div');wrap.className='v114-diff-actions';if(oldBtn){oldBtn.replaceWith(wrap);wrap.appendChild(oldBtn)}const b=document.createElement('button');b.type='button';b.className='tpgen-btn danger';b.dataset.v114Delete='1';b.textContent='🗑️ Supprimer';b.onclick=()=>window.tp114DeleteDiffusion(r.id);wrap.appendChild(b)})},0);return out};
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V232 — Évaluation · Charge Atelier · TP · Correction';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V233 — Évaluation · Charge Atelier · TP · Correction';
  console.info('V114 actif : import TP IndexedDB corrigé et suppression individuelle des TP diffusés.');
 })();
 </script>
@@ -16336,7 +16360,7 @@ const style=document.createElement('style');style.id='tp228-blocks';style.textCo
  }catch(e){console.warn('V213 migration registre Mes TP diffusés',e)}
  // La photothèque n'est volontairement jamais incluse dans cette synchronisation.
  setTimeout(()=>run('demarrage'),1600);
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V232 — Évaluation · Charge Atelier · TP · Correction';document.title='V232 — Évaluation · Charge Atelier · TP · Correction';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V233 — Évaluation · Charge Atelier · TP · Correction';document.title='V233 — Évaluation · Charge Atelier · TP · Correction';
  console.info('V133 : Firebase limité aux TP diffusés. TP enregistrés et photothèque restent locaux.');
 })();
 </script>
@@ -16374,7 +16398,7 @@ const style=document.createElement('style');style.id='tp228-blocks';style.textCo
  window.addEventListener('pagehide',()=>{if(!isHome())return;try{const light={at:new Date().toISOString(),version:VERSION,localStorage:Object.fromEntries(Array.from({length:localStorage.length},(_,i)=>{const k=localStorage.key(i);return[k,localStorage.getItem(k)]}))};localStorage.setItem('evaluation_emergency_backup_v133',JSON.stringify(light))}catch(_){}});
  // Outil volontaire : efface les anciennes copies cloud des TP ENREGISTRÉS V132, jamais les diffusions.
  window.v133CleanSavedTpCloud=async function(){if(!confirm('Supprimer de Firebase les anciennes copies des TP enregistrés ?\nLes TP diffusés ne seront pas touchés.'))return false;const fs=window.firebase?.firestore?.();if(!fs)throw new Error('Firebase indisponible');const col=fs.collection('workspaces').doc('evaluation-mv-main').collection('tpProjectsV132'),snap=await col.get();for(const d of snap.docs){const c=await d.ref.collection('chunks').get();for(let i=0;i<c.docs.length;i+=300){const b=fs.batch();c.docs.slice(i,i+300).forEach(x=>b.delete(x.ref));await b.commit()}await d.ref.delete()}alert(snap.size+' TP enregistrés supprimés de Firebase. Les versions locales sont conservées.');return true};
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V232 — Évaluation · Charge Atelier · TP · Correction';document.title='V232 — Évaluation · Charge Atelier · TP · Correction';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V233 — Évaluation · Charge Atelier · TP · Correction';document.title='V233 — Évaluation · Charge Atelier · TP · Correction';
  console.info('V133 poste maison:',isHome()?'actif':'inactif','— TP enregistrés locaux, diffusions Firebase.');
 })();
 </script>
@@ -16420,8 +16444,8 @@ const style=document.createElement('style');style.id='tp228-blocks';style.textCo
  window.addEventListener('storage',e=>{if(e.key===DKEY)purgeDeleted()});
  window.addEventListener('tp-v133-synced',purgeDeleted);
  setInterval(purgeDeleted,4000);
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V232 — Évaluation · Charge Atelier · TP · Correction';
- document.title='V232 — Évaluation · Charge Atelier · TP · Correction';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V233 — Évaluation · Charge Atelier · TP · Correction';
+ document.title='V233 — Évaluation · Charge Atelier · TP · Correction';
  console.info('V134 : page TP diffusés non intrusive et suppression Firebase V106/V132 sécurisée.');
 })();
 </script>
@@ -16441,7 +16465,7 @@ const style=document.createElement('style');style.id='tp228-blocks';style.textCo
  window.tp138ToggleStudents=function(id){const el=document.getElementById('v138-students-'+CSS.escape(String(id)));if(!el)return;const hidden=el.hidden;el.hidden=!hidden;const b=document.querySelector(`[data-v138-toggle="${CSS.escape(String(id))}"]`);if(b)b.textContent=hidden?'▾ Masquer les élèves':'▸ Voir les élèves';};
  window.tpV76DiffusionsPage=function(){window.setActive?.('tpGenerator');const rows=diffs().sort((a,b)=>String(b.diffusedAt||'').localeCompare(String(a.diffusedAt||''))),main=document.getElementById('main');if(!main)return false;main.innerHTML=`<header class="app-top-header"></header><div class="tpgen-manager-shell"><div class="tpgen-head"><div><h1>📤 Mes TP diffusés</h1><p class="muted">Registre multiposte léger : gris = diffusé, jaune = rendu, vert = corrigé. Les fichiers TP restent locaux / Dropbox.</p></div><button class="tpgen-btn secondary" onclick="tpGeneratorPage()">← Retour</button></div><div class="tpgen-card">${rows.length?rows.map(r=>{const c=counts(r),id=String(r.id||'');return `<div class="v138-diff-card"><div class="v138-top"><div><b>${esc(r.tpCode||'TP')} — ${esc(r.title||'')}</b><div class="muted">${esc(r.className||'')} • ${r.diffusedAt?new Date(r.diffusedAt).toLocaleString('fr-FR'):''} • ${(r.students||[]).length} élève(s)</div></div><div class="v138-actions"><button class="tpgen-btn primary" onclick="tpV76AddDiffusionToDay('${esc(id)}')">＋ Affecter</button><button class="tpgen-btn danger" onclick="tp114DeleteDiffusion('${esc(id)}')">🗑️ Supprimer</button></div></div><div class="v138-counts"><span class="v138-count v138-grey">⬜ Diffusé <b>${c.grey}</b></span><span class="v138-count v138-yellow">🟨 Rendu <b>${c.yellow}</b></span><span class="v138-count v138-green">🟩 Corrigé <b>${c.green}</b></span></div><button class="v138-toggle" data-v138-toggle="${esc(id)}" onclick="tp138ToggleStudents('${esc(id)}')">▸ Voir les élèves</button><div class="v138-students" id="v138-students-${esc(id)}" hidden>${(r.students||[]).map(st=>{const q=state(r,st),label=q==='green'?'Corrigé':q==='yellow'?'Rendu':'Diffusé';return `<div class="v138-student ${q}"><b>${esc(sname(st))}</b><span>${label}</span></div>`}).join('')||'<span class="muted">Liste nominative absente de cette ancienne diffusion.</span>'}</div></div>`}).join(''):'<div class="muted">Aucun TP diffusé enregistré.</div>'}</div></div>`;return true};
  // Le registre Firebase ne doit jamais contenir le projet TP lourd : la V132 a été patchée pour n'envoyer que les métadonnées + élèves.
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V232 — Évaluation · Charge Atelier · TP · Correction';document.title='V232 — Évaluation · Charge Atelier · TP · Correction';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V233 — Évaluation · Charge Atelier · TP · Correction';document.title='V233 — Évaluation · Charge Atelier · TP · Correction';
  console.info('V138 : registre TP diffusés léger + élèves repliés + compteurs gris/jaune/vert.');
 })();
 </script>
@@ -16487,7 +16511,7 @@ const style=document.createElement('style');style.id='tp228-blocks';style.textCo
  const oldImport=window.tpCorrectionImport;window.tpCorrectionImport=async function(files){let before=new Set((()=>{try{return (JSON.parse(localStorage.getItem(CORR)||'[]')||[]).map(x=>String(x.id))}catch(_){return[]}})());let out=await oldImport?.apply(this,arguments);setTimeout(async()=>{try{let rows=JSON.parse(localStorage.getItem(CORR)||'[]')||[], fresh=rows.filter(x=>!before.has(String(x.id))&&!x.correctedAt);for(const light of fresh){let full=null;try{let db=await new Promise((ok,no)=>{let q=indexedDB.open('fdmahy_corrections_v129',1);q.onsuccess=()=>ok(q.result);q.onerror=()=>no(q.error)});full=await new Promise((ok,no)=>{let q=db.transaction('copies').objectStore('copies').get(String(light.id));q.onsuccess=()=>ok(q.result);q.onerror=()=>no(q.error)});db.close()}catch(_){}await cloudPut(full||light)}if(fresh.length)console.info('V139 copies rendues envoyées temporairement vers Firebase:',fresh.length)}catch(e){console.warn('V139 Firebase copies rendues',e)}},250);return out};
  // V227 : nettoyage des fragments après sauvegarde complète confirmée, via tp227.
  // Version
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V232 — Évaluation · Charge Atelier · TP · Correction';document.title='V232 — Évaluation · Charge Atelier · TP · Correction';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V233 — Évaluation · Charge Atelier · TP · Correction';document.title='V233 — Évaluation · Charge Atelier · TP · Correction';
  console.info('V139 : diffusion depuis fichier local + aperçu temporaire + registre léger + copies rendues Firebase temporaires.');
 })();
 </script>
@@ -16525,7 +16549,7 @@ const style=document.createElement('style');style.id='tp228-blocks';style.textCo
    o.querySelector('.v144-save').onclick=async()=>{const b=o.querySelector('.v144-save');b.disabled=true;b.textContent='Sauvegarde en cours…';try{const r=await window.v133SaveGlobalBackup?.();if(!r?.ok)throw Error('Sauvegarde non confirmée.');o.remove();await baseLogout?.()}catch(e){b.disabled=false;b.textContent='💾 Sauvegarder puis quitter';alert('Sauvegarde impossible : '+(e?.message||e))}};
    o.querySelector('.v144-nosave').onclick=async()=>{o.remove();await baseLogout?.()};return false;
  };
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V232 — Évaluation · Charge Atelier · TP · Correction';document.title='V232 — Évaluation · Charge Atelier · TP · Correction';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V233 — Évaluation · Charge Atelier · TP · Correction';document.title='V233 — Évaluation · Charge Atelier · TP · Correction';
  console.info('V144 actif : base de démarrage V139 conservée; navigation diffusions et sortie corrigées sans modifier Firebase.');
 })();
 </script>
@@ -16559,7 +16583,7 @@ const style=document.createElement('style');style.id='tp228-blocks';style.textCo
   const mo=new MutationObserver(bind); mo.observe(document.documentElement,{childList:true,subtree:true}); bind();
   // Firebase/storage refreshes may update data but never navigate.
   window.addEventListener('tp-v133-synced',()=>{}, {passive:true});
-  const bv=document.getElementById('build-version'); if(bv) bv.textContent='V232 — Évaluation · Charge Atelier · TP · Correction';
+  const bv=document.getElementById('build-version'); if(bv) bv.textContent='V233 — Évaluation · Charge Atelier · TP · Correction';
   console.info('V145 actif : navigation Mes TP diffusés strictement réservée à une action utilisateur.');
 })();
 </script>
@@ -16574,7 +16598,7 @@ const style=document.createElement('style');style.id='tp228-blocks';style.textCo
  const clone=o=>JSON.parse(JSON.stringify(o||{}));
  const safe=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Za-z0-9_-]+/g,'-').replace(/^-+|-+$/g,'')||'TP';
  let folderHandle=null;
- function forceVersion(){const b=document.getElementById('build-version');if(b&&b.textContent!=='V232 — Évaluation · Charge Atelier · TP · Correction')b.textContent='V232 — Évaluation · Charge Atelier · TP · Correction';document.title='V232 — Évaluation · Charge Atelier · TP · Correction';document.getElementById('v144-version')?.remove();}
+ function forceVersion(){const b=document.getElementById('build-version');if(b&&b.textContent!=='V233 — Évaluation · Charge Atelier · TP · Correction')b.textContent='V233 — Évaluation · Charge Atelier · TP · Correction';document.title='V233 — Évaluation · Charge Atelier · TP · Correction';document.getElementById('v144-version')?.remove();}
  forceVersion();
  document.addEventListener('DOMContentLoaded',forceVersion,{once:true});
  setTimeout(forceVersion,0);setTimeout(forceVersion,500);
@@ -16602,8 +16626,8 @@ const style=document.createElement('style');style.id='tp228-blocks';style.textCo
   // 1) Une seule version visible. Ne touche ni à l'authentification ni au démarrage Firebase.
   function applyVersion(){
     const b=document.getElementById('build-version');
-    if(b) b.textContent='V232 — Évaluation · Charge Atelier · TP · Correction';
-    document.title='V232 — Évaluation · Charge Atelier · TP · Correction';
+    if(b) b.textContent='V233 — Évaluation · Charge Atelier · TP · Correction';
+    document.title='V233 — Évaluation · Charge Atelier · TP · Correction';
     document.getElementById('v144-version')?.remove();
   }
   applyVersion();
@@ -16779,7 +16803,7 @@ const style=document.createElement('style');style.id='tp228-blocks';style.textCo
  };
  function markLegacyRows(root=document){root.querySelectorAll?.('.tpc-row').forEach(row=>{const b=row.querySelector('button[onclick*="tpCorrectionOpen"]');if(!b||row.querySelector('.v158-legacy-chip'))return;const m=(b.getAttribute('onclick')||'').match(/tpCorrectionOpen\(['\"]([^'\"]+)/);if(!m)return;const r=read().find(x=>String(x.id)===m[1]);if(r&&!project(r.data)){const target=row.children?.[1]||row.firstElementChild;target?.insertAdjacentHTML('beforeend','<span class="v158-legacy-chip">Ancien format</span>')}})}
  markLegacyRows();new MutationObserver(ms=>ms.forEach(m=>m.addedNodes.forEach(n=>{if(n.nodeType===1)markLegacyRows(n)}))).observe(document.documentElement,{childList:true,subtree:true});
- function setVersion(){const b=document.getElementById('build-version');if(b)b.textContent='V232 — Évaluation · Charge Atelier · TP · Correction';document.title='V232 — Évaluation · Charge Atelier · TP · Correction'}
+ function setVersion(){const b=document.getElementById('build-version');if(b)b.textContent='V233 — Évaluation · Charge Atelier · TP · Correction';document.title='V233 — Évaluation · Charge Atelier · TP · Correction'}
  setVersion();document.addEventListener('DOMContentLoaded',setVersion,{once:true});setTimeout(setVersion,250);
  console.info('V158 : compatibilité de correction des anciennes copies activée, sans modification du démarrage.');
 })();
@@ -16835,7 +16859,7 @@ const style=document.createElement('style');style.id='tp228-blocks';style.textCo
 })();
 </script>
 <script id="v159-version-display">
-(function(){const V='V232';function set(){document.querySelectorAll('.app-version-badge,.version-badge,[data-app-version]').forEach(e=>{if(/V\d+/i.test(e.textContent||''))e.textContent=(e.textContent||'').replace(/V\d+/i,V)});document.title=(document.title||'Évaluation · Charge Atelier · TP · Correction').replace(/V\d+/i,V)}set();setTimeout(set,300);setTimeout(set,1800)})();
+(function(){const V='V233';function set(){document.querySelectorAll('.app-version-badge,.version-badge,[data-app-version]').forEach(e=>{if(/V\d+/i.test(e.textContent||''))e.textContent=(e.textContent||'').replace(/V\d+/i,V)});document.title=(document.title||'Évaluation · Charge Atelier · TP · Correction').replace(/V\d+/i,V)}set();setTimeout(set,300);setTimeout(set,1800)})();
 </script>
 
 
@@ -17150,8 +17174,8 @@ function inject(){if(window.tp217)return;
    Le timer V175 a été supprimé directement dans le code source ci-dessus. */
 function setVersion(){
   const b=document.getElementById('build-version');
-  if(b)b.textContent='V232 — Évaluation · Charge Atelier · TP · Correction';
-  document.title='V232 — Évaluation · Charge Atelier · TP · Correction';
+  if(b)b.textContent='V233 — Évaluation · Charge Atelier · TP · Correction';
+  document.title='V233 — Évaluation · Charge Atelier · TP · Correction';
 }
 function install(){
   if(window.tp217)return;
@@ -17692,8 +17716,8 @@ if(typeof oldPage==='function'&&!oldPage.__v206pdf){
 }
 
 /* Version statique : pas de MutationObserver ni timer périodique. */
-const bv=document.getElementById('build-version');if(bv)bv.textContent='V232 — Évaluation · Charge Atelier · TP · Correction';
-document.title='V232 — Évaluation · Charge Atelier · TP · Correction';
+const bv=document.getElementById('build-version');if(bv)bv.textContent='V233 — Évaluation · Charge Atelier · TP · Correction';
+document.title='V233 — Évaluation · Charge Atelier · TP · Correction';
 window.tp228Blocks.screen=(r,p,x,a)=>window.tp228Blocks.render(x,a,{signature:r.data?.reponses?.signatures232?.[x.id],format:formattedText,frame:blockFrameStyle(x),prefix:pictogram(r.data,p,x),suffix:callProfessor(x)});
 window.tpV206PdfV74={buildPdfPages,contentUnits,summaryUnits,chooseFolder:window.tp206ChooseCorrectionFolder};
 console.info('V206 : PDF de correction fidèle à l’éditeur V74 + coches noires avant sélection + dossier PDF choisi.');
@@ -17735,7 +17759,7 @@ console.info('V206 : PDF de correction fidèle à l’éditeur V74 + coches noir
  window.tp116ViewDiffusion=function(id){const r=diffRows().find(x=>String(x.id)===String(id));if(!r)return alert('TP diffusé introuvable.');const p=r.tpProject||projectFromRaw(r.snapshot?.rawProject);if(p&&window.tp232PreviewProject)return window.tp232PreviewProject(p,r.title);const ov=document.createElement('div');ov.className='v116-preview-overlay';ov.innerHTML=`<div class="v116-preview-box"><div class="v116-preview-top"><div><b>👁 ${esc(r.tpCode)} — ${esc(r.title)}</b><div class="muted">${esc(r.className)} · ${r.students?.length||0} élève(s)</div></div><button type="button">✕ Fermer</button></div>${sheet(p)}</div>`;ov.querySelector('button').onclick=()=>ov.remove();document.body.appendChild(ov)};
  // Reconstruit Mes TP diffusés avec Voir + Affecter + Supprimer et ne dépend pas de l'ancien formulaire générateur.
  const priorPage=window.tpV76DiffusionsPage;window.tpV76DiffusionsPage=function(){priorPage?.();setTimeout(()=>{const data=diffRows().sort((a,b)=>String(b.diffusedAt||'').localeCompare(String(a.diffusedAt||''))),els=[...document.querySelectorAll('.v76-diff-row')];els.forEach((el,i)=>{const r=data[i];if(!r)return;let wrap=el.querySelector('.v114-diff-actions,.v116-diff-actions');if(!wrap){wrap=document.createElement('div');wrap.className='v116-diff-actions';const b=el.querySelector('button');if(b){b.replaceWith(wrap);wrap.appendChild(b)}}else wrap.classList.add('v116-diff-actions');if(!wrap.querySelector('[data-v116-view]')){const b=document.createElement('button');b.className='tpgen-btn secondary';b.dataset.v116View='1';b.textContent='👁 Voir le TP';b.onclick=()=>window.tp116ViewDiffusion(r.id);wrap.prepend(b)}})},0)};
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V232 — Évaluation · Charge Atelier · TP · Correction';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V233 — Évaluation · Charge Atelier · TP · Correction';
  console.info('V117 actif : rendu TP polyvalent et diffusion tracée.');
 })();
 </script><style id="v117-prof-style">
@@ -17759,7 +17783,7 @@ console.info('V206 : PDF de correction fidèle à l’éditeur V74 + coches noir
  let oldBuild=window.tpGenBuildStudentPackage;window.tpGenBuildStudentPackage=function(student,d){let m=oldBuild.apply(this,arguments),p=window.__v117Project||window.__v116CurrentProject||null;if(p){m.tpProject=clone(p);m.tpPictograms=clone(p.__pictograms||[]);m.meta=m.meta||{};m.meta.readerRequired='V117';m.type='tp-eleve-v117';window.tp230.ensure(m)}return m};
  // Hydratation complète avec pictogrammes avant export.
  ['tpGenExportClassToFolder','tpGenExportClassZip'].forEach(name=>{let prev=window[name];if(typeof prev!=='function')return;window[name]=async function(){let sid=String(tpGenState?.currentSavedId||window.__tpDiffusionSavedId||''),rr=sid?await raw(sid):null;window.__v117Project=unpack(rr);try{return await prev.apply(this,arguments)}finally{window.__v117Project=null}}});
- let bv=document.getElementById('build-version');if(bv)bv.textContent='V232 — Évaluation · Charge Atelier · TP · Correction';console.info('V117 actif : vue TP polyvalente + diffusion persistante.');
+ let bv=document.getElementById('build-version');if(bv)bv.textContent='V233 — Évaluation · Charge Atelier · TP · Correction';console.info('V117 actif : vue TP polyvalente + diffusion persistante.');
 })();
 </script><!-- V118 — concordance Editeur / Logiciel / Lecteur + diffusion transactionnelle -->
 <style id="v118-style">
@@ -17797,7 +17821,7 @@ console.info('V206 : PDF de correction fidèle à l’éditeur V74 + coches noir
  function injectRetroSettings(){let main=document.getElementById('main');if(!main||main.querySelector('#v118-retro-settings'))return;let host=main.querySelector('.rubric-other-wrap .settings-rubric-collapse-body')||main.querySelector('.settings-grid')||main;let card=document.createElement('div');card.id='v118-retro-settings';card.className='settings-card section-other';card.innerHTML=`<h3>🕘 Évaluations rétroactives</h3><p class="muted">Choisis les cartes visibles dans « Nouvelle évaluation » pour le profil administrateur.</p><div class="v118-switch-row"><div><b>Positionnement rétroactif</b><div class="muted">Afficher la création d'un positionnement à une date antérieure.</div></div><label class="v118-switch"><input type="checkbox" ${retroOn(RETRO_POS)?'checked':''} onchange="v118ToggleRetro('${RETRO_POS}',this.checked)"><span class="v118-slider"></span></label></div><div class="v118-switch-row"><div><b>Import rétroactif collectif</b><div class="muted">Afficher l'import Excel rétroactif collectif.</div></div><label class="v118-switch"><input type="checkbox" ${retroOn(RETRO_XLS)?'checked':''} onchange="v118ToggleRetro('${RETRO_XLS}',this.checked)"><span class="v118-slider"></span></label></div>`;host.appendChild(card)}
  let oldSettings=window.renderSettingsPage;if(typeof oldSettings==='function')window.renderSettingsPage=function(){let r=oldSettings.apply(this,arguments);setTimeout(injectRetroSettings,0);return r};
  let oldChoice=window.evaluationChoicePage;if(typeof oldChoice==='function')window.evaluationChoicePage=function(){let r=oldChoice.apply(this,arguments);setTimeout(()=>{document.querySelectorAll('.eval-choice-card').forEach(c=>{let t=c.textContent||'';if(/Positionnement rétroactif/i.test(t)&&!retroOn(RETRO_POS))c.remove();if(/Import rétroactif collectif/i.test(t)&&!retroOn(RETRO_XLS))c.remove()})},0);return r};
- let bv=document.getElementById('build-version');if(bv)bv.textContent='V232 — Évaluation · Charge Atelier · TP · Correction';
+ let bv=document.getElementById('build-version');if(bv)bv.textContent='V233 — Évaluation · Charge Atelier · TP · Correction';
  console.info('V118 actif : diffusion transactionnelle, générateur replié, rétroactif paramétrable.');
 })();
 </script>
@@ -17813,7 +17837,7 @@ console.info('V206 : PDF de correction fidèle à l’éditeur V74 + coches noir
  async function project(){const id=sid();if(!id)return null;try{const db=await new Promise((ok,no)=>{const r=indexedDB.open('fdmahy_tp_storage_v113',1);r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error)});const z=await new Promise((ok,no)=>{const q=db.transaction('tp_projects').objectStore('tp_projects').get(id);q.onsuccess=()=>ok(q.result?.rawProject||null);q.onerror=()=>no(q.error)});db.close();if(z?.schema==='evaluation.tp.v1'&&z.data){const p=clone(z.data);p.__pictograms=clone(z.pictograms||[]);return p}if(z?.data?.publicId){const p=clone(z.data);p.__pictograms=clone(z.pictograms||[]);return p}return z?.publicId?clone(z):null}catch(e){console.warn('V119 projet',e);return null}}
  function chosenStudents(){const ids=[...document.querySelectorAll('#tpgen-class-students input[type=checkbox]:checked')].map(x=>String(x.value));const pool=window.tpGenClassStudents?.()||[];return ids.map(id=>pool.find(s=>String(s.id)===id)).filter(Boolean)}
  function filePart(v){return window.tpGenSafeFilePart?window.tpGenSafeFilePart(v):String(v||'').replace(/[^a-z0-9_-]+/gi,'_')}
- async function buildFiles(){const x=saved();if(!x)throw Error('Le TP sélectionné est introuvable.');if(!x.locked)throw Error('Le TP doit être verrouillé avant diffusion.');const d=clone(x.snapshot||{}), p=await project(), sts=chosenStudents();if(!sts.length)throw Error('Sélectionne au moins un élève.');window.__v117Project=p;window.__v116CurrentProject=p;const code=p?.publicId||d.importedPublicId||window.tpGenTpCode?.(d)||'TP';const className=document.querySelector('#tp26-diff-class option:checked')?.textContent?.trim()||d.className||'';const files=[];for(const st of sts){const model=window.tpGenBuildStudentPackage(st,d);if(p){model.tpProject=clone(p);model.tpPictograms=clone(p.__pictograms||[]);model.meta=model.meta||{};model.meta.readerRequired='V119';model.meta.sourceSavedId=x.savedId;model.type='tp-eleve-v119';model.code=code;model.titre=p.publicTitle||p.title||model.titre}const parts=window.tpGenStudentParts?window.tpGenStudentParts(st):{last:st.name||'ELEVE',first:''};files.push({name:[filePart(parts.last),filePart(parts.first),filePart(code),'DIFFUSE'].filter(Boolean).join('_')+'.tp',text:JSON.stringify(model,null,2)})}if(document.getElementById('tpgen-include-manifest')?.checked)files.push({name:'MANIFESTE_TP_CLASSE.txt',text:[`TP : ${code} — ${p?.publicTitle||p?.title||d.activity||''}`,`Classe : ${className}`,`Nombre d'élèves : ${sts.length}`,`Date : ${new Date().toLocaleString('fr-FR')}`,'',...files.map((f,i)=>`${i+1}. ${f.name}`)].join('\r\n')});return {files,d,p,sts,x,code,className}}
+ async function buildFiles(){const x=saved();if(!x)throw Error('Le TP sélectionné est introuvable.');if(!x.locked)throw Error('Le TP doit être verrouillé avant diffusion.');const d=clone(x.snapshot||{}), p=await project(), sts=chosenStudents();if(!sts.length)throw Error('Sélectionne au moins un élève.');window.__v117Project=p;window.__v116CurrentProject=p;const code=p?.publicId||d.importedPublicId||window.tpGenTpCode?.(d)||'TP';const className=document.querySelector('#tp26-diff-class option:checked')?.textContent?.trim()||d.className||'';const files=[];for(const st of sts){const model=window.tpGenBuildStudentPackage(st,d);if(p){model.tpProject=window.tp233.project(p,getActiveReferentialId());window.tp230.ensure(model);model.tpPictograms=clone(p.__pictograms||[]);model.meta=model.meta||{};model.meta.readerRequired='V119';model.meta.sourceSavedId=x.savedId;model.type='tp-eleve-v119';model.code=code;model.titre=p.publicTitle||p.title||model.titre}const parts=window.tpGenStudentParts?window.tpGenStudentParts(st):{last:st.name||'ELEVE',first:''};files.push({name:[filePart(parts.last),filePart(parts.first),filePart(code),'DIFFUSE'].filter(Boolean).join('_')+'.tp',text:JSON.stringify(model,null,2)})}if(document.getElementById('tpgen-include-manifest')?.checked)files.push({name:'MANIFESTE_TP_CLASSE.txt',text:[`TP : ${code} — ${p?.publicTitle||p?.title||d.activity||''}`,`Classe : ${className}`,`Nombre d'élèves : ${sts.length}`,`Date : ${new Date().toLocaleString('fr-FR')}`,'',...files.map((f,i)=>`${i+1}. ${f.name}`)].join('\r\n')});return {files,d,p,sts,x,code,className}}
  function compactDiff(r){if(!r||typeof r!=='object')return null;return {id:String(r.id||('DIFF125-'+Date.now().toString(36))),savedId:String(r.savedId||''),tpCode:String(r.tpCode||r.code||''),title:String(r.title||''),classId:String(r.classId||''),className:String(r.className||''),students:Array.isArray(r.students)?r.students.map(x=>({id:String(x?.id||''),name:String(x?.name||'')})):[],studentIds:Array.isArray(r.studentIds)?r.studentIds.map(String):[],diffusedAt:r.diffusedAt||new Date().toISOString(),fileCount:Number(r.fileCount||r.studentIds?.length||r.students?.length||0),storageVersion:125};}
  function migrateDiffusionsV127(){try{const raw=JSON.parse(localStorage.getItem(DKEY)||'[]');if(!Array.isArray(raw))return [];const compact=raw.map(compactDiff).filter(Boolean).slice(0,500);localStorage.setItem(DKEY,JSON.stringify(compact));return compact}catch(e){console.warn('V127 migration diffusions',e);return []}}
  function persist(ctx){try{let a=migrateDiffusionsV127();const rec=compactDiff({id:'DIFF125-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,7),savedId:String(ctx.x.savedId),tpCode:ctx.code,title:ctx.p?.publicTitle||ctx.p?.title||ctx.d.activity||'TP',classId:String(window.tpGenState?.diffusionClassId||''),className:ctx.className,students:ctx.sts.map(s=>({id:String(s.id),name:s.name||''})),studentIds:ctx.sts.map(s=>String(s.id)),diffusedAt:new Date().toISOString(),fileCount:ctx.sts.length});a.unshift(rec);localStorage.setItem(DKEY,JSON.stringify(a.slice(0,500)));window.dispatchEvent(new CustomEvent('tp-diffusions-changed'));try{window.firebaseSyncExtendedLocalData?.()}catch(_){}}catch(e){console.error('V127 persist',e);throw Error('Les fichiers ont été créés mais la diffusion n’a pas pu être enregistrée : '+e.message)}}
@@ -17821,7 +17845,7 @@ console.info('V206 : PDF de correction fidèle à l’éditeur V74 + coches noir
  window.tpGenExportClassToFolder=async function(){try{if(!folderHandle){const ok=await window.tpGenChooseClassFolder();if(!ok)return false}const ctx=await buildFiles();let perm='granted';if(folderHandle.queryPermission)perm=await folderHandle.queryPermission({mode:'readwrite'});if(perm!=='granted'&&folderHandle.requestPermission)perm=await folderHandle.requestPermission({mode:'readwrite'});if(perm!=='granted')throw Error('Autorisation d’écriture refusée.');for(const f of ctx.files){const fh=await folderHandle.getFileHandle(f.name,{create:true}),w=await fh.createWritable();await w.write(new Blob([f.text],{type:f.name.endsWith('.tp')?'application/json;charset=utf-8':'text/plain;charset=utf-8'}));await w.close()}persist(ctx);const n=ctx.sts.length,name=folderHandle.name;window.tpGenCloseClassExport?.();window.showSuccessMessage?.(`${n} TP élève généré(s) dans « ${name} » et diffusion enregistrée dans Mes TP diffusés.`);return true}catch(e){console.error('V119 dossier',e);window.showWarningMessage?.('Génération impossible : '+(e?.message||e));return false}finally{window.__v117Project=null;window.__v116CurrentProject=null}};
  window.tpGenExportClassZip=async function(){try{const ctx=await buildFiles();const blob=window.tpGenBuildStoreZip(ctx.files);const name=[filePart(ctx.code),filePart(ctx.className),'TP_ELEVES'].filter(Boolean).join('_')+'.zip';window.tpGenDownloadBlob(blob,name);persist(ctx);window.tpGenCloseClassExport?.();window.showSuccessMessage?.(`${ctx.sts.length} TP élève correspondant(s) à « ${ctx.code} » regroupé(s) dans le ZIP et diffusion enregistrée.`);return true}catch(e){console.error('V119 ZIP',e);window.showWarningMessage?.('Génération ZIP impossible : '+(e?.message||e));return false}finally{window.__v117Project=null;window.__v116CurrentProject=null}};
  const oldDiffuse=window.tpGenDiffuseSaved;window.tpGenDiffuseSaved=function(id){folderHandle=null;window.__tpDiffusionSavedId=String(id||'');if(window.tpGenState)window.tpGenState.currentSavedId=String(id||'');return oldDiffuse?.apply(this,arguments)};
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V232 — Évaluation · Charge Atelier · TP · Correction';document.title='V232 — Évaluation · Charge Atelier · TP · Correction';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V233 — Évaluation · Charge Atelier · TP · Correction';document.title='V233 — Évaluation · Charge Atelier · TP · Correction';
  console.info('V127 actif : diffusion compacte, sans duplication du projet TP dans localStorage.');
 })();
 </script>
@@ -17849,7 +17873,7 @@ console.info('V206 : PDF de correction fidèle à l’éditeur V74 + coches noir
  };
  function wire(){document.querySelectorAll('#tp109-folder-input,#tp109-files-input,.tpc-toolbar input[type=file]').forEach(input=>{input.onchange=async()=>{const f=input.files;if(f?.length)await window.tpCorrectionImport(f);input.value=''}})}
  const oldPage=window.tpCorrectionPage;window.tpCorrectionPage=function(){const r=oldPage?.apply(this,arguments);setTimeout(wire,50);return r};setTimeout(wire,500);
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V232 — Évaluation · Charge Atelier · TP · Correction';document.title='V232 — Évaluation · Charge Atelier · TP · Correction';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V233 — Évaluation · Charge Atelier · TP · Correction';document.title='V233 — Évaluation · Charge Atelier · TP · Correction';
  console.info('V130 — import Copies rendues V128/V130 actif avec stockage IndexedDB anti-quota.');
 })();
 </script>
@@ -17901,7 +17925,7 @@ console.info('V206 : PDF de correction fidèle à l’éditeur V74 + coches noir
  function render(r){const d=r.data||{},p=project(d);if(!p)return'';const a=answers(d),flow=Array.isArray(p.flow)?p.flow:(p.questions||[]).map(q=>({type:'question',id:q.id}));let html='',sec='',n=0;for(const f of flow){if(f.type!=='question'){let x=obj(p,f);if(x?.parentQuestionId)continue;html+=block(r,p,f,a);continue}let q=obj(p,f);if(!q||q.excluded)continue;if((q.section||'Activité')!==sec){sec=q.section||'Activité';html+=`<h2 class="section">${esc(sec)}</h2>`}let val=a[q.id],k='q_'+q.id;html+=`<section class="q"><div class="v131-qhead"><div><div class="qtitle">${++n}. ${esc(q.text||'')}</div><div class="meta">${esc(q.competence||'')}${q.criterionId?' · '+esc(q.criterionId):''}</div></div><div data-v131-mark="${esc(k)}">${markButtons(r,k)}</div></div>${(q.images||[]).map(im=>imageTag(im,'max-width:100%;max-height:280px;object-fit:contain;margin-top:8px')).join('')}${q.answerType==='none'?'':`<div class="answer">${esc(val||'—')}</div>`}${flow.filter(z=>z.type!=='question'&&obj(p,z)?.parentQuestionId===q.id).map(z=>block(r,p,z,a)).join('')}</section>`}return `<div class="v130-copy"><div class="tphead"><div><small>BAC PRO MAINTENANCE DES VÉHICULES · COPIE ÉLÈVE</small><h1>${esc(p.publicTitle||p.title||d.titre||'TP')}</h1><div>Durée : ${esc(p.duration||'—')}</div></div><span class="code">${esc(p.publicId||p.id||d.code||'TP')}</span></div><div class="brief"><section><h3>Situation professionnelle</h3>${esc(p.intro||'')}</section><section><h3>Objectifs</h3>${esc(p.objectives||'')}</section><section><h3>Support</h3>${esc(p.support||'')}</section><section><h3>Ressources et matériels</h3>${esc(p.resources||'')}</section></div>${html}</div>`}
  const previous=window.tpCorrectionOpen;
  window.tpCorrectionOpen=function(id){const light=read().find(x=>String(x.id)===String(id));if(!light)return previous?.apply(this,arguments);previous?.apply(this,arguments);setTimeout(async()=>{const ed=document.querySelector('.tpc-editor'),left=ed?.firstElementChild;if(!left)return;left.innerHTML='<div class="v131-hydrating">Chargement de la copie complète et de ses illustrations…</div>';const stored=await full(id),r=stored||light;if(String(window.__tp55Current)!==String(id)||!left.isConnected)return;if(!project(r.data)){left.innerHTML='<div class="tpc-card">Cette copie ne contient pas le projet TP complet nécessaire à la vue fidèle.</div>';return}const local=read().find(x=>String(x.id)===String(id));if(local){r.marks={...(r.marks||{}),...(local.marks||{})};r.note=local.note;r.noteModeV215=local.noteModeV215;r.correctedAt=local.correctedAt;r.workflowState=local.workflowState;}left.innerHTML='<div class="tpc-card"><b>V216 — Une question, une évaluation.</b> ✓ Correct · ✕ Incorrect · — Non évalué. Les symboles sont clairs au repos et plus prononcés après sélection. Un seul choix par question, y compris ses tableaux et exercices.</div>'+render(r);noteUI(r)},20)};
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V232 — Évaluation · Charge Atelier · TP · Correction';document.title='V232 — Évaluation · Charge Atelier · TP · Correction';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V233 — Évaluation · Charge Atelier · TP · Correction';document.title='V233 — Évaluation · Charge Atelier · TP · Correction';
  console.info('V131 correcteur : hydratation IndexedDB + images + coches par question.');
 })();
 </script><!-- V147 — correctif final diffusion TP local : DOIT rester le dernier runtime du fichier -->
@@ -17913,8 +17937,8 @@ console.info('V206 : PDF de correction fidèle à l’éditeur V74 + coches noir
  let folderHandle=null;
  function setVersion(){
    const b=document.getElementById('build-version');
-   if(b)b.textContent='V232 — Évaluation · Charge Atelier · TP · Correction';
-   document.title='V232 — Évaluation · Charge Atelier · TP · Correction';
+   if(b)b.textContent='V233 — Évaluation · Charge Atelier · TP · Correction';
+   document.title='V233 — Évaluation · Charge Atelier · TP · Correction';
    document.getElementById('v144-version')?.remove();
  }
  setVersion(); document.addEventListener('DOMContentLoaded',setVersion,{once:true}); setTimeout(setVersion,100);
@@ -18002,7 +18026,7 @@ console.info('V206 : PDF de correction fidèle à l’éditeur V74 + coches noir
  });
  function compact(root=document){root.querySelectorAll?.('.v131-markbar .v131-mark').forEach(b=>{if(b.closest('[role=group]'))return;if(b.classList.contains('ok')){b.textContent='✓';b.title='Correct'}else if(b.classList.contains('bad')){b.textContent='✕';b.title='Incorrect'}else{b.textContent='—';b.title='Non évalué'}b.setAttribute('aria-label',b.title)})}
  compact(); new MutationObserver(m=>m.forEach(x=>x.addedNodes.forEach(n=>{if(n.nodeType===1)compact(n)}))).observe(document.documentElement,{childList:true,subtree:true});
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V232 — Évaluation · Charge Atelier · TP · Correction';document.title='V232 — Évaluation · Charge Atelier · TP · Correction';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V233 — Évaluation · Charge Atelier · TP · Correction';document.title='V233 — Évaluation · Charge Atelier · TP · Correction';
  console.info('V148 : Copies rendues stable pendant Firebase + coches compactes.');
 })();
 </script>
@@ -18028,7 +18052,7 @@ const rows=()=>window.getManagedEvaluationActivities?.()||[];
 const sortRows=a=>a.slice().sort((x,y)=>(Number(x.numero)||99999)-(Number(y.numero)||99999));
 function save(a){window.saveManagedEvaluationActivities?.(a);}
 function comps(s){return String(s||'').split(/[,;\n]+/).map(x=>x.trim()).filter(Boolean)}
-function forceVersion(){const b=document.getElementById('build-version');if(b)b.textContent='V232 — Évaluation · Charge Atelier · TP · Correction';document.title='V232 — Évaluation · Charge Atelier · TP · Correction';document.getElementById('v144-version')?.remove()}
+function forceVersion(){const b=document.getElementById('build-version');if(b)b.textContent='V233 — Évaluation · Charge Atelier · TP · Correction';document.title='V233 — Évaluation · Charge Atelier · TP · Correction';document.getElementById('v144-version')?.remove()}
 forceVersion();document.addEventListener('DOMContentLoaded',forceVersion,{once:true});setTimeout(forceVersion,250);setTimeout(forceVersion,1200);
 
 function installCategory(){
@@ -18190,7 +18214,7 @@ function mergeCorrections(){
 function mergeEvaluations(){return new Promise(resolve=>{
  try{const q=indexedDB.open('C2MMVP_TEST_FICTIFS_V8',2);q.onerror=()=>resolve(false);q.onsuccess=()=>{const d=q.result;try{const st=d.transaction('evaluations','readwrite').objectStore('evaluations');let left=BACKUP_EVALS.length;if(!left){d.close();return resolve(true)};BACKUP_EVALS.forEach(v=>{const g=st.get(v.id);g.onsuccess=()=>{if(g.result==null){try{st.add(v)}catch(_){}}if(--left===0){setTimeout(()=>{d.close();resolve(true)},20)}};g.onerror=()=>{if(--left===0){d.close();resolve(true)}}})}catch(e){d.close();resolve(false)}}}catch(e){resolve(false)}
 })}
-function version(){const b=document.getElementById('build-version');if(b)b.textContent='V232 — Évaluation · Charge Atelier · TP · Correction';document.title='V232 — Évaluation · Charge Atelier · TP · Correction'}
+function version(){const b=document.getElementById('build-version');if(b)b.textContent='V233 — Évaluation · Charge Atelier · TP · Correction';document.title='V233 — Évaluation · Charge Atelier · TP · Correction'}
 function installDefaultTodo(){
  const old=window.go;if(typeof old==='function'&&!old.__v171){const w=function(view){const r=old.apply(this,arguments);if(view==='correctionTp')setTimeout(()=>{const s=document.getElementById('tpc-f-status');if(s){s.value='todo';s.dispatchEvent(new Event('change',{bubbles:true}))}},120);return r};w.__v171=true;window.go=w}
 }
@@ -18218,7 +18242,7 @@ async function validate(){
   const ne=document.getElementById('tpc-note'),ae=document.getElementById('tpc-app'); if(ne)r.note=ne.value;if(ae)r.appreciation=ae.value;
   const n=Number(String(r.note).replace(',','.')); if(!Number.isFinite(n)||n<0||n>20)throw Error('Saisis une note comprise entre 0 et 20.');
   window.tp230.ensure(r.data);const cs=comps(r.data);r.levels=r.levels||{};const missing=window.tp230.extract(r.data)?[]:cs.filter(c=>!r.levels[c]);if(missing.length)throw Error('Positionne toutes les compétences : '+missing.join(', ')+'.');
-  const aligned=window.tp230.build(r);const db=await open();const st=await student(db,r);if(!st){db.close();throw Error('Élève non reconnu : '+([r.data?.eleve?.nom,r.data?.eleve?.prenom].filter(Boolean).join(' ')||'identité absente')+'.');}
+  const aligned=window.tp230.build(r);if(aligned?.reference233){const pending=(r.data.tpSelection230?.groups||[]).flatMap(g=>g.criteria).filter(c=>{const x=window.tp232.result(r,c.sourceId);return x.count<x.total});if(pending.length&&!confirm('Correction partielle : '+pending.length+' critère(s) ont des questions non corrigées. Valider malgré tout ?'))return;}const db=await open();const st=await student(db,r);if(!st){db.close();throw Error('Élève non reconnu : '+([r.data?.eleve?.nom,r.data?.eleve?.prenom].filter(Boolean).join(' ')||'identité absente')+'.');}
   const levels={},disabledCriteria={};cs.forEach(c=>{const cp=(typeof competencies!=='undefined'?competencies:(window.competencies||[])).find(x=>x.id===c),count=Math.max(1,cp?.criteria?.length||1);for(let i=0;i<count;i++)levels[c+'-'+i]=r.levels[c]});
   const evId=r.savedEvaluationId||('EVAL_TP_'+(crypto?.randomUUID?.()||Date.now()+'_'+Math.random().toString(36).slice(2)));
   const aeRaw=r.data?.autoEvaluation||r.data?.auto_evaluation||null;
@@ -18243,7 +18267,7 @@ async function validate(){
  }catch(e){console.error('V172 validation',e);alert('Validation impossible : '+(e?.message||e));}
  finally{window.__v172Saving=false;if(btn){btn.disabled=false;btn.innerHTML=oldText||'💾 Valider la correction et l’évaluation'}}
 }
-function install(){window.tpCorrectionValidate=validate;const b=document.getElementById('build-version');if(b)b.textContent='V232 — Évaluation · Charge Atelier · TP · Correction';document.title='V232 — Évaluation · Charge Atelier · TP · Correction'}
+function install(){window.tpCorrectionValidate=validate;const b=document.getElementById('build-version');if(b)b.textContent='V233 — Évaluation · Charge Atelier · TP · Correction';document.title='V233 — Évaluation · Charge Atelier · TP · Correction'}
 install();
 })();
 </script>
@@ -18265,7 +18289,7 @@ function lockIfCorrected(id){
 function install(){
  const oldOpen=window.tpCorrectionOpen; if(typeof oldOpen==='function'&&!oldOpen.__v173){const w=function(id){const out=oldOpen.apply(this,arguments);setTimeout(()=>lockIfCorrected(id),450);setTimeout(()=>lockIfCorrected(id),1200);return out};w.__v173=true;window.tpCorrectionOpen=w;}
  const oldVal=window.tpCorrectionValidate; if(typeof oldVal==='function'&&!oldVal.__v173){const w=async function(){const out=await oldVal.apply(this,arguments);return out};w.__v173=true;window.tpCorrectionValidate=w;}
- const b=document.getElementById('build-version');if(b)b.textContent='V232 — Évaluation · Charge Atelier · TP · Correction';document.title='V232 — Évaluation · Charge Atelier · TP · Correction';
+ const b=document.getElementById('build-version');if(b)b.textContent='V233 — Évaluation · Charge Atelier · TP · Correction';document.title='V233 — Évaluation · Charge Atelier · TP · Correction';
 }
 // Accélère l'impression de synchronisation : les données locales sont déjà enregistrées avant le cloud.
 const oldSync=window.tpV159SyncCorrectionsNow; if(typeof oldSync==='function'){window.tpV159SyncCorrectionsNow=function(){try{const p=oldSync.apply(this,arguments);if(p&&p.catch)p.catch(e=>console.warn('V173 sync',e));return Promise.resolve(true)}catch(e){console.warn('V173 sync',e);return Promise.resolve(false)}}}
@@ -18346,7 +18370,7 @@ stamp();window.addEventListener('load',()=>{stamp();setTimeout(reconcile,300)},{
 (function(){
 'use strict';
 
-const VERSION='V232 — Évaluation · Charge Atelier · TP · Correction';
+const VERSION='V233 — Évaluation · Charge Atelier · TP · Correction';
 const MODE_KEYS={
   free:'evaluation_mode_free_v190',
   professional:'evaluation_mode_professional_v190',
@@ -18655,7 +18679,7 @@ setTimeout(()=>{pullModesFirebase().catch(()=>{})},3500);
 function setVersion(){
   const b=document.getElementById('build-version');
   if(b)b.textContent=VERSION;
-  document.title='V232 — Évaluation · Charge Atelier · TP · Correction';
+  document.title='V233 — Évaluation · Charge Atelier · TP · Correction';
 }
 setVersion();
 setTimeout(setVersion,500);
@@ -19118,7 +19142,7 @@ function relabelNavigation(){
 function setVersion(){
   const b=document.getElementById('build-version');
   if(b)b.textContent=VERSION;
-  document.title='V232 — Évaluation · Charge Atelier · TP · Correction';
+  document.title='V233 — Évaluation · Charge Atelier · TP · Correction';
 }
 relabelNavigation();
 setVersion();
@@ -19677,9 +19701,9 @@ if(typeof window.tpCorrectionImport==='function'){
 /* Habillage du Portail TP seulement : la fonction RTA existante reste disponible
    ailleurs dans le logiciel, elle n'est simplement plus dans le nom de la suite. */
 function stamp(){
-  document.title='V232 — Évaluation · Charge Atelier · TP · Correction';
+  document.title='V233 — Évaluation · Charge Atelier · TP · Correction';
   const bv=document.getElementById('build-version');
-  if(bv)bv.textContent='V232 — Évaluation · Charge Atelier · TP · Correction';
+  if(bv)bv.textContent='V233 — Évaluation · Charge Atelier · TP · Correction';
 }
 stamp();
 setTimeout(stamp,700);
@@ -19848,8 +19872,8 @@ document.addEventListener('visibilitychange',()=>{
 /* Affichage de version seulement, sans timer périodique ni MutationObserver. */
 function stampVersion(){
   const b=document.getElementById('build-version');
-  if(b)b.textContent='V232 — Évaluation · Charge Atelier · TP · Correction';
-  document.title='V232 — Évaluation · Charge Atelier · TP · Correction';
+  if(b)b.textContent='V233 — Évaluation · Charge Atelier · TP · Correction';
+  document.title='V233 — Évaluation · Charge Atelier · TP · Correction';
 }
 stampVersion();
 
@@ -19935,8 +19959,8 @@ if(typeof settings==='function'&&!settings.__v200){
 cleanUi(document);
 
 const bv=document.getElementById('build-version');
-if(bv)bv.textContent='V232 — Évaluation · Charge Atelier · TP · Correction';
-document.title='V232 — Évaluation · Charge Atelier · TP · Correction';
+if(bv)bv.textContent='V233 — Évaluation · Charge Atelier · TP · Correction';
+document.title='V233 — Évaluation · Charge Atelier · TP · Correction';
 
 console.info('V200 : RTA retirée de l’interface et des évaluations ; ancien générateur TP neutralisé au profit du Portail TP.');
 })();
@@ -20322,8 +20346,8 @@ ensureMobileMenu();
 
 /* Version : affichage uniquement, aucun timer et aucun MutationObserver. */
 const bv=document.getElementById('build-version');
-if(bv)bv.textContent='V232 — Évaluation · Charge Atelier · TP · Correction';
-document.title='V232 — Évaluation · Charge Atelier · TP · Correction';
+if(bv)bv.textContent='V233 — Évaluation · Charge Atelier · TP · Correction';
+document.title='V233 — Évaluation · Charge Atelier · TP · Correction';
 
 console.info('V201 : barre latérale scrollable + menu iPhone permanent + suppression TP V73/V159 persistante.');
 })();
@@ -20344,8 +20368,8 @@ window.V202_SETTINGS_POLICY={
   ephemeralUiLocalOnly:true
 };
 const bv=document.getElementById('build-version');
-if(bv)bv.textContent='V232 — Évaluation · Charge Atelier · TP · Correction';
-document.title='V232 — Évaluation · Charge Atelier · TP · Correction';
+if(bv)bv.textContent='V233 — Évaluation · Charge Atelier · TP · Correction';
+document.title='V233 — Évaluation · Charge Atelier · TP · Correction';
 console.info('V202 : recherche/compteur fiches + paramètres fonctionnels multiposte, démarrage inchangé.');
 })();
 </script>
@@ -20561,8 +20585,8 @@ forceActiveTpClass();
 addPortalClassBadge();
 
 const bv=document.getElementById('build-version');
-if(bv)bv.textContent='V232 — Évaluation · Charge Atelier · TP · Correction';
-document.title='V232 — Évaluation · Charge Atelier · TP · Correction';
+if(bv)bv.textContent='V233 — Évaluation · Charge Atelier · TP · Correction';
+document.title='V233 — Évaluation · Charge Atelier · TP · Correction';
 
 console.info('V204 : Portail TP filtré strictement par classe active ; classId et className doivent être cohérents.');
 })();
@@ -20581,8 +20605,8 @@ window.V204_TP_CLASS_FILTER_POLICY={
   legacyStudentIdsMustAllBelongToActiveClass:true
 };
 const bv=document.getElementById('build-version');
-if(bv)bv.textContent='V232 — Évaluation · Charge Atelier · TP · Correction';
-document.title='V232 — Évaluation · Charge Atelier · TP · Correction';
+if(bv)bv.textContent='V233 — Évaluation · Charge Atelier · TP · Correction';
+document.title='V233 — Évaluation · Charge Atelier · TP · Correction';
 console.info('V204 : filtrage strict des TP diffusés sur la classe active, démarrage inchangé.');
 })();
 </script>
@@ -20708,8 +20732,8 @@ if(typeof oldOpen==='function'&&!oldOpen.__v205){
 }
 
 const bv=document.getElementById('build-version');
-if(bv)bv.textContent='V232 — Évaluation · Charge Atelier · TP · Correction';
-document.title='V232 — Évaluation · Charge Atelier · TP · Correction';
+if(bv)bv.textContent='V233 — Évaluation · Charge Atelier · TP · Correction';
+document.title='V233 — Évaluation · Charge Atelier · TP · Correction';
 
 console.info('V205 : auto-évaluation TP lue depuis le JSON rendu ; Tableau du jour exclut les TP diffusés ; rendu le plus récent privilégié.');
 })();
@@ -21050,5 +21074,12 @@ const open=window.tpCorrectionOpen;window.tpCorrectionOpen=async function(){cons
 </script>
 <script id="tp232-zoom">(function(){
 document.addEventListener('click',e=>{const im=e.target.closest('img');if(!im||im.closest('dialog')||!im.closest('#v117ProjectHost,#sheet,.v130-copy,.v206pdf-host,.v117-view'))return;if(im.classList.contains('block-picto'))return;e.preventDefault();const d=document.createElement('dialog');d.style.cssText='border:0;border-radius:14px;padding:12px;max-width:96vw;max-height:94dvh';const b=document.createElement('button');b.textContent='Fermer';b.style.cssText='display:block;min-height:44px;margin-bottom:10px';const img=document.createElement('img');img.src=im.currentSrc||im.src;img.alt=im.alt||'Image agrandie';img.style.cssText='display:block;max-width:90vw;max-height:80dvh;object-fit:contain';d.append(b,img);document.body.append(d);b.onclick=()=>d.close();d.addEventListener('close',()=>d.remove());d.addEventListener('click',ev=>{if(ev.target===d)d.close()});d.showModal();});
+})();
+</script>
+<script id="reference-ui-v233">(function(){
+const oldResolve=window.tp230.resolve;window.tp230.resolve=(e,id,fallback)=>e?.reference233?.competencies?.find(c=>c.id===id)||oldResolve(e,id,fallback);
+const oldBuild=window.tp230.build;window.tp230.build=function(r){const out=oldBuild(r),p=window.tp230.project(r.data);if(out&&(p?.reference233||r.data?.tpSelection230?.reference233)){out.reference233={...(p?.reference233||r.data.tpSelection230.reference233),competencies:JSON.parse(JSON.stringify(out.tpReference230))};window.tp233.results(out)}return out};
+const manager=window.renderSettingsReferentialsManager;window.renderSettingsReferentialsManager=function(){manager();const box=document.getElementById('settings-referentials-manager');if(!box)return;const note=document.createElement('div');note.className='panel';note.innerHTML='<h3>Nouveau format V233 - nouvelles évaluations</h3><p>Les référentiels historiques ci-dessus restent conservés pour les anciens dossiers.</p>'+['ref_cap','ref_bac'].map(id=>{const r=tp233.catalog(id);return '<p><b>'+esc(r.name)+'</b> : '+r.competencies.length+' compétences, '+r.competencies.reduce((s,c)=>s+c.criteria.length,0)+' critères · '+esc(r.version)+'</p>'}).join('')+'<p>Pour remplacer le nouveau format, utiliser l’import JSON avec le fichier CAP ou Bac Pro V233 et la cible correspondante.</p><button onclick="tp233Summary()">Synthèse par version du référentiel</button>';box.append(note)};
+window.tp233Summary=function(){const pool=typeof allStudents!=='undefined'?allStudents:students;const records=pool.flatMap(s=>(s.evaluations||[]).filter(e=>e.reference233).map(e=>({s,e})));document.getElementById('main').innerHTML='<h1>Synthèse par version du référentiel</h1><p>Nouveaux dossiers uniquement. Les anciens restent dans les synthèses historiques.</p><button onclick="go(\'settings\')">Retour</button><div style="overflow:auto"><table><thead><tr><th>Élève</th><th>Version</th><th>Évaluation</th><th>Critère</th><th>Niveau</th></tr></thead><tbody>'+records.flatMap(({s,e})=>Object.entries(e.criteriaResults233||{}).map(([code,k])=>'<tr><td>'+esc(s.name||[s.lastName,s.firstName].filter(Boolean).join(' '))+'</td><td>'+esc(e.reference233.version)+'</td><td>'+esc(e.title)+' · '+esc(e.date)+'</td><td>'+esc(code)+' - '+esc(k.label)+'</td><td>'+esc(k.disabled?'Désactivé':k.level)+'</td></tr>')).join('')+'</tbody></table></div>'};
 })();
 </script>
