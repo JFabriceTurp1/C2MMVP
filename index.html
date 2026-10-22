@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1" name="viewport"/>
-<title>V234 — Évaluation · Charge Atelier · TP · Correction</title>
+<title>V235 — Évaluation · Charge Atelier · TP · Correction</title>
 <style>
 *{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f5f7fa;color:#172033}
 .app{display:flex;min-height:100vh}.side{width:235px;background:#172033;color:#fff;padding:22px 14px}.logo{font-size:19px;font-weight:700;padding:8px 10px 24px}
@@ -2734,7 +2734,7 @@ body{background:#f7f9fc;color:var(--text)}
 <!-- V88 — DONNÉES DE RÉFÉRENCE RÉINTÉGRÉES DEPUIS V86.5
      Jeux embarqués repris : référentiel compétences, élèves par défaut, seconde classe fictive, situations professionnelles.
      Les données dynamiques (classes/élèves/évaluations réellement saisies) restent chargées par IndexedDB/localStorage et Firebase. -->
-<div id="build-version">V234 — Évaluation · Charge Atelier · TP · Correction</div>
+<div id="build-version">V235 — Évaluation · Charge Atelier · TP · Correction</div>
 <div id="firebase-auth-overlay">
 <div class="firebase-login-card">
 <h2>☁️ Connexion Firebase — V89</h2>
@@ -2777,7 +2777,7 @@ body{background:#f7f9fc;color:var(--text)}
 <div class="app">
 <button aria-expanded="true" aria-label="Masquer la barre latérale" class="sidebar-toggle" id="sidebar-toggle" onclick="toggleSidebar()" title="Masquer la barre latérale" type="button">◀</button>
 <aside class="side">
-<div class="logo">COMPÉTENCES MV<br/><small style="font-size:11px;font-weight:400">V234 — Évaluation · Charge Atelier · TP · Correction</small></div>
+<div class="logo">COMPÉTENCES MV<br/><small style="font-size:11px;font-weight:400">V235 — Évaluation · Charge Atelier · TP · Correction</small></div>
 <div class="nav">
 <button id="nav-home" onclick="go('home')">🏠 <span>Accueil</span></button>
 <button id="nav-students" onclick="go('students')">👨‍🎓 <span>Élèves</span></button>
@@ -4192,8 +4192,8 @@ function home(){
     </div>`;
   /* Affichage de version de l'accueil : information uniquement, sans impact sur le bootstrap. */
   const homeVersionBadge=document.getElementById("build-version");
-  if(homeVersionBadge)homeVersionBadge.textContent='V234 — Évaluation · Charge Atelier · TP · Correction';
-  document.title='V234 — Évaluation · Charge Atelier · TP · Correction';
+  if(homeVersionBadge)homeVersionBadge.textContent='V235 — Évaluation · Charge Atelier · TP · Correction';
+  document.title='V235 — Évaluation · Charge Atelier · TP · Correction';
 }
 
 function collapseAllCollectiveRows(){
@@ -16144,7 +16144,7 @@ window.addEventListener('load',()=>setTimeout(resume,1500),{once:true});
  const oldDiffuse=window.tpGenDiffuseSaved;window.tpGenDiffuseSaved=async function(id){const x=rows().find(r=>String(r.savedId)===String(id));if(x?.snapshot?.rawProjectStored){const raw=await getProject(id);if(raw)mem.set(String(id),raw)}return oldDiffuse?.(id)};
  const oldLocked=window.tpGenLockedSnapshot;window.tpGenLockedSnapshot=function(){const d=oldLocked?.();if(d?.rawProjectStored&&!d.rawProject){const id=String(tpGenState.currentSavedId||window.__tpDiffusionSavedId||'');const raw=mem.get(id);if(raw)d.rawProject=JSON.parse(JSON.stringify(raw))}return d};
  const oldDelete=window.tpGenDeleteSaved;window.tpGenDeleteSaved=async function(id){const before=rows().some(x=>String(x.savedId)===String(id));const ret=await oldDelete?.(id);if(before&&!rows().some(x=>String(x.savedId)===String(id)))try{await delProject(id)}catch(e){console.warn(e)}return ret};
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V234 — Évaluation · Charge Atelier · TP · Correction';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V235 — Évaluation · Charge Atelier · TP · Correction';
  migrate();
  console.info('V113 actif : projets TP lourds stockés dans IndexedDB; localStorage limité aux métadonnées.');
 })();
@@ -16204,7 +16204,7 @@ window.addEventListener('load',()=>setTimeout(resume,1500),{once:true});
  };
  const oldDiffPage=window.tpV76DiffusionsPage;
  if(typeof oldDiffPage==='function')window.tpV76DiffusionsPage=function(){const out=oldDiffPage.apply(this,arguments);setTimeout(()=>{const data=diffRows().filter(r=>!new Set(deletedIds()).has(String(r.id))).sort((a,b)=>String(b.diffusedAt||'').localeCompare(String(a.diffusedAt||''))),els=[...document.querySelectorAll('.v76-diff-row')];els.forEach((el,i)=>{const r=data[i];if(!r||el.querySelector('[data-v114-delete]'))return;const oldBtn=el.querySelector('button');const wrap=document.createElement('div');wrap.className='v114-diff-actions';if(oldBtn){oldBtn.replaceWith(wrap);wrap.appendChild(oldBtn)}const b=document.createElement('button');b.type='button';b.className='tpgen-btn danger';b.dataset.v114Delete='1';b.textContent='🗑️ Supprimer';b.onclick=()=>window.tp114DeleteDiffusion(r.id);wrap.appendChild(b)})},0);return out};
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V234 — Évaluation · Charge Atelier · TP · Correction';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V235 — Évaluation · Charge Atelier · TP · Correction';
  console.info('V114 actif : import TP IndexedDB corrigé et suppression individuelle des TP diffusés.');
 })();
 </script>
@@ -16361,7 +16361,7 @@ const style=document.createElement('style');style.id='tp228-blocks';style.textCo
  }catch(e){console.warn('V213 migration registre Mes TP diffusés',e)}
  // La photothèque n'est volontairement jamais incluse dans cette synchronisation.
  setTimeout(()=>run('demarrage'),1600);
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V234 — Évaluation · Charge Atelier · TP · Correction';document.title='V234 — Évaluation · Charge Atelier · TP · Correction';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V235 — Évaluation · Charge Atelier · TP · Correction';document.title='V235 — Évaluation · Charge Atelier · TP · Correction';
  console.info('V133 : Firebase limité aux TP diffusés. TP enregistrés et photothèque restent locaux.');
 })();
 </script>
@@ -16399,7 +16399,7 @@ const style=document.createElement('style');style.id='tp228-blocks';style.textCo
  window.addEventListener('pagehide',()=>{if(!isHome())return;try{const light={at:new Date().toISOString(),version:VERSION,localStorage:Object.fromEntries(Array.from({length:localStorage.length},(_,i)=>{const k=localStorage.key(i);return[k,localStorage.getItem(k)]}))};localStorage.setItem('evaluation_emergency_backup_v133',JSON.stringify(light))}catch(_){}});
  // Outil volontaire : efface les anciennes copies cloud des TP ENREGISTRÉS V132, jamais les diffusions.
  window.v133CleanSavedTpCloud=async function(){if(!confirm('Supprimer de Firebase les anciennes copies des TP enregistrés ?\nLes TP diffusés ne seront pas touchés.'))return false;const fs=window.firebase?.firestore?.();if(!fs)throw new Error('Firebase indisponible');const col=fs.collection('workspaces').doc('evaluation-mv-main').collection('tpProjectsV132'),snap=await col.get();for(const d of snap.docs){const c=await d.ref.collection('chunks').get();for(let i=0;i<c.docs.length;i+=300){const b=fs.batch();c.docs.slice(i,i+300).forEach(x=>b.delete(x.ref));await b.commit()}await d.ref.delete()}alert(snap.size+' TP enregistrés supprimés de Firebase. Les versions locales sont conservées.');return true};
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V234 — Évaluation · Charge Atelier · TP · Correction';document.title='V234 — Évaluation · Charge Atelier · TP · Correction';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V235 — Évaluation · Charge Atelier · TP · Correction';document.title='V235 — Évaluation · Charge Atelier · TP · Correction';
  console.info('V133 poste maison:',isHome()?'actif':'inactif','— TP enregistrés locaux, diffusions Firebase.');
 })();
 </script>
@@ -16445,8 +16445,8 @@ const style=document.createElement('style');style.id='tp228-blocks';style.textCo
  window.addEventListener('storage',e=>{if(e.key===DKEY)purgeDeleted()});
  window.addEventListener('tp-v133-synced',purgeDeleted);
  setInterval(purgeDeleted,4000);
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V234 — Évaluation · Charge Atelier · TP · Correction';
- document.title='V234 — Évaluation · Charge Atelier · TP · Correction';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V235 — Évaluation · Charge Atelier · TP · Correction';
+ document.title='V235 — Évaluation · Charge Atelier · TP · Correction';
  console.info('V134 : page TP diffusés non intrusive et suppression Firebase V106/V132 sécurisée.');
 })();
 </script>
@@ -16466,7 +16466,7 @@ const style=document.createElement('style');style.id='tp228-blocks';style.textCo
  window.tp138ToggleStudents=function(id){const el=document.getElementById('v138-students-'+CSS.escape(String(id)));if(!el)return;const hidden=el.hidden;el.hidden=!hidden;const b=document.querySelector(`[data-v138-toggle="${CSS.escape(String(id))}"]`);if(b)b.textContent=hidden?'▾ Masquer les élèves':'▸ Voir les élèves';};
  window.tpV76DiffusionsPage=function(){window.setActive?.('tpGenerator');const rows=diffs().sort((a,b)=>String(b.diffusedAt||'').localeCompare(String(a.diffusedAt||''))),main=document.getElementById('main');if(!main)return false;main.innerHTML=`<header class="app-top-header"></header><div class="tpgen-manager-shell"><div class="tpgen-head"><div><h1>📤 Mes TP diffusés</h1><p class="muted">Registre multiposte léger : gris = diffusé, jaune = rendu, vert = corrigé. Les fichiers TP restent locaux / Dropbox.</p></div><button class="tpgen-btn secondary" onclick="tpGeneratorPage()">← Retour</button></div><div class="tpgen-card">${rows.length?rows.map(r=>{const c=counts(r),id=String(r.id||'');return `<div class="v138-diff-card"><div class="v138-top"><div><b>${esc(r.tpCode||'TP')} — ${esc(r.title||'')}</b><div class="muted">${esc(r.className||'')} • ${r.diffusedAt?new Date(r.diffusedAt).toLocaleString('fr-FR'):''} • ${(r.students||[]).length} élève(s)</div></div><div class="v138-actions"><button class="tpgen-btn primary" onclick="tpV76AddDiffusionToDay('${esc(id)}')">＋ Affecter</button><button class="tpgen-btn danger" onclick="tp114DeleteDiffusion('${esc(id)}')">🗑️ Supprimer</button></div></div><div class="v138-counts"><span class="v138-count v138-grey">⬜ Diffusé <b>${c.grey}</b></span><span class="v138-count v138-yellow">🟨 Rendu <b>${c.yellow}</b></span><span class="v138-count v138-green">🟩 Corrigé <b>${c.green}</b></span></div><button class="v138-toggle" data-v138-toggle="${esc(id)}" onclick="tp138ToggleStudents('${esc(id)}')">▸ Voir les élèves</button><div class="v138-students" id="v138-students-${esc(id)}" hidden>${(r.students||[]).map(st=>{const q=state(r,st),label=q==='green'?'Corrigé':q==='yellow'?'Rendu':'Diffusé';return `<div class="v138-student ${q}"><b>${esc(sname(st))}</b><span>${label}</span></div>`}).join('')||'<span class="muted">Liste nominative absente de cette ancienne diffusion.</span>'}</div></div>`}).join(''):'<div class="muted">Aucun TP diffusé enregistré.</div>'}</div></div>`;return true};
  // Le registre Firebase ne doit jamais contenir le projet TP lourd : la V132 a été patchée pour n'envoyer que les métadonnées + élèves.
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V234 — Évaluation · Charge Atelier · TP · Correction';document.title='V234 — Évaluation · Charge Atelier · TP · Correction';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V235 — Évaluation · Charge Atelier · TP · Correction';document.title='V235 — Évaluation · Charge Atelier · TP · Correction';
  console.info('V138 : registre TP diffusés léger + élèves repliés + compteurs gris/jaune/vert.');
 })();
 </script>
@@ -16511,7 +16511,7 @@ const style=document.createElement('style');style.id='tp228-blocks';style.textCo
  const oldImport=window.tpCorrectionImport;window.tpCorrectionImport=async function(files){let before=new Set((()=>{try{return (JSON.parse(localStorage.getItem(CORR)||'[]')||[]).map(x=>String(x.id))}catch(_){return[]}})());let out=await oldImport?.apply(this,arguments);setTimeout(async()=>{try{let rows=JSON.parse(localStorage.getItem(CORR)||'[]')||[], fresh=rows.filter(x=>!before.has(String(x.id))&&!x.correctedAt);for(const light of fresh){let full=null;try{let db=await new Promise((ok,no)=>{let q=indexedDB.open('fdmahy_corrections_v129',1);q.onsuccess=()=>ok(q.result);q.onerror=()=>no(q.error)});full=await new Promise((ok,no)=>{let q=db.transaction('copies').objectStore('copies').get(String(light.id));q.onsuccess=()=>ok(q.result);q.onerror=()=>no(q.error)});db.close()}catch(_){}await cloudPut(full||light)}if(fresh.length)console.info('V139 copies rendues envoyées temporairement vers Firebase:',fresh.length)}catch(e){console.warn('V139 Firebase copies rendues',e)}},250);return out};
  // V227 : nettoyage des fragments après sauvegarde complète confirmée, via tp227.
  // Version
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V234 — Évaluation · Charge Atelier · TP · Correction';document.title='V234 — Évaluation · Charge Atelier · TP · Correction';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V235 — Évaluation · Charge Atelier · TP · Correction';document.title='V235 — Évaluation · Charge Atelier · TP · Correction';
  console.info('V139 : diffusion depuis fichier local + aperçu temporaire + registre léger + copies rendues Firebase temporaires.');
 })();
 </script>
@@ -16549,7 +16549,7 @@ const style=document.createElement('style');style.id='tp228-blocks';style.textCo
    o.querySelector('.v144-save').onclick=async()=>{const b=o.querySelector('.v144-save');b.disabled=true;b.textContent='Sauvegarde en cours…';try{const r=await window.v133SaveGlobalBackup?.();if(!r?.ok)throw Error('Sauvegarde non confirmée.');o.remove();await baseLogout?.()}catch(e){b.disabled=false;b.textContent='💾 Sauvegarder puis quitter';alert('Sauvegarde impossible : '+(e?.message||e))}};
    o.querySelector('.v144-nosave').onclick=async()=>{o.remove();await baseLogout?.()};return false;
  };
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V234 — Évaluation · Charge Atelier · TP · Correction';document.title='V234 — Évaluation · Charge Atelier · TP · Correction';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V235 — Évaluation · Charge Atelier · TP · Correction';document.title='V235 — Évaluation · Charge Atelier · TP · Correction';
  console.info('V144 actif : base de démarrage V139 conservée; navigation diffusions et sortie corrigées sans modifier Firebase.');
 })();
 </script>
@@ -16583,7 +16583,7 @@ const style=document.createElement('style');style.id='tp228-blocks';style.textCo
   const mo=new MutationObserver(bind); mo.observe(document.documentElement,{childList:true,subtree:true}); bind();
   // Firebase/storage refreshes may update data but never navigate.
   window.addEventListener('tp-v133-synced',()=>{}, {passive:true});
-  const bv=document.getElementById('build-version'); if(bv) bv.textContent='V234 — Évaluation · Charge Atelier · TP · Correction';
+  const bv=document.getElementById('build-version'); if(bv) bv.textContent='V235 — Évaluation · Charge Atelier · TP · Correction';
   console.info('V145 actif : navigation Mes TP diffusés strictement réservée à une action utilisateur.');
 })();
 </script>
@@ -16598,7 +16598,7 @@ const style=document.createElement('style');style.id='tp228-blocks';style.textCo
  const clone=o=>JSON.parse(JSON.stringify(o||{}));
  const safe=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Za-z0-9_-]+/g,'-').replace(/^-+|-+$/g,'')||'TP';
  let folderHandle=null;
- function forceVersion(){const b=document.getElementById('build-version');if(b&&b.textContent!=='V234 — Évaluation · Charge Atelier · TP · Correction')b.textContent='V234 — Évaluation · Charge Atelier · TP · Correction';document.title='V234 — Évaluation · Charge Atelier · TP · Correction';document.getElementById('v144-version')?.remove();}
+ function forceVersion(){const b=document.getElementById('build-version');if(b&&b.textContent!=='V235 — Évaluation · Charge Atelier · TP · Correction')b.textContent='V235 — Évaluation · Charge Atelier · TP · Correction';document.title='V235 — Évaluation · Charge Atelier · TP · Correction';document.getElementById('v144-version')?.remove();}
  forceVersion();
  document.addEventListener('DOMContentLoaded',forceVersion,{once:true});
  setTimeout(forceVersion,0);setTimeout(forceVersion,500);
@@ -16626,8 +16626,8 @@ const style=document.createElement('style');style.id='tp228-blocks';style.textCo
   // 1) Une seule version visible. Ne touche ni à l'authentification ni au démarrage Firebase.
   function applyVersion(){
     const b=document.getElementById('build-version');
-    if(b) b.textContent='V234 — Évaluation · Charge Atelier · TP · Correction';
-    document.title='V234 — Évaluation · Charge Atelier · TP · Correction';
+    if(b) b.textContent='V235 — Évaluation · Charge Atelier · TP · Correction';
+    document.title='V235 — Évaluation · Charge Atelier · TP · Correction';
     document.getElementById('v144-version')?.remove();
   }
   applyVersion();
@@ -16803,7 +16803,7 @@ const style=document.createElement('style');style.id='tp228-blocks';style.textCo
  };
  function markLegacyRows(root=document){root.querySelectorAll?.('.tpc-row').forEach(row=>{const b=row.querySelector('button[onclick*="tpCorrectionOpen"]');if(!b||row.querySelector('.v158-legacy-chip'))return;const m=(b.getAttribute('onclick')||'').match(/tpCorrectionOpen\(['\"]([^'\"]+)/);if(!m)return;const r=read().find(x=>String(x.id)===m[1]);if(r&&!project(r.data)){const target=row.children?.[1]||row.firstElementChild;target?.insertAdjacentHTML('beforeend','<span class="v158-legacy-chip">Ancien format</span>')}})}
  markLegacyRows();new MutationObserver(ms=>ms.forEach(m=>m.addedNodes.forEach(n=>{if(n.nodeType===1)markLegacyRows(n)}))).observe(document.documentElement,{childList:true,subtree:true});
- function setVersion(){const b=document.getElementById('build-version');if(b)b.textContent='V234 — Évaluation · Charge Atelier · TP · Correction';document.title='V234 — Évaluation · Charge Atelier · TP · Correction'}
+ function setVersion(){const b=document.getElementById('build-version');if(b)b.textContent='V235 — Évaluation · Charge Atelier · TP · Correction';document.title='V235 — Évaluation · Charge Atelier · TP · Correction'}
  setVersion();document.addEventListener('DOMContentLoaded',setVersion,{once:true});setTimeout(setVersion,250);
  console.info('V158 : compatibilité de correction des anciennes copies activée, sans modification du démarrage.');
 })();
@@ -17174,8 +17174,8 @@ function inject(){if(window.tp217)return;
    Le timer V175 a été supprimé directement dans le code source ci-dessus. */
 function setVersion(){
   const b=document.getElementById('build-version');
-  if(b)b.textContent='V234 — Évaluation · Charge Atelier · TP · Correction';
-  document.title='V234 — Évaluation · Charge Atelier · TP · Correction';
+  if(b)b.textContent='V235 — Évaluation · Charge Atelier · TP · Correction';
+  document.title='V235 — Évaluation · Charge Atelier · TP · Correction';
 }
 function install(){
   if(window.tp217)return;
@@ -17343,13 +17343,8 @@ function projectObj(p,f){
   return (p?.[map[f.type]]||[]).find(x=>String(x.id)===String(f.id));
 }
 function pictogramsOf(d,p){return d?.tpPictograms||d?.projectPictograms||d?.pictograms||p?.pictograms||[]}
-function pictogram(d,p,obj){
-  const list=pictogramsOf(d,p);
-  const ids=Array.isArray(obj?.pictogramIds)&&obj.pictogramIds.length?obj.pictogramIds:[obj?.pictogramId];
-  const found=[...new Set(ids.filter(Boolean))].map(id=>list.find(x=>String(x.id)===String(id))).filter(x=>imageOf(x)||x?.image);
-  return found.length?`<span class="builtin-picto-group">${found.map(x=>`<img class="block-picto" src="${esc(imageOf(x)||x.image)}" alt="${esc(x.name||'Pictogramme')}">`).join('')}</span>`:'';
-}
-function callProfessor(o){return o?.callProfessor?'<div class="call-prof"><strong>👨‍🏫 Appeler le professeur</strong></div>':''}
+function pictogram(){return ''}
+function callProfessor(){return ''}
 function gommetteClass(label){return Array.from(String(label??'').trim().normalize('NFC')).length===1?'gommette-round':'gommette-flat'}
 
 function markState(r,id){
@@ -17435,31 +17430,29 @@ function blockHtml(r,p,f,a){
     const slots=av&&typeof av==='object'?av:{};
     return `<section class="match-block v206pdf-atomic" style="${blockFrameStyle(x)}">${pictogram(r.data,p,x)}<h3>${formattedText(x,'title')||'Association'}</h3><p class="match-instruction">${formattedText(x,'text')}</p><div class="match-grid">${(x.targets||[]).map((t,i)=>{const tid=String(t.id||i),tok=slots[tid],lab=toks.find(z=>z.id===tok);return `<div class="match-card"><img src="${esc(imageOf(t))}" alt="Outil ${i+1}"><div class="match-drop ${tok?'filled':''}">Élève : ${lab?formattedText(lab,'name'):'Non répondu'}</div><div class="tp234-expected">${t.correctId?(String(tok||'').split('@')[0]===String(t.correctId)?'✓ Correct':'✕ À corriger'):'— Référence absente'}<br>Attendu : ${esc((x.labels||[]).find(l=>String(l.id)===String(t.correctId))?.name||'Non défini')}</div></div>`}).join('')}</div>${correctionBadge(r,x.id)}${callProfessor(x)}</section>`;
   }
-  if(f.type==='placement'){
-    const pos=av&&typeof av==='object'?av:{},img=imageOf(x.image);
-    return `<section class="placement-block v206pdf-atomic" style="${blockFrameStyle(x)}">${pictogram(r.data,p,x)}<h3>${formattedText(x,'title')||'Placement sur image'}</h3><p>${formattedText(x,'text')}</p><h4>Réalisation de l’élève</h4>${img?`<div class="placement-stage"><img src="${esc(img)}">${(x.tokens||[]).filter(t=>pos[t.id]).map(t=>`<span class="placement-pin ${gommetteClass(t.label)}" style="left:${+pos[t.id].x||0}%;top:${+pos[t.id].y||0}%">${formattedText(t,'label')}</span>`).join('')}</div>`:''}${img?`<h4>Correction attendue</h4><div class="placement-stage"><img src="${esc(img)}">${(x.tokens||[]).filter(t=>Number.isFinite(t.x)&&Number.isFinite(t.y)).map(t=>`<span class="placement-pin ${gommetteClass(t.label)}" style="left:${t.x}%;top:${t.y}%">${formattedText(t,'label')}</span>`).join('')}</div><table class="tp228-table"><thead><tr><th>Repère</th><th>Résultat de l’élève</th></tr></thead><tbody>${(x.tokens||[]).map(t=>{const v=pos[t.id],ref=Number.isFinite(t.x)&&Number.isFinite(t.y),placed=v&&Number.isFinite(+v.x)&&Number.isFinite(+v.y),good=placed&&ref&&Math.hypot(+v.x-t.x,+v.y-t.y)<=10;return `<tr><td>${esc(t.label)}</td><td>${!ref?'Référence non définie':!placed?'Non répondu':good?'✓ Position correcte':'✕ Replacer comme sur la correction ci-dessus'}</td></tr>`}).join('')}</tbody></table>`:''}${callProfessor(x)}</section>`;
-  }
+  if(f.type==='placement')return compactPlacement235(r,p,x,av);
   return '';
 }
 function contentUnits(r,p){
-  const a=answersOf(r.data),flow=Array.isArray(p.flow)?p.flow:(p.questions||[]).map(q=>({type:'question',id:q.id}));
-  const units=[];let sec='',n=0;
-  for(const f of flow){
-    if(f.type!=='question'){
-      const x=projectObj(p,f);if(x?.parentQuestionId)continue;
-      const h=blockHtml(r,p,f,a);if(h)units.push(h);continue;
-    }
-    const q=projectObj(p,f);if(!q||q.excluded)continue;
-    const current=q.section||'Activité';
-    const head=current!==sec?`<h2 class="section-title">${formattedText(q,'section')||esc(current)}</h2>`:'';
-    sec=current;
-    const val=a?.[q.id];
-    const children=flow.filter(z=>z.type!=='question'&&projectObj(p,z)?.parentQuestionId===q.id);
-    const answer=q.answerType==='none'?'':`<div class="answer ${esc(q.answerType||'short')}" style="min-height:${Math.max(42,Math.max(1,Math.min(20,+q.answerRows||((q.answerType==='long')?5:2)))*24)}px">${valueHtml(val)}</div>`;
-    const qhtml=`<div class="question-card" style="${blockFrameStyle(q)}"><div class="qhead"><span class="qno">${++n}</span><div class="qbody"><div class="tp234-question-summary">${pictogram(r.data,p,q)}<div class="qtext">${formattedText(q,'text')}</div>${publicMeta(q)}${correctionBadge(r,q.id,true)}</div>${(q.images||[]).map(im=>photoMarkup(im,'question')).join('')}${answer}${callProfessor(q)}</div></div></div>`;
-    units.push(`<div class="v206pdf-atomic section-start">${head}${qhtml}</div>`);for(const child of children)units.push(`<div class="v206pdf-atomic tp234-question-child"><h4>Question ${n} — ${esc(q.text||'').slice(0,180)}</h4>${blockHtml(r,p,child,a)}</div>`);
-  }
-  return units;
+ const a=answersOf(r.data),flow=Array.isArray(p.flow)?p.flow:(p.questions||[]).map(q=>({type:'question',id:q.id}));
+ const units=[];let n=0,sec='';
+ for(const f of flow){
+  if(f.type!=='question'){const x=projectObj(p,f);if(!x||x.parentQuestionId||x.excluded||x.isSpacer)continue;const h=blockHtml(r,p,f,a);if(h)units.push(h);continue}
+  const q=projectObj(p,f);if(!q||q.excluded)continue;
+  const section=q.section||'Activité',heading=section!==sec?`<h2 class="section-title">${esc(section)}</h2>`:'';sec=section;
+  const children=flow.filter(z=>z.type!=='question'&&projectObj(p,z)?.parentQuestionId===q.id&&!projectObj(p,z)?.excluded);
+  const answer=q.answerType==='none'?'':`<div class="answer">${valueHtml(a[q.id])}</div>`;
+  units.push(`<section class="v206pdf-atomic tp235-question">${heading}<div class="question-card"><div class="qtext">${++n}. ${formattedText(q,'text')}</div>${publicMeta(q)}${(q.images||[]).map(im=>photoMarkup(im,'question')).join('')}${answer}<div class="tp235-realisation">${children.map(z=>blockHtml(r,p,z,a)).join('')}</div>${correctionBadge(r,q.id,true)}</div></section>`);
+ }
+ return units;
+}
+function compactPlacement235(r,p,x,av){
+ const pos=av&&typeof av==='object'?av:{},img=imageOf(x.image),tokens=x.tokens||[];
+ return `<section class="placement-block"><h3>${esc(x.title||'Placement sur image')}</h3>${img?`<div class="placement-stage"> <img src="${esc(img)}">${tokens.filter(t=>pos[t.id]&&Number.isFinite(+pos[t.id].x)&&Number.isFinite(+pos[t.id].y)).map(t=>`<span class="placement-pin ${gommetteClass(t.label)}" style="left:${Math.max(0,Math.min(100,+pos[t.id].x))}%;top:${Math.max(0,Math.min(100,+pos[t.id].y))}%">${esc(t.label)}</span>`).join('')}</div>`:''}${x.text?`<p class="tp235-legend">${formattedText(x,'text')}</p>`:''}<table class="tp228-table"><thead><tr><th>Repère</th><th>Résultat</th><th>Correction attendue</th></tr></thead><tbody>${tokens.map(t=>{const v=pos[t.id],ref=Number.isFinite(t.x)&&Number.isFinite(t.y),placed=v&&Number.isFinite(+v.x)&&Number.isFinite(+v.y),ok=ref&&placed&&Math.hypot(+v.x-t.x,+v.y-t.y)<=10;return `<tr><td>${esc(t.label)}</td><td>${!ref?'Référence absente':!placed?'Non répondu':ok?'✓ Correct':'✕ Incorrect'}</td><td>${!ref?'—':ok?'Position respectée':`Repère ${esc(t.label)} à l’emplacement indiqué ci-dessous`}</td></tr>`}).join('')}</tbody></table>${tokens.some(t=>Number.isFinite(t.x)&&Number.isFinite(t.y)&&(!pos[t.id]||!Number.isFinite(+pos[t.id].x)||!Number.isFinite(+pos[t.id].y)||Math.hypot(+pos[t.id].x-t.x,+pos[t.id].y-t.y)>10))&&img?`<div class="tp235-expected-placement"><small>Emplacements attendus</small><div class="placement-stage"><img src="${esc(img)}">${tokens.filter(t=>Number.isFinite(t.x)&&Number.isFinite(t.y)).map(t=>`<span class="placement-pin ${gommetteClass(t.label)}" style="left:${t.x}%;top:${t.y}%">${esc(t.label)}</span>`).join('')}</div></div>`:''}</section>`;
+}
+function criteriaSummary235(r){
+ const s=window.tp230.ensure(r.data);if(!s)return '';
+ return `<section class="tp235-criteria-page"><h2>Compétences et critères évalués</h2><table class="tp235-criteria-table"><colgroup><col style="width:15%"><col style="width:65%"><col style="width:20%"></colgroup><thead><tr><th>Code</th><th>Critère retenu</th><th>Niveau</th></tr></thead><tbody>${s.groups.map(g=>`<tr class="tp235-group"><th colspan="3">${esc(g.id)} — ${esc(g.name)}</th></tr>${g.criteria.map(c=>`<tr><td>${esc(c.sourceId)}</td><td>${esc(c.label)}</td><td>${esc(window.tp232.result(r,c.sourceId).level)}</td></tr>`).join('')}`).join('')}</tbody></table></section>`;
 }
 function selfEval(r){
   const a=r?.data?.autoEvaluation||r?.data?.auto_evaluation;if(!a||typeof a!=='object')return null;
@@ -17481,9 +17474,6 @@ function summaryUnits(r,p){
   units.push(`<section class="v206pdf-summary-card v206pdf-atomic"><h2>Correction / Évaluation</h2><div class="v206pdf-summary-grid"><div><b>Élève</b><br>${esc(personName(d))}</div><div><b>Classe</b><br>${esc(d.classe||d.identite?.classe||'—')}</div><div><b>TP</b><br>${esc(p.publicId||p.id||d.code||'TP')}</div><div><b>Date de correction</b><br>${esc(frDate(r.correctedAt||new Date().toISOString()))}</div></div></section>`);
   units.push(`<section class="v206pdf-summary-card v206pdf-atomic"><h2>Évaluation professeur</h2><div class="v206pdf-prof-note">${esc(r.note??'—')} / 20</div><p><b>Appréciation :</b></p><div class="v206pdf-app">${esc(r.appreciation||'—').replace(/\n/g,'<br>')}</div></section>`);
   units.push(`<section class="v206pdf-summary-card v206pdf-atomic"><h2>Auto-évaluation de l’élève</h2>${ae?`<table class="v206pdf-summary-table"><tbody><tr><th>Organisation</th><td>${esc(ae.organisation??'—')} / 4</td></tr><tr><th>Résultats</th><td>${esc(ae.resultats??'—')} / 4</td></tr><tr><th>Autonomie</th><td>${esc(ae.autonomie??'—')} / 4</td></tr><tr><th>Note élève</th><td><b>${esc(fmtNum(ae.note))} / 20</b></td></tr><tr><th>Note calculée automatiquement</th><td>${esc(fmtNum(ae.calc))} / 20</td></tr>${ae.modified?'<tr><th>Information</th><td>La note a été modifiée par l’élève.</td></tr>':''}<tr><th>Commentaire élève</th><td>${esc(ae.comment||'—')}</td></tr></tbody></table>`:'<p>Aucune auto-évaluation embarquée dans cette copie.</p>'}</section>`);
-  const selection=window.tp230.ensure(d);
-  if(selection){for(const g of selection.groups){for(const c of g.criteria){const result=window.tp232.result(r,c.sourceId);units.push(`<section class="v206pdf-summary-card v206pdf-atomic"><h3>${esc(g.id)} — ${esc(g.name)}</h3><p><strong>${esc(c.sourceId)}</strong> — ${esc(c.label)}</p><p><b>Positionnement :</b> ${esc(result.level)}</p><p>Questions liées : ${esc((c.sources||[]).join(', ')||'Sélection de l’éditeur')}</p></section>`)}}}
-  else{const comps=window.tp230.ids(d);for(const c of comps)units.push(`<section class="v206pdf-summary-card v206pdf-atomic"><b>${esc(c)}</b> — ${esc(r.levels?.[c]||'Non observé')}</section>`)}
   return units;
 }
 
@@ -17512,20 +17502,18 @@ async function updateFolderLabels(){
 }
 window.tp71UpdateFolderLabels=window.tp206UpdateFolderLabels=updateFolderLabels;
 
-async function savePdf(pdf,filename){
-  const h=await getFolder();
-  if(h&&await permission(h,false)){
-    try{
-      const fh=await h.getFileHandle(filename,{create:true});
-      const w=await fh.createWritable();await w.write(pdf.output('blob'));await w.close();
-      window.showSuccessMessage?.('PDF corrigé enregistré dans « '+h.name+' » : '+filename);
-      return {folder:h.name,file:filename};
-    }catch(e){console.warn('V206 dossier PDF',e)}
-  }
-  await pdf.save(filename,{returnPromise:true});
-  if(h)window.showWarningMessage?.("Le dossier PDF n’est plus autorisé : téléchargement classique utilisé.");
-  else window.showWarningMessage?.("Aucun dossier PDF choisi : téléchargement classique utilisé. Utilise « Dossier des PDF » pour l’enregistrement direct.");
-  return {fallback:true,file:filename};
+async function savePdf(pdf,filename,id,token){
+ const blob=pdf.output('blob');if(!blob||blob.size<100)throw Error('PDF vide');
+ const h=await getFolder();
+ if(h&&await permission(h,false)){
+  const fh=await h.getFileHandle(filename,{create:true});const w=await fh.createWritable();await w.write(blob);await w.close();const saved=await fh.getFile();if(saved.size!==blob.size)throw Error('PDF incomplet dans le dossier choisi');
+  return {folder:h.name,file:filename,archiveVerified235:true};
+ }
+ // Browsers cannot confirm that a download was kept. Retain a verified PDF locally
+ // before authorizing Firebase cleanup, without asking the teacher to inspect it.
+ await window.tp235SavePdfArchive(id,token,filename,blob);
+ await pdf.save(filename,{returnPromise:true});
+ return {fallback:true,file:filename,localPdf235:true,archiveVerified235:true};
 }
 
 /* ----------------------- Rendu / pagination --------------------------- */
@@ -17590,7 +17578,7 @@ async function waitImages(root){
 }
 function imageSources231(value){
  const found=new Set();
- function walk(v,key=''){if(key==='signatures232')return;
+ function walk(v,key=''){if(['signatures232','pictograms','tpPictograms','projectPictograms','__pictograms'].includes(key))return;
   if(typeof v==='string'){
    if(/^data:image\//i.test(v)||(/^(src|image|photo|data|url|imageData|thumbnail|preview)$/i.test(key)&&/^(https?:|blob:)/i.test(v)))found.add(v);
    if(/<img\b/i.test(v)){const t=document.createElement('template');t.innerHTML=v;t.content.querySelectorAll('img[src]').forEach(i=>found.add(i.getAttribute('src')))}
@@ -17601,38 +17589,19 @@ function imageSources231(value){
 
 function fitOne(el,content){
  content.appendChild(el);if(content.scrollHeight<=content.clientHeight+2)return content;
- content.removeChild(el);
- const host=content.closest('.v206pdf-host');let fresh=content.children.length?newPage(host):content;fresh.appendChild(el);
- if(fresh.scrollHeight<=fresh.clientHeight+2)return fresh;
- // Split at semantic boundaries and repeat the question title on continuation pages.
- const body=el.querySelector('.qbody')||el.querySelector('.placement-block,.tp228-block')||el;
- let parts=[...body.children];
- if(parts.length>1){
-  fresh.removeChild(el);const shell=el.cloneNode(true),dest=shell.querySelector('.qbody')||shell.querySelector('.placement-block,.tp228-block')||shell;dest.replaceChildren();
-  const title=el.querySelector('.qtext')?.textContent||el.querySelector('h3,h4')?.textContent||'';
-  for(let i=0;i<parts.length;i++){
-   const part=parts[i];
-   const wrap=shell.cloneNode(true),target=wrap.querySelector('.qbody')||wrap.querySelector('.placement-block,.tp228-block')||wrap;
-   if(i&&title){const caption=document.createElement('div');caption.className='tp234-continued';caption.textContent=title+' — suite';target.appendChild(caption)}
-   target.appendChild(part);fresh=fitOnePart(wrap,fresh);
-  }return fresh;
+ content.removeChild(el);const host=content.closest('.v206pdf-host');const fresh=content.children.length?newPage(host):content;fresh.appendChild(el);
+ if(fresh.scrollHeight>fresh.clientHeight+2){const height=el.getBoundingClientRect().height;const factor=(fresh.clientHeight-6)/height;
+  if(factor>=.72||el.querySelector('.tp228-or')){el.style.zoom=String(factor);return fresh}
+  // Extremely long questions continue only at complete exercise/response boundaries.
+  const card=el.querySelector('.question-card');if(card){const blocks=card.querySelector('.tp235-realisation'),parts=blocks?[...blocks.children]:[];
+   if(parts.length>1){fresh.removeChild(el);let page=fresh;const base=el.cloneNode(true);base.querySelector('.tp235-realisation').replaceChildren();base.querySelector('.tp234-feedback')?.remove();
+    for(let i=0;i<parts.length;i++){const unit=base.cloneNode(true);unit.querySelector('.tp235-realisation').append(parts[i]);if(i){unit.querySelector('.section-title')?.remove();unit.querySelector('.answer')?.remove();unit.querySelectorAll('.tp-photo-row').forEach(x=>x.remove());unit.querySelector('.qtext').append(' (suite)')}
+     if(i===parts.length-1&&card.querySelector('.tp234-feedback'))unit.querySelector('.question-card').append(card.querySelector('.tp234-feedback').cloneNode(true));page=fitOne(unit,page)}return page}
+  }
+  // Preserve all content when a single, indivisible answer exceeds a page.
+  el.style.zoom=String(factor);
  }
- return fitOnePart(el,fresh,true);
-}
-function fitOnePart(el,content,attached=false){
- if(!attached)content.appendChild(el);
- if(content.scrollHeight<=content.clientHeight+2)return content;
- content.removeChild(el);const host=content.closest('.v206pdf-host');let page=content.children.length?newPage(host):content;page.appendChild(el);
- if(page.scrollHeight<=page.clientHeight+2)return page;
- const table=el.querySelector('table'),list=el.querySelector('ol');
- const collection=table?.tBodies?.[0]||list||el.querySelector('.match-grid');
- if(collection&&collection.children.length>1){
-  page.removeChild(el);const children=[...collection.children];collection.replaceChildren();
-  let batch=el.cloneNode(true),target=batch.querySelector('tbody')||batch.querySelector('ol')||batch.querySelector('.match-grid');page.appendChild(batch);
-  for(const child of children){target.appendChild(child);if(page.scrollHeight>page.clientHeight+2&&target.children.length>1){target.removeChild(child);page=newPage(host);batch=el.cloneNode(true);target=batch.querySelector('tbody')||batch.querySelector('ol')||batch.querySelector('.match-grid');target.appendChild(child);page.appendChild(batch)}}return page;
- }
- // Only non-divisible illustrations/OR pages are scaled as a last resort.
- const h=Math.max(1,el.getBoundingClientRect().height||el.scrollHeight||1);el.style.zoom=String(Math.min(1,(page.clientHeight-4)/h));return page;
+ return fresh;
 }
 async function buildPdfPages(r,p){
   const host=document.createElement('div');host.className='v206pdf-host';
@@ -17644,6 +17613,19 @@ async function buildPdfPages(r,p){
 .v206pdf-host .v206pdf-summary-card{font-size:14px;line-height:1.5;overflow-wrap:anywhere}.v206pdf-host .question-contents{display:block}.v206pdf-host .tp234-question-child h4{margin:8px 0;font-size:13px}
 .v206pdf-host .placement-stage{max-height:none!important}.v206pdf-host .placement-stage>img{max-height:none!important;width:100%;height:auto;display:block}.v206pdf-host .match-card img{max-height:190px;object-fit:contain}
 .v206pdf-host .tp228-reference,.v206pdf-host .tp228-expected{font-size:13px}.v206pdf-host .tp234-continued{font-size:12px;color:#475569;margin:5px 0}
+
+.v206pdf-host .question-card{padding:9px;margin:7px 0;font-size:12px;line-height:1.3}
+.v206pdf-host .qtext{font-size:12px}.v206pdf-host .qmeta{font-size:10px!important;line-height:1.25;margin:4px 0}
+.v206pdf-host .tp234-feedback{border:0;border-top:1px solid #dce5dd;background:none;padding:5px 0 0;margin:7px 0 0;font-size:11px;line-height:1.35}
+.v206pdf-host .tp234-advice{color:#15803d;font-style:italic;font-size:12px;margin-top:3px}.v206pdf-host .tp234-advice strong{display:none}
+.v206pdf-host .tp234-advice br:first-of-type{display:none}.v206pdf-host .answer{min-height:22px!important;margin:5px 0;padding:5px;font-size:12px;line-height:1.35}
+.v206pdf-host .tp-photo-row{margin:5px 0}.v206pdf-host .tp-photo img,.v206pdf-host .image-grid img{max-height:130px!important;width:auto!important;max-width:100%}.v206pdf-host .tp-photo{width:auto!important}
+.v206pdf-host .tp235-realisation>section{border:0;padding:4px 0;margin:4px 0}.v206pdf-host .tp235-realisation h3{font-size:12px;margin:4px 0}
+.v206pdf-host .tp228-or{max-width:520px;margin:auto}.v206pdf-host .placement-stage{width:360px;max-width:100%;margin:5px auto;position:relative}
+.v206pdf-host .tp235-expected-placement .placement-stage{width:200px}.v206pdf-host .placement-pin{font-size:10px!important;min-width:18px;min-height:18px;padding:2px!important}
+.v206pdf-host .tp235-legend{font-size:10px;line-height:1.25;margin:5px 0}.v206pdf-host .tp228-table{font-size:11px}.v206pdf-host .tp228-table td,.v206pdf-host .tp228-table th{padding:4px}
+.v206pdf-host .tp228-order li{padding:3px 7px;margin:3px 0;border-radius:4px;font-size:11px}.v206pdf-host .tp228-reference,.v206pdf-host .tp228-expected{font-size:10px;line-height:1.3}.v206pdf-host .tp228-expected{margin:4px 0}
+.v206pdf-host .section-title{font-size:14px;margin:7px 0}.v206pdf-host .tp235-criteria-page{font-size:11px;line-height:1.3}.v206pdf-host .tp235-criteria-page h2{font-size:16px}.v206pdf-host .tp235-criteria-table{width:100%;border-collapse:collapse;table-layout:fixed}.v206pdf-host .tp235-criteria-table td,.v206pdf-host .tp235-criteria-table th{border:1px solid #b7c9d7;padding:5px;vertical-align:top;overflow-wrap:break-word;text-align:left}.v206pdf-host .tp235-group{background:#edf3f8}
 `;host.appendChild(st);
   document.body.appendChild(host);
   try{
@@ -17672,6 +17654,7 @@ async function buildPdfPages(r,p){
   // Évaluation / correction : pages séparées, sans altérer le TP original.
   content=newPage(host);
   for(const h of summaryUnits(r,p)){const el=htmlNode(h);content=fitOne(el,content)}
+  const criteria=criteriaSummary235(r);if(criteria){const page=newPage(host),el=htmlNode(criteria);page.appendChild(el);if(page.scrollHeight>page.clientHeight+2)el.style.zoom=String((page.clientHeight-4)/el.getBoundingClientRect().height)}
   await waitImages(host);
   return host;
   }catch(e){host.remove();throw e}
@@ -17694,8 +17677,10 @@ window.tp61GenerateCorrectionPdf=async function(id){
       pdf.addImage(canvas.toDataURL('image/jpeg',.95),'JPEG',0,0,210,297,undefined,'FAST');
     }
     const fn=`${safeFile(personName(r.data))}_${safeFile(p.publicId||p.id||r.data?.code||'TP')}_CORRIGE.pdf`;
-    const saved=await savePdf(pdf,fn);
-    return window.tp227.recordPdf(id,token,{...saved,pages:pages.length});
+    const saved=await savePdf(pdf,fn,id,token);
+    const receipt=window.tp227.recordPdf(id,token,{...saved,pages:pages.length});
+    if(saved.archiveVerified235){window.tp227.confirmPdf(id,token);window.tp227.approve(id,token).catch(e=>console.warn('Nettoyage différé',e));}
+    return receipt;
   }catch(e){
     console.error('V206 PDF fidèle V74',e);
     alert('Génération du PDF corrigé impossible : '+(e?.message||e)+' — aucun nettoyage autorisé.');return null;
@@ -17722,10 +17707,10 @@ if(typeof oldPage==='function'&&!oldPage.__v206pdf){
 }
 
 /* Version statique : pas de MutationObserver ni timer périodique. */
-const bv=document.getElementById('build-version');if(bv)bv.textContent='V234 — Évaluation · Charge Atelier · TP · Correction';
-document.title='V234 — Évaluation · Charge Atelier · TP · Correction';
+const bv=document.getElementById('build-version');if(bv)bv.textContent='V235 — Évaluation · Charge Atelier · TP · Correction';
+document.title='V235 — Évaluation · Charge Atelier · TP · Correction';
 window.tp228Blocks.screen=(r,p,x,a)=>window.tp228Blocks.render(x,a,{signature:r.data?.reponses?.signatures232?.[x.id],format:formattedText,frame:blockFrameStyle(x),prefix:pictogram(r.data,p,x),suffix:callProfessor(x)});
-window.tpV206PdfV74={buildPdfPages,contentUnits,summaryUnits,chooseFolder:window.tp206ChooseCorrectionFolder};
+window.tpV206PdfV74={buildPdfPages,contentUnits,summaryUnits,criteriaSummary235,chooseFolder:window.tp206ChooseCorrectionFolder};
 console.info('V206 : PDF de correction fidèle à l’éditeur V74 + coches noires avant sélection + dossier PDF choisi.');
 })();
 </script>
@@ -17765,7 +17750,7 @@ console.info('V206 : PDF de correction fidèle à l’éditeur V74 + coches noir
  window.tp116ViewDiffusion=function(id){const r=diffRows().find(x=>String(x.id)===String(id));if(!r)return alert('TP diffusé introuvable.');const p=r.tpProject||projectFromRaw(r.snapshot?.rawProject);if(p&&window.tp232PreviewProject)return window.tp232PreviewProject(p,r.title);const ov=document.createElement('div');ov.className='v116-preview-overlay';ov.innerHTML=`<div class="v116-preview-box"><div class="v116-preview-top"><div><b>👁 ${esc(r.tpCode)} — ${esc(r.title)}</b><div class="muted">${esc(r.className)} · ${r.students?.length||0} élève(s)</div></div><button type="button">✕ Fermer</button></div>${sheet(p)}</div>`;ov.querySelector('button').onclick=()=>ov.remove();document.body.appendChild(ov)};
  // Reconstruit Mes TP diffusés avec Voir + Affecter + Supprimer et ne dépend pas de l'ancien formulaire générateur.
  const priorPage=window.tpV76DiffusionsPage;window.tpV76DiffusionsPage=function(){priorPage?.();setTimeout(()=>{const data=diffRows().sort((a,b)=>String(b.diffusedAt||'').localeCompare(String(a.diffusedAt||''))),els=[...document.querySelectorAll('.v76-diff-row')];els.forEach((el,i)=>{const r=data[i];if(!r)return;let wrap=el.querySelector('.v114-diff-actions,.v116-diff-actions');if(!wrap){wrap=document.createElement('div');wrap.className='v116-diff-actions';const b=el.querySelector('button');if(b){b.replaceWith(wrap);wrap.appendChild(b)}}else wrap.classList.add('v116-diff-actions');if(!wrap.querySelector('[data-v116-view]')){const b=document.createElement('button');b.className='tpgen-btn secondary';b.dataset.v116View='1';b.textContent='👁 Voir le TP';b.onclick=()=>window.tp116ViewDiffusion(r.id);wrap.prepend(b)}})},0)};
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V234 — Évaluation · Charge Atelier · TP · Correction';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V235 — Évaluation · Charge Atelier · TP · Correction';
  console.info('V117 actif : rendu TP polyvalent et diffusion tracée.');
 })();
 </script><style id="v117-prof-style">
@@ -17789,7 +17774,7 @@ console.info('V206 : PDF de correction fidèle à l’éditeur V74 + coches noir
  let oldBuild=window.tpGenBuildStudentPackage;window.tpGenBuildStudentPackage=function(student,d){let m=oldBuild.apply(this,arguments),p=window.__v117Project||window.__v116CurrentProject||null;if(p){m.tpProject=clone(p);m.tpPictograms=clone(p.__pictograms||[]);m.meta=m.meta||{};m.meta.readerRequired='V117';m.type='tp-eleve-v117';window.tp230.ensure(m)}return m};
  // Hydratation complète avec pictogrammes avant export.
  ['tpGenExportClassToFolder','tpGenExportClassZip'].forEach(name=>{let prev=window[name];if(typeof prev!=='function')return;window[name]=async function(){let sid=String(tpGenState?.currentSavedId||window.__tpDiffusionSavedId||''),rr=sid?await raw(sid):null;window.__v117Project=unpack(rr);try{return await prev.apply(this,arguments)}finally{window.__v117Project=null}}});
- let bv=document.getElementById('build-version');if(bv)bv.textContent='V234 — Évaluation · Charge Atelier · TP · Correction';console.info('V117 actif : vue TP polyvalente + diffusion persistante.');
+ let bv=document.getElementById('build-version');if(bv)bv.textContent='V235 — Évaluation · Charge Atelier · TP · Correction';console.info('V117 actif : vue TP polyvalente + diffusion persistante.');
 })();
 </script><!-- V118 — concordance Editeur / Logiciel / Lecteur + diffusion transactionnelle -->
 <style id="v118-style">
@@ -17827,7 +17812,7 @@ console.info('V206 : PDF de correction fidèle à l’éditeur V74 + coches noir
  function injectRetroSettings(){let main=document.getElementById('main');if(!main||main.querySelector('#v118-retro-settings'))return;let host=main.querySelector('.rubric-other-wrap .settings-rubric-collapse-body')||main.querySelector('.settings-grid')||main;let card=document.createElement('div');card.id='v118-retro-settings';card.className='settings-card section-other';card.innerHTML=`<h3>🕘 Évaluations rétroactives</h3><p class="muted">Choisis les cartes visibles dans « Nouvelle évaluation » pour le profil administrateur.</p><div class="v118-switch-row"><div><b>Positionnement rétroactif</b><div class="muted">Afficher la création d'un positionnement à une date antérieure.</div></div><label class="v118-switch"><input type="checkbox" ${retroOn(RETRO_POS)?'checked':''} onchange="v118ToggleRetro('${RETRO_POS}',this.checked)"><span class="v118-slider"></span></label></div><div class="v118-switch-row"><div><b>Import rétroactif collectif</b><div class="muted">Afficher l'import Excel rétroactif collectif.</div></div><label class="v118-switch"><input type="checkbox" ${retroOn(RETRO_XLS)?'checked':''} onchange="v118ToggleRetro('${RETRO_XLS}',this.checked)"><span class="v118-slider"></span></label></div>`;host.appendChild(card)}
  let oldSettings=window.renderSettingsPage;if(typeof oldSettings==='function')window.renderSettingsPage=function(){let r=oldSettings.apply(this,arguments);setTimeout(injectRetroSettings,0);return r};
  let oldChoice=window.evaluationChoicePage;if(typeof oldChoice==='function')window.evaluationChoicePage=function(){let r=oldChoice.apply(this,arguments);setTimeout(()=>{document.querySelectorAll('.eval-choice-card').forEach(c=>{let t=c.textContent||'';if(/Positionnement rétroactif/i.test(t)&&!retroOn(RETRO_POS))c.remove();if(/Import rétroactif collectif/i.test(t)&&!retroOn(RETRO_XLS))c.remove()})},0);return r};
- let bv=document.getElementById('build-version');if(bv)bv.textContent='V234 — Évaluation · Charge Atelier · TP · Correction';
+ let bv=document.getElementById('build-version');if(bv)bv.textContent='V235 — Évaluation · Charge Atelier · TP · Correction';
  console.info('V118 actif : diffusion transactionnelle, générateur replié, rétroactif paramétrable.');
 })();
 </script>
@@ -17851,7 +17836,7 @@ console.info('V206 : PDF de correction fidèle à l’éditeur V74 + coches noir
  window.tpGenExportClassToFolder=async function(){try{if(!folderHandle){const ok=await window.tpGenChooseClassFolder();if(!ok)return false}const ctx=await buildFiles();let perm='granted';if(folderHandle.queryPermission)perm=await folderHandle.queryPermission({mode:'readwrite'});if(perm!=='granted'&&folderHandle.requestPermission)perm=await folderHandle.requestPermission({mode:'readwrite'});if(perm!=='granted')throw Error('Autorisation d’écriture refusée.');for(const f of ctx.files){const fh=await folderHandle.getFileHandle(f.name,{create:true}),w=await fh.createWritable();await w.write(new Blob([f.text],{type:f.name.endsWith('.tp')?'application/json;charset=utf-8':'text/plain;charset=utf-8'}));await w.close()}persist(ctx);const n=ctx.sts.length,name=folderHandle.name;window.tpGenCloseClassExport?.();window.showSuccessMessage?.(`${n} TP élève généré(s) dans « ${name} » et diffusion enregistrée dans Mes TP diffusés.`);return true}catch(e){console.error('V119 dossier',e);window.showWarningMessage?.('Génération impossible : '+(e?.message||e));return false}finally{window.__v117Project=null;window.__v116CurrentProject=null}};
  window.tpGenExportClassZip=async function(){try{const ctx=await buildFiles();const blob=window.tpGenBuildStoreZip(ctx.files);const name=[filePart(ctx.code),filePart(ctx.className),'TP_ELEVES'].filter(Boolean).join('_')+'.zip';window.tpGenDownloadBlob(blob,name);persist(ctx);window.tpGenCloseClassExport?.();window.showSuccessMessage?.(`${ctx.sts.length} TP élève correspondant(s) à « ${ctx.code} » regroupé(s) dans le ZIP et diffusion enregistrée.`);return true}catch(e){console.error('V119 ZIP',e);window.showWarningMessage?.('Génération ZIP impossible : '+(e?.message||e));return false}finally{window.__v117Project=null;window.__v116CurrentProject=null}};
  const oldDiffuse=window.tpGenDiffuseSaved;window.tpGenDiffuseSaved=function(id){folderHandle=null;window.__tpDiffusionSavedId=String(id||'');if(window.tpGenState)window.tpGenState.currentSavedId=String(id||'');return oldDiffuse?.apply(this,arguments)};
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V234 — Évaluation · Charge Atelier · TP · Correction';document.title='V234 — Évaluation · Charge Atelier · TP · Correction';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V235 — Évaluation · Charge Atelier · TP · Correction';document.title='V235 — Évaluation · Charge Atelier · TP · Correction';
  console.info('V127 actif : diffusion compacte, sans duplication du projet TP dans localStorage.');
 })();
 </script>
@@ -17879,7 +17864,7 @@ console.info('V206 : PDF de correction fidèle à l’éditeur V74 + coches noir
  };
  function wire(){document.querySelectorAll('#tp109-folder-input,#tp109-files-input,.tpc-toolbar input[type=file]').forEach(input=>{input.onchange=async()=>{const f=input.files;if(f?.length)await window.tpCorrectionImport(f);input.value=''}})}
  const oldPage=window.tpCorrectionPage;window.tpCorrectionPage=function(){const r=oldPage?.apply(this,arguments);setTimeout(wire,50);return r};setTimeout(wire,500);
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V234 — Évaluation · Charge Atelier · TP · Correction';document.title='V234 — Évaluation · Charge Atelier · TP · Correction';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V235 — Évaluation · Charge Atelier · TP · Correction';document.title='V235 — Évaluation · Charge Atelier · TP · Correction';
  console.info('V130 — import Copies rendues V128/V130 actif avec stockage IndexedDB anti-quota.');
 })();
 </script>
@@ -17913,7 +17898,7 @@ console.info('V206 : PDF de correction fidèle à l’éditeur V74 + coches noir
  function img(x){const v=x?.data||x?.image||x?.src||'';return (typeof v==='string'&&v.startsWith('data:image/'))?v:''}
  function imageTag(x,style=''){const v=img(x);return v?`<img style="${style}" src="${v}">`:'<div class="v131-image-missing">Illustration indisponible dans cette ancienne copie.</div>'}
  function locked(r){return !!r.correctedAt||String(r.workflowState||'').toUpperCase()==='CORRIGE'}
- function markButtons(r,k){const v=r.marks?.[k]||'';return `<div class="v131-markbar" role="group" aria-label="Évaluation de la question">${[['correct','ok','Correct — vert','✓'],['wrong','bad','Incorrect — rouge','✕'],['neutral','neutral','Non évalué — gris','—']].map(([value,cl,label,symbol])=>`<button type="button" class="v131-mark ${cl} ${v===value?'active':''}" title="${label}" aria-label="${label}" aria-pressed="${v===value}" ${locked(r)?'disabled':''} onclick="tp131Mark('${esc(r.id)}','${esc(k)}','${value}')">${symbol}</button>`).join('')}<button type="button" class="v234-comment-button" title="Commentaire pour l’élève" ${locked(r)?'disabled':''} onclick="tp234Comment(this)" data-copy="${esc(r.id)}" data-key="${esc(k)}">💬</button><div class="v234-comment-preview">${esc(r.comments234?.[k]||'')}</div></div>`}
+ function markButtons(r,k){const v=r.marks?.[k]||'';return `<div class="v131-markbar" role="group" aria-label="Évaluation de la question">${[['correct','ok','Correct — vert','✓'],['wrong','bad','Incorrect — rouge','✕'],['neutral','neutral','Non évalué — gris','—']].map(([value,cl,label,symbol])=>`<button type="button" class="v131-mark ${cl} ${v===value?'active':''}" title="${label}" aria-label="${label}" aria-pressed="${v===value}" ${locked(r)?'disabled':''} onclick="tp131Mark('${esc(r.id)}','${esc(k)}','${value}')">${symbol}</button>`).join('')}<button type="button" class="v234-comment-button" title="Commentaire pour l’élève" ${locked(r)?'disabled':''} onclick="tp234Comment(this)" data-copy="${esc(r.id)}" data-key="${esc(k)}">💬</button></div>`}
  function questionKeys(){return [...new Set([...document.querySelectorAll('.v130-copy .q > .v131-qhead [data-v131-mark]')].map(x=>x.getAttribute('data-v131-mark')))]}
  function score(r){const keys=questionKeys(),values=keys.map(k=>r.marks?.[k]),evaluated=values.filter(v=>v==='correct'||v==='wrong');return {total:keys.length,count:evaluated.length,note:evaluated.length?Math.round(200*evaluated.filter(v=>v==='correct').length/evaluated.length)/10:null}}
  function manual(r){return r.noteModeV215==='manual'||(!r.noteModeV215&&r.note!==''&&r.note!=null)}
@@ -17929,10 +17914,10 @@ console.info('V206 : PDF de correction fidèle à l’éditeur V74 + coches noir
  function autoPlacement(x,a){let good=0,total=(x.tokens||[]).filter(t=>Number.isFinite(t.x)&&Number.isFinite(t.y)).length,answered=0;for(const t of (x.tokens||[])){if(!Number.isFinite(t.x)||!Number.isFinite(t.y))continue;let v=a?.[t.id];if(v&&Number.isFinite(+v.x)&&Number.isFinite(+v.y)){answered++;if(Math.hypot(+v.x-t.x,+v.y-t.y)<=10)good++}}return {good,total,answered,status:answered===0?'empty':good===total?'ok':'bad'}}
  function badge(s){return s.status==='ok'?`<span class="v130-chip ok">✓ Automatique : ${s.good}/${s.total}</span>`:s.status==='bad'?`<span class="v130-chip bad">✕ Automatique : ${s.good}/${s.total}</span>`:`<span class="v130-chip manual">— Non répondu</span>`}
  function block(r,p,f,a){let x=obj(p,f);if(!x)return'';let av=a[x.id],mk='block_'+x.id;if(f.type==='table'){const modern=window.tp228Blocks.screen(r,p,x,av);if(modern!==null)return modern;}if(f.type==='text')return `<section class="blk"><h3>${esc(x.title||'')}</h3><p>${esc(x.text||'')}</p></section>`;if(f.type==='image')return `<section class="blk"><h3>${esc(x.title||'')}</h3><p>${esc(x.text||'')}</p><div class="grid">${(x.images||[]).map(im=>imageTag(im,'max-width:100%;max-height:260px;object-fit:contain')).join('')}</div></section>`;if(f.type==='table')return `<section class="blk"><h3>${esc(x.title||'Tableau')}</h3><table class="tpc-measures"><tbody>${Array.from({length:x.rows||0},(_,rr)=>`<tr>${Array.from({length:x.cols||0},(_,c)=>{let cell=x.cells?.[rr]?.[c]||{},v=cell.student?av?.[rr]?.[c]:cell.text;return `<td>${esc(v||'')}</td>`}).join('')}</tr>`).join('')}</tbody></table></section>`;if(f.type==='match'){let toks=[];(x.labels||[]).forEach(l=>{for(let i=0;i<Math.max(1,+l.count||1);i++)toks.push({id:l.id+'@'+i,label:l.name})});let st=autoMatch(x,av||{});return `<section class="blk"><h3>${esc(x.title||'Association')}</h3><p>${esc(x.text||'')}</p><div class="v130-autobar">${badge(st)}</div><div class="grid">${(x.targets||[]).map((t,i)=>{let tid=String(t.id||i),v=av?.[tid],label=toks.find(z=>z.id===v)?.label||'Non répondu',ok=v&&String(v).split('@')[0]===String(t.correctId||''),cl=!v?'empty':ok?'ok':'bad';return `<div class="matchcard">${imageTag(t,'width:100%;height:150px;object-fit:contain')}<div class="studentlabel ${cl}">${esc(label)} ${v?(ok?'✓':'✕'):''}</div></div>`}).join('')}</div></section>`}if(f.type==='placement'){let st=autoPlacement(x,av||{});return `<section class="blk"><h3>${esc(x.title||'Placement sur image')}</h3><p>${esc(x.text||'')}</p><div class="v130-autobar">${badge(st)}</div><div class="stage">${imageTag(x.image,'width:100%;height:auto')}${(x.tokens||[]).filter(t=>av?.[t.id]).map(t=>`<span class="pin" style="left:${+av[t.id].x||0}%;top:${+av[t.id].y||0}%">${esc(t.label)}</span>`).join('')}</div></section>`}return''}
- function render(r){const d=r.data||{},p=project(d);if(!p)return'';const a=answers(d),flow=Array.isArray(p.flow)?p.flow:(p.questions||[]).map(q=>({type:'question',id:q.id}));let html='',sec='',n=0;for(const f of flow){if(f.type!=='question'){let x=obj(p,f);if(x?.parentQuestionId)continue;html+=block(r,p,f,a);continue}let q=obj(p,f);if(!q||q.excluded)continue;if((q.section||'Activité')!==sec){sec=q.section||'Activité';html+=`<h2 class="section">${esc(sec)}</h2>`}let val=a[q.id],k='q_'+q.id;html+=`<section class="q"><div class="v131-qhead"><div><div class="qtitle">${++n}. ${esc(q.text||'')}</div><div class="meta">${esc(q.competence||'')}${q.criterionId?' · '+esc(q.criterionId):''}</div></div><div data-v131-mark="${esc(k)}">${markButtons(r,k)}</div></div>${(q.images||[]).map(im=>imageTag(im,'max-width:100%;max-height:280px;object-fit:contain;margin-top:8px')).join('')}${q.answerType==='none'?'':`<div class="answer">${esc(val||'—')}</div>`}${flow.filter(z=>z.type!=='question'&&obj(p,z)?.parentQuestionId===q.id).map(z=>block(r,p,z,a)).join('')}</section>`}return `<div class="v130-copy"><div class="tphead"><div><small>BAC PRO MAINTENANCE DES VÉHICULES · COPIE ÉLÈVE</small><h1>${esc(p.publicTitle||p.title||d.titre||'TP')}</h1><div>Durée : ${esc(p.duration||'—')}</div></div><span class="code">${esc(p.publicId||p.id||d.code||'TP')}</span></div><div class="brief"><section><h3>Situation professionnelle</h3>${esc(p.intro||'')}</section><section><h3>Objectifs</h3>${esc(p.objectives||'')}</section><section><h3>Support</h3>${esc(p.support||'')}</section><section><h3>Ressources et matériels</h3>${esc(p.resources||'')}</section></div>${html}</div>`}
+ function render(r){const d=r.data||{},p=project(d);if(!p)return'';const a=answers(d),flow=Array.isArray(p.flow)?p.flow:(p.questions||[]).map(q=>({type:'question',id:q.id}));let html='',sec='',n=0;for(const f of flow){if(f.type!=='question'){let x=obj(p,f);if(x?.parentQuestionId)continue;html+=block(r,p,f,a);continue}let q=obj(p,f);if(!q||q.excluded)continue;if((q.section||'Activité')!==sec){sec=q.section||'Activité';html+=`<h2 class="section">${esc(sec)}</h2>`}let val=a[q.id],k='q_'+q.id;html+=`<section class="q"><div class="v131-qhead"><div><div class="qtitle">${++n}. ${esc(q.text||'')}</div><div class="meta">${esc(q.competence||'')}${q.criterionId?' · '+esc(q.criterionId):''}</div></div><div data-v131-mark="${esc(k)}">${markButtons(r,k)}</div></div>${(q.images||[]).map(im=>imageTag(im,'max-width:100%;max-height:280px;object-fit:contain;margin-top:8px')).join('')}${q.answerType==='none'?'':`<div class="answer">${esc(val||'—')}</div>`}${flow.filter(z=>z.type!=='question'&&obj(p,z)?.parentQuestionId===q.id).map(z=>block(r,p,z,a)).join('')}<div class="v234-comment-preview" data-comment-key="${esc(k)}">${esc(r.comments234?.[k]||'')}</div></section>`}return `<div class="v130-copy"><div class="tphead"><div><small>BAC PRO MAINTENANCE DES VÉHICULES · COPIE ÉLÈVE</small><h1>${esc(p.publicTitle||p.title||d.titre||'TP')}</h1><div>Durée : ${esc(p.duration||'—')}</div></div><span class="code">${esc(p.publicId||p.id||d.code||'TP')}</span></div><div class="brief"><section><h3>Situation professionnelle</h3>${esc(p.intro||'')}</section><section><h3>Objectifs</h3>${esc(p.objectives||'')}</section><section><h3>Support</h3>${esc(p.support||'')}</section><section><h3>Ressources et matériels</h3>${esc(p.resources||'')}</section></div>${html}</div>`}
  const previous=window.tpCorrectionOpen;
- window.tpCorrectionOpen=function(id){const light=read().find(x=>String(x.id)===String(id));if(!light)return previous?.apply(this,arguments);previous?.apply(this,arguments);setTimeout(async()=>{const ed=document.querySelector('.tpc-editor'),left=ed?.firstElementChild;if(!left)return;left.innerHTML='<div class="v131-hydrating">Chargement de la copie complète et de ses illustrations…</div>';const stored=await full(id),r=stored||light;if(String(window.__tp55Current)!==String(id)||!left.isConnected)return;if(!project(r.data)){left.innerHTML='<div class="tpc-card">Cette copie ne contient pas le projet TP complet nécessaire à la vue fidèle.</div>';return}const local=read().find(x=>String(x.id)===String(id));if(local){r.marks={...(r.marks||{}),...(local.marks||{})};r.comments234=local.comments234||r.comments234||{};r.note=local.note;r.noteModeV215=local.noteModeV215;r.correctedAt=local.correctedAt;r.workflowState=local.workflowState;}left.innerHTML='<div class="tpc-card"><b>V216 — Une question, une évaluation.</b> ✓ Correct · ✕ Incorrect · — Non évalué. Les symboles sont clairs au repos et plus prononcés après sélection. Un seul choix par question, y compris ses tableaux et exercices.</div>'+render(r);noteUI(r)},20)};
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V234 — Évaluation · Charge Atelier · TP · Correction';document.title='V234 — Évaluation · Charge Atelier · TP · Correction';
+ window.tpCorrectionOpen=function(id){const light=read().find(x=>String(x.id)===String(id));if(!light)return previous?.apply(this,arguments);previous?.apply(this,arguments);setTimeout(async()=>{const ed=document.querySelector('.tpc-editor'),left=ed?.firstElementChild;if(!left)return;left.innerHTML='<div class="v131-hydrating">Chargement de la copie complète et de ses illustrations…</div>';const stored=await full(id),r=stored||light;if(String(window.__tp55Current)!==String(id)||!left.isConnected)return;if(!project(r.data)){left.innerHTML='<div class="tpc-card">Cette copie ne contient pas le projet TP complet nécessaire à la vue fidèle.</div>';return}const local=read().find(x=>String(x.id)===String(id));if(local){r.marks={...(r.marks||{}),...(local.marks||{})};r.comments234=local.comments234||r.comments234||{};r.note=local.note;r.noteModeV215=local.noteModeV215;r.correctedAt=local.correctedAt;r.workflowState=local.workflowState;}window.tp235Auto?.(r);left.innerHTML='<div class="tpc-card"><b>V216 — Une question, une évaluation.</b> ✓ Correct · ✕ Incorrect · — Non évalué. Les symboles sont clairs au repos et plus prononcés après sélection. Un seul choix par question, y compris ses tableaux et exercices.</div>'+render(r);setNoteUI(r);window.tp235RefreshCriteria?.()},20)};
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V235 — Évaluation · Charge Atelier · TP · Correction';document.title='V235 — Évaluation · Charge Atelier · TP · Correction';
  console.info('V131 correcteur : hydratation IndexedDB + images + coches par question.');
 })();
 </script><!-- V147 — correctif final diffusion TP local : DOIT rester le dernier runtime du fichier -->
@@ -17944,8 +17929,8 @@ console.info('V206 : PDF de correction fidèle à l’éditeur V74 + coches noir
  let folderHandle=null;
  function setVersion(){
    const b=document.getElementById('build-version');
-   if(b)b.textContent='V234 — Évaluation · Charge Atelier · TP · Correction';
-   document.title='V234 — Évaluation · Charge Atelier · TP · Correction';
+   if(b)b.textContent='V235 — Évaluation · Charge Atelier · TP · Correction';
+   document.title='V235 — Évaluation · Charge Atelier · TP · Correction';
    document.getElementById('v144-version')?.remove();
  }
  setVersion(); document.addEventListener('DOMContentLoaded',setVersion,{once:true}); setTimeout(setVersion,100);
@@ -18033,7 +18018,7 @@ console.info('V206 : PDF de correction fidèle à l’éditeur V74 + coches noir
  });
  function compact(root=document){root.querySelectorAll?.('.v131-markbar .v131-mark').forEach(b=>{if(b.closest('[role=group]'))return;if(b.classList.contains('ok')){b.textContent='✓';b.title='Correct'}else if(b.classList.contains('bad')){b.textContent='✕';b.title='Incorrect'}else{b.textContent='—';b.title='Non évalué'}b.setAttribute('aria-label',b.title)})}
  compact(); new MutationObserver(m=>m.forEach(x=>x.addedNodes.forEach(n=>{if(n.nodeType===1)compact(n)}))).observe(document.documentElement,{childList:true,subtree:true});
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V234 — Évaluation · Charge Atelier · TP · Correction';document.title='V234 — Évaluation · Charge Atelier · TP · Correction';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V235 — Évaluation · Charge Atelier · TP · Correction';document.title='V235 — Évaluation · Charge Atelier · TP · Correction';
  console.info('V148 : Copies rendues stable pendant Firebase + coches compactes.');
 })();
 </script>
@@ -18059,7 +18044,7 @@ const rows=()=>window.getManagedEvaluationActivities?.()||[];
 const sortRows=a=>a.slice().sort((x,y)=>(Number(x.numero)||99999)-(Number(y.numero)||99999));
 function save(a){window.saveManagedEvaluationActivities?.(a);}
 function comps(s){return String(s||'').split(/[,;\n]+/).map(x=>x.trim()).filter(Boolean)}
-function forceVersion(){const b=document.getElementById('build-version');if(b)b.textContent='V234 — Évaluation · Charge Atelier · TP · Correction';document.title='V234 — Évaluation · Charge Atelier · TP · Correction';document.getElementById('v144-version')?.remove()}
+function forceVersion(){const b=document.getElementById('build-version');if(b)b.textContent='V235 — Évaluation · Charge Atelier · TP · Correction';document.title='V235 — Évaluation · Charge Atelier · TP · Correction';document.getElementById('v144-version')?.remove()}
 forceVersion();document.addEventListener('DOMContentLoaded',forceVersion,{once:true});setTimeout(forceVersion,250);setTimeout(forceVersion,1200);
 
 function installCategory(){
@@ -18221,7 +18206,7 @@ function mergeCorrections(){
 function mergeEvaluations(){return new Promise(resolve=>{
  try{const q=indexedDB.open('C2MMVP_TEST_FICTIFS_V8',2);q.onerror=()=>resolve(false);q.onsuccess=()=>{const d=q.result;try{const st=d.transaction('evaluations','readwrite').objectStore('evaluations');let left=BACKUP_EVALS.length;if(!left){d.close();return resolve(true)};BACKUP_EVALS.forEach(v=>{const g=st.get(v.id);g.onsuccess=()=>{if(g.result==null){try{st.add(v)}catch(_){}}if(--left===0){setTimeout(()=>{d.close();resolve(true)},20)}};g.onerror=()=>{if(--left===0){d.close();resolve(true)}}})}catch(e){d.close();resolve(false)}}}catch(e){resolve(false)}
 })}
-function version(){const b=document.getElementById('build-version');if(b)b.textContent='V234 — Évaluation · Charge Atelier · TP · Correction';document.title='V234 — Évaluation · Charge Atelier · TP · Correction'}
+function version(){const b=document.getElementById('build-version');if(b)b.textContent='V235 — Évaluation · Charge Atelier · TP · Correction';document.title='V235 — Évaluation · Charge Atelier · TP · Correction'}
 function installDefaultTodo(){
  const old=window.go;if(typeof old==='function'&&!old.__v171){const w=function(view){const r=old.apply(this,arguments);if(view==='correctionTp')setTimeout(()=>{const s=document.getElementById('tpc-f-status');if(s){s.value='todo';s.dispatchEvent(new Event('change',{bubbles:true}))}},120);return r};w.__v171=true;window.go=w}
 }
@@ -18249,7 +18234,9 @@ async function validate(){
   const ne=document.getElementById('tpc-note'),ae=document.getElementById('tpc-app'); if(ne)r.note=ne.value;if(ae)r.appreciation=ae.value;
   const n=Number(String(r.note).replace(',','.')); if(!Number.isFinite(n)||n<0||n>20)throw Error('Saisis une note comprise entre 0 et 20.');
   window.tp230.ensure(r.data);const cs=comps(r.data);r.levels=r.levels||{};const missing=window.tp230.extract(r.data)?[]:cs.filter(c=>!r.levels[c]);if(missing.length)throw Error('Positionne toutes les compétences : '+missing.join(', ')+'.');
-  const aligned=window.tp230.build(r);if(aligned?.reference233){const pending=(r.data.tpSelection230?.groups||[]).flatMap(g=>g.criteria).filter(c=>{const x=window.tp232.result(r,c.sourceId);return x.count<x.total});if(pending.length&&!confirm('Correction partielle : '+pending.length+' critère(s) ont des questions non corrigées. Valider malgré tout ?'))return;}const db=await open();const st=await student(db,r);if(!st){db.close();throw Error('Élève non reconnu : '+([r.data?.eleve?.nom,r.data?.eleve?.prenom].filter(Boolean).join(' ')||'identité absente')+'.');}
+  const project=window.tp230.project(r.data),questions=(project?.questions||[]).filter(q=>!q.excluded&&(!project.flow||project.flow.some(f=>f.type==='question'&&f.id===q.id))),pending=questions.filter(q=>!['correct','wrong','ok','bad'].includes(r.marks?.['q_'+q.id]));
+  if(pending.length&&!confirm(pending.length+' question(s) non évaluée(s). Valider malgré tout ?'))return;
+  const aligned=window.tp230.build(r);const db=await open();const st=await student(db,r);if(!st){db.close();throw Error('Élève non reconnu : '+([r.data?.eleve?.nom,r.data?.eleve?.prenom].filter(Boolean).join(' ')||'identité absente')+'.');}
   const levels={},disabledCriteria={};cs.forEach(c=>{const cp=(typeof competencies!=='undefined'?competencies:(window.competencies||[])).find(x=>x.id===c),count=Math.max(1,cp?.criteria?.length||1);for(let i=0;i<count;i++)levels[c+'-'+i]=r.levels[c]});
   const evId=r.savedEvaluationId||('EVAL_TP_'+(crypto?.randomUUID?.()||Date.now()+'_'+Math.random().toString(36).slice(2)));
   const aeRaw=r.data?.autoEvaluation||r.data?.auto_evaluation||null;
@@ -18269,12 +18256,12 @@ async function validate(){
   try{await window.loadData?.()}catch(e){console.warn('V172 loadData',e)}
   try{await window.tpV159SyncCorrectionsNow?.()}catch(e){console.warn('V172 sync différée',e)}
   try{if(typeof window.tp61GenerateCorrectionPdf==='function')await window.tp61GenerateCorrectionPdf(r.id)}catch(e){console.warn('V172 PDF',e)}
-  alert('Correction enregistrée. Le TP est maintenant classé comme corrigé.');
+  window.showSuccessMessage?.('Correction enregistrée — copie verrouillée.');
   try{window.tpCorrectionPage?.()}catch(_){try{window.go?.('correctionTp')}catch(__){}}
  }catch(e){console.error('V172 validation',e);alert('Validation impossible : '+(e?.message||e));}
  finally{window.__v172Saving=false;if(btn){btn.disabled=false;btn.innerHTML=oldText||'💾 Valider la correction et l’évaluation'}}
 }
-function install(){window.tpCorrectionValidate=validate;const b=document.getElementById('build-version');if(b)b.textContent='V234 — Évaluation · Charge Atelier · TP · Correction';document.title='V234 — Évaluation · Charge Atelier · TP · Correction'}
+function install(){window.tpCorrectionValidate=validate;const b=document.getElementById('build-version');if(b)b.textContent='V235 — Évaluation · Charge Atelier · TP · Correction';document.title='V235 — Évaluation · Charge Atelier · TP · Correction'}
 install();
 })();
 </script>
@@ -18296,7 +18283,7 @@ function lockIfCorrected(id){
 function install(){
  const oldOpen=window.tpCorrectionOpen; if(typeof oldOpen==='function'&&!oldOpen.__v173){const w=function(id){const out=oldOpen.apply(this,arguments);setTimeout(()=>lockIfCorrected(id),450);setTimeout(()=>lockIfCorrected(id),1200);return out};w.__v173=true;window.tpCorrectionOpen=w;}
  const oldVal=window.tpCorrectionValidate; if(typeof oldVal==='function'&&!oldVal.__v173){const w=async function(){const out=await oldVal.apply(this,arguments);return out};w.__v173=true;window.tpCorrectionValidate=w;}
- const b=document.getElementById('build-version');if(b)b.textContent='V234 — Évaluation · Charge Atelier · TP · Correction';document.title='V234 — Évaluation · Charge Atelier · TP · Correction';
+ const b=document.getElementById('build-version');if(b)b.textContent='V235 — Évaluation · Charge Atelier · TP · Correction';document.title='V235 — Évaluation · Charge Atelier · TP · Correction';
 }
 // Accélère l'impression de synchronisation : les données locales sont déjà enregistrées avant le cloud.
 const oldSync=window.tpV159SyncCorrectionsNow; if(typeof oldSync==='function'){window.tpV159SyncCorrectionsNow=function(){try{const p=oldSync.apply(this,arguments);if(p&&p.catch)p.catch(e=>console.warn('V173 sync',e));return Promise.resolve(true)}catch(e){console.warn('V173 sync',e);return Promise.resolve(false)}}}
@@ -18377,7 +18364,7 @@ stamp();window.addEventListener('load',()=>{stamp();setTimeout(reconcile,300)},{
 (function(){
 'use strict';
 
-const VERSION='V234 — Évaluation · Charge Atelier · TP · Correction';
+const VERSION='V235 — Évaluation · Charge Atelier · TP · Correction';
 const MODE_KEYS={
   free:'evaluation_mode_free_v190',
   professional:'evaluation_mode_professional_v190',
@@ -18686,7 +18673,7 @@ setTimeout(()=>{pullModesFirebase().catch(()=>{})},3500);
 function setVersion(){
   const b=document.getElementById('build-version');
   if(b)b.textContent=VERSION;
-  document.title='V234 — Évaluation · Charge Atelier · TP · Correction';
+  document.title='V235 — Évaluation · Charge Atelier · TP · Correction';
 }
 setVersion();
 setTimeout(setVersion,500);
@@ -19127,7 +19114,7 @@ function relabelNavigation(){
 function setVersion(){
   const b=document.getElementById('build-version');
   if(b)b.textContent=VERSION;
-  document.title='V234 — Évaluation · Charge Atelier · TP · Correction';
+  document.title='V235 — Évaluation · Charge Atelier · TP · Correction';
 }
 relabelNavigation();
 setVersion();
@@ -19686,9 +19673,9 @@ if(typeof window.tpCorrectionImport==='function'){
 /* Habillage du Portail TP seulement : la fonction RTA existante reste disponible
    ailleurs dans le logiciel, elle n'est simplement plus dans le nom de la suite. */
 function stamp(){
-  document.title='V234 — Évaluation · Charge Atelier · TP · Correction';
+  document.title='V235 — Évaluation · Charge Atelier · TP · Correction';
   const bv=document.getElementById('build-version');
-  if(bv)bv.textContent='V234 — Évaluation · Charge Atelier · TP · Correction';
+  if(bv)bv.textContent='V235 — Évaluation · Charge Atelier · TP · Correction';
 }
 stamp();
 setTimeout(stamp,700);
@@ -19857,8 +19844,8 @@ document.addEventListener('visibilitychange',()=>{
 /* Affichage de version seulement, sans timer périodique ni MutationObserver. */
 function stampVersion(){
   const b=document.getElementById('build-version');
-  if(b)b.textContent='V234 — Évaluation · Charge Atelier · TP · Correction';
-  document.title='V234 — Évaluation · Charge Atelier · TP · Correction';
+  if(b)b.textContent='V235 — Évaluation · Charge Atelier · TP · Correction';
+  document.title='V235 — Évaluation · Charge Atelier · TP · Correction';
 }
 stampVersion();
 
@@ -19944,8 +19931,8 @@ if(typeof settings==='function'&&!settings.__v200){
 cleanUi(document);
 
 const bv=document.getElementById('build-version');
-if(bv)bv.textContent='V234 — Évaluation · Charge Atelier · TP · Correction';
-document.title='V234 — Évaluation · Charge Atelier · TP · Correction';
+if(bv)bv.textContent='V235 — Évaluation · Charge Atelier · TP · Correction';
+document.title='V235 — Évaluation · Charge Atelier · TP · Correction';
 
 console.info('V200 : RTA retirée de l’interface et des évaluations ; ancien générateur TP neutralisé au profit du Portail TP.');
 })();
@@ -20331,8 +20318,8 @@ ensureMobileMenu();
 
 /* Version : affichage uniquement, aucun timer et aucun MutationObserver. */
 const bv=document.getElementById('build-version');
-if(bv)bv.textContent='V234 — Évaluation · Charge Atelier · TP · Correction';
-document.title='V234 — Évaluation · Charge Atelier · TP · Correction';
+if(bv)bv.textContent='V235 — Évaluation · Charge Atelier · TP · Correction';
+document.title='V235 — Évaluation · Charge Atelier · TP · Correction';
 
 console.info('V201 : barre latérale scrollable + menu iPhone permanent + suppression TP V73/V159 persistante.');
 })();
@@ -20353,8 +20340,8 @@ window.V202_SETTINGS_POLICY={
   ephemeralUiLocalOnly:true
 };
 const bv=document.getElementById('build-version');
-if(bv)bv.textContent='V234 — Évaluation · Charge Atelier · TP · Correction';
-document.title='V234 — Évaluation · Charge Atelier · TP · Correction';
+if(bv)bv.textContent='V235 — Évaluation · Charge Atelier · TP · Correction';
+document.title='V235 — Évaluation · Charge Atelier · TP · Correction';
 console.info('V202 : recherche/compteur fiches + paramètres fonctionnels multiposte, démarrage inchangé.');
 })();
 </script>
@@ -20570,8 +20557,8 @@ forceActiveTpClass();
 addPortalClassBadge();
 
 const bv=document.getElementById('build-version');
-if(bv)bv.textContent='V234 — Évaluation · Charge Atelier · TP · Correction';
-document.title='V234 — Évaluation · Charge Atelier · TP · Correction';
+if(bv)bv.textContent='V235 — Évaluation · Charge Atelier · TP · Correction';
+document.title='V235 — Évaluation · Charge Atelier · TP · Correction';
 
 console.info('V204 : Portail TP filtré strictement par classe active ; classId et className doivent être cohérents.');
 })();
@@ -20590,8 +20577,8 @@ window.V204_TP_CLASS_FILTER_POLICY={
   legacyStudentIdsMustAllBelongToActiveClass:true
 };
 const bv=document.getElementById('build-version');
-if(bv)bv.textContent='V234 — Évaluation · Charge Atelier · TP · Correction';
-document.title='V234 — Évaluation · Charge Atelier · TP · Correction';
+if(bv)bv.textContent='V235 — Évaluation · Charge Atelier · TP · Correction';
+document.title='V235 — Évaluation · Charge Atelier · TP · Correction';
 console.info('V204 : filtrage strict des TP diffusés sur la classe active, démarrage inchangé.');
 })();
 </script>
@@ -20717,8 +20704,8 @@ if(typeof oldOpen==='function'&&!oldOpen.__v205){
 }
 
 const bv=document.getElementById('build-version');
-if(bv)bv.textContent='V234 — Évaluation · Charge Atelier · TP · Correction';
-document.title='V234 — Évaluation · Charge Atelier · TP · Correction';
+if(bv)bv.textContent='V235 — Évaluation · Charge Atelier · TP · Correction';
+document.title='V235 — Évaluation · Charge Atelier · TP · Correction';
 
 console.info('V205 : auto-évaluation TP lue depuis le JSON rendu ; Tableau du jour exclut les TP diffusés ; rendu le plus récent privilégié.');
 })();
@@ -20975,21 +20962,14 @@ window.tp227ChooseArchive=function(){
  const d=document.createElement('dialog');d.className='tp227-archive-dialog';d.innerHTML='<h2>Copies corrigées</h2><label>Choisir la copie<select style="width:100%;font-size:16px" id="archive227-choice">'+rows.map((r,i)=>`<option value="${i}">${esc(identity(r))} — ${esc(r.data?.code||r.data?.tp?.id||'TP')} — ${esc(r.correctedAt?.slice(0,10)||'')}</option>`).join('')+'</select></label><button type="button" class="primary" data-next>Préparer la sauvegarde</button><button type="button" class="secondary" data-cancel>Fermer</button>';document.body.append(d);d.addEventListener('close',()=>d.remove());d.querySelector('[data-cancel]').onclick=()=>d.close();d.querySelector('[data-next]').onclick=()=>{const r=rows[Number(d.querySelector('select').value)];d.close();window.tp227ArchiveDialog(r.id)};d.showModal();
 };
 window.tp227ArchiveDialog=async function(id){
- if(document.getElementById('archive227-dialog'))return;
  const row=api.rows().find(r=>String(r.id)===String(id));if(!row||!api.done(row))return;
- const d=document.createElement('dialog');d.id='archive227-dialog';d.className='tp227-archive-dialog';d.innerHTML=`<h2>Copie corrigée — sauvegarde et allègement</h2><p><b>${esc(identity(row))}</b> — ${esc(row.data?.code||row.data?.tp?.id||'TP')}</p><p>Le PDF illustré doit être enregistré en dehors de Firebase avant l’allègement. Il contient les illustrations, les réponses et la correction. Firebase conservera les consignes, réponses, auto-évaluation, coches, compétences, note et appréciation, sans les médias.</p><p data-status role="status">Préparation de la copie complète…</p><button type="button" class="primary" data-download disabled>Générer et enregistrer le PDF illustré</button><button type="button" class="secondary" data-json disabled>Télécharger aussi la copie complète (JSON)</button><label><input type="checkbox" data-confirm disabled> J’ai ouvert le PDF enregistré sur mon PC ou sur Le Cloud et vérifié que ses illustrations sont présentes.</label><button type="button" class="primary" data-approve disabled>Confirmer la sauvegarde et alléger Firebase</button><button type="button" class="secondary" data-close>Plus tard</button>`;
- document.body.append(d);d.addEventListener('close',()=>d.remove());d.querySelector('[data-close]').onclick=()=>d.close();d.showModal();
- const status=d.querySelector('[data-status]'),dl=d.querySelector('[data-download]'),check=d.querySelector('[data-confirm]'),apply=d.querySelector('[data-approve]');
- try{const full=await api.full(row),token=api.backupToken(row);if(!d.isConnected)return;const slim=api.scrub(full);status.textContent=`Copie complète : ${(api.size(full)/1e6).toLocaleString('fr-FR',{maximumFractionDigits:2})} Mo · contenu allégé estimé : ${(api.size(slim)/1000).toLocaleString('fr-FR',{maximumFractionDigits:1})} ko.`;dl.disabled=false;
- const existingPdf=api.read('tp_pdf_receipts_v231',{})[String(id)];if(existingPdf?.token===token&&existingPdf.imagesChecked&&existingPdf.pages>0){check.disabled=false;status.textContent='PDF déjà généré : '+existingPdf.file+'. Ouvrez le fichier enregistré, vérifiez ses illustrations puis confirmez.';dl.textContent='Régénérer le PDF illustré';}const json=d.querySelector('[data-json]');json.disabled=false;json.onclick=()=>download(full);
- dl.onclick=async()=>{dl.disabled=true;check.checked=false;check.disabled=true;apply.disabled=true;status.textContent='Génération du PDF illustré et vérification des images…';try{const receipt=await window.tp61GenerateCorrectionPdf(id);if(!receipt){status.textContent='PDF non enregistré : nettoyage bloqué.';return}check.disabled=false;status.textContent=receipt.fallback?'Téléchargement du PDF lancé. Ouvrez le fichier enregistré, vérifiez ses illustrations puis confirmez.':'PDF enregistré dans « '+receipt.folder+' ». Ouvrez-le et vérifiez ses illustrations puis confirmez.';}catch(e){status.textContent=e.message}finally{dl.disabled=false}};check.onchange=()=>{apply.disabled=!check.checked};
- apply.onclick=async()=>{if(!check.checked)return;apply.disabled=true;dl.disabled=true;check.disabled=true;try{api.confirmPdf(id,token);await api.approve(id,token);status.textContent=api.read('tp_archive_cleanup_status_v227',{})[id]||'Sauvegarde confirmée.';d.querySelector('[data-close]').textContent='Fermer';renderStats()}catch(e){status.textContent=e.message;apply.disabled=false;check.disabled=false;dl.disabled=false}};
- }catch(e){status.textContent=e.message}
+ const receipt=api.read('tp_pdf_receipts_v231',{})[String(id)];
+ try{if(receipt?.localPdf235&&receipt.token===api.backupToken(row)){await window.tp235DownloadPdfArchive(id);api.resume();return}await window.tp61GenerateCorrectionPdf(id)}catch(e){alert('PDF non disponible : '+e.message)}
 };
 const validate=window.tpCorrectionValidate;
-window.tpCorrectionValidate=async function(){const id=window.__tp55Current||window.__tpCorrectionCurrent,previous=api.rows().find(r=>String(r.id)===String(id));const out=await validate.apply(this,arguments);const r=api.rows().find(r=>String(r.id)===String(id));if(r&&api.done(r)&&(!api.done(previous)||r.correctedAt!==previous?.correctedAt))window.tp227ArchiveDialog(id);return out};
+window.tpCorrectionValidate=async function(){const id=window.__tp55Current||window.__tpCorrectionCurrent,previous=api.rows().find(r=>String(r.id)===String(id));const out=await validate.apply(this,arguments);const r=api.rows().find(r=>String(r.id)===String(id));if(r&&api.done(r)&&(!api.done(previous)||r.correctedAt!==previous?.correctedAt))api.resume();return out};
 // Archive UI is available even if the copy was corrected in a previous version.
-const open=window.tpCorrectionOpen;window.tpCorrectionOpen=function(id){const out=open.apply(this,arguments);setTimeout(()=>{if(String(window.__tp55Current)!==String(id))return;const r=api.rows().find(x=>String(x.id)===String(id)),ed=document.querySelector('.tpc-editor');if(!r||!api.done(r)||!ed||document.getElementById('archive227-button'))return;const b=document.createElement('button');b.id='archive227-button';b.type='button';b.className='secondary';b.textContent='Sauvegarder / alléger Firebase';b.onclick=()=>window.tp227ArchiveDialog(id);ed.before(b);if(r.firebaseArchive227?.mediaRemoved){const note=document.createElement('p');note.textContent='Archive Firebase allégée : les médias restent dans la sauvegarde complète.';b.after(note)}},250);return out};
+const open=window.tpCorrectionOpen;window.tpCorrectionOpen=function(id){const out=open.apply(this,arguments);setTimeout(()=>{if(String(window.__tp55Current)!==String(id))return;const r=api.rows().find(x=>String(x.id)===String(id)),ed=document.querySelector('.tpc-editor');if(!r||!api.done(r)||!ed||document.getElementById('archive227-button'))return;const b=document.createElement('button');b.id='archive227-button';b.type='button';b.className='secondary';b.textContent='Télécharger le PDF corrigé';b.onclick=()=>window.tp227ArchiveDialog(id);ed.before(b);if(r.firebaseArchive227?.mediaRemoved){const note=document.createElement('p');note.textContent='Archive Firebase allégée : les médias restent dans la sauvegarde complète.';b.after(note)}},250);return out};
 const importOld=window.tpCorrectionImport;window.tpCorrectionImport=async function(){const out=await importOld.apply(this,arguments);signature='';api.paintStorage();return out};
 })();
 
@@ -21067,6 +21047,7 @@ function refresh(){const r=current(),box=document.getElementById('tp230-criteria
  tools.querySelector('[data-note232]').onclick=()=>{const rows=read(),row=rows.find(x=>String(x.id)===String(r.id));if(!row||row.correctedAt||String(row.workflowState||'').toUpperCase()==='CORRIGE')return;if(row.note===''||row.note==null||!Number.isFinite(Number(row.note)))return alert('Renseigne une note.');if(!confirm('Remplacer le positionnement de tous les critères par une proposition issue de la note ?'))return;const lv=Number(row.note)<12?'À renforcer':Number(row.note)<16?'Maîtrisé':'Autonome';row.criteriaLevels230=Object.fromEntries(Object.keys(window.tp232.effective(row)).map(k=>[k,lv]));localStorage.setItem(KEY,JSON.stringify(rows));refresh()};
  tools.querySelector('input').onchange=e=>{const rows=read(),row=rows.find(x=>String(x.id)===String(r.id));if(!row||row.correctedAt||String(row.workflowState||'').toUpperCase()==='CORRIGE')return;row.keepNote232=e.target.checked;localStorage.setItem(KEY,JSON.stringify(rows))};box.append(tools);
 }
+window.tp235RefreshCriteria=refresh;
 const mark=window.tp131Mark;window.tp131Mark=function(){const out=mark.apply(this,arguments);refresh();return out};
 const open=window.tpCorrectionOpen;window.tpCorrectionOpen=async function(){const out=await open.apply(this,arguments);refresh();return out};
 })();
@@ -21091,7 +21072,7 @@ window.tp234Comment=function(button){
  document.getElementById('tp234-comment-dialog')?.remove();
  const d=document.createElement('dialog');d.id='tp234-comment-dialog';d.innerHTML='<form method="dialog"><h2>Conseil pour cette question</h2><label>Commentaire visible dans le PDF corrigé<textarea rows="6" maxlength="3000" autofocus></textarea></label><p>Le commentaire reste associé à cette question. Un champ vide supprime le commentaire.</p><div><button value="cancel">Annuler</button> <button type="button" data-save>Enregistrer</button></div></form>';
  const input=d.querySelector('textarea');input.value=row.comments234?.[key]||'';
- d.querySelector('[data-save]').onclick=()=>{const rows=read(),r=rows.find(r=>String(r.id)===id);if(!r||done(r)){d.close();return}r.comments234={...(r.comments234||{}),[key]:input.value.trim()};try{localStorage.setItem(KEY,JSON.stringify(rows));window.tp234PersistComments?.(r);document.querySelectorAll('[data-v131-mark]').forEach(el=>{if(el.dataset.v131Mark===key){const preview=el.querySelector('.v234-comment-preview');if(preview)preview.textContent=r.comments234[key]}});d.close()}catch(e){alert('Commentaire non enregistré : '+e.message)}};
+ d.querySelector('[data-save]').onclick=()=>{const rows=read(),r=rows.find(r=>String(r.id)===id);if(!r||done(r)){d.close();return}r.comments234={...(r.comments234||{}),[key]:input.value.trim()};try{localStorage.setItem(KEY,JSON.stringify(rows));window.tp234PersistComments?.(r);document.querySelectorAll('[data-v131-mark]').forEach(el=>{if(el.dataset.v131Mark===key){const preview=el.closest('.q')?.querySelector('.v234-comment-preview');if(preview)preview.textContent=r.comments234[key]}});d.close()}catch(e){alert('Commentaire non enregistré : '+e.message)}};
  d.addEventListener('close',()=>d.remove());document.body.append(d);d.showModal();
 };
 function isEdit(el){
@@ -21112,5 +21093,42 @@ const ob=new MutationObserver(()=>window.tp234Lock());ob.observe(document.body,{
 window.tp234Lock();
 const oldOpen=window.tpGenOpenClassExport;window.tpGenOpenClassExport=function(){const out=oldOpen?.apply(this,arguments);const modal=document.querySelector('#tpgen-class-export-modal .tpgen-class-dialog');if(modal&&!modal.querySelector('[data-preview234]')){const b=document.createElement('button');b.type='button';b.className='tpgen-btn secondary';b.dataset.preview234='';b.textContent='👁 Vérifier le TP dans le lecteur élève';b.onclick=()=>{const d=window.tpGenLockedSnapshot?.(),raw=d?.rawProject,p=raw?.schema==='evaluation.tp.v1'?raw.data:raw?.tpProject||raw?.data?.questions&&raw.data||raw;const project=p?.questions?p:window.__v117Project||window.__v116CurrentProject;if(project)window.tp232PreviewProject({...project,__pictograms:raw?.pictograms||project.__pictograms||[]});else window.tpGenPreview()};modal.querySelector('.tpgen-class-head')?.after(b)}return out};
 const style=document.createElement('style');style.textContent=`.v131-markbar{flex-wrap:wrap;max-width:270px}.v234-comment-button{min-width:44px;min-height:44px;border:1px solid #b9c9d7;border-radius:8px;background:#edf5ff;cursor:pointer}.v234-comment-preview{flex-basis:100%;font-size:13px;white-space:pre-wrap;overflow-wrap:anywhere;color:#174572}.v234-comment-preview:empty{display:none}#tp234-comment-dialog{width:min(560px,94vw);border:0;border-radius:16px;padding:24px}#tp234-comment-dialog textarea{display:block;box-sizing:border-box;width:100%;font:inherit;margin:12px 0;padding:10px}#tp234-comment-dialog button{min-height:44px;padding:10px 18px}#tp234-comment-dialog::backdrop{background:#17324d88}.tp234-locked .v130-copy{filter:grayscale(1);background:#f2f3f5}.tp234-locked input:disabled,.tp234-locked textarea:disabled,.tp234-locked select:disabled,.tp234-locked button:disabled{background:#e8ebee!important;color:#475569!important;opacity:.75;cursor:not-allowed!important}.tp234-locked [aria-disabled="true"]{cursor:not-allowed!important}`;document.head.append(style);
+})();
+</script>
+
+<script id="v235-archive">(function(){
+const open=()=>new Promise((ok,no)=>{const q=indexedDB.open('tp_pdf_archives_v235',1);q.onupgradeneeded=()=>q.result.createObjectStore('pdfs',{keyPath:'id'});q.onsuccess=()=>ok(q.result);q.onerror=()=>no(q.error)});
+window.tp235SavePdfArchive=async function(id,token,file,blob){const db=await open();try{await new Promise((ok,no)=>{const tx=db.transaction('pdfs','readwrite');tx.objectStore('pdfs').put({id:String(id),token,file,blob,date:new Date().toISOString()});tx.oncomplete=ok;tx.onerror=()=>no(tx.error);tx.onabort=()=>no(tx.error||Error('Archive interrompue'))});const saved=await new Promise((ok,no)=>{const q=db.transaction('pdfs').objectStore('pdfs').get(String(id));q.onsuccess=()=>ok(q.result);q.onerror=()=>no(q.error)});if(saved?.token!==token||saved.blob?.size!==blob.size)throw Error('Archive PDF locale non vérifiée')}finally{db.close()}};
+window.tp235DownloadPdfArchive=async function(id){const db=await open();try{const saved=await new Promise((ok,no)=>{const q=db.transaction('pdfs').objectStore('pdfs').get(String(id));q.onsuccess=()=>ok(q.result);q.onerror=()=>no(q.error)});if(!saved)throw Error('Aucun PDF archivé sur ce poste');const url=URL.createObjectURL(saved.blob),a=document.createElement('a');a.href=url;a.download=saved.file;a.click();setTimeout(()=>URL.revokeObjectURL(url),30000)}finally{db.close()}};
+})();
+</script>
+<script id="v235-correction">(function(){
+'use strict';
+const KEY='tp_correction_local_v54',done=r=>!!r?.correctedAt||String(r?.workflowState||'').toUpperCase()==='CORRIGE';
+function success(x,a,type){
+ if(type==='match'){return !!x.targets?.length&&x.targets.every((t,i)=>t.correctId&&String(a?.[String(t.id||i)]||'').split('@')[0]===String(t.correctId))}
+ if(type==='placement')return !!x.tokens?.length&&x.tokens.every(t=>Number.isFinite(t.x)&&Number.isFinite(t.y)&&a?.[t.id]&&Number.isFinite(+a[t.id].x)&&Number.isFinite(+a[t.id].y)&&Math.hypot(+a[t.id].x-t.x,+a[t.id].y-t.y)<=10);
+ if(type!=='table')return false;
+ if(x.blockKind==='ordering'){const ids=a?.order,items=x.items||[];return !!items.length&&Array.isArray(ids)&&ids.length===items.length&&items.every((v,i)=>v.id===ids[i])}
+ if(x.blockKind==='trueFalse')return !!x.statements?.length&&x.statements.every(t=>['true','false'].includes(t.correct)&&a?.answers?.[t.id]===t.correct);
+ if(x.blockKind==='qcm'){const selected=a?.selectedOptionIds,expected=(x.options||[]).filter(o=>o.correct);return !!expected.length&&Array.isArray(selected)&&new Set(selected).size===selected.length&&selected.length===expected.length&&expected.every(o=>selected.includes(o.id))}
+ return false;
+}
+window.tp235Auto=function(r){
+ if(done(r))return;const p=window.tp230.project(r.data);if(!p)return;const a=r.data?.reponses?.v117||r.data?.reponses?.v115||{},flow=p.flow||[],map={table:'tableBlocks',match:'matchBlocks',placement:'placementBlocks'};let changed=false;
+ r.marks=r.marks||{};
+ for(const q of p.questions||[]){if(q.excluded||q.answerType!=='none'||r.marks['q_'+q.id]||!flow.some(f=>f.type==='question'&&f.id===q.id))continue;
+  const blocks=flow.filter(f=>map[f.type]).map(f=>({type:f.type,x:(p[map[f.type]]||[]).find(x=>x.id===f.id)})).filter(v=>v.x?.parentQuestionId===q.id&&!v.x.excluded);
+  if(blocks.length&&blocks.every(b=>success(b.x,a[b.x.id],b.type))){r.marks['q_'+q.id]='correct';changed=true}
+ }
+ if(!changed)return;const rows=JSON.parse(localStorage.getItem(KEY)||'[]'),light=rows.find(x=>String(x.id)===String(r.id));if(!light||done(light))return;
+ light.marks={...light.marks,...r.marks};r.marks=light.marks;
+ if(r.noteModeV215==='auto'||(!r.noteModeV215&&(r.note===''||r.note==null))){const values=(p.questions||[]).filter(q=>!q.excluded&&flow.some(f=>f.type==='question'&&f.id===q.id)).map(q=>r.marks['q_'+q.id]).filter(v=>v==='correct'||v==='wrong');r.note=light.note=String(Math.round(200*values.filter(v=>v==='correct').length/values.length)/10);r.noteModeV215=light.noteModeV215='auto'}
+ localStorage.setItem(KEY,JSON.stringify(rows));window.tp234PersistComments?.(light);
+};
+window.tp235AutoSuccess=success;
+function fold(){const box=document.getElementById('tp230-criteria');if(!box||box.querySelector(':scope > details'))return;const details=document.createElement('details'),summary=document.createElement('summary');summary.textContent='Critères retenus dans l’éditeur';details.open=!!box.__open235;details.addEventListener('toggle',()=>box.__open235=details.open);box.querySelector('h3')?.remove();details.append(summary);while(box.firstChild)details.append(box.firstChild);box.append(details)}
+new MutationObserver(fold).observe(document.body,{childList:true,subtree:true});fold();
+const style=document.createElement('style');style.textContent=`.tpc-shell{max-width:1800px!important;width:100%}.tpc-editor{display:grid!important;grid-template-columns:minmax(0,1fr) 310px!important;gap:18px!important}.tpc-editor>*,.v130-copy,.v130-copy .q{min-width:0}.v130-copy{max-width:none!important;width:100%;padding:18px}.v131-qhead{display:flex;justify-content:space-between;gap:15px}.v131-qhead>div:first-child{flex:1;min-width:0}.v131-qhead [data-v131-mark]{flex:0 0 auto;max-width:none}.v234-comment-preview{max-width:none!important;width:100%;font-style:italic;color:#15803d!important;font-size:15px;line-height:1.5;margin:12px 0;white-space:pre-wrap;overflow-wrap:break-word;word-break:normal}.v234-comment-preview:empty{display:none}.tpc-editor .block-picto,.tpc-editor .builtin-picto-group,.tpc-editor .call-prof{display:none!important}.tp234-locked .v130-copy{filter:none!important;color:#64748b}.tp234-locked .v130-copy .q{background:#f3f4f6}.tp234-locked .v234-comment-preview{color:#15803d!important}#tp230-criteria summary{font-weight:700;cursor:pointer;min-height:44px;padding:10px 0}#tp230-criteria details:not([open]){margin:0}@media(max-width:1000px){.tpc-editor{grid-template-columns:minmax(0,1fr)!important}.tpc-editor aside{width:100%}}@media(max-width:600px){.v131-qhead{flex-wrap:wrap}.v131-qhead>div:first-child{flex-basis:100%}}`;document.head.append(style);
 })();
 </script>
