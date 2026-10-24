@@ -16601,7 +16601,7 @@ const style=document.createElement('style');style.id='tp228-blocks';style.textCo
  const clone=o=>JSON.parse(JSON.stringify(o||{}));
  const safe=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Za-z0-9_-]+/g,'-').replace(/^-+|-+$/g,'')||'TP';
  let folderHandle=null;
- function forceVersion(){const b=document.getElementById('build-version');if(b&&b.textContent!=='V236 — Évaluation · Charge Atelier · TP · Correction')b.textContent='V236 — Évaluation · Charge Atelier · TP · Correction';document.title='V236 — Évaluation · Charge Atelier · TP · Correction';document.getElementById('v144-version')?.remove();}
+ function forceVersion(){const b=document.getElementById('build-version');if(b&&b.textContent!=='V236 — Évaluation · Charge Atelier · TP · Correction')b.textContent='V239 — Évaluation · Charge Atelier · TP · Correction';document.title='V239 — Évaluation · Charge Atelier · TP · Correction';document.getElementById('v144-version')?.remove();}
  forceVersion();
  document.addEventListener('DOMContentLoaded',forceVersion,{once:true});
  setTimeout(forceVersion,0);setTimeout(forceVersion,500);
@@ -18254,13 +18254,16 @@ async function validate(){
     comment:String(aeRaw.commentaire??aeRaw.comment??''),
     completedAt:aeRaw.completedAt||aeRaw.dateValidation||''
   }:null;
-  const ev={id:evId,studentId:st.id,date:dateFr(r.data),title:`${r.data?.code||'TP'} — ${r.data?.titre||'TP corrigé'}`,place:'Lycée',type:'TP',comps:cs,levels,obs:{},disabledCriteria,evaluationObservation:r.appreciation||'',activitySupport:r.data?.vehicule?.modele||r.data?.support?.label||'',sourceNote20:n,noteDrivenEvaluation:!!r.keepNote232,noteDrivenRequested:r.keepNote232?n:null,noteDrivenExact:r.keepNote232?n:null,tpCorrection:true,tpComments234:JSON.parse(JSON.stringify(r.comments234||{})),tpCode:r.data?.code||'',tpActivityId:r.data?.meta?.activityId||r.data?.activityId||'',tpPendingKey:r.data?.meta?.pendingKey||'',tpCorrectionId:r.id,tpImportedFile:r.fileName,studentSelfEvaluation,createdAt:r.correctedAt?new Date(r.correctedAt).getTime():Date.now(),modifiedAt:r.correctedAt?Date.now():null};
-  db.close();if(aligned)Object.assign(ev,aligned);await persistEvaluation(ev,false);
+  const ev={id:evId,studentId:st.id,date:dateFr(r.data),title:`${r.data?.code||'TP'} — ${r.data?.titre||'TP corrigé'}`,place:'Lycée',type:'TP',comps:cs,levels,obs:{},disabledCriteria,evaluationObservation:r.appreciation||'',activitySupport:r.data?.vehicule?.modele||r.data?.support?.label||'',sourceNote20:n,noteDrivenEvaluation:true,noteDrivenRequested:n,noteDrivenExact:n,tpCorrection:true,tpComments234:JSON.parse(JSON.stringify(r.comments234||{})),tpCode:r.data?.code||'',tpActivityId:r.data?.meta?.activityId||r.data?.activityId||'',tpPendingKey:r.data?.meta?.pendingKey||'',tpCorrectionId:r.id,tpImportedFile:r.fileName,studentSelfEvaluation,createdAt:r.correctedAt?new Date(r.correctedAt).getTime():Date.now(),modifiedAt:r.correctedAt?Date.now():null};
+  db.close();if(aligned)Object.assign(ev,aligned);ev.sourceNote20=n;ev.noteDrivenEvaluation=true;ev.noteDrivenRequested=n;ev.noteDrivenExact=n;ev.tpNoteAudit239={value:n,copyId:String(r.id),attempt:String(r.data?.cloud227?.attempt||r.data?.meta?.attempt||r.fileName||''),at:new Date().toISOString()};await persistEvaluation(ev,false);
   r.savedEvaluationId=evId;r.correctedAt=r.correctedAt||new Date().toISOString();r.workflowState='CORRIGE';if(r.data){r.data.statut='CORRIGE';r.data.status='CORRIGE';r.data.correction={...(r.data.correction||{}),note:n,appreciation:r.appreciation||'',competences:r.levels,commentaires:r.comments234||{},criteres:window.tp232.effective(r),selection230:r.data.tpSelection230,date:r.correctedAt,evaluationId:evId}}write(rows);window.tp234Lock?.();
   try{await window.loadData?.()}catch(e){console.warn('V172 loadData',e)}
   try{await window.tpV159SyncCorrectionsNow?.()}catch(e){console.warn('V172 sync différée',e)}
-  try{if(typeof window.tp61GenerateCorrectionPdf==='function')await window.tp61GenerateCorrectionPdf(r.id)}catch(e){console.warn('V172 PDF',e)}
-  window.showSuccessMessage?.('Correction enregistrée — copie verrouillée.');
+  let pdfOk=false,pdfFailure='';
+  try{if(typeof window.tp61GenerateCorrectionPdf!=='function')throw Error('Module PDF absent');const result=await window.tp61GenerateCorrectionPdf(r.id);if(!result)throw Error('Le générateur PDF n’a pas confirmé le document');pdfOk=true}catch(e){pdfFailure=String(e?.message||e);console.error('V239 PDF',e)}
+  if(pdfOk){window.showSuccessMessage?.('Correction enregistrée — note professeur : '+n+'/20. PDF généré.');}
+  else {alert('Correction et note '+n+'/20 enregistrées pour cette tentative, mais le PDF N’A PAS ÉTÉ GÉNÉRÉ.\nCause : '+pdfFailure+'\nLa copie est conservée ; ouvre-la puis utilise « Générer à nouveau le PDF corrigé ».');}
+
   try{window.tpCorrectionPage?.()}catch(_){try{window.go?.('correctionTp')}catch(__){}}
  }catch(e){console.error('V172 validation',e);alert('Validation impossible : '+(e?.message||e));}
  finally{window.__v172Saving=false;if(btn){btn.disabled=false;btn.innerHTML=oldText||'💾 Valider la correction et l’évaluation'}}
