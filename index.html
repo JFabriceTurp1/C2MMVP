@@ -16806,7 +16806,7 @@ const style=document.createElement('style');style.id='tp228-blocks';style.textCo
  };
  function markLegacyRows(root=document){root.querySelectorAll?.('.tpc-row').forEach(row=>{const b=row.querySelector('button[onclick*="tpCorrectionOpen"]');if(!b||row.querySelector('.v158-legacy-chip'))return;const m=(b.getAttribute('onclick')||'').match(/tpCorrectionOpen\(['\"]([^'\"]+)/);if(!m)return;const r=read().find(x=>String(x.id)===m[1]);if(r&&!project(r.data)){const target=row.children?.[1]||row.firstElementChild;target?.insertAdjacentHTML('beforeend','<span class="v158-legacy-chip">Ancien format</span>')}})}
  markLegacyRows();new MutationObserver(ms=>ms.forEach(m=>m.addedNodes.forEach(n=>{if(n.nodeType===1)markLegacyRows(n)}))).observe(document.documentElement,{childList:true,subtree:true});
- function setVersion(){const b=document.getElementById('build-version');if(b)b.textContent='V236 — Évaluation · Charge Atelier · TP · Correction';document.title='V236 — Évaluation · Charge Atelier · TP · Correction'}
+ function setVersion(){const b=document.getElementById('build-version');if(b)b.textContent='V240 — Évaluation · Charge Atelier · TP · Correction';document.title='V240 — Évaluation · Charge Atelier · TP · Correction'}
  setVersion();document.addEventListener('DOMContentLoaded',setVersion,{once:true});setTimeout(setVersion,250);
  console.info('V158 : compatibilité de correction des anciennes copies activée, sans modification du démarrage.');
 })();
@@ -17718,6 +17718,134 @@ window.tpV206PdfV74={buildPdfPages,contentUnits,summaryUnits,criteriaSummary235,
 console.info('V206 : PDF de correction fidèle à l’éditeur V74 + coches noires avant sélection + dossier PDF choisi.');
 })();
 </script>
+<script id="v240-history-tp-linkage">
+/* V240 — liaison stricte entre copies rendues corrigées et évaluations (réparation sur demande).
+   Pas d'action au démarrage; pas de migration implicite; chaque changement fait l'objet d'une confirmation. */
+(function(){
+'use strict';
+const COPY_KEY='tp_correction_local_v54';
+const norm=v=>String(v??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+const clean=v=>String(v??'');
+const number=v=>{if(v===null||v===undefined||String(v).trim()==='')return null;const n=Number(String(v).replace(',','.'));return Number.isFinite(n)&&n>=0&&n<=20?n:null};
+const read=()=>{try{const x=JSON.parse(localStorage.getItem(COPY_KEY)||'[]');return Array.isArray(x)?x:[]}catch(_){return []}};
+const isDone=r=>!!(r?.correctedAt||r?.savedEvaluationId||r?.data?.correction?.evaluationId||['CORRIGE','CORRECTED'].includes(clean(r?.workflowState||r?.data?.statut).toUpperCase()));
+const code=r=>clean(r?.data?.tp?.id||r?.data?.code||r?.data?.tpCode||'');
+const name=r=>norm([r?.data?.identite?.nom||r?.data?.eleve?.nom,r?.data?.identite?.prenom||r?.data?.eleve?.prenom].filter(Boolean).join(' ')||r?.data?.studentName||'');
+const ndate=v=>{const d=new Date(v);if(!isNaN(d))return d.toLocaleDateString('fr-FR');return /^\d{2}\/\d{2}\/\d{4}$/.test(clean(v))?clean(v):new Date().toLocaleDateString('fr-FR')};
+const trial=r=>{const raw=clean(r?.data?.cloud227?.attempt||r?.data?.meta?.attempt||r?.fileName||'');return (raw.match(/(?:^|[_-])(R[1-9][0-9]*)(?:[_-]|\.|$)/i)||[])[1]?.toUpperCase()||''};
+function resolveStudent(r,sts,classes){
+ const id=clean(r?.data?.studentId||r?.data?.eleve?.id||r?.data?.identite?.id);const nm=name(r);
+ const cls=norm(r?.data?.identite?.classe||r?.data?.classe||'');
+ const matches=sts.filter(st=>{
+   if(id&&clean(st.id)!==id)return false;
+   if(nm&&!id){const sn=norm(st.name||[st.nom,st.prenom].filter(Boolean).join(' '));if(sn!==nm&&sn!==nm.split(' ').reverse().join(' '))return false}
+   if(cls){const group=classes.find(c=>clean(c.id)===clean(st.classId));if(!group||norm(group.name)!==cls)return false}
+   return !!(id||nm);
+ });
+ return matches.length===1?{student:matches[0]}:{error:matches.length?'Identité élève ambiguë':'Élève / classe non retrouvé'};
+}
+function getLinks(r,evals){
+ const ref=clean(r.savedEvaluationId||r?.data?.correction?.evaluationId);
+ const exact=evals.filter(e=>clean(e.tpCorrectionId)===clean(r.id));
+ const pointer=ref?evals.filter(e=>clean(e.id)===ref):[];
+ if(exact.length>1||pointer.length>1)return {error:'Plusieurs évaluations portent cette identité'};
+ if(exact.length&&pointer.length&&clean(exact[0].id)!==clean(pointer[0].id))return {error:'Identifiants de liaison contradictoires'};
+ if(pointer.length&&pointer[0].tpCorrectionId&&clean(pointer[0].tpCorrectionId)!==clean(r.id))return {error:'Identifiant déjà rattaché à un autre rendu'};
+ return {ev:exact[0]||pointer[0]||null,ref};
+}
+async function inspect(){
+ await openDB();const evals=await getAll('evaluations'),sts=await getAll('students');
+ const classes=typeof getClasses==='function'?getClasses():[];
+ const copies=read().filter(r=>r?.id&&isDone(r));
+ const records=[];const seen=new Set();
+ for(const r of copies){
+   const id=clean(r.id);if(seen.has(id))continue;seen.add(id);
+   const n=number(r.note??r?.data?.correction?.note),who=name(r),c=code(r),att=trial(r);
+   const label=(who||'?')+' · '+(c||'?')+(att?' · '+att:'')+' · '+(n===null?'note absente':n+'/20');
+   if(n===null){records.push({r,label,status:'skip',why:'Note professeur absente ou invalide'});continue}
+   const st=resolveStudent(r,sts,classes);if(!st.student){records.push({r,label,status:'skip',why:st.error});continue}
+   const link=getLinks(r,evals);if(link.error){records.push({r,label,status:'skip',why:link.error});continue}
+   const ev=link.ev;
+   if(ev&&clean(ev.studentId)!==clean(st.student.id)){records.push({r,label,status:'skip',why:'Évaluation liée à un autre élève'});continue}
+   if(ev&&ev.batchId){records.push({r,label,status:'skip',why:'Évaluation collective : rapprochement automatique interdit'});continue}
+   if(ev&&ev.tpCode&&c&&clean(ev.tpCode)!==c){records.push({r,label,status:'skip',why:'Code TP différent dans l’évaluation'});continue}
+   if(ev&&ev.tpCorrectionId&&clean(ev.tpCorrectionId)!==id){records.push({r,label,status:'skip',why:'Évaluation liée à un autre rendu'});continue}
+   const exact=ev&&ev.noteDrivenEvaluation===true&&number(ev.sourceNote20)===n&&clean(ev.tpCorrectionId)===id&&clean(ev.studentId)===clean(st.student.id);
+   records.push({r,ev,student:st.student,n,label,status:exact?'ok':ev?'update':'create',why:exact?'Conforme':ev?'Liaison exacte, note à rectifier':'Aucune évaluation liée : création indépendante'});
+ }
+ return {records,evals,copies};
+}
+function summary(items){return {create:items.filter(r=>r.status==='create').length,update:items.filter(r=>r.status==='update').length,ok:items.filter(r=>r.status==='ok').length,skip:items.filter(r=>r.status==='skip').length};}
+function esc(s){return clean(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+async function ask(){
+ try{
+  const {records}=await inspect(),cnt=summary(records);
+  const existing=document.getElementById('tp240-dialog');if(existing)existing.remove();
+  const wrap=document.createElement('div');wrap.id='tp240-dialog';wrap.setAttribute('role','dialog');wrap.setAttribute('aria-modal','true');wrap.setAttribute('aria-label','V240 Réconciliation des notes');
+  wrap.style.cssText='position:fixed;inset:0;z-index:95000;background:#13223899;display:grid;place-items:center;padding:16px';
+  const list=records.slice(0,200).map(x=>`<tr><td>${esc(x.label)}</td><td>${esc(x.status==='ok'?'Conforme':x.status==='create'?'Créer':x.status==='update'?'Mettre à jour':'Non modifié')}</td><td>${esc(x.why)}</td></tr>`).join('');
+  wrap.innerHTML=`<div style="background:#fff;color:#172033;border-radius:14px;padding:20px;width:min(960px,96vw);max-height:90vh;overflow:auto"><h2 style="margin:0 0 8px">V240 — Vérifier les notes des TP corrigés</h2><p>${cnt.create} évaluation(s) à créer · ${cnt.update} à corriger · ${cnt.ok} conformes · ${cnt.skip} à vérifier manuellement.</p><p style="font-size:13px">Seules les copies corrigées avec élève identifié et note valide peuvent être liées. Les anciennes évaluations sans identifiant de copie, comme une note à 15/20 non reliée, ne seront ni écrasées ni supprimées. Sauvegarde automatique des évaluations modifiées dans IndexedDB avant toute opération.</p><div style="overflow:auto;max-height:52vh"><table style="width:100%;font-size:12px"><thead><tr><th>Copie</th><th>Action</th><th>Justification</th></tr></thead><tbody>${list}</tbody></table></div><div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;margin-top:15px"><button type="button" class="secondary" id="tp240-close">Fermer sans modifier</button><button type="button" class="primary" id="tp240-apply" ${cnt.create+cnt.update?'':'disabled'}>Confirmer ${cnt.create+cnt.update} réparation(s)</button></div><p id="tp240-result" style="font-size:13px" role="status"></p></div>`;
+  document.body.append(wrap);wrap.querySelector('#tp240-close').onclick=()=>wrap.remove();
+  wrap.addEventListener('click',e=>{if(e.target===wrap)wrap.remove()});
+  wrap.querySelector('#tp240-apply').onclick=async()=>{const b=wrap.querySelector('#tp240-apply');b.disabled=true;wrap.querySelector('#tp240-result').textContent='Vérification des données et enregistrement…';try{const res=await apply();wrap.querySelector('#tp240-result').textContent=`${res.changed} évaluation(s) réparée(s), ${res.skipped} ignorée(s). Les autres évaluations sont restées inchangées.`;try{await loadData()}catch(e){console.warn('V240 rafraîchissement',e)};setTimeout(()=>{if(document.getElementById('tp240-dialog'))return;try{if(document.querySelector('.evaluation-history-table'))historyPage()}catch(_){}} ,100)}catch(e){wrap.querySelector('#tp240-result').textContent='Réparation interrompue : '+e.message;console.error('V240',e)}};
+ }catch(e){alert('Audit V240 impossible : '+(e?.message||e))}
+}
+async function apply(){
+ // Recalcule le plan pour éviter toute écriture sur une liaison devenue ambiguë entre l’aperçu et la validation.
+ const {records}=await inspect();const todo=records.filter(x=>x.status==='create'||x.status==='update');
+ const backup=todo.map(x=>({copyId:x.r.id,before:x.ev?JSON.parse(JSON.stringify(x.ev)):null,score:x.n,source:'TP corrigé'}));
+ if(todo.length){const stamp=new Date().toISOString();
+   await put('appConfig',{key:'tp240_note_link_backup_'+stamp,value:{version:240,at:stamp,items:backup},updatedAt:Date.now()});
+ }
+ let changed=0;
+ for(const x of todo){
+  const r=x.r,n=x.n,old=x.ev,codeTp=code(r),att=trial(r);
+  let aligned={};try{aligned=window.tp230?.build?.(r)||{}}catch(e){console.warn('V240 références TP indisponibles, note manuelle préservée',r.id,e)}
+  const update={...(old||{}),
+   id:old?.id||('EVAL_TP_V240_'+clean(r.id).replace(/[^A-Za-z0-9_-]/g,'_')),
+   studentId:x.student.id,
+   date:old?.date||ndate(r?.data?.dates?.rendu||r.correctedAt),
+   title:old?.title||`${codeTp||'TP'} — ${r.data?.titre||r.data?.tp?.titre||'TP corrigé'}${att?' · '+att:''}`,
+   place:old?.place||'Lycée',type:old?.type||'TP',
+   comps:old?.comps||aligned.comps||window.tp230?.ids?.(r.data)||[],
+   levels:old?.levels||aligned.levels||{},obs:old?.obs||aligned.obs||{},disabledCriteria:old?.disabledCriteria||aligned.disabledCriteria||{},
+   tpReference230:old?.tpReference230||aligned.tpReference230,
+   tpCorrection:true,tpCorrectionId:clean(r.id),tpCode:codeTp,tpImportedFile:r.fileName||old?.tpImportedFile||'',tpAttempt240:att,
+   tpSource240:'réconciliation confirmée professeur',
+   activitySupport:old?.activitySupport||r.data?.vehicule?.modele||r.data?.support?.label||'',
+   evaluationObservation:old?.evaluationObservation||r.appreciation||'',
+   noteDrivenEvaluation:true,noteDrivenRequested:n,noteDrivenExact:n,sourceNote20:n,
+   tpNoteAudit240:{value:n,copyId:clean(r.id),at:new Date().toISOString(),source:'copie corrigée',previous:old?.sourceNote20??null},
+   createdAt:old?.createdAt||Date.now(),modifiedAt:Date.now()};
+  await persistEvaluation(update,false);
+  const saved=(await getAll('evaluations')).find(e=>clean(e.id)===clean(update.id));
+  if(!saved||clean(saved.tpCorrectionId)!==clean(r.id)||number(saved.sourceNote20)!==n||clean(saved.studentId)!==clean(x.student.id))throw Error('Note non confirmée pour '+x.label+' ; traitement stoppé, sauvegarde V240 disponible.');
+  changed++;
+  // Après vérification, liaison inverse sur la copie. Pas de réécriture des autres copies.
+  const current=read(),index=current.findIndex(y=>clean(y.id)===clean(r.id));
+  if(index>=0&&!current[index].savedEvaluationId){current[index].savedEvaluationId=update.id;
+    try{localStorage.setItem(COPY_KEY,JSON.stringify(current))}catch(e){console.warn('V240 : évaluation enregistrée ; liaison locale à reprendre',e)}
+  }
+ }
+ return {changed,skipped:records.filter(x=>x.status==='skip').length};
+}
+window.tp240Audit=inspect;window.tp240OpenNoteRepair=ask;window.tp240Apply=apply;
+function decorate(){
+ let bar=null;
+ if(document.querySelector('#tpc-groups'))bar=document.querySelector('.tpc-shell .tpc-toolbar')||document.querySelector('.tpc-shell .page-header');
+ else if(document.querySelector('.evaluation-history-table'))bar=document.querySelector('.history-search-wrap')||document.querySelector('#main .page-header');
+ if(!bar||bar.querySelector('#tp240-repair-button')||document.getElementById('tp240-dialog'))return;
+ const b=document.createElement('button');b.id='tp240-repair-button';b.type='button';b.className='secondary';b.textContent='🔗 Vérifier les notes des TP corrigés';b.style.cssText='margin:6px;min-width:210px;white-space:normal;font-weight:700';b.onclick=ask;bar.append(b);
+}
+const oldPage=window.tpCorrectionPage;
+if(typeof oldPage==='function')window.tpCorrectionPage=function(){const x=oldPage.apply(this,arguments);setTimeout(decorate,80);return x};
+const oldHistory=window.historyPage;
+if(typeof oldHistory==='function')window.historyPage=function(){const x=oldHistory.apply(this,arguments);setTimeout(decorate,80);return x};
+// Navigation déjà en cours : observer seulement les écrans (aucune écriture de données, aucun minuteur périodique).
+function boot(){const main=document.getElementById('main');if(!main)return;const obs=new MutationObserver(()=>{if(document.getElementById('tp240-repair-button'))return;decorate()});obs.observe(main,{childList:true,subtree:true});decorate()}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+})();
+</script>
 </body>
 </html>
 <!-- V116 — TP projet unifié : diffusion fiable, aperçu et passerelle lecteur -->
@@ -18229,7 +18357,7 @@ function comps(d){return window.tp230.ids(d)}
 function person(d){return {id:String(d?.studentId||d?.meta?.studentId||d?.eleve?.id||''),name:norm([d?.eleve?.nom,d?.eleve?.prenom].filter(Boolean).join(' ')||d?.eleve?.name||d?.studentName||'')}}
 function open(){return new Promise((ok,no)=>{const q=indexedDB.open('C2MMVP_TEST_FICTIFS_V8',2);q.onsuccess=()=>ok(q.result);q.onerror=()=>no(q.error)})}
 async function student(db,r){const p=person(r.data||{}), all=await new Promise((ok,no)=>{const q=db.transaction('students','readonly').objectStore('students').getAll();q.onsuccess=()=>ok(q.result||[]);q.onerror=()=>no(q.error)});let st=p.id?all.find(x=>String(x.id)===p.id):null;if(st)return st;if(p.name){st=all.find(x=>norm(x.name||[x.nom,x.prenom].filter(Boolean).join(' '))===p.name);if(st)return st;const rev=p.name.split(' ').reverse().join(' ');st=all.find(x=>norm(x.name||[x.nom,x.prenom].filter(Boolean).join(' '))===rev);if(st)return st}return null}
-function dateFr(d){const v=d?.eleve?.date||d?.date||d?.meta?.submittedAt||d?.meta?.savedAt||d?.meta?.generatedAt||new Date().toISOString();const z=new Date(v);if(!isNaN(z))return z.toLocaleDateString('fr-FR');const m=String(v).match(/(\\d{1,2})[\\/\\-](\\d{1,2})[\\/\\-](\\d{4})/);return m?`${m[1].padStart(2,'0')}/${m[2].padStart(2,'0')}/${m[3]}`:new Date().toLocaleDateString('fr-FR')}
+function dateFr(d){const v=d?.dates?.rendu||d?.eleve?.date||d?.date||d?.meta?.submittedAt||d?.meta?.savedAt||d?.meta?.generatedAt||new Date().toISOString();const z=new Date(v);if(!isNaN(z))return z.toLocaleDateString('fr-FR');const m=String(v).match(/(\\d{1,2})[\\/\\-](\\d{1,2})[\\/\\-](\\d{4})/);return m?`${m[1].padStart(2,'0')}/${m[2].padStart(2,'0')}/${m[3]}`:new Date().toLocaleDateString('fr-FR')}
 async function validate(){
  if(window.__v172Saving)return; window.__v172Saving=true;
  const evt=window.event; const btn=evt?.currentTarget instanceof HTMLElement?evt.currentTarget:null, oldText=btn?.innerHTML; if(btn){btn.disabled=true;btn.textContent='Enregistrement…'}
@@ -18242,7 +18370,17 @@ async function validate(){
   if(pending.length&&!confirm(pending.length+' question(s) non évaluée(s). Valider malgré tout ?'))return;
   const aligned=window.tp230.build(r);const db=await open();const st=await student(db,r);if(!st){db.close();throw Error('Élève non reconnu : '+([r.data?.eleve?.nom,r.data?.eleve?.prenom].filter(Boolean).join(' ')||'identité absente')+'.');}
   const levels={},disabledCriteria={};cs.forEach(c=>{const cp=(typeof competencies!=='undefined'?competencies:(window.competencies||[])).find(x=>x.id===c),count=Math.max(1,cp?.criteria?.length||1);for(let i=0;i<count;i++)levels[c+'-'+i]=r.levels[c]});
-  const evId=r.savedEvaluationId||('EVAL_TP_'+(crypto?.randomUUID?.()||Date.now()+'_'+Math.random().toString(36).slice(2)));
+  // V240 : liaison 1 rendu = 1 évaluation. Ne jamais réutiliser l'identifiant d'un autre rendu.
+  const allEvals240=await getAll('evaluations');
+  const exact240=allEvals240.filter(e=>String(e.tpCorrectionId||'')===String(r.id));
+  if(exact240.length>1)throw Error('Plusieurs évaluations portent le même identifiant de copie : vérification manuelle nécessaire.');
+  const pointer240=r.savedEvaluationId?allEvals240.find(e=>String(e.id)===String(r.savedEvaluationId)):null;
+  if(pointer240&&pointer240.tpCorrectionId&&String(pointer240.tpCorrectionId)!==String(r.id))throw Error('Identifiant d’évaluation déjà lié à une autre copie. Aucune note écrasée.');
+  if(pointer240&&String(pointer240.studentId)!==String(st.id))throw Error('Évaluation liée à un autre élève. Aucune note écrasée.');
+  if(exact240.length&&String(exact240[0].studentId)!==String(st.id))throw Error('Évaluation existante associée à un autre élève.');
+  if(pointer240&&exact240.length&&String(pointer240.id)!==String(exact240[0].id))throw Error('Deux évaluations candidates différentes pour le même rendu.');
+  const evId=exact240[0]?.id||pointer240?.id||r.savedEvaluationId||('EVAL_TP_'+(crypto?.randomUUID?.()||Date.now()+'_'+Math.random().toString(36).slice(2)));
+  const tpAttempt240=(String(r.data?.cloud227?.attempt||r.data?.meta?.attempt||r.fileName||'').match(/(?:^|[_-])(R[1-9][0-9]*)(?:[_-]|\.|$)/i)||[])[1]||'';
   const aeRaw=r.data?.autoEvaluation||r.data?.auto_evaluation||null;
   const studentSelfEvaluation=aeRaw?{
     organisation:Number(aeRaw.organisation??0)||null,
@@ -18254,8 +18392,11 @@ async function validate(){
     comment:String(aeRaw.commentaire??aeRaw.comment??''),
     completedAt:aeRaw.completedAt||aeRaw.dateValidation||''
   }:null;
-  const ev={id:evId,studentId:st.id,date:dateFr(r.data),title:`${r.data?.code||'TP'} — ${r.data?.titre||'TP corrigé'}`,place:'Lycée',type:'TP',comps:cs,levels,obs:{},disabledCriteria,evaluationObservation:r.appreciation||'',activitySupport:r.data?.vehicule?.modele||r.data?.support?.label||'',sourceNote20:n,noteDrivenEvaluation:true,noteDrivenRequested:n,noteDrivenExact:n,tpCorrection:true,tpComments234:JSON.parse(JSON.stringify(r.comments234||{})),tpCode:r.data?.code||'',tpActivityId:r.data?.meta?.activityId||r.data?.activityId||'',tpPendingKey:r.data?.meta?.pendingKey||'',tpCorrectionId:r.id,tpImportedFile:r.fileName,studentSelfEvaluation,createdAt:r.correctedAt?new Date(r.correctedAt).getTime():Date.now(),modifiedAt:r.correctedAt?Date.now():null};
+  const ev={id:evId,studentId:st.id,date:dateFr(r.data),title:`${r.data?.code||'TP'} — ${r.data?.titre||'TP corrigé'}${tpAttempt240?' · '+tpAttempt240:''}`,place:'Lycée',type:'TP',comps:cs,levels,obs:{},disabledCriteria,evaluationObservation:r.appreciation||'',activitySupport:r.data?.vehicule?.modele||r.data?.support?.label||'',sourceNote20:n,noteDrivenEvaluation:true,noteDrivenRequested:n,noteDrivenExact:n,tpCorrection:true,tpComments234:JSON.parse(JSON.stringify(r.comments234||{})),tpCode:r.data?.code||'',tpActivityId:r.data?.meta?.activityId||r.data?.activityId||'',tpPendingKey:r.data?.meta?.pendingKey||'',tpCorrectionId:r.id,tpImportedFile:r.fileName,tpAttempt240,tpSource240:'correction professeur validée',studentSelfEvaluation,createdAt:r.correctedAt?new Date(r.correctedAt).getTime():Date.now(),modifiedAt:r.correctedAt?Date.now():null};
   db.close();if(aligned)Object.assign(ev,aligned);ev.sourceNote20=n;ev.noteDrivenEvaluation=true;ev.noteDrivenRequested=n;ev.noteDrivenExact=n;ev.tpNoteAudit239={value:n,copyId:String(r.id),attempt:String(r.data?.cloud227?.attempt||r.data?.meta?.attempt||r.fileName||''),at:new Date().toISOString()};await persistEvaluation(ev,false);
+  // Éviter qu'une correction soit marquée comme réussie si la note n'existe pas réellement dans IndexedDB.
+  const stored240=(await getAll('evaluations')).find(e=>String(e.id)===String(evId));
+  if(!stored240||String(stored240.tpCorrectionId)!==String(r.id)||String(stored240.studentId)!==String(st.id)||!stored240.noteDrivenEvaluation||Number(stored240.sourceNote20)!==n)throw Error('Contrôle V240 : évaluation ou note absente après enregistrement. Copie conservée, validation interrompue.');
   r.savedEvaluationId=evId;r.correctedAt=r.correctedAt||new Date().toISOString();r.workflowState='CORRIGE';if(r.data){r.data.statut='CORRIGE';r.data.status='CORRIGE';r.data.correction={...(r.data.correction||{}),note:n,appreciation:r.appreciation||'',competences:r.levels,commentaires:r.comments234||{},criteres:window.tp232.effective(r),selection230:r.data.tpSelection230,date:r.correctedAt,evaluationId:evId}}write(rows);window.tp234Lock?.();
   try{await window.loadData?.()}catch(e){console.warn('V172 loadData',e)}
   try{await window.tpV159SyncCorrectionsNow?.()}catch(e){console.warn('V172 sync différée',e)}
