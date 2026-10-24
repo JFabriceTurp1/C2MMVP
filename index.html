@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1" name="viewport"/>
-<title>V236 — Évaluation · Charge Atelier · TP · Correction</title>
+<title>V237 — Évaluation · Charge Atelier · TP · Correction</title>
 <style>
 *{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f5f7fa;color:#172033}
 .app{display:flex;min-height:100vh}.side{width:235px;background:#172033;color:#fff;padding:22px 14px}.logo{font-size:19px;font-weight:700;padding:8px 10px 24px}
@@ -8668,6 +8668,76 @@ function exportStudentDeletionPDF(studentsSnapshot, deletionDate){
 
 
 <!-- V149 : suppression des caractères \n parasites visibles en bas de la page accueil -->
+<script id="v237-tp-copy-integrity">
+(function(){
+'use strict';
+const KEY='tp_correction_local_v54';
+const RECOVERY='tfab_v237_import_recovery';
+const read=()=>{try{const d=JSON.parse(localStorage.getItem(KEY)||'[]');return Array.isArray(d)?d:[]}catch(e){return[]}};
+const str=x=>String(x==null?'':x);
+function attempt(row){
+ const d=row?.data||{};
+ const explicit=d?.cloud227?.attempt||d?.submission?.attempt||d?.meta?.attempt||d?.tentative||d?.submission?.number||d?.renduNumero||row?.attempt;
+ const n=str(explicit).match(/(?:^|\b)R?([1-9][0-9]*)(?:\b|$)/i);
+ if(n)return 'R'+n[1];
+ const m=str(row?.fileName||'').match(/(?:^|[_\-])R([1-9][0-9]*)(?=[_\-.]|$)/i);
+ return m?'R'+m[1]:'';
+}
+function identity(row){
+ const d=row?.data||{};
+ const el=d.eleve||d.identite||{};
+ const person=str(d.studentId||el.id||d.meta?.studentId||'').trim()||[el.nom||'',el.prenom||''].map(x=>str(x).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim()).join('|');
+ return [person,str(d?.cloud227?.id||d?.meta?.diffusionId||''),str(d.code||d.tp?.id||''),attempt(row)].join('::');
+}
+function fingerprint(row){return [identity(row),str(row.signature),str(row.fileName)].join('::')}
+function saveRecovery(rows){
+ try{const prev=JSON.parse(sessionStorage.getItem(RECOVERY)||'[]');const map=new Map((Array.isArray(prev)?prev:[]).filter(x=>x&&x.id).map(x=>[str(x.id),x]));
+ for(const r of rows){if(r?.id)map.set(str(r.id),r)}
+ sessionStorage.setItem(RECOVERY,JSON.stringify([...map.values()].slice(-400)))}catch(e){console.warn('V237 sauvegarde de session indisponible',e)}
+}
+function recover(){
+ try{const saved=JSON.parse(sessionStorage.getItem(RECOVERY)||'[]');if(!Array.isArray(saved)||!saved.length)return 0;
+ const rows=read(),ids=new Set(rows.map(x=>str(x.id))),extra=saved.filter(x=>x&&x.id&&!ids.has(str(x.id)));
+ if(!extra.length)return 0;
+ // Restaurer uniquement les entrées de la SESSION d'import, sans toucher aux lignes présentes.
+ const merged=[...rows,...extra];localStorage.setItem(KEY,JSON.stringify(merged));
+ return extra.length
+ }catch(e){console.warn('V237 restauration de session impossible',e);return 0}
+}
+function audit(){
+ const rows=read(),ids=new Map(),identities=new Map(),problems=[];
+ rows.forEach(r=>{const id=str(r.id);if(!id)problems.push('Identifiant absent');else if(ids.has(id))problems.push('Identifiant technique répété : '+id);else ids.set(id,r);
+ const k=identity(r);if(k&&attempt(r)){if(!identities.has(k))identities.set(k,[]);identities.get(k).push(r)}});
+ const variants=[...identities.values()].filter(a=>a.length>1);
+ window.__tfab237Audit={copies:rows.length,technicalErrors:problems,attemptVariants:variants.length,example:variants.slice(0,3).map(a=>a.map(r=>({id:r.id,fileName:r.fileName,corrected:!!r.correctedAt})))};
+ return window.__tfab237Audit;
+}
+const oldImport=window.tpCorrectionImport;
+if(typeof oldImport==='function')window.tpCorrectionImport=async function(files){
+ const before=read();saveRecovery(before);
+ const result=await oldImport.apply(this,arguments);
+ const after=read();const oldIds=new Set(before.map(r=>str(r.id)));
+ const missing=before.filter(r=>r?.id&&!after.some(x=>str(x.id)===str(r.id)));
+ if(missing.length){try{localStorage.setItem(KEY,JSON.stringify([...after,...missing]));console.warn('V237 : copies conservées après import',missing.length)}catch(e){console.error('V237 : conservation impossible',e)}}
+ const effective=read();saveRecovery(effective.filter(r=>!oldIds.has(str(r.id))));audit();
+ return result
+};
+const oldValidate=window.tpCorrectionValidate;
+if(typeof oldValidate==='function')window.tpCorrectionValidate=async function(){
+ let id=window.__tp55Current||window.__tpCorrectionCurrent;
+ if(!read().some(r=>str(r.id)===str(id))){
+  recover();
+  if(!read().some(r=>str(r.id)===str(id))){
+   alert('V237 — Copie introuvable dans le stockage actif. Aucune validation n’a été effectuée. Retourne à Copies rendues et rouvre la tentative souhaitée.');
+   console.warn('V237 identifiant de correction absent',id,audit());return
+  }
+ }
+ return oldValidate.apply(this,arguments)
+};
+window.tfab237AuditCopies=audit;
+window.addEventListener('load',()=>{setTimeout(()=>{recover();audit();const b=document.getElementById('build-version');if(b)b.textContent='V237 — Évaluation · Charge Atelier · TP · Correction';document.title='V237 — Évaluation · Charge Atelier · TP · Correction'},2300)},{once:true});
+})();
+</script>
 </body></html>`);
   w.document.close();
 }
