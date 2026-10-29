@@ -2798,6 +2798,7 @@ body{background:#f7f9fc;color:var(--text)}
 }
 @media print {#firebase-sync-mini,#tfab45156-pill,#firebase-sync-popover,#tfab45156-panel {display:none!important;} #main.main {padding-top:0!important;}}
 </style>
+<!-- TFAB4515716_PATCHED — réception confirmée multiclasse -->
 </head>
 <body class="firebase-disabled-mode">
 <!-- V88 — DONNÉES DE RÉFÉRENCE RÉINTÉGRÉES DEPUIS V86.5
@@ -21372,18 +21373,18 @@ function state(s,message){const el=$('tfab45156-pill');if(el){el.replaceChildren
 function known(id){try{return localStorage.getItem('tfab45156_recu_'+id)==='1'}catch(_){return false}}
 function mark(id){try{localStorage.setItem('tfab45156_recu_'+id,'1');return true}catch(_){return false}}
 function existingRow(doc,filename){
- const d=doc||{},id=String(d.studentId||''),ident=d.identite||{},student=d.eleve||{};
- const nom=String(ident.nom||student.nom||''),prenom=String(ident.prenom||student.prenom||'');
- const tp=String(d.tp?.id||d.code||d.meta?.activityId||'');
- const date=String(d.dates?.rendu||d.submission?.submittedAt||'');
- const signature=[id,nom,prenom,tp,date,filename].join('|');
- try{const rows=JSON.parse(localStorage.getItem('tp_correction_local_v54')||'[]');
-  return Array.isArray(rows)?rows.find(r=>r?.signature===signature||(
-    String(r?.data?.cloud451?.campaignId||'')===String(d.cloud451?.campaignId||'')&&
-    String(r?.data?.cloud451?.userId||'')===String(d.cloud451?.userId||'')&&
-    String(r?.data?.submission?.submittedAt||'')===String(d.submission?.submittedAt||'')&&
-    !!d.cloud451?.campaignId&&!!d.submission?.submittedAt)):null;
- }catch(_){return null}
+ // V451.57.16 : vérification après import dans l'index V130, jamais sur un simple nom de fichier.
+ const d=doc||{},c=d.cloud451||{},s=d.submission||{};
+ const campaign=String(c.campaignId||s.campaignId||''),user=String(c.userId||s.userId||''),stamp=String(s.submittedAt||'');
+ const signature=[String(d.studentId||''),String(d.identite?.nom||d.eleve?.nom||''),String(d.identite?.prenom||d.eleve?.prenom||''),String(d.tp?.id||d.code||d.meta?.activityId||''),String(d.dates?.rendu||stamp||''),filename].join('|');
+ try{
+  const rows=JSON.parse(localStorage.getItem('tp_correction_local_v54')||'[]');if(!Array.isArray(rows))return null;
+  return rows.find(r=>{
+   if(r?.signature===signature&&signature.split('|').some(Boolean))return true;
+   const data=r?.data||{},rc=data.cloud451||{},rs=data.submission||{};
+   return !!(campaign&&user&&stamp&&String(rc.campaignId||rs.campaignId||'')===campaign&&String(rc.userId||rs.userId||'')===user&&String(rs.submittedAt||'')===stamp);
+  })||null;
+ }catch(e){console.warn('TFAB V451.57.16 : index local inaccessible',e);return null}
 }
 async function api(path){const r=await fetch(ROOT+'/api/prof/v45156/'+path,{headers:{Authorization:'Bearer '+token},cache:'no-store',credentials:'omit'});if(r.status===401||r.status===403){token='';try{sessionStorage.removeItem(KEY)}catch(_){};state('login','Liaison expirée : créer un nouveau code administrateur.');throw Error('Liaison expirée')}if(!r.ok)throw Error('Erreur Cloudflare HTTP '+r.status);const d=await r.json();if(d.ok===false)throw Error(d.error||'Erreur Cloudflare');return d;}
 function chooseRendus(items){return new Promise(resolve=>{
@@ -21391,7 +21392,7 @@ function chooseRendus(items){return new Promise(resolve=>{
  const overlay=document.createElement('div');overlay.id='tfab45157-selector';overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');overlay.setAttribute('aria-label','Rattrapage des copies BETA');
  overlay.style.cssText='position:fixed;inset:0;z-index:2147483645;background:#0e243eaa;display:flex;align-items:center;justify-content:center;padding:14px;font:14px Arial,sans-serif;color:#14324b';
  const panel=document.createElement('div');panel.style.cssText='width:min(1120px,98vw);max-height:92vh;display:flex;flex-direction:column;gap:11px;padding:18px;background:white;border-radius:15px;box-shadow:0 15px 55px #0a244e80;overflow:hidden';
- const title=document.createElement('h2');title.textContent='Rattraper des copies Cloudflare — classe BETA';title.style.cssText='font-size:20px;margin:0;color:#183b5c';
+ const title=document.createElement('h2');title.textContent='Rattraper des copies Cloudflare — BETA et 2MAC1';title.style.cssText='font-size:20px;margin:0;color:#183b5c';
  const intro=document.createElement('p');intro.textContent='Toutes les copies confirmées par Cloudflare, même marquées comme déjà reçues. Sélectionnez seulement les copies absentes de « À corriger ». Les copies présentes sont détectées avant import et restent intactes.';intro.style.cssText='margin:0;line-height:1.45';
  const search=document.createElement('input');search.type='search';search.placeholder='Filtrer par élève, code TP, date ou identifiant';search.style.cssText='padding:11px;border:1px solid #9cb7cb;border-radius:8px;width:100%;box-sizing:border-box;font-size:15px';
  const count=document.createElement('div');count.style.cssText='font-weight:600;color:#355e79';
@@ -21415,7 +21416,7 @@ function chooseRendus(items){return new Promise(resolve=>{
  actions.append(btn('Vérifier et rapatrier la sélection',()=>finish(items.filter(x=>selected.has(key(x)))),true),btn('Annuler',()=>finish([])),btn('Décocher tout',()=>{selected.clear();render()}));
  panel.append(title,intro,search,count,scroll,actions);overlay.append(panel);document.body.append(overlay);overlay.addEventListener('click',e=>{if(e.target===overlay)finish([])});search.focus();render();
 })}
-async function check(manual=false){if(busy||!token)return;busy=true;state('sync','Recherche sécurisée des rendus BETA…');try{
+async function check(manual=false){if(busy||!token)return;busy=true;state('sync','Recherche sécurisée des rendus BETA et 2MAC1…');try{
 const data=await api('rendus');let items=(data.items||[]).filter(x=>x.state==='submitted');
 if(manual){
  const pending=items.slice().sort((a,b)=>Date.parse(b.submitted_at||'')-Date.parse(a.submitted_at||''));
@@ -21432,9 +21433,9 @@ for(const item of items){if(!manual&&known(item.id))continue;
 if(!manual&&processed>=3)break;
 processed++;
 try{
-const doc=await api('rendu/'+encodeURIComponent(item.id));if(doc.submission?.final!==true||String(doc.cloud451?.classe)!=='BETA'||doc.submission?.campaignId!==doc.cloud451?.campaignId||String(doc.submission?.userId)!==String(doc.cloud451?.userId))throw Error('Copie incohérente, import interrompu');
+const doc=await api('rendu/'+encodeURIComponent(item.id));if(doc.submission?.final!==true||!['BETA','2MAC1'].includes(String(doc.cloud451?.classe||'').trim().toUpperCase())||doc.submission?.campaignId!==doc.cloud451?.campaignId||String(doc.submission?.userId)!==String(doc.cloud451?.userId))throw Error('Identité / campagne incohérente, copie conservée sur Cloudflare');
 // Réconcilier avec les copies déjà importées, même si le marqueur de cette version est absent.
-const filename=String(item.file_name||'TP_BETA_RENDU.json').replace(/[^A-Za-z0-9._-]/g,'_');
+const filename=String(item.file_name||'TP_RENDU.json').replace(/[^A-Za-z0-9._-]/g,'_');
 if(existingRow(doc,filename)){mark(item.id);existing++;continue}
 if(typeof window.tpCorrectionImport!=='function')throw Error('Importateur professeur indisponible');
 // Le mode silencieux agit uniquement sur les alertes visuelles de l'importeur V130.
@@ -21662,7 +21663,28 @@ const count=()=>{const n=$('tfab451725-students').querySelectorAll('input:checke
 async function load(){const cl=$('tf725-class').value;$('tfab451725-students').textContent='Chargement des élèves de '+cl+'…';$('tf725-send').disabled=true;try{const data=await request('/api/prof/v45156/eleves?classe='+encodeURIComponent(cl));if(!$('tf725-class')||$('tf725-class').value!==cl)return;const students=$('tfab451725-students');students.replaceChildren();for(const s of data.items||[]){const row=document.createElement('label'),input=document.createElement('input');input.type='checkbox';input.checked=true;input.value=String(s.id);input.onchange=count;row.append(input,document.createTextNode(String(s.nom||'Élève #'+s.id)));students.append(row)}if(!students.children.length)students.textContent='Aucun élève actif pour cette classe';count()}catch(e){$('tfab451725-students').textContent='Erreur : '+e.message;$('tf725-state').textContent='Vérifie ta connexion Cloudflare';count()}}
 $('tf725-class').onchange=load;
 $('tf725-send').onclick=async()=>{if(sending)return;const ids=Array.from($('tfab451725-students').querySelectorAll('input:checked'),x=>Number(x.value)),cl=$('tf725-class').value;if(!ids.length)return;const diffusionTitle=String($('tf725-title').value||'').trim();if(!diffusionTitle||diffusionTitle.length>180){$('tf725-state').textContent='Saisis un titre valide (180 caractères maximum).';$('tf725-title').focus();return}const message='Diffuser « '+diffusionTitle+' » ('+code+') à '+ids.length+' élève(s) de '+cl+' ?\n\nCette action crée une nouvelle campagne.';if(!confirm(message))return;sending=true;count();$('tf725-cancel').disabled=true;$('tf725-class').disabled=true;$('tf725-state').textContent='Préparation et transfert du TP sur Cloudflare… Ne ferme pas cette fenêtre.';
-try{const filedata=master(tp);if(filedata.schema==='evaluation.tp.v1'&&filedata.data){filedata.data.publicId=filedata.data.publicId||code;filedata.data.publicTitle=diffusionTitle}else{filedata.publicId=filedata.publicId||code;filedata.publicTitle=diffusionTitle}const blob=new Blob([JSON.stringify(filedata)],{type:'application/json'}),fd=new FormData();fd.append('file',blob,code.replace(/[^\w-]/g,'_')+'_MAITRE.json');fd.append('classe',cl);fd.append('tpCode',code);fd.append('titre',diffusionTitle);fd.append('studentIds',JSON.stringify(ids));const response=await request('/api/prof/v45156/campagnes',{method:'POST',body:fd});$('tf725-state').textContent='✓ Campagne confirmée sur Cloudflare : '+response.nb_eleves+' élève(s).';cache.loaded=0;setTimeout(()=>{close();window.tpV76DiffusionsPage?.()},1200)}catch(e){$('tf725-state').textContent='Échec de la diffusion : '+e.message+'. Aucune réussite présumée. Vérifier les campagnes avant de réessayer.';sending=false;$('tf725-class').disabled=false;$('tf725-cancel').disabled=false;count()}}
+let beforeIds=null;try{const baseline=await request('/api/prof/v45156/campagnes');beforeIds=new Set((baseline.items||[]).map(c=>String(c.id)));$('tf725-state').textContent='Contrôle des campagnes effectué. Transfert vers Cloudflare…';}catch(error){$('tf725-state').textContent='Diffusion non lancée : impossible de vérifier les campagnes avant envoi ('+String(error.message||error)+').';sending=false;$('tf725-class').disabled=false;$('tf725-cancel').disabled=false;count();return}try{const filedata=master(tp);if(filedata.schema==='evaluation.tp.v1'&&filedata.data){filedata.data.publicId=filedata.data.publicId||code;filedata.data.publicTitle=diffusionTitle}else{filedata.publicId=filedata.publicId||code;filedata.publicTitle=diffusionTitle}const blob=new Blob([JSON.stringify(filedata)],{type:'application/json'}),fd=new FormData();fd.append('file',blob,code.replace(/[^\w-]/g,'_')+'_MAITRE.json');fd.append('classe',cl);fd.append('tpCode',code);fd.append('titre',diffusionTitle);fd.append('studentIds',JSON.stringify(ids));const response=await request('/api/prof/v45156/campagnes',{method:'POST',body:fd});$('tf725-state').textContent='✓ Campagne confirmée sur Cloudflare : '+response.nb_eleves+' élève(s).';cache.loaded=0;setTimeout(()=>{close();window.tpV76DiffusionsPage?.()},1200) }catch(e){
+ const msg=String(e?.message||e);$('tf725-state').textContent='Confirmation non reçue ('+msg+'). Vérification de la campagne sur Cloudflare, sans nouvel envoi…';
+ let match=null,verificationError='';
+ for(let attempt=0;attempt<3&&!match;attempt++){
+  if(attempt)await new Promise(resolve=>setTimeout(resolve,1200));
+  try{
+   const check=await request('/api/prof/v45156/campagnes');
+   const candidates=(check.items||[]).filter(c=>{
+    if(beforeIds?.has(String(c.id)))return false;
+    if(String(c.classe||'').trim().toUpperCase()!==String(cl).trim().toUpperCase()||String(c.tp_code||'').trim()!==code||String(c.titre||'').trim()!==diffusionTitle)return false;
+    const members=(c.destinataires||[]).map(x=>Number(x.id));
+    return members.length===ids.length&&ids.every(id=>members.includes(id));
+   });
+   if(candidates.length===1)match=candidates[0];
+   else if(candidates.length>1){verificationError='Plusieurs nouvelles campagnes correspondent à la demande.';break}
+  }catch(checkError){verificationError=String(checkError?.message||checkError)}
+ }
+ if(match){cache.loaded=0;$('tf725-state').textContent='✓ Diffusion confirmée après vérification Cloudflare : campagne '+match.id+' · '+ids.length+' élève(s). Aucun deuxième envoi.';setTimeout(()=>{close();window.tpV76DiffusionsPage?.()},1900);return}
+ $('tf725-state').textContent='Diffusion NON CONFIRMÉE : '+msg+'. '+(verificationError?verificationError+' ':'')+'Aucun nouvel envoi automatique. Contrôle obligatoire dans Gestion des campagnes et dans TP remis avant toute autre action.';
+ // Verrouiller la relance depuis cette fenêtre : fermer puis contrôler les campagnes.
+ sending=true;$('tf725-send').disabled=true;$('tf725-class').disabled=true;$('tf725-cancel').disabled=false;
+ }}
 await load()}
 window.tfab451725Publish=openPublish;
 // Retirer uniquement le bouton d'ouverture vers Diffusion 9 et utiliser le nouveau formulaire interne.
