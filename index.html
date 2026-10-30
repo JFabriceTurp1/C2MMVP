@@ -2884,7 +2884,21 @@ body{background:#f7f9fc;color:var(--text)}
 <div class="settings-save-progress-track"><div class="settings-save-progress-bar" id="settings-save-progress-bar"></div></div>
 <div class="settings-save-progress-text" id="settings-save-progress-text">Les réglages fonctionnels enregistrés ici sont partagés entre vos postes lorsque Firebase est connecté.</div>
 </div>
-<div class="settings-grid">
+<section id="tfab-v24-identity" class="settings-card" style="margin:12px 0 18px;border:1px solid #cad8e8;border-radius:12px;padding:16px;background:#f8fbff">
+  <h3 style="margin:0 0 8px">🖼️ Personnalisation de l’onglet</h3>
+  <p class="muted" style="font-size:12px;margin:0 0 12px">Titre et favicon du navigateur. Réglages enregistrés pour ce navigateur et cette adresse ; une publication GitHub utilise son propre stockage.</p>
+  <label for="tfab-v24-title">Titre de l’onglet</label>
+  <input id="tfab-v24-title" maxlength="120" type="text" placeholder="Évaluation · Atelier pédagogique" autocomplete="off" style="max-width:600px" />
+  <label for="tfab-v24-icon" style="margin-top:12px">Favicon (PNG, JPG, WebP ou SVG)</label>
+  <input id="tfab-v24-icon" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" />
+  <div style="display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin-top:12px">
+   <img id="tfab-v24-preview" alt="Aperçu du favicon" width="36" height="36" style="object-fit:contain;border:1px solid #cad8e8;border-radius:8px;background:white;padding:3px" />
+   <button type="button" class="primary" id="tfab-v24-save">Appliquer et enregistrer</button>
+   <button type="button" class="secondary" id="tfab-v24-reset">Réinitialiser</button>
+   <span id="tfab-v24-feedback" role="status" style="font-size:12px;color:#28557e"></span>
+  </div>
+ </section>
+ <div class="settings-grid">
 <div class="settings-rubric-title rubric-cloud">☁ Le Cloud</div>
 <div class="settings-card settings-section" style="grid-column:1/-1"><h3>Adresse du portail CloudFlare</h3><label for="cloud226-url">URL à ouvrir depuis le portail correcteur</label><input id="cloud226-url" type="url" placeholder="https://…" style="width:100%;box-sizing:border-box"><p><button type="button" class="primary" onclick="cloud226SaveUrl()">Enregistrer l’adresse</button> <button type="button" class="secondary" onclick="cloud226Open()">Ouvrir le Cloud</button></p><p id="cloud226-url-status" role="status"></p></div>
 <div class="settings-rubric-title rubric-teacher">👨‍🏫 Professeurs</div>
@@ -17898,6 +17912,25 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 })();
 </script>
 
+<script id="tfab-v24-tab-customization">
+(function(){'use strict';
+ const KEY='tfab_evaluation_tab_identity_v24';
+ const DEFAULT_TITLE='V250 — Évaluation · Charge Atelier · TP · Correction';
+ let active={title:DEFAULT_TITLE,icon:''},candidate='';
+ function load(){try{let v=JSON.parse(localStorage.getItem(KEY)||'null');if(v&&typeof v==='object')active={title:String(v.title||DEFAULT_TITLE).slice(0,120),icon:typeof v.icon==='string'&&v.icon.startsWith('data:image/png;base64,')?v.icon:''};}catch(e){console.warn('Personnalisation onglet non chargée',e)}}
+ function apply(){if(document.title!==active.title)document.title=active.title;let link=document.getElementById('tfab-v24-favicon');if(active.icon){if(!link){link=document.createElement('link');link.id='tfab-v24-favicon';link.rel='icon';link.type='image/png';document.head.appendChild(link)}if(link.href!==active.icon)link.href=active.icon}else if(link){link.remove()}}
+ function fill(root){const field=root.querySelector('#tfab-v24-title');if(!field||field.dataset.ready)return;field.dataset.ready='1';field.value=active.title;root.querySelector('#tfab-v24-preview').src=active.icon||'data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="64" height="64" rx="14" fill="#ecf3fb"/><text x="32" y="44" font-size="40" text-anchor="middle">⚙</text></svg>');}
+ function show(message){const el=document.getElementById('tfab-v24-feedback');if(el)el.textContent=message}
+ function imageData(file){return new Promise((resolve,reject)=>{if(!file||!/^image\/(png|jpeg|webp|svg\+xml)$/.test(file.type)||file.size>3*1024*1024)return reject(Error('Choisir une image PNG, JPG, WebP ou SVG de 3 Mo maximum.'));const url=URL.createObjectURL(file);const image=new Image();image.onload=()=>{try{const c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d');x.clearRect(0,0,64,64);let ratio=Math.min(64/image.width,64/image.height),w=image.width*ratio,h=image.height*ratio;x.drawImage(image,(64-w)/2,(64-h)/2,w,h);resolve(c.toDataURL('image/png'));}catch(e){reject(e)}finally{URL.revokeObjectURL(url)}};image.onerror=()=>{URL.revokeObjectURL(url);reject(Error('Impossible de lire cette image.'))};image.src=url})}
+ load();apply();
+ // D'anciens modules redéfinissent document.title lors de la navigation.
+ const titleNode=document.querySelector('title');if(titleNode)new MutationObserver(()=>{if(document.title!==active.title)apply()}).observe(titleNode,{childList:true,characterData:true,subtree:true});
+ document.addEventListener('change',async e=>{if(e.target?.id!=='tfab-v24-icon')return;try{candidate=await imageData(e.target.files?.[0]);document.getElementById('tfab-v24-preview').src=candidate;show('Image prête à enregistrer.')}catch(err){candidate='';show(err.message)}});
+ document.addEventListener('click',e=>{const id=e.target?.closest?.('button')?.id;if(id==='tfab-v24-save'){const v=(document.getElementById('tfab-v24-title')?.value||'').trim();active={title:v||DEFAULT_TITLE,icon:candidate||active.icon};try{localStorage.setItem(KEY,JSON.stringify(active));apply();show('Titre et favicon enregistrés sur ce navigateur.')}catch(err){show('Stockage local indisponible : '+err.message)}}else if(id==='tfab-v24-reset'){active={title:DEFAULT_TITLE,icon:''};candidate='';try{localStorage.removeItem(KEY)}catch(_){}apply();fillReset();show('Personnalisation réinitialisée.')}});
+ function fillReset(){const f=document.getElementById('tfab-v24-title');if(f)f.value=DEFAULT_TITLE;const img=document.getElementById('tfab-v24-preview');if(img)img.removeAttribute('src');const file=document.getElementById('tfab-v24-icon');if(file)file.value=''}
+ const observer=new MutationObserver(()=>{const p=document.getElementById('tfab-v24-identity');if(p)fill(p)});observer.observe(document.body,{subtree:true,childList:true});fill(document);
+})();
+</script>
 </body>
 </html>
 <!-- V116 — TP projet unifié : diffusion fiable, aperçu et passerelle lecteur -->
