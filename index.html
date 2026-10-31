@@ -3892,6 +3892,44 @@ async function persistEvaluation(e,isEdit=false){
   return e.id;
 }
 
+/* V451.57.30 — Enregistrement atomique des évaluations collectives.
+   Il est interdit d'annoncer un groupe de N élèves si une transaction ne contient
+   pas effectivement les N fiches. La synchronisation distante est suivie séparément. */
+async function persistCollectiveEvaluationsV45130(rows){
+  if(!Array.isArray(rows)||!rows.length)throw new Error('Aucune fiche collective à enregistrer.');
+  const ids=new Set(),studentsSelected=new Set();
+  for(const ev of rows){
+    if(!ev.studentId||!ev.batchId)throw new Error('Fiche dépourvue d’élève ou de groupe.');
+    if(studentsSelected.has(String(ev.studentId)))throw new Error('Élève sélectionné plusieurs fois dans la liste.');
+    studentsSelected.add(String(ev.studentId));
+    window.tp233.prepare(ev,false);
+    if(!ev.id)ev.id='EVAL_'+((globalThis.crypto&&typeof globalThis.crypto.randomUUID==='function')?globalThis.crypto.randomUUID():(Date.now()+'_'+Math.random().toString(36).slice(2)));
+    if(ids.has(String(ev.id)))throw new Error('Identifiants de fiches collectives en double.');
+    ids.add(String(ev.id));
+  }
+  const selected=[...studentsSelected];
+  rows.forEach(ev=>{ev.batchExpectedCountV45130=rows.length;ev.batchExpectedStudentIdsV45130=selected;});
+  const conn=await openDB();
+  await new Promise((resolve,reject)=>{
+    const transaction=conn.transaction('evaluations','readwrite');
+    const store=transaction.objectStore('evaluations');
+    transaction.oncomplete=resolve;
+    transaction.onabort=()=>reject(transaction.error||new Error('Transaction collective annulée.'));
+    transaction.onerror=()=>reject(transaction.error||new Error('Enregistrement collectif impossible.'));
+    for(const ev of rows)store.add(ev); // add, never overwrite any prior evaluation
+  });
+  const stored=await getAll('evaluations');
+  const byId=new Map(stored.map(x=>[String(x.id),x]));
+  const absent=rows.filter(x=>!byId.has(String(x.id))||String(byId.get(String(x.id)).studentId)!==String(x.studentId));
+  if(absent.length)throw new Error('Le contrôle local n’a pas retrouvé toutes les fiches : '+absent.length+' absente(s).');
+  let remote={confirmed:0,pending:rows.length,localOnly:true};
+  if(typeof window.firebaseStageCollectiveV45130==='function'){
+    try{remote=await window.firebaseStageCollectiveV45130(rows)}
+    catch(e){console.warn('V451.57.30 : fiches conservées localement, Firebase à reprendre',e);remote={confirmed:0,pending:rows.length,error:String(e?.message||e)};}
+  }
+  return {local:rows.length,remote};
+}
+
 function isEvaluationArchived(e){return !!(e&&e.archived);}
 function isEvaluationRecorded(e){return !!(e&&e.recorded);}
 function visibleEvaluations(list){return (list||[]).filter(e=>!isEvaluationArchived(e));}
@@ -4838,16 +4876,26 @@ async function saveRentreeEvaluation(){
   try{
     let firstStudent=null;
     const pdfQueue=[];
+    const collectiveRowsV45130=[];
     for(const sid of targetIds){
       const student=students.find(s=>String(s.id)===String(sid));if(!student)continue;
       if(!firstStudent)firstStudent=student;
       const associated=rentreeComps(theme,student.id);
       const existing=(d.editId && d.mode!=="collective")?student.evaluations.find(e=>String(e.id)===String(d.editId)):null;
 const ev={...(existing||{}),teacherId:getActiveTeacher()?.id||"",teacherName:getActiveTeacher()?teacherFullName(getActiveTeacher()):"",date:d.date,title:`Évaluation de rentrée — ${theme.label}`,place:"Lycée",type:"Évaluation de rentrée",comps:[],associatedComps:[...associated],levels:{},obs:{},disabledCriteria:{},disabledCompetencies:{},attachment:null,evalPath:"rentree",profSituation:"",profOptions:{},profFreeText:"",retroactive:false,rentreeEvaluation:true,rentreeThemeId:theme.id,rentreeThemeLabel:theme.label,rentreeCriteria:[...theme.criteria],rentreeScores:{...d.scores},rentreeObservations:{...d.observations},rentreeAppreciation:d.appreciation||rentreeSuggestedAppreciation(note),evaluationObservation:(d.teacherObservation||"").trim(),noteDrivenEvaluation:!!d.noteDrivenEvaluation,noteDrivenRequested:(d.noteDrivenRequested??""),noteDrivenCalculated:(d.noteDrivenCalculated??null),sourceNote20:note,evaluationDate:d.date,enteredAt:existing?.enteredAt||existing?.createdAt||Date.now(),entryDate:existing?.entryDate||new Date().toLocaleDateString("fr-FR"),modifiedAt:existing?Date.now():null,studentId:student.id,createdAt:existing?.createdAt||Date.now(),batchId:existing?.batchId||batchId,activitySupport:(d.activitySupport||d.supportActivite||"").trim(),supportActivite:(d.supportActivite||d.activitySupport||"").trim(),studentSelfEvaluation:d.studentSelfEvaluation?{...d.studentSelfEvaluation}:null,atelierSource:!!d.atelierSource,atelierDay:d.atelierDay||"",atelierPublicationId:d.atelierPublicationId||"",atelierPendingKey:d.atelierPendingKey||""};
-      await persistEvaluation(ev,!!existing);
-      if(existing){const idx=student.evaluations.findIndex(e=>String(e.id)===String(existing.id));if(idx>=0)student.evaluations[idx]={...ev};}
-      else student.evaluations.push({...ev});
+      if(batchId)collectiveRowsV45130.push(ev);
+      else {
+        await persistEvaluation(ev,!!existing);
+        if(existing){const idx=student.evaluations.findIndex(e=>String(e.id)===String(existing.id));if(idx>=0)student.evaluations[idx]={...ev};}
+        else student.evaluations.push({...ev});
+      }
       if(!existing)pdfQueue.push(student);
+    }
+    if(batchId){
+      if(collectiveRowsV45130.length!==targetIds.length)throw Error('Liste de rentrée incomplète : aucun enregistrement partiel effectué.');
+      const receipt=await persistCollectiveEvaluationsV45130(collectiveRowsV45130);
+      for(const ev of collectiveRowsV45130){const owner=students.find(st=>String(st.id)===String(ev.studentId));if(owner)owner.evaluations.push({...ev});}
+      if(receipt.remote.pending)console.warn('Rentrée collective : '+receipt.remote.pending+' fiche(s) Firebase en attente');
     }
     let pdfCount=0,pdfError="";
     for(const student of pdfQueue){
@@ -5439,6 +5487,7 @@ async function saveActivityEvaluation(){
   const rtaMode=isRtaEvaluationContext(a,d);
   try{
     let saved=0;
+    const collectiveRowsV45130=[];
     for(const sid of targetIds){
       const student=students.find(s=>String(s.id)===String(sid));if(!student)continue;
       const associated=activityComps(a,student.id);
@@ -5501,14 +5550,22 @@ async function saveActivityEvaluation(){
         atelierPublicationId:d.atelierPublicationId||"",
         atelierPendingKey:d.atelierPendingKey||""
       };
-      await persistEvaluation(ev,!!existing);
-      if(existing){
-        const idx=student.evaluations.findIndex(e=>String(e.id)===String(existing.id));
-        if(idx>=0)student.evaluations[idx]={...ev};
-      }else{
-        student.evaluations.push({...ev});
+      if(batchId)collectiveRowsV45130.push(ev);
+      else {
+        await persistEvaluation(ev,!!existing);
+        if(existing){
+          const idx=student.evaluations.findIndex(e=>String(e.id)===String(existing.id));
+          if(idx>=0)student.evaluations[idx]={...ev};
+        }else student.evaluations.push({...ev});
+        saved++;
       }
-      saved++;
+    }
+    if(batchId){
+      if(collectiveRowsV45130.length!==targetIds.length)throw Error('Liste d’activité incomplète : aucune écriture partielle effectuée.');
+      const receipt=await persistCollectiveEvaluationsV45130(collectiveRowsV45130);
+      for(const ev of collectiveRowsV45130){const owner=students.find(st=>String(st.id)===String(ev.studentId));if(owner)owner.evaluations.push({...ev});}
+      saved=collectiveRowsV45130.length;
+      if(receipt.remote.pending)console.warn('Activité collective : '+receipt.remote.pending+' fiche(s) Firebase en attente');
     }
     if(d.atelierSource&&typeof window.completeAtelierEvaluation==='function'){
       for(const sid of targetIds)window.completeAtelierEvaluation(sid,d.atelierDay,d.atelierPendingKey);
@@ -10101,18 +10158,23 @@ const evaluations = validTargets.map((studentId,idx)=>({
 }));
 
 try{
-  await Promise.all(evaluations.map(e=>persistEvaluation(e)));
+  const collectiveReceipt=batchId ? await persistCollectiveEvaluationsV45130(evaluations) : null;
+  if(!batchId)await persistEvaluation(evaluations[0]);
   evaluations.forEach(e=>{
     const st=students.find(s=>String(s.id)===String(e.studentId));
     if(st) st.evaluations.push({...e});
   });
   evaluations.filter(e=>e.atelierSource).forEach(e=>{if(typeof window.completeAtelierEvaluation==='function')window.completeAtelierEvaluation(e.studentId,e.atelierDay,e.atelierPendingKey);});
   const count=evaluations.length;
+  const synced=batchId ? Number(collectiveReceipt?.remote?.confirmed||0) : 0;
+  const synchronizationText=batchId ? (synced===count
+    ? ` Les ${count} fiches sont également confirmées sur Firebase.`
+    : ` ${count-synced} fiche(s) restent à confirmer sur Firebase. Ne supprime pas ce poste/cache avant synchronisation.`) : '';
   draft=null;
   showSuccessMessage(
     count===1
       ?"Évaluation enregistrée dans la base locale."
-      :`Évaluation enregistrée pour ${count} élèves dans la base locale.`,
+      :`Évaluation collective : ${count}/${count} fiches vérifiées dans la base locale.`+synchronizationText,
     ()=>{ if(evaluations.some(e=>e.atelierSource)&&typeof window.returnToAtelierPending==='function'){window.returnToAtelierPending();return;}if(count===1){ selectedStudent=validTargets[0]; go("history"); } else go("home"); }
   );
 }catch(err){
@@ -10394,13 +10456,20 @@ function historyPage(){
     }else{
       const id="history-collective-"+String(g.key).replace(/[^a-zA-Z0-9_-]/g,"_");
       const studentsCount=g.items.length;
+      const expectedStudents=[...new Set(g.items.flatMap(x=>Array.isArray(x.batchExpectedStudentIdsV45130)?x.batchExpectedStudentIdsV45130.map(String):[]))];
+      const totalExpected=Math.max(studentsCount,Number(g.items[0]?.batchExpectedCountV45130)||0,expectedStudents.length);
+      const visibleIds=new Set(g.items.map(x=>String(x.studentId)));
+      const absentIds=expectedStudents.filter(x=>!visibleIds.has(x));
+      const expectedNote=totalExpected>studentsCount
+        ? `⚠ ${studentsCount}/${totalExpected} élèves visibles. ${absentIds.length?absentIds.length+' fiche(s) absente(s) de cette vue.':'Vérifier les filtres et les évaluations enregistrées.'}`
+        : `${studentsCount} élève(s)`;
       body+=`<tr class="click history-collective-row" onclick="toggleCollectiveRow('${esc(id)}')" style="cursor:pointer;background:#f8fafc" title="Cliquer pour déployer les élèves">
         <td>${esc(g.date||"")}</td>
         <td><b>👥 Évaluation collective</b><div class="history-support">${g.items.length===historyStudents.length&&historyStudents.length?"Toute la classe":g.items.slice().sort((a,b)=>String(a.studentName||"").localeCompare(String(b.studentName||""),"fr")).map(x=>esc(x.studentName||"")).join(", ")}</div></td>
         <td><span class="pill">Collective</span></td>
         <td>${esc(g.title||"")}${evaluationSupportLabel(g.items[0])?`<div class="history-support">Support : ${esc(evaluationSupportLabel(g.items[0]))}</div>`:""}${evaluationTeacherLabel(g.items[0])?`<div class="history-teacher">Professeur : ${esc(evaluationTeacherLabel(g.items[0]))}</div>`:""}</td>
         <td>${(g.comps||[]).map(competenceLabel).join("<br>")||"—"}</td>
-        <td><span class="pill">${studentsCount} élèves</span></td>
+        <td><span class="pill" ${totalExpected>studentsCount?'style="background:#fff4dc;color:#8a4900" title="Vérifier les évaluations enregistrées, archivées et le statut Firebase"':''}>${esc(expectedNote)}</span></td>
         <td><div class="action-buttons" style="display:flex;flex-wrap:nowrap;align-items:center;gap:6px;white-space:nowrap">
           <button class="reduce-icon" type="button" data-toggle="${esc(id)}" onclick="event.stopPropagation();toggleCollectiveRow('${esc(id)}')" title="Réduire" aria-label="Réduire" style="display:none">▲</button>
           <button class="secondary" type="button" onclick="event.stopPropagation();window.openCollectiveNotesV45127('${encodeURIComponent(String(g.items[0].batchId)).replace(/'/g,'%27')}')" title="Modifier les notes des élèves de cette évaluation, puis valider la liste en une seule fois">📝 Modifier les notes</button>
@@ -11772,22 +11841,51 @@ new MutationObserver(addSettingsAccess).observe(document.documentElement,{childL
     list.push({key,store:String(store),id:String(id),action:String(action),data:data?JSON.parse(JSON.stringify(data)):null,queuedAt:Date.now()});
     writePendingFirebaseOps(list);
   }
-  async function flushPendingFirebaseOps(){
-    if(!auth?.currentUser)return {flushed:0,pending:readPendingFirebaseOps().length};
-    const list=readPendingFirebaseOps();
-    if(!list.length)return {flushed:0,pending:0};
-    const remaining=[];let flushed=0;
-    for(const op of list){
-      try{
-        const ref=userRoot().collection(op.store).doc(String(op.id));
-        if(op.action==='delete')await ref.delete();
-        else await ref.set(JSON.parse(JSON.stringify(op.data||{})),{merge:false});
-        flushed++;
-      }catch(e){remaining.push(op);console.warn('Opération Firebase différée :',op,e);}
-    }
-    writePendingFirebaseOps(remaining);
-    return {flushed,pending:remaining.length};
+  // V451.57.30 — Les opérations récentes ne doivent jamais être retirées
+  // par une synchronisation plus ancienne. Conservation sur ce navigateur
+  // tant que le serveur n'a pas effectivement répondu.
+  let pendingFlushPromiseV45130=null;
+  function samePendingV45130(a,b){return !!a&&!!b&&String(a.key)===String(b.key)&&a.queuedAt===b.queuedAt&&JSON.stringify(a.data)===JSON.stringify(b.data)&&a.action===b.action;}
+  function removePendingIfUnchangedV45130(op){
+    const current=readPendingFirebaseOps();
+    writePendingFirebaseOps(current.filter(x=>!samePendingV45130(x,op)));
   }
+  async function flushPendingFirebaseOps(){
+    if(pendingFlushPromiseV45130)return pendingFlushPromiseV45130;
+    pendingFlushPromiseV45130=(async()=>{
+      if(!auth?.currentUser)return {flushed:0,pending:readPendingFirebaseOps().length};
+      let flushed=0;
+      for(const op of readPendingFirebaseOps()){
+        // Une nouvelle modification a pu remplacer celle-ci pendant le parcours.
+        if(!readPendingFirebaseOps().some(x=>samePendingV45130(x,op)))continue;
+        try{
+          const ref=userRoot().collection(op.store).doc(String(op.id));
+          if(op.action==='delete')await ref.delete();
+          else await ref.set(JSON.parse(JSON.stringify(op.data||{})),{merge:false});
+          if(op.store==='evaluations'&&op.action==='put'){
+            const proof=await ref.get({source:'server'});
+            if(!proof.exists||String(proof.data()?.studentId)!==String(op.data?.studentId)||String(proof.data()?.batchId||'')!==String(op.data?.batchId||''))throw Error('Confirmation distante de fiche non reçue.');
+          }
+          removePendingIfUnchangedV45130(op);flushed++;
+        }catch(e){console.warn('Opération Firebase différée, conservée pour reprise :',op.key,e);}
+      }
+      return {flushed,pending:readPendingFirebaseOps().length};
+    })();
+    try{return await pendingFlushPromiseV45130}finally{pendingFlushPromiseV45130=null}
+  }
+  window.firebaseStageCollectiveV45130=async function(rows){
+    const list=(Array.isArray(rows)?rows:[]).filter(x=>x&&x.id);
+    if(!isFirebaseModeEnabled())return {confirmed:0,pending:list.length,localOnly:true};
+    // Écrire AVANT d'attendre le réseau. Cette file survit à la fermeture de page.
+    list.forEach(x=>queuePendingFirebaseOp('evaluations',x.id,'put',x));
+    if(auth?.currentUser&&cloudReady){
+      try{await firebaseTimeout(flushPendingFirebaseOps(),25000,'Confirmation du groupe sur Firebase')}
+      catch(e){console.warn('V451.57.30 : reprise Firebase différée',e)}
+    }
+    const pending=new Set(readPendingFirebaseOps().filter(x=>x.store==='evaluations'&&x.action==='put').map(x=>String(x.id)));
+    const remaining=list.filter(x=>pending.has(String(x.id))).length;
+    return {confirmed:list.length-remaining,pending:remaining,localOnly:remaining>0};
+  };
   async function migrateLegacyFirebaseWorkspaceIfNeeded(){
     if(!auth?.currentUser)return {migrated:false};
     const shared=userRoot();
@@ -12173,13 +12271,46 @@ window.firebaseSaveCurrentConfig=async()=>{await saveFullConfig(firebaseBuildApp
     }
   }
   async function replaceLocalEvaluations(list){
-    await openDB();
-    await clearStore('evaluations');
-    for(const ev of list){
-      const clean=JSON.parse(JSON.stringify(ev));
-      if(clean.id!==undefined && clean.id!==null && /^\d+$/.test(String(clean.id))) clean.id=Number(clean.id);
-      await originalPut('evaluations',clean);
+    const conn=await openDB();
+    const remote=new Map((Array.isArray(list)?list:[]).filter(Boolean).map(ev=>[String(ev.id),JSON.parse(JSON.stringify(ev))]));
+    // Récupération conservatrice d'anciens groupes créés AVANT V451.57.30 :
+    // si le serveur ne possède que certains membres d'un même batch, mais
+    // que ce navigateur possède aussi les autres fiches du groupe, préserver
+    // ces fiches et les placer en reprise. Ne jamais recréer un groupe disparu
+    // totalement de Firebase (il peut avoir été supprimé volontairement).
+    const localBefore=await getAll('evaluations');
+    const remoteBatches=new Map();
+    for(const ev of remote.values()){
+      if(!ev.batchId)continue;
+      const k=String(ev.batchId),set=remoteBatches.get(k)||[];
+      set.push(ev);remoteBatches.set(k,set);
     }
+    const recovered=[];
+    for(const ev of localBefore){
+      if(!ev||!ev.id||!ev.batchId||ev.archived||remote.has(String(ev.id)))continue;
+      const peers=remoteBatches.get(String(ev.batchId))||[];
+      if(!peers.some(x=>String(x.date||'')===String(ev.date||'')&&String(x.title||'')===String(ev.title||'')))continue;
+      queuePendingFirebaseOp('evaluations',ev.id,'put',ev);
+      recovered.push(ev);
+    }
+    if(recovered.length)console.warn('V451.57.30 : '+recovered.length+' fiche(s) locales de groupes partiels protégées pour reprise Firebase.');
+    const waiting=readPendingFirebaseOps().filter(x=>x.store==='evaluations'&&x.action==='put'&&x.data);
+    // Une synchronisation incomplète ne peut jamais retirer un rendu local
+    // encore en attente de confirmation serveur, même après réouverture.
+    for(const op of waiting)remote.set(String(op.id),JSON.parse(JSON.stringify(op.data)));
+    // L'actualisation de la collection est atomique : plus de vidage puis
+    // écriture fiche par fiche susceptible de laisser le cache à moitié vide.
+    await new Promise((resolve,reject)=>{
+      const t=conn.transaction('evaluations','readwrite'),store=t.objectStore('evaluations');
+      t.oncomplete=resolve;
+      t.onabort=()=>reject(t.error||new Error('Synchronisation des évaluations annulée.'));
+      t.onerror=()=>reject(t.error||new Error('Impossible de fusionner les évaluations.'));
+      store.clear();
+      remote.forEach(ev=>{
+        if(ev.id!==undefined&&ev.id!==null&&/^\d+$/.test(String(ev.id)))ev.id=Number(ev.id);
+        store.put(ev);
+      });
+    });
   }
   async function uploadLocalEvaluations(){
     await openDB();
@@ -12631,8 +12762,13 @@ window.firebaseSaveCurrentConfig=async()=>{await saveFullConfig(firebaseBuildApp
       cloudReady=true;
       await loadData();
       applySchoolSettings();
+      const evaluationOpsPendingV45130=readPendingFirebaseOps().filter(x=>x.store==='evaluations').length;
       if(evaluationsSyncWarning){
         setStatus('⚠ Ouverture terminée — évaluations Firebase à resynchroniser','warn');
+      }else if(evaluationOpsPendingV45130){
+        setStatus('⚠ Ouverture terminée — '+evaluationOpsPendingV45130+' évaluation(s) à confirmer dans Firebase','warn');
+        // Reprise non bloquante : ne pas immobiliser l'écran de démarrage.
+        setTimeout(()=>flushPendingFirebaseOps().catch(e=>console.warn('Reprise des évaluations différée',e)),1400);
       }else if(rootMarkerWarning){
         setStatus('⚠ Ouverture terminée — marqueur Firebase différé','warn');
       }else if(tpCodesWarning){
@@ -12677,11 +12813,16 @@ window.firebaseSaveCurrentConfig=async()=>{await saveFullConfig(firebaseBuildApp
       p.then(id=>{
         const finalId=(obj.id!==undefined && obj.id!==null)?obj.id:id;
         const payload={...obj,id:finalId};
+        if(store==='evaluations' && isFirebaseModeEnabled()){
+          queuePendingFirebaseOp(store,finalId,'put',payload);
+          if(cloudReady && auth?.currentUser)flushPendingFirebaseOps().catch(e=>{setStatus('Évaluation en attente de synchronisation : '+friendlyError(e),'warn');});
+          return;
+        }
         if(cloudReady && auth && auth.currentUser){
-          return cloudSet(store,finalId,payload).catch(e=>{queuePendingFirebaseOp(store,finalId,'put',payload);setStatus((store==='students'?'Élève':'Évaluation')+' en attente de synchronisation : '+friendlyError(e),'warn');});
+          return cloudSet(store,finalId,payload).catch(e=>{queuePendingFirebaseOp(store,finalId,'put',payload);setStatus('Élève en attente de synchronisation : '+friendlyError(e),'warn');});
         }
         if(isFirebaseModeEnabled())queuePendingFirebaseOp(store,finalId,'put',payload);
-      });
+      }).catch(e=>console.warn('Écriture locale à resynchroniser',e));
     }
     return p;
   };
@@ -12756,6 +12897,9 @@ window.firebaseSaveCurrentConfig=async()=>{await saveFullConfig(firebaseBuildApp
     if(window.__evaluationImportLock){console.info('V18 : événement Firebase différé pendant import',change.doc.id);return;}
     const raw=change.doc.id;
     const id=/^\d+$/.test(raw)?Number(raw):raw;
+    if(readPendingFirebaseOps().some(op=>op.store==='evaluations'&&String(op.id)===String(id))){
+      console.info('Évaluation locale en attente : événement distant différé',id);return;
+    }
     if(change.type==='removed') await originalDelete('evaluations',id);
     else await originalPut('evaluations',{id,...change.doc.data()});
   }
