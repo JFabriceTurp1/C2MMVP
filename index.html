@@ -16981,14 +16981,14 @@ const style=document.createElement('style');style.id='tp228-blocks';style.textCo
  window.tpCorrectionOpen=function(id){
    const out=prior?.apply(this,arguments);
    setTimeout(()=>{
-     const r=read().find(x=>String(x.id)===String(id)); if(!r||project(r.data))return;
+     const r=read().find(x=>String(x.id)===String(id)); if(!r||project(r.data)||r.fullDataStored==='indexeddb-v129')return;
      const ed=document.querySelector('.tpc-editor'),left=ed?.firstElementChild;if(!left)return;
      left.innerHTML=nav(id)+legacyHtml(r);
      const h=document.querySelector('.tpc-shell .page-header h1');if(h&&!h.querySelector('.v158-legacy-chip'))h.insertAdjacentHTML('beforeend','<span class="v158-legacy-chip">Ancien format</span>');
    },120);
    return out;
  };
- function markLegacyRows(root=document){root.querySelectorAll?.('.tpc-row').forEach(row=>{const b=row.querySelector('button[onclick*="tpCorrectionOpen"]');if(!b||row.querySelector('.v158-legacy-chip'))return;const m=(b.getAttribute('onclick')||'').match(/tpCorrectionOpen\(['\"]([^'\"]+)/);if(!m)return;const r=read().find(x=>String(x.id)===m[1]);if(r&&!project(r.data)){const target=row.children?.[1]||row.firstElementChild;target?.insertAdjacentHTML('beforeend','<span class="v158-legacy-chip">Ancien format</span>')}})}
+ function markLegacyRows(root=document){root.querySelectorAll?.('.tpc-row').forEach(row=>{const b=row.querySelector('button[onclick*="tpCorrectionOpen"]');if(!b||row.querySelector('.v158-legacy-chip'))return;const m=(b.getAttribute('onclick')||'').match(/tpCorrectionOpen\(['\"]([^'\"]+)/);if(!m)return;const r=read().find(x=>String(x.id)===m[1]);if(r&&!project(r.data)&&r.fullDataStored!=='indexeddb-v129'){const target=row.children?.[1]||row.firstElementChild;target?.insertAdjacentHTML('beforeend','<span class="v158-legacy-chip">Ancien format</span>')}})}
  markLegacyRows();new MutationObserver(ms=>ms.forEach(m=>m.addedNodes.forEach(n=>{if(n.nodeType===1)markLegacyRows(n)}))).observe(document.documentElement,{childList:true,subtree:true});
  function setVersion(){const b=document.getElementById('build-version');if(b)b.textContent='V250 — Évaluation · Charge Atelier · TP · Correction';document.title='V250 — Évaluation · Charge Atelier · TP · Correction'}
  setVersion();document.addEventListener('DOMContentLoaded',setVersion,{once:true});setTimeout(setVersion,250);
@@ -20836,9 +20836,12 @@ function aeFrom(r){
     comment:String(a.commentaire??a.comment??'').trim()
   };
 }
-function injectAE(id){
+async function injectAE(id){
   if(String(window.__tp55Current)!==String(id))return;
-  const r=read().find(x=>String(x.id)===String(id));if(!r)return;
+  const light=read().find(x=>String(x.id)===String(id));if(!light)return;
+  let r=light;
+  if(light.fullDataStored==='indexeddb-v129'){try{const db=await new Promise((ok,no)=>{const q=indexedDB.open('fdmahy_corrections_v129',1);q.onsuccess=()=>ok(q.result);q.onerror=()=>no(q.error)});if(db.objectStoreNames.contains('copies')){const saved=await new Promise((ok,no)=>{const q=db.transaction('copies','readonly').objectStore('copies').get(String(id));q.onsuccess=()=>ok(q.result);q.onerror=()=>no(q.error)});if(saved?.data)r={...light,data:saved.data}}db.close()}catch(e){console.warn('V205 : copie complète indisponible',e)}}
+  if(String(window.__tp55Current)!==String(id))return;
   const left=document.querySelector('.tpc-editor')?.firstElementChild;if(!left)return;
   const previous=left.querySelector('.v205-ae-card');
 
@@ -21854,4 +21857,57 @@ function apply(){
 function start(){apply();setInterval(apply,1400)}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
 })();
+</script>
+
+<script id="v4515725-compat-repair">
+/* V451.57.25 — Compatibilité prudente copies TP, sans mutation des originaux. */
+(()=>{'use strict';
+const KEY='tp_correction_local_v54', DB='fdmahy_corrections_v129', STORE='copies';
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const read=()=>{try{const x=JSON.parse(localStorage.getItem(KEY)||'[]');return Array.isArray(x)?x:[]}catch(_){return[]}};
+const locked=r=>!!r?.correctedAt||String(r?.workflowState||'').toUpperCase()==='CORRIGE';
+const project=d=>{let p=d?.tpProject||d?.sourceProject||d?.project||d?.projetTP||d?.projet||d?.tp?.project||d?.meta?.tpProject;return p?.schema==='evaluation.tp.v1'&&p?.data?p.data:p};
+const current=()=>String(window.__tp55Current||window.__tpCorrectionCurrent||'');
+async function full(id){return new Promise(resolve=>{try{const req=indexedDB.open(DB,1);req.onerror=()=>resolve(null);req.onupgradeneeded=()=>{req.transaction?.abort();resolve(null)};req.onsuccess=()=>{const db=req.result;if(!db.objectStoreNames.contains(STORE)){db.close();return resolve(null)}const q=db.transaction(STORE,'readonly').objectStore(STORE).get(String(id));q.onsuccess=()=>{db.close();resolve(q.result||null)};q.onerror=()=>{db.close();resolve(null)}}}catch(_){resolve(null)}})}
+function persistFullFields(id,values){return new Promise((resolve,reject)=>{try{const req=indexedDB.open(DB,1);req.onerror=()=>reject(req.error||Error('IndexedDB indisponible'));req.onupgradeneeded=()=>{req.transaction?.abort();reject(Error('Stockage complet non initialisé'))};req.onsuccess=()=>{const db=req.result;if(!db.objectStoreNames.contains(STORE)){db.close();resolve(false);return}const tx=db.transaction(STORE,'readwrite'),st=tx.objectStore(STORE),q=st.get(String(id));q.onsuccess=()=>{if(!q.result)return;const next={...q.result};for(const [key,value] of Object.entries(values))next[key]=value;st.put(next)};tx.oncomplete=()=>{db.close();resolve(true)};tx.onerror=()=>{const err=tx.error;db.close();reject(err)}}}catch(e){reject(e)}})}
+function storeChange(id,mutator,fields){const all=read(),r=all.find(x=>String(x.id)===String(id));if(!r||locked(r))return null;const next={...r,marks:{...(r.marks||{})},levels:{...(r.levels||{})},criteriaLevels230:{...(r.criteriaLevels230||{})}};mutator(next);all[all.indexOf(r)]=next;localStorage.setItem(KEY,JSON.stringify(all));persistFullFields(id,Object.fromEntries(fields.map(k=>[k,next[k]]))).catch(e=>console.warn('TP25 : sauvegarde complète différée',e));return next}
+// La sélection d'un niveau reste stable : ne pas reconstruire tout le correcteur sur un simple clic.
+window.tpCorrectionSetLevel=function(code,level){const id=current();const allowed=['Non observé','À renforcer','Maîtrisé','Autonome'];if(!allowed.includes(level))return;const r=storeChange(id,n=>{n.levels[String(code)]=level},['levels']);if(!r)return;const buttons=[...document.querySelectorAll('.tpc-levels .tpc-level')];const selected=buttons.find(b=>(b.getAttribute('onclick')||'').includes("'"+String(code).replace(/'/g,"\\'")+"'")&&b.textContent.trim()===level);if(selected){const group=selected.closest('.tpc-levels');group?.querySelectorAll('.tpc-level').forEach(b=>{b.classList.toggle('active',b===selected);b.setAttribute('aria-pressed',String(b===selected))})}};
+// Enregistrer aussi les niveaux par critère dans IndexedDB (la sauvegarde locale historique est conservée).
+document.addEventListener('change',e=>{if(!e.target?.matches?.('[data-criterion230]'))return;const id=current(),key=e.target.dataset.criterion230,v=e.target.value;const r=storeChange(id,n=>{if(v)n.criteriaLevels230[key]=v;else delete n.criteriaLevels230[key]},['criteriaLevels230']);if(r)e.target.dataset.saved='true'},false);
+// Extraction limitée aux réponses effectivement présentes, sans inventer ni questions ni barèmes.
+function answers(d){const r=d?.reponses||d?.answers||d?.reponse||{};if(!r||typeof r!=='object')return[];const inner=(r.v117&&typeof r.v117==='object')?r.v117:(r.v115&&typeof r.v115==='object')?r.v115:r;return Object.entries(inner).filter(([k,v])=>k&&!['meta','metadata','evaluation','autoEvaluation','auto_evaluation','_version'].includes(k)&&v!==null&&v!==undefined).slice(0,150)}
+function score(r,keys){const a=keys.map(k=>r.marks?.['legacy_'+k]).filter(v=>v==='correct'||v==='wrong');return a.length?{note:Math.round(a.filter(v=>v==='correct').length/a.length*200)/10,done:a.length}:null}
+function legacySummary(r,items){const s=score(r,items.map(([k])=>k)),mode=r.noteModeV215==='manual'||(!r.noteModeV215&&r.note!==''&&r.note!=null);return `Éléments évalués : ${s?.done||0}/${items.length}. ${s?'Proposition : '+s.note+' / 20.':'Pas encore de note calculée.'} ${mode?'La note manuelle existante est conservée.':''}`}
+function legacyCard(r,items){const readonly=locked(r);return `<section class="tpc-card v45125-legacy" data-copy-id="${esc(r.id)}"><h2>Correction manuelle · copie sans projet TP</h2><p class="muted">Les réponses réellement présentes sont affichées ci-dessous. Aucun barème, critère ni auto-évaluation absent du rendu n'est reconstitué. Chaque réponse évaluée reçoit le même poids ; les éléments non évalués sont exclus.</p><p class="v45125-summary" aria-live="polite">${esc(legacySummary(r,items))}</p>${items.length?items.map(([k,v],i)=>{const selected=r.marks?.['legacy_'+k]||'neutral';const preview=typeof v==='string'?v:(typeof v==='object'?JSON.stringify(v):String(v));return `<div class="v45125-item" data-legacy-key="${esc(k)}"><div><b>${i+1}. ${esc(k)}</b><p class="v45125-value">${esc(preview.slice(0,400))}${preview.length>400?'…':''}</p></div><div class="v45125-actions" role="group" aria-label="Évaluer ${esc(k)}">${[['correct','✓ Correct'],['wrong','✕ Incorrect'],['neutral','— Non évalué']].map(([value,title])=>`<button type="button" class="${selected===value?'active':''}" data-legacy-choice="${value}" aria-pressed="${String(selected===value)}" ${readonly?'disabled':''}>${title}</button>`).join('')}</div></div>`}).join(''):'<p class="muted">Aucune réponse individualisable dans ce rendu : note à saisir manuellement après vérification.</p>'}</section>`}
+let renderSequence=0;
+async function mount(id,sequence){const [rfull]=await Promise.all([full(id)]);if(sequence!==renderSequence||current()!==String(id))return;const light=read().find(x=>String(x.id)===String(id));if(!light)return;const d=rfull?.data||light.data||{},p=project(d);const left=document.querySelector('.tpc-editor')?.firstElementChild;if(!left)return;
+ if(p&&Array.isArray(p.questions)){// Le projet complet existe : ne jamais activer le mode ancien, même si l'index est allégé.
+  left.querySelector('.v45125-legacy')?.remove();
+  const legacy=left.querySelector('.v158-legacy-banner');if(legacy)console.warn('TP25 : ancienne bannière détectée malgré le projet stocké ; affichage fidèle à vérifier',id);
+  if(d.autoEvaluation||d.auto_evaluation){const ae=left.querySelector('.v205-ae-card');if(ae&&/Aucune auto-évaluation/.test(ae.textContent))ae.innerHTML='<h2>👤 Auto-évaluation de l’élève</h2><p class="muted">Auto-évaluation présente dans la copie complète. Réouvre la copie pour afficher tous les détails.</p>'}
+  return;
+ }
+ const items=answers(d);const old=left.querySelector('.v45125-legacy');if(old)old.remove();left.insertAdjacentHTML('afterbegin',legacyCard(light,items));
+ // Les anciens handlers de note reconstruaient tout le correcteur et faisaient sauter l'affichage.
+ const noteInput=document.getElementById('tpc-note');if(noteInput){for(const ev of ['oninput','onchange','onblur'])noteInput.removeAttribute(ev)}
+ // On n'efface jamais les données existantes, et aucun calcul n'est lancé au simple affichage.
+ if(!d.autoEvaluation&&!d.auto_evaluation&&left.querySelector('.v205-ae-card'))left.querySelector('.v205-ae-card').setAttribute('data-ae-absent','true');
+}
+const original=window.tpCorrectionOpen;
+if(typeof original==='function')window.tpCorrectionOpen=function(id){const seq=++renderSequence;const out=original.apply(this,arguments);setTimeout(()=>mount(id,seq).catch(e=>console.warn('TP25 montage',e)),1650);return out};
+document.addEventListener('click',e=>{const b=e.target?.closest?.('[data-legacy-choice]');if(!b)return;const item=b.closest('[data-legacy-key]'),card=b.closest('[data-copy-id]');if(!item||!card)return;e.preventDefault();e.stopPropagation();const id=card.dataset.copyId,key=item.dataset.legacyKey,value=b.dataset.legacyChoice;if(!['correct','wrong','neutral'].includes(value)||current()!==id)return;
+ const currentRow=read().find(x=>String(x.id)===id);if(!currentRow||locked(currentRow))return;
+ const existing=currentRow.noteModeV215==='manual'||(!currentRow.noteModeV215&&currentRow.note!==''&&currentRow.note!=null);
+ const r=storeChange(id,n=>{n.marks['legacy_'+key]=value;const items=[...card.querySelectorAll('[data-legacy-key]')].map(x=>x.dataset.legacyKey),grade=score(n,items);if(!existing){n.noteModeV215='auto';n.note=grade==null?'':String(grade.note)}},['marks','note','noteModeV215']);if(!r)return;
+ item.querySelectorAll('[data-legacy-choice]').forEach(el=>{const active=el.dataset.legacyChoice===value;el.classList.toggle('active',active);el.setAttribute('aria-pressed',String(active))});const ids=[...card.querySelectorAll('[data-legacy-key]')].map(x=>[x.dataset.legacyKey,'']);const summary=card.querySelector('.v45125-summary');if(summary)summary.textContent=legacySummary(r,ids);const note=document.getElementById('tpc-note'),shown=document.getElementById('tpc-note-show');if(note&&!existing)note.value=r.note;if(shown&&!existing)shown.textContent=(r.note===''?'—':r.note)+' / 20';
+},true);
+// Saisie manuelle en mode ancien : préserver la note choisie sans rafraîchir la page.
+document.addEventListener('input',e=>{if(e.target?.id!=='tpc-note'||!document.querySelector('.v45125-legacy'))return;const id=current();storeChange(id,r=>{r.note=e.target.value;r.noteModeV215='manual'},['note','noteModeV215'])},false);
+const style=document.createElement('style');style.id='v4515725-legacy-style';style.textContent='.v45125-legacy{border-left:4px solid #2a69b3}.v45125-item{display:flex;justify-content:space-between;gap:10px;border-top:1px solid #dce3ed;padding:10px 0;align-items:center;flex-wrap:wrap}.v45125-value{color:#566477;font-size:12px;overflow-wrap:anywhere;white-space:pre-wrap;max-width:48rem}.v45125-actions{display:flex;gap:5px;flex-wrap:wrap}.v45125-actions button{padding:6px 9px;font-size:12px;min-height:33px;background:#f3f7fc;color:#193f69;border:1px solid #c5d4e6;border-radius:7px}.v45125-actions button.active{background:#d6e8ff;border:2px solid #2363b0;font-weight:700}.v45125-summary{font-size:13px;font-weight:700;background:#eef5ff;padding:8px;border-radius:7px}';document.head.append(style);
+function versionBadge(){const b=document.getElementById('build-version');if(b&&/^(V250|V451\.57\.)/.test(b.textContent||''))b.textContent='V451.57.25 — Évaluation · Charge Atelier · TP · Correction'}
+versionBadge();if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',versionBadge,{once:true});setTimeout(versionBadge,1200);
+console.info('Évaluation V451.57.25 : copie complète prioritaire, niveau sans saut, secours de correction manuelle prudent.');
+})();
+
 </script>
