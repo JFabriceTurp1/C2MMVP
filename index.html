@@ -22043,7 +22043,7 @@ console.info('Évaluation V451.57.25 : copie complète prioritaire, niveau sans 
 
 </script>
 
-<script id="v45157-27-bulk-collective-notes">
+<script id="v45157-28-bulk-collective-notes">
 (function(){
   'use strict';
   // V451.57.27 : only the History collective notes workflow. No bootstrap or Cloud changes.
@@ -22059,6 +22059,22 @@ console.info('Évaluation V451.57.25 : copie complète prioritaire, niveau sans 
   function currentScore(ev){const n=typeof evaluationScore20==='function'?evaluationScore20(ev):null;return Number.isFinite(n)?n:null;}
   function format(n){return n===null?'—':Number(n).toFixed(2).replace(/\.?0+$/,'').replace('.',',');}
   const ownRevisionsKey='collectiveNoteRevisionsV45127';
+  function feedback(message,tone='info'){
+    const el=document.getElementById('v45127-result');
+    if(!el)return;
+    el.textContent=message;el.dataset.tone=tone;
+  }
+  function historySuccessBanner(message){
+    const main=document.getElementById('main');
+    if(!main)return;
+    main.querySelector('#v45128-history-confirmation')?.remove();
+    const banner=document.createElement('div');
+    banner.id='v45128-history-confirmation';banner.setAttribute('role','status');
+    banner.textContent='✓ '+message;
+    const header=main.querySelector('.page-header');
+    if(header)header.insertAdjacentElement('afterend',banner);
+    else main.prepend(banner);
+  }
   function getBatchRows(batch){
     const cls=String(getActiveClassId()||'');
     const members=[];
@@ -22132,6 +22148,11 @@ console.info('Évaluation V451.57.25 : copie complète prioritaire, niveau sans 
     const avg=overlay?.querySelector('#v45127-average');if(avg)avg.textContent=has?format(Math.round(sum/has*100)/100)+'/20':'—';
     const btn=overlay?.querySelector('#v45127-confirm');if(btn)btn.disabled=!!bad||!edits||processing;
     const issue=overlay?.querySelector('#v45127-warning');if(issue)issue.textContent=bad?'Renseigne une note entre 0 et 20, avec deux décimales au maximum, pour chaque élève.':'';
+    const blocked=session.rows.filter(r=>!r.eligible).length;
+    if(processing)feedback('Enregistrement de la liste en cours. Ne ferme pas cette fenêtre.');
+    else if(bad)feedback('Saisie incorrecte : corrige les notes signalées en rouge avant validation.','error');
+    else if(!edits)feedback(blocked===session.rows.length?'Aucune note modifiable : les barèmes de cette évaluation sont absents. Ouvre les fiches individuelles pour les compléter.':'Aucune note modifiée. Change au moins une note pour activer « Valider toute la liste ».','info');
+    else feedback(edits+' note(s) modifiée(s), prêtes à être enregistrées. La validation sauvegardera la liste en une seule opération.','info');
   }
   function render(batch,entries){
     document.getElementById(MODAL_ID)?.remove();
@@ -22142,7 +22163,7 @@ console.info('Évaluation V451.57.25 : copie complète prioritaire, niveau sans 
       <p class="v45127-info">Modifie les notes /20 directement dans le tableau. Les données ne changent qu'après <b>« Valider toute la liste »</b>. Pour chaque note modifiée, tous les critères actifs seront recalculés selon le barème de l'évaluation. Les évaluations non modifiées restent intactes.</p>
       <div class="v45127-scroll"><table class="v45127-table"><thead><tr><th>Élève</th><th>Note actuelle /20</th><th>Nouvelle note /20</th><th>Type de barème</th></tr></thead><tbody>
       ${entries.map((r,i)=>`<tr><td><b>${safe(r.student.name)}</b></td><td>${format(r.original)}</td><td><input class="v45127-input" type="text" inputmode="decimal" autocomplete="off" data-v45127-id="${safe(r.ev.id)}" data-v45127-idx="${i}" value="${r.original===null?'':safe(format(r.original))}" aria-label="Note ${safe(r.student.name)}" ${r.eligible?'':'disabled title="Barème indisponible, modification depuis la fiche individuelle"'}/></td><td>${r.eligible?(r.ev.rentreeEvaluation?'Fiche de rentrée 0/1/2':(r.ev.ficheActiviteEvaluation||r.ev.rtaEvaluation||r.ev.evalPath==='rta')?'Fiche activité 0/1/2':'Référentiel · tous les critères'):'<span class="v45127-no">Barème indisponible</span>'}</td></tr>`).join('')}
-      </tbody></table></div><div class="v45127-foot"><div><b id="v45127-changes">0 note modifiée</b><div>Moyenne saisie : <b id="v45127-average">—</b></div><span class="v45127-error" id="v45127-warning" role="status"></span></div><div class="v45127-actions"><button type="button" class="secondary" id="v45127-cancel">Annuler</button><button type="button" class="primary" id="v45127-confirm" disabled>✓ Valider toute la liste</button></div></div>
+      </tbody></table></div><div id="v45127-result" data-tone="info" role="status" aria-live="polite">Aucune note modifiée.</div><div class="v45127-foot"><div><b id="v45127-changes">0 note modifiée</b><div>Moyenne saisie : <b id="v45127-average">—</b></div><span class="v45127-error" id="v45127-warning" role="status"></span></div><div class="v45127-actions"><button type="button" class="secondary" id="v45127-cancel">Annuler</button><button type="button" class="primary" id="v45127-confirm" disabled>✓ Valider toute la liste</button></div></div>
       <p class="v45127-disclaimer">Les niveaux générés sont une proposition mathématique à contrôler pédagogiquement. Sur les fiches de rentrée et d'activités, seuls les critères propres à la fiche sont recalculés ; les critères officiels du référentiel ne sont pas inventés.</p>
     </div>`;
     overlay.addEventListener('click',event=>{if(event.target===overlay)dismiss();});
@@ -22159,65 +22180,105 @@ console.info('Évaluation V451.57.25 : copie complète prioritaire, niveau sans 
   }
   async function commit(){
     if(!session||processing)return;
-    const all=session.rows;const changes=[];
-    for(const row of all){
+    const changes=[];
+    for(const row of session.rows){
       const n=validNote(row.value);
-      if(n===null && row.original===null && String(row.value).trim()==='')continue;
-      if(n===null){updateSummary();return;}
+      if(n===null&&row.original===null&&String(row.value).trim()==='')continue;
+      if(n===null){updateSummary();feedback('Validation impossible : une note est invalide. Aucune modification enregistrée.','error');return;}
       if(row.original===null||Math.round(row.original*100)!==Math.round(n*100))changes.push({row,note:n});
     }
-    if(!changes.length)return;
+    if(!changes.length){feedback('Aucune note n’a été modifiée : rien à enregistrer.');return;}
     const stamp=Date.now(), updates=[];
     try{
       for(const {row,note} of changes){
-        if(!row.eligible)throw Error('Barème manquant pour '+row.student.name);
-        updates.push({original:row.ev,record:proposeChanges(row.ev,note,stamp)});
+        if(!row.eligible)throw Error('Barème indisponible pour '+row.student.name+' : complète d’abord cette évaluation.');
+        updates.push({original:row.ev,record:proposeChanges(row.ev,note,stamp),note});
       }
-    }catch(err){document.getElementById('v45127-warning').textContent='Aucune modification enregistrée : '+(err?.message||err);return;}
-    if(!confirm('Confirmer '+changes.length+' modification(s) de note dans cette évaluation collective ?\nToutes les modifications seront enregistrées en une seule opération. Les niveaux calculés remplaceront les niveaux précédents pour ces élèves uniquement.'))return;
-    processing=true;let committed=false;const btn=document.getElementById('v45127-confirm');if(btn){btn.disabled=true;btn.textContent='Enregistrement…';}
+    }catch(err){
+      feedback('Enregistrement refusé : '+(err?.message||err)+'. Aucune note modifiée.','error');
+      return;
+    }
+    // « Valider toute la liste » is the explicit confirmation. Avoid a second
+    // native confirm() popup that can be dismissed/blocked without feedback.
+    processing=true;
+    const button=document.getElementById('v45127-confirm');
+    if(button){button.disabled=true;button.textContent='Enregistrement en cours…';}
+    feedback('Enregistrement de '+updates.length+' note(s) et recalcul des critères en cours.');
+    let committed=false, lastError=null;
     try{
-      // One IndexedDB readwrite transaction: either every changed evaluation is saved, or none.
       const conn=await openDB();
       await new Promise((resolve,reject)=>{
-        const trans=conn.transaction('evaluations','readwrite');
-        const store=trans.objectStore('evaluations');
-        const found=new Array(updates.length);
-        let completed=0,failed=false;
-        function abort(reason){if(failed)return;failed=true;try{trans.abort();}catch(_){}reject(new Error(reason));}
-        trans.oncomplete=()=>{if(!failed)resolve();};
-        trans.onabort=()=>{if(!failed)reject(trans.error||Error('Transaction annulée : aucune note enregistrée.'));};
-        trans.onerror=()=>{if(!failed)reject(trans.error||Error('Enregistrement collectif refusé.'));};
-        updates.forEach((u,i)=>{
+        const transaction=conn.transaction('evaluations','readwrite');
+        const store=transaction.objectStore('evaluations');
+        let failed=false;
+        function abort(message){
+          if(failed)return;failed=true;
+          try{transaction.abort();}catch(_){}
+          reject(new Error(message));
+        }
+        transaction.oncomplete=()=>{if(!failed)resolve();};
+        transaction.onabort=()=>{if(!failed)reject(transaction.error||new Error('Transaction annulée : aucune note enregistrée.'));};
+        transaction.onerror=()=>{if(!failed)reject(transaction.error||new Error('Impossible d’enregistrer la liste.'));};
+        updates.forEach(u=>{
           const request=store.get(u.original.id);
-          request.onerror=()=>abort('Impossible de relire la copie de référence.');
+          request.onerror=()=>abort('Impossible de relire la note de '+(u.original.studentId||'cet élève')+'.');
           request.onsuccess=()=>{
             if(failed)return;
             const fresh=request.result;
-            if(!fresh||String(fresh.studentId)!==String(u.original.studentId)||String(fresh.batchId)!==String(session.batch)||JSON.stringify(fresh)!==JSON.stringify(u.original)){
-              abort('Les évaluations ont changé depuis l’ouverture du tableau. Recharge l’historique avant de recommencer.');return;
+            if(!fresh||String(fresh.studentId)!==String(u.original.studentId)||String(fresh.batchId)!==String(session.batch)){
+              abort('La liste a changé depuis son ouverture : aucune note n’a été écrasée.');return;
             }
-            found[i]=fresh;completed++;
-            if(completed===updates.length){
-              try{updates.forEach(u=>store.put(u.record));}
-              catch(error){abort('Écriture collective impossible : '+(error?.message||error));}
+            // Compare grading state, not unrelated metadata: other changes must
+            // not cause a false concurrency error or be overwritten.
+            const gradingKeys=['sourceNote20','noteDrivenEvaluation','noteDrivenExact','noteCriteriaV45126','levels','rentreeScores','activityScores',ownRevisionsKey];
+            if(gradingKeys.some(k=>JSON.stringify(fresh[k]??null)!==JSON.stringify(u.original[k]??null))){
+              abort('Une note ou un critère a changé depuis l’ouverture du tableau. Recharge l’Historique et réessaie.');return;
             }
+            const changedKeys=['noteDrivenCalculated','noteDrivenEvaluation','noteDrivenRequested','noteDrivenExact','sourceNote20','modifiedAt',ownRevisionsKey,'noteCriteriaV45126','levels','rentreeScores','activityScores'];
+            const next={...fresh};
+            changedKeys.forEach(k=>{if(Object.prototype.hasOwnProperty.call(u.record,k))next[k]=u.record[k];});
+            // Notes and criteria must be written together in the same transaction.
+            store.put(next).onerror=()=>abort('Écriture refusée : toutes les modifications ont été annulées.');
           };
         });
       });
       committed=true;
-      const count=updates.length;
+      // Re-read stored records BEFORE displaying success. Avoid confirming merely
+      // because the write request was enqueued.
+      const saved=await getAll('evaluations');
+      const byId=new Map(saved.map(e=>[String(e.id),e]));
+      const missing=updates.filter(u=>{
+        const row=byId.get(String(u.original.id));
+        return !row||!row.noteDrivenEvaluation||Math.abs(Number(row.sourceNote20)-u.note)>1e-7;
+      });
+      if(missing.length)throw Error('Certaines notes n’ont pas pu être vérifiées après sauvegarde. Contrôle-les avant toute nouvelle modification.');
+      const message=updates.length+' note(s) enregistrée(s) avec succès et critères recalculés pour cette évaluation collective.';
+      feedback('✓ '+message,'success');
+      // Refresh, then keep a visible banner in Historique AND a modal confirmation.
+      let refreshError=null;
+      try{
+        await loadData();
+        page='history';historyPage();
+        historySuccessBanner(message);
+      }catch(err){refreshError=err;console.error('Actualisation Historique après sauvegarde',err);}
       document.removeEventListener('keydown',onKey);
       document.getElementById(MODAL_ID)?.remove();session=null;
-      await loadData();
-      page='history';historyPage();
-      if(typeof showSuccessMessage==='function')showSuccessMessage(count+' note(s) modifiée(s) et critères recalculés, en un seul enregistrement.',()=>go('history'));
+      if(refreshError){
+        showWarningMessage(message+' Toutefois, l’Historique n’a pas pu être actualisé : recharge la page pour afficher les nouvelles notes.');
+      }else{
+        showSuccessMessage(message+' Tu peux retrouver les nouvelles notes dans l’Historique.',()=>{});
+      }
     }catch(error){
-      const msg=document.getElementById('v45127-warning');if(msg)msg.textContent=(committed?'Notes enregistrées, mais actualisation de la liste impossible : ':'Aucune modification appliquée : ')+(error?.message||error);
-      console.error('V451.57.27 correction collective',error);
+      const msg=(committed?'L’enregistrement a été effectué, mais sa vérification a échoué : ':'Aucune note enregistrée : ')+(error?.message||error);
+      lastError=msg;
+      feedback(msg,'error');
+      console.error('V451.57.28 · validation collective',error);
+      // Keep the editor and inputs so the user can read the error and retry.
     }finally{
       processing=false;
-      const current=document.getElementById('v45127-confirm');if(current){current.textContent='✓ Valider toute la liste';updateSummary();}
+      const current=document.getElementById('v45127-confirm');
+      if(current){current.textContent='✓ Valider toute la liste';updateSummary();}
+      if(lastError)feedback(lastError,'error');
     }
   }
   window.openCollectiveNotesV45127=async function(encodedBatch){
@@ -22251,8 +22312,12 @@ console.info('Évaluation V451.57.25 : copie complète prioritaire, niveau sans 
     #v45127-notes-overlay .v45127-no{color:#9d501c}
     #v45127-notes-overlay .v45127-foot{display:flex;justify-content:space-between;gap:14px;align-items:center;flex-wrap:wrap;padding-top:14px}
     #v45127-notes-overlay .v45127-error{display:block;color:#a51f1f;font-size:12px;max-width:560px}
+    #v45127-result{border:1px solid #cad8e8;border-radius:8px;background:#f1f6fc;color:#173e66;padding:11px 13px;font-size:13px;font-weight:650;margin-top:12px}
+    #v45127-result[data-tone="error"]{background:#fff1f1;border-color:#df9b9b;color:#a32020}
+    #v45127-result[data-tone="success"]{background:#eff8f1;border-color:#87bd95;color:#186834}
     #v45127-notes-overlay .v45127-actions{display:flex;gap:8px;flex-wrap:wrap}
     #v45127-notes-overlay .v45127-disclaimer{font-size:12px;color:#677b90;line-height:1.45;margin:10px 0 0}
+    #v45128-history-confirmation{margin:12px 0 16px;padding:13px 16px;border-radius:10px;border:1px solid #7cba8f;background:#ebf8ee;color:#165c2e;font-weight:650;line-height:1.5}
     @media(max-width:650px){#v45127-notes-overlay{padding:5px}#v45127-notes-overlay .v45127-panel{padding:10px;max-height:98vh}#v45127-notes-overlay .v45127-scroll{max-height:58vh}}
   `;
   document.head.appendChild(css);
