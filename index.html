@@ -2805,6 +2805,9 @@ body{background:#f7f9fc;color:var(--text)}
 #firebase-sync-mini, #tfab45156-pill { border-radius:999px!important; }
 #firebase-sync-mini { border-radius:999px!important; }
 </style>
+<style id="tfab-v4515726-note-criteria">
+.v45126-trace{margin-top:12px;border:1px solid #c7d4e6;background:#fff;border-radius:9px;padding:9px 11px}.v45126-trace summary{font-weight:800;cursor:pointer;color:#183e68}.v45126-table-scroll{overflow:auto;margin-top:10px}.v45126-table{width:100%;border-collapse:collapse;font-size:12px}.v45126-table th,.v45126-table td{border-bottom:1px solid #e5e9f1;padding:7px;text-align:left}.v45126-table tfoot{background:#eef6ff}.v45126-table small{font-weight:400;color:#5f6b7a}
+</style>
 </head>
 <body class="firebase-disabled-mode">
 <!-- V88 — DONNÉES DE RÉFÉRENCE RÉINTÉGRÉES DEPUIS V86.5
@@ -4470,6 +4473,7 @@ function viewEvaluationPage(){
   document.getElementById("main").innerHTML=`<h1>Visualisation de l’évaluation</h1>
   <div class="sub">Consultation seule — aucune modification possible</div>
   <div class="panel"><div class="row"><div><h2>${esc(e.title||"Évaluation")}</h2><p class="muted">${esc(ownerName(e.studentId))} · ${esc(e.date||"")} · ${esc((e.place==="Centre"||!e.place)?"Lycée":e.place)}</p></div><div style="display:flex;gap:8px;align-items:center">${e.retroactive?'<span class="pill" style="background:#f2edfb;color:#573a8a">🕘 Rétroactive</span>':''}${e.archived?'<span class="pill">📦 Archivée</span>':''}<span class="pill">${esc(e.type||"")}</span></div></div>${e.retroactive?`<div style="margin-top:12px;padding:12px 14px;border-radius:10px;background:#faf7ff;border:1px solid #d5c7f1"><b>Positionnement rétroactif</b><div style="margin-top:5px">Date d’évaluation : <b>${esc(e.evaluationDate||e.date||"—")}</b> · Date de saisie : <b>${esc(e.entryDate||(e.enteredAt?new Date(e.enteredAt).toLocaleDateString("fr-FR"):"—"))}</b>${e.retroPositionLevel?` · Niveau initial appliqué : <b>${esc(e.retroPositionLevel)}</b>`:""}</div></div>`:""}${e.archived?'<div style="margin-top:12px;padding:10px 12px;border-radius:10px;background:#f8fafc;border:1px solid #cbd5e1"><b>Évaluation archivée :</b> consultation seule. Elle peut être restaurée avec le bouton en bas de page.</div>':''}${e.evaluationObservation?`<div style="margin-top:12px;padding:12px 14px;border-radius:10px;background:#f4f8ff"><b>💬 Observation de l’évaluation</b><div style="margin-top:6px;white-space:pre-wrap">${esc(e.evaluationObservation)}</div></div>`:""}${e.attachment?`<div style="margin-top:12px">${attachmentHtml(e.attachment)}</div>`:""}</div>
+  ${e.noteCriteriaV45126?.length?`<div class="panel"><h2>Répartition chiffrée de la note par critère</h2>${noteCriteriaDetailHtmlV45126(e.noteCriteriaV45126)}</div>`:""}
   ${cBlocks}<div class="actions" style="margin-top:18px">${e.archived
     ? `<button class="secondary" onclick="go('archives')">↩️ Retour aux archives</button><button class="primary" onclick="restoreEvaluation('${String(e.id)}','${String(e.studentId)}')">↩ Restaurer cette évaluation</button>`
     : `<button class="secondary" onclick="go('history')">↩️ Historique</button><button class="action-icon action-edit" onclick="editEvaluation('${String(e.id)}')" title="Modifier" aria-label="Modifier">✏️</button><button class="action-icon action-delete" onclick="deleteEvaluation('${String(e.id)}')" title="Archiver" aria-label="Archiver">📦</button>`
@@ -4528,7 +4532,7 @@ async function editEvaluation(evaluationId,studentIdHint){
     batchId:ev.batchId||null,
     attachment:ev.attachment||null,
     evalPath:ev.evalPath||"free",profSituation:ev.profSituation||"",profOptions:{...(ev.profOptions||{})},profFreeText:ev.profFreeText||"",activitySupport:ev.activitySupport||ev.supportActivite||"",studentSelfEvaluation:ev.studentSelfEvaluation?{...ev.studentSelfEvaluation}:null,atelierSource:!!ev.atelierSource,atelierDay:ev.atelierDay||"",atelierPublicationId:ev.atelierPublicationId||"",evaluationStarted:true,
-    retroactive:!!ev.retroactive,retroPositionLevel:ev.retroPositionLevel||"",retroEstimatedNote:(ev.retroEstimatedNote??""),noteDrivenEvaluation:!!ev.noteDrivenEvaluation,noteDrivenRequested:(ev.noteDrivenRequested??(ev.noteDrivenEvaluation?ev.sourceNote20??"":"")),noteDrivenExact:(ev.noteDrivenEvaluation?ev.sourceNote20??"":""),noteDrivenCalculated:(ev.noteDrivenCalculated??undefined),entryStartedAt:ev.entryStartedAt||ev.enteredAt||ev.createdAt||Date.now()
+    retroactive:!!ev.retroactive,retroPositionLevel:ev.retroPositionLevel||"",retroEstimatedNote:(ev.retroEstimatedNote??""),noteDrivenEvaluation:!!ev.noteDrivenEvaluation,noteDrivenRequested:(ev.noteDrivenRequested??(ev.noteDrivenEvaluation?ev.sourceNote20??"":"")),noteDrivenExact:(ev.noteDrivenEvaluation?ev.sourceNote20??"":""),noteDrivenCalculated:(ev.noteDrivenCalculated??undefined),noteCriteriaV45126:Array.isArray(ev.noteCriteriaV45126)?ev.noteCriteriaV45126.map(x=>({...x})):[],entryStartedAt:ev.entryStartedAt||ev.enteredAt||ev.createdAt||Date.now()
   };
   page="eval";
   render();
@@ -6182,7 +6186,7 @@ function beginEvaluation(path){
     title:"",date:new Date().toLocaleDateString("fr-FR"),place:"Lycée",type:"Lycée",
     comps:[],levels:{},obs:{},evaluationObservation:"",disabledCriteria:{},disabledCompetencies:{},
     mode:"individual",targetStudents:[selectedStudent],attachment:null,
-    evalPath:path==="professional"?"professional":"free",profSituation:"",profOptions:{},profFreeText:"",activitySupport:"",evaluationStarted:false,noteDrivenEvaluation:false,noteDrivenRequested:"",noteDrivenExact:"",noteDrivenCalculated:undefined
+    evalPath:path==="professional"?"professional":"free",profSituation:"",profOptions:{},profFreeText:"",activitySupport:"",evaluationStarted:false,noteDrivenEvaluation:false,noteDrivenRequested:"",noteDrivenExact:"",noteDrivenCalculated:undefined,noteCriteriaV45126:[]
   };
   page="eval";
   render();
@@ -6206,33 +6210,96 @@ function distributeNoteScores(totalCriteria,maxPerCriterion,note){
   const sum=scores.reduce((a,b)=>a+b,0);
   return {scores,calculated:Math.round((sum/(n*max))*20*10)/10,targetPoints:target};
 }
+/* V451.57.26 — répartition explicite de la note sur TOUS les critères actifs.
+   Aucune sélection de critères n'est inventée ; les désactivations voulues sont conservées.
+   Les points calculés constituent une proposition mathématique, pas une preuve d'observation. */
+function noteCriteriaListV45126(e){
+  const out=[];
+  (e?.comps||[]).forEach(cid=>{
+    const comp=window.tp230.resolve(e,cid,competencies.find(c=>c.id===cid));
+    if(!comp)return;
+    (comp.criteria||[]).forEach((c,i)=>{
+      const key=cid+'-'+i;
+      if(e.disabledCriteria?.[key]||e.disabledCompetencies?.[cid])return;
+      const raw=(c&&typeof c==='object')?c:{};
+      const w=Number(raw.poids??raw.weight??raw.coefficient??raw.ponderation??1);
+      out.push({key,competence:cid,code:String(raw.code||key),label:String(raw.text||raw.label||c||''),weight:Number.isFinite(w)&&w>0?w:1});
+    });
+  });
+  return out;
+}
+function allocateNoteCentsV45126(total,weights,caps){
+  const count=weights.length,out=new Array(count).fill(0);let remaining=total;
+  // Plus forts restes ; chaque centième est attribué, pas de perte par arrondi.
+  for(let turn=0;remaining>0&&turn<=total;turn++){
+    const sum=weights.reduce((a,w,i)=>a+(out[i]<(caps?caps[i]:Infinity)?w:0),0);
+    if(!sum)throw Error('Barème de répartition insuffisant');
+    const floats=weights.map((w,i)=>out[i]<(caps?caps[i]:Infinity)?remaining*w/sum:0);
+    let allocated=0;
+    for(let i=0;i<count;i++){
+      if(caps&&out[i]>=caps[i])continue;
+      const can=caps?caps[i]-out[i]:remaining;
+      const v=Math.max(0,Math.min(can,Math.floor(floats[i])));
+      out[i]+=v;allocated+=v;
+    }
+    remaining-=allocated;if(!remaining)break;
+    const order=floats.map((f,i)=>({i,f:f-Math.floor(f)})).filter(x=>!caps||out[x.i]<caps[x.i]).sort((a,b)=>b.f-a.f||a.i-b.i);
+    for(const {i} of order){if(!remaining)break;out[i]++;remaining--;}
+    if(!allocated&&!order.length)throw Error('Répartition impossible');
+  }
+  if(remaining!==0||out.reduce((a,b)=>a+b,0)!==total)throw Error('Répartition incomplète');
+  return out;
+}
+function calculateAllCriteriaFromNoteV45126(e,note){
+  const list=noteCriteriaListV45126(e);
+  if(!list.length)throw Error('Aucun critère actif lié au référentiel pour cette évaluation');
+  const max=allocateNoteCentsV45126(2000,list.map(x=>x.weight));
+  const total=Math.round(note*100),points=allocateNoteCentsV45126(total,max,max);
+  const entries=list.map((c,i)=>{
+    const ratio=max[i]?points[i]/max[i]:0;
+    const level=ratio>=.875?'Autonome':ratio>=.625?'Maîtrisé':'À renforcer';
+    return {...c,points:points[i]/100,maxPoints:max[i]/100,level,origin:'calcul automatique depuis note /20',validatedByTeacher:false};
+  });
+  if(Math.round(entries.reduce((a,b)=>a+b.points,0)*100)!==total)throw Error('Total des critères différent de la note saisie');
+  return entries;
+}
+function noteCriteriaDetailHtmlV45126(entries){
+  if(!entries?.length)return '';
+  const f=x=>Number(x).toFixed(2).replace('.',',');
+  const total=entries.reduce((a,c)=>a+c.points,0);
+  return `<details class="v45126-trace" open><summary>Détail du calcul — ${entries.length} critère(s), total ${f(total)} / 20</summary><div class="v45126-table-scroll"><table class="v45126-table"><thead><tr><th>Référentiel / critère</th><th>Poids</th><th>Points</th><th>Niveau proposé</th></tr></thead><tbody>${entries.map(c=>`<tr><td><b>${esc(c.code)}</b> — ${esc(c.label)} <small>(${esc(c.competence)})</small></td><td>${f(c.weight)}</td><td><b>${f(c.points)} / ${f(c.maxPoints)}</b></td><td>${esc(c.level)}</td></tr>`).join('')}</tbody><tfoot><tr><th colspan="2">Total vérifié</th><th>${f(total)} / 20</th><th></th></tr></tfoot></table></div><p class="muted">Proposition <b>mathématique</b> à vérifier par le professeur. La note seule ne prouve pas la maîtrise de chaque critère. Les critères volontairement désactivés ne sont pas évalués.</p></details>`;
+}
+function verifyNoteCriteriaV45126(e){
+  if(!e?.noteDrivenEvaluation||!e?.noteCriteriaV45126?.length)return true;
+  const keys=noteCriteriaListV45126(e).map(x=>x.key).sort();
+  const saved=e.noteCriteriaV45126.map(x=>x.key).sort();
+  const total=Math.round(e.noteCriteriaV45126.reduce((a,x)=>a+Number(x.points||0),0)*100);
+  return keys.length===saved.length&&keys.every((k,i)=>k===saved[i])&&total===Math.round(Number(e.noteDrivenExact)*100);
+}
 function applyNoteToStandardEvaluation(raw){
   if(!draft)return;
-  const note=parseNote20Value(raw);
-  draft.noteDrivenRequested=note===null?"":note;
-  if(note===null){evaluationPage();return;}
-  if(!draft.comps?.length){showWarningMessage("Sélectionne d’abord une situation professionnelle ou au moins une compétence.");evaluationPage();return;}
-  const active=[];
-  (draft.comps||[]).forEach(compId=>{
-    const comp=window.tp230.resolve(draft,compId,competencies.find(c=>c.id===compId)); if(!comp)return;
-    (comp.criteria||[]).forEach((_,i)=>{const key=compId+"-"+i;if(!(draft.disabledCriteria&&draft.disabledCriteria[key]))active.push(key);});
-  });
-  if(!active.length){showWarningMessage("Aucun critère actif à positionner.");evaluationPage();return;}
-  const dist=distributeNoteScores(active.length,4,note);
-  const labels=["Non observé","À renforcer","En cours","Maîtrisé","Autonome"];
+  const note=String(raw??'').trim()===''?null:parseNote20Value(raw);
+  draft.noteDrivenRequested=note===null?'':note;
+  if(note===null){draft.noteDrivenEvaluation=false;draft.noteDrivenExact='';draft.noteCriteriaV45126=[];evaluationPage();return;}
+  if(!draft.comps?.length){showWarningMessage('Sélectionne d’abord une situation professionnelle ou au moins une compétence.');return;}
+  let details;
+  try{details=calculateAllCriteriaFromNoteV45126(draft,note)}
+  catch(e){showWarningMessage('Calcul impossible : '+e.message);return;}
+  // On conserve la note officielle exacte ; niveaux = proposition qualitative.
   draft._noteAutoApplying=true;
   if(!draft.levels)draft.levels={};
-  active.forEach((key,i)=>{draft.levels[key]=labels[dist.scores[i]];});
+  for(const c of details)draft.levels[c.key]=c.level;
   draft._noteAutoApplying=false;
+  draft.noteCriteriaV45126=details;
   draft.noteDrivenEvaluation=true;
   draft.noteDrivenExact=note;
-  draft.noteDrivenCalculated=dist.calculated;
+  draft.noteDrivenCalculated=note;
   draft.evaluationStarted=true;
   evaluationPage();
 }
 function clearStandardNoteOverrideAfterManualChange(){
   if(!draft||draft._noteAutoApplying)return;
-  if(draft.noteDrivenEvaluation){draft.noteDrivenExact="";draft.noteDrivenCalculated=undefined;}
+  if(draft.noteDrivenEvaluation){draft.noteDrivenExact="";draft.noteDrivenCalculated=undefined;draft.noteDrivenEvaluation=false;draft.noteCriteriaV45126=[];}
 }
 function applyRentreeNote(raw){
   const d=rentreeDraft,theme=rentreeTheme(d?.themeId);if(!d||!theme)return;
@@ -6752,7 +6819,7 @@ document.getElementById("main").innerHTML=`
       ${studentSelfEvalCard(draft.studentSelfEvaluation)}
 
       ${draft.retroactive?`<section class="eval-modern-card eval-modern-yellow" style="margin-top:16px"><div class="eval-modern-title"><span class="eval-step">5</span> Note estimative à cette date</div><div class="form-grid"><label>Note estimative sur 20<input type="number" min="0" max="20" step="0.5" value="${esc(draft.retroEstimatedNote??"")}" placeholder="Ex. 12,5" onchange="applyRetroEstimatedNote(this.value)"></label><div><div class="muted" style="margin-bottom:6px">Positionnement automatique</div><button type="button" class="primary" onclick="applyRetroEstimatedNote(draft.retroEstimatedNote)">⚙️ Calculer et cocher automatiquement les critères</button></div></div><div class="retro-date-note">Le calcul s’applique à tous les critères actifs de la situation ou des compétences choisies. Tu peux ensuite corriger manuellement chaque critère.</div>${draft.retroCalculatedNote!==undefined?`<div class="pill" style="margin-top:10px">Résultat automatique obtenu : ${String(draft.retroCalculatedNote).replace(".",",")} / 20</div>`:""}</section>`:``}
-      ${!draft.retroactive?`<section class="note-driven-box"><h3>📝 Évaluer à partir d’une note</h3><div class="note-driven-row"><label>Note sur 20<input class="note-driven-input" type="number" min="0" max="20" step="0.5" value="${esc(draft.noteDrivenRequested??"")}" placeholder="Ex. 14" onchange="draft.noteDrivenRequested=this.value"></label><div><button type="button" class="primary note-driven-button" onclick="applyNoteToStandardEvaluation(draft.noteDrivenRequested)">⚙️ Positionner automatiquement les critères</button><div class="note-driven-mini">Le logiciel répartit les niveaux de maîtrise pour obtenir une évaluation cohérente avec la note saisie. Les critères peuvent ensuite être corrigés manuellement.</div></div></div>${draft.noteDrivenCalculated!==undefined?`<div class="note-driven-result">Note saisie : ${String(draft.noteDrivenRequested).replace(".",",")} / 20 · résultat des critères : ${String(draft.noteDrivenCalculated).replace(".",",")} / 20</div>`:""}</section>`:``}
+      ${!draft.retroactive?`<section class="note-driven-box"><h3>📝 Évaluer à partir d’une note</h3><div class="note-driven-row"><label>Note sur 20<input class="note-driven-input" type="number" min="0" max="20" step="0.01" value="${esc(draft.noteDrivenRequested??"")}" placeholder="Ex. 14" onchange="draft.noteDrivenRequested=this.value"></label><div><button type="button" class="primary note-driven-button" onclick="applyNoteToStandardEvaluation(draft.noteDrivenRequested)">⚙️ Positionner automatiquement les critères</button><div class="note-driven-mini">Calcul proportionnel de tous les critères actifs, avec points exacts, pondérations et niveau indicatif. Cette proposition doit être vérifiée et validée pédagogiquement.</div></div></div>${draft.noteDrivenCalculated!==undefined?`<div class="note-driven-result">Note saisie : ${String(draft.noteDrivenRequested).replace(".",",")} / 20 · total calculé sur tous les critères : ${String(draft.noteDrivenCalculated).replace(".",",")} / 20</div>`:""}${noteCriteriaDetailHtmlV45126(draft.noteCriteriaV45126)}</section>`:``}
 
       <div id="evaluation-workspace" class="evaluation-workspace eval-modern-workspace" style="display:${draft.evaluationStarted && draft.comps.length?"grid":"none"}"><div class="evaluation-main">${draft.comps.map(id=>renderCompetence(id)).join("")}</div><aside class="evaluation-score-side"><div class="panel provisional-score-panel"><div class="muted" style="font-size:12px">NOTE PROVISOIRE</div><div id="live-score" class="provisional-score-value ${scoreClass(evaluationScore20({comps:draft.comps,levels:draft.levels,disabledCriteria:draft.disabledCriteria,noteDrivenEvaluation:!!draft.noteDrivenEvaluation,sourceNote20:(draft.noteDrivenExact!==''?draft.noteDrivenExact:undefined)}))}">${evaluationScoreLabel({comps:draft.comps,levels:draft.levels,disabledCriteria:draft.disabledCriteria,noteDrivenEvaluation:!!draft.noteDrivenEvaluation,sourceNote20:(draft.noteDrivenExact!==''?draft.noteDrivenExact:undefined)})}</div><div class="muted" style="font-size:12px">Mise à jour à chaque positionnement.</div></div><div class="criteria-bulk-controls"><button type="button" id="disable-all-criteria-btn" class="criteria-bulk-btn criteria-bulk-disable" onclick="disableAllCriteria()">⏸ Tout désactiver</button><button type="button" id="enable-all-criteria-btn" class="criteria-bulk-btn criteria-bulk-enable" onclick="enableAllCriteria()">↩ Tout réactiver</button><div id="linked-criteria-count" class="disabled-criteria-count linked-criteria-count">0 critère lié</div><div id="disabled-criteria-count" class="disabled-criteria-count">0 critère désactivé</div></div></aside></div>
 
@@ -6791,6 +6858,7 @@ function toggleAllTargets(){
   render();
 }
 function toggleComp(id,on){
+  clearStandardNoteOverrideAfterManualChange();
   if(on&&!draft.comps.includes(id))draft.comps.push(id);
   if(!on){
     draft.comps=draft.comps.filter(x=>x!==id);
@@ -6858,6 +6926,7 @@ return `<div class="panel competence ${competenceToneClass(id)} ${wholeDisabled?
 }
 function toggleCompetence(compId,btn){
   if(!draft)return;
+  clearStandardNoteOverrideAfterManualChange();
   if(!draft.disabledCriteria) draft.disabledCriteria={};
   if(!draft.disabledCompetencies) draft.disabledCompetencies={};
   const comp=window.tp230.resolve(draft,compId,competencies.find(c=>c.id===compId));
@@ -6987,7 +7056,7 @@ function updateRecapPositionedCount(){
 }
 function updateLiveEvaluationScore(){
   if(!draft)return;
-  const n=evaluationScore20({
+  const n=draft.noteDrivenEvaluation&&draft.noteCriteriaV45126?.length&&draft.noteDrivenExact!=="" ? Number(draft.noteDrivenExact) : evaluationScore20({
     comps:[...(draft.comps||[])],
     levels:{...(draft.levels||{})},
     disabledCriteria:{...(draft.disabledCriteria||{})}
@@ -7146,6 +7215,7 @@ function showDisabledCriteria(){
   updateLiveEvaluationScore();
 }
 function toggleCriterion(key,btn){
+  clearStandardNoteOverrideAfterManualChange();
   clearStandardNoteOverrideAfterManualChange();
   if(!draft.disabledCriteria) draft.disabledCriteria={};
   const disabledNow=!!draft.disabledCriteria[key];
@@ -9927,6 +9997,10 @@ if(draft.retroactive && !draft.title.trim()) draft.title = draft.evalPath==="pro
 if(!draft.title.trim()){showWarningMessage("Saisis un intitulé de situation.");return;}
 if(!draft.comps.length){showWarningMessage("Sélectionne au moins une compétence.");return;}
 
+// V451.57.26 — vérifier la cohérence note /20 et couverture exhaustive des critères.
+if(draft.noteDrivenEvaluation&&draft.noteCriteriaV45126?.length&&!verifyNoteCriteriaV45126(draft)){
+  showValidationMessage("Répartition des critères incohérente : recalcule la note avant l’enregistrement.");return;
+}
 // Vérification des critères actifs avant l'enregistrement.
 // Un critère désactivé est volontairement ignoré. Les critères actifs
 // doivent tous avoir un niveau sélectionné.
@@ -9967,7 +10041,7 @@ if(draft.editId){
     disabledCompetencies:{...(draft.disabledCompetencies||{})},
     attachment:draft.attachment||null,
     evalPath:draft.evalPath||"free",profSituation:draft.profSituation||"",profOptions:{...(draft.profOptions||{})},profFreeText:draft.profFreeText||"",activitySupport:(draft.activitySupport||draft.supportActivite||"").trim(),supportActivite:(draft.activitySupport||draft.supportActivite||"").trim(),studentSelfEvaluation:draft.studentSelfEvaluation?{...draft.studentSelfEvaluation}:null,atelierSource:!!draft.atelierSource,atelierDay:draft.atelierDay||"",atelierPublicationId:draft.atelierPublicationId||"",atelierPendingKey:draft.atelierPendingKey||"",
-    retroactive:!!draft.retroactive,retroPositionLevel:draft.retroPositionLevel||"",retroEstimatedNote:(draft.retroEstimatedNote??""),retroCalculatedNote:(draft.retroCalculatedNote??null),noteDrivenEvaluation:!!draft.noteDrivenEvaluation,noteDrivenRequested:(draft.noteDrivenRequested??""),noteDrivenCalculated:(draft.noteDrivenCalculated??null),sourceNote20:(draft.noteDrivenEvaluation?(draft.noteDrivenExact!==undefined&&draft.noteDrivenExact!==""?draft.noteDrivenExact:undefined):(existing?.retroExcelImported?existing.sourceNote20:undefined)),evaluationDate:draft.date,
+    retroactive:!!draft.retroactive,retroPositionLevel:draft.retroPositionLevel||"",retroEstimatedNote:(draft.retroEstimatedNote??""),retroCalculatedNote:(draft.retroCalculatedNote??null),noteDrivenEvaluation:!!draft.noteDrivenEvaluation,noteDrivenRequested:(draft.noteDrivenRequested??""),noteDrivenCalculated:(draft.noteDrivenCalculated??null),noteCriteriaV45126:(draft.noteDrivenEvaluation&&draft.noteCriteriaV45126?.length?draft.noteCriteriaV45126.map(c=>({...c})):[]),sourceNote20:(draft.noteDrivenEvaluation?(draft.noteDrivenExact!==undefined&&draft.noteDrivenExact!==""?draft.noteDrivenExact:undefined):(existing?.retroExcelImported?existing.sourceNote20:undefined)),evaluationDate:draft.date,
     enteredAt:existing.enteredAt||existing.createdAt||Date.now(),entryDate:existing.entryDate||new Date(existing.enteredAt||existing.createdAt||Date.now()).toLocaleDateString("fr-FR"),modifiedAt:Date.now(),
     studentId:existing.studentId
   };
@@ -10019,7 +10093,7 @@ const evaluations = validTargets.map((studentId,idx)=>({
     disabledCompetencies:{...(draft.disabledCompetencies||{})},
     attachment:draft.attachment||null,
   evalPath:draft.evalPath||"free",profSituation:draft.profSituation||"",profOptions:{...(draft.profOptions||{})},profFreeText:draft.profFreeText||"",activitySupport:(draft.activitySupport||draft.supportActivite||"").trim(),supportActivite:(draft.activitySupport||draft.supportActivite||"").trim(),studentSelfEvaluation:draft.studentSelfEvaluation?{...draft.studentSelfEvaluation}:null,atelierSource:!!draft.atelierSource,atelierDay:draft.atelierDay||"",atelierPublicationId:draft.atelierPublicationId||"",atelierPendingKey:draft.atelierPendingKey||"",
-  retroactive:!!draft.retroactive,retroPositionLevel:draft.retroPositionLevel||"",retroEstimatedNote:(draft.retroEstimatedNote??""),retroCalculatedNote:(draft.retroCalculatedNote??null),noteDrivenEvaluation:!!draft.noteDrivenEvaluation,noteDrivenRequested:(draft.noteDrivenRequested??""),noteDrivenCalculated:(draft.noteDrivenCalculated??null),sourceNote20:(draft.noteDrivenExact!==undefined&&draft.noteDrivenExact!==""?draft.noteDrivenExact:undefined),evaluationDate:draft.date,
+  retroactive:!!draft.retroactive,retroPositionLevel:draft.retroPositionLevel||"",retroEstimatedNote:(draft.retroEstimatedNote??""),retroCalculatedNote:(draft.retroCalculatedNote??null),noteDrivenEvaluation:!!draft.noteDrivenEvaluation,noteDrivenRequested:(draft.noteDrivenRequested??""),noteDrivenCalculated:(draft.noteDrivenCalculated??null),noteCriteriaV45126:(draft.noteDrivenEvaluation&&draft.noteCriteriaV45126?.length?draft.noteCriteriaV45126.map(c=>({...c})):[]),sourceNote20:(draft.noteDrivenExact!==undefined&&draft.noteDrivenExact!==""?draft.noteDrivenExact:undefined),evaluationDate:draft.date,
   enteredAt:Date.now()+idx,entryDate:new Date().toLocaleDateString("fr-FR"),modifiedAt:null,
   studentId,
   createdAt:Date.now()+idx,
@@ -17931,6 +18005,55 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
  const observer=new MutationObserver(()=>{const p=document.getElementById('tfab-v24-identity');if(p)fill(p)});observer.observe(document.body,{subtree:true,childList:true});fill(document);
 })();
 </script>
+<script id="v4515726-tp-note-criteria">
+/* V451.57.26 — complément strictement limité à la saisie de note du correcteur TP.
+   Aucune modification du démarrage, de l'API Cloudflare ou des copies élèves. */
+(()=>{'use strict';
+const KEY='tp_correction_local_v54',DB='fdmahy_corrections_v129',STORE='copies';
+let idbQueue=Promise.resolve();
+const read=()=>{try{const a=JSON.parse(localStorage.getItem(KEY)||'[]');return Array.isArray(a)?a:[]}catch(_){return[]}};
+const current=()=>String(window.__tp55Current||window.__tpCorrectionCurrent||'');
+async function persistFields(id,fields){
+ try{
+  const db=await new Promise((ok,no)=>{const q=indexedDB.open(DB,1);q.onerror=()=>no(q.error);q.onupgradeneeded=()=>{q.transaction?.abort();no(Error('Coffre non initialisé'))};q.onsuccess=()=>ok(q.result)});
+  if(!db.objectStoreNames.contains(STORE)){db.close();return;}
+  try{await new Promise((ok,no)=>{const tx=db.transaction(STORE,'readwrite'),st=tx.objectStore(STORE),q=st.get(String(id));q.onsuccess=()=>{if(q.result)st.put({...q.result,...fields})};tx.oncomplete=()=>ok();tx.onerror=()=>no(tx.error)})}finally{db.close()}
+ }catch(e){console.warn('V451.57.26 : miroir IndexedDB non actualisé',e)}
+}
+window.tpCorrectionAutoLevels=function(raw){
+ // Ne plus affecter un même niveau arbitraire à toutes les compétences.
+ window.tpCorrectionDraftSave?.();
+ const id=current(),value=String(raw??'').trim(),note=Number(value.replace(',','.'));
+ if(!id)return;
+ const rows=read(),r=rows.find(x=>String(x.id)===id);
+ if(!r||r.correctedAt||String(r.workflowState||'').toUpperCase()==='CORRIGE')return;
+ document.querySelector('.v45126-tp-note-trace')?.remove();
+ if(!value||!Number.isFinite(note)||note<0||note>20)return;
+ const selection=window.tp230?.extract?.(r.data);
+ if(!selection?.groups?.length){
+  document.getElementById('tpc-note-show')?.insertAdjacentHTML('afterend','<p class="v45126-tp-note-trace muted">Projet TP et critères non identifiables dans cette copie : note conservée, aucun niveau de maîtrise inventé. La justification complète exige le projet d’origine.</p>');
+  return;
+ }
+ try{
+  const refs=selection.groups.map(g=>({id:g.id,name:g.name,criteria:(g.criteria||[]).map(c=>({code:c.sourceId,text:c.label}))}));
+  const result=calculateAllCriteriaFromNoteV45126({comps:refs.map(x=>x.id),tpReference230:refs,disabledCriteria:{}},note);
+  r.criteriaLevels230={...(r.criteriaLevels230||{})};r.levels={...(r.levels||{})};
+  for(const cr of result)r.criteriaLevels230[cr.code]=cr.level;
+  for(const ref of refs){
+   const entries=result.filter(c=>c.competence===ref.id);
+   const a=entries.reduce((sum,x)=>sum+x.points,0),b=entries.reduce((sum,x)=>sum+x.maxPoints,0),ratio=b?a/b:0;
+   r.levels[ref.id]=ratio>=.875?'Autonome':ratio>=.625?'Maîtrisé':'À renforcer';
+  }
+  r.keepNote232=true;r.noteCriteriaV45126=result;
+  localStorage.setItem(KEY,JSON.stringify(rows));
+  const snapshot={note:r.note,levels:{...r.levels},criteriaLevels230:{...r.criteriaLevels230},keepNote232:true,noteCriteriaV45126:result.map(c=>({...c}))};
+  idbQueue=idbQueue.catch(()=>{}).then(()=>persistFields(id,snapshot));
+  document.getElementById('tpc-note-show')?.insertAdjacentHTML('afterend','<div class="v45126-tp-note-trace">'+noteCriteriaDetailHtmlV45126(result)+'</div>');
+  window.tp235RefreshCriteria?.();
+ }catch(e){console.warn('V451.57.26 : calcul de la note du TP impossible',e)}
+};
+})();
+</script>
 </body>
 </html>
 <!-- V116 — TP projet unifié : diffusion fiable, aperçu et passerelle lecteur -->
@@ -18447,7 +18570,14 @@ async function validate(){
     completedAt:aeRaw.completedAt||aeRaw.dateValidation||''
   }:null;
   const ev={id:evId,studentId:st.id,date:dateFr(r.data),title:`${r.data?.code||'TP'} — ${r.data?.titre||'TP corrigé'}${tpAttempt240?' · '+tpAttempt240:''}`,place:'Lycée',type:'TP',comps:cs,levels,obs:{},disabledCriteria,evaluationObservation:r.appreciation||'',activitySupport:r.data?.vehicule?.modele||r.data?.support?.label||'',sourceNote20:n,noteDrivenEvaluation:true,noteDrivenRequested:n,noteDrivenExact:n,tpCorrection:true,tpComments234:JSON.parse(JSON.stringify(r.comments234||{})),tpCode:r.data?.code||'',tpActivityId:r.data?.meta?.activityId||r.data?.activityId||'',tpPendingKey:r.data?.meta?.pendingKey||'',tpCorrectionId:r.id,tpImportedFile:r.fileName,tpAttempt240,tpSource240:'correction professeur validée',studentSelfEvaluation,createdAt:r.correctedAt?new Date(r.correctedAt).getTime():Date.now(),modifiedAt:r.correctedAt?Date.now():null};
-  db.close();if(aligned)Object.assign(ev,aligned);ev.sourceNote20=n;ev.noteDrivenEvaluation=true;ev.noteDrivenRequested=n;ev.noteDrivenExact=n;ev.tpNoteAudit239={value:n,copyId:String(r.id),attempt:String(r.data?.cloud227?.attempt||r.data?.meta?.attempt||r.fileName||''),at:new Date().toISOString()};await persistEvaluation(ev,false);
+  db.close();if(aligned)Object.assign(ev,aligned);
+  // V451.57.26 : conserver le calcul détaillé uniquement si le projet TP fournit les vrais critères.
+  if(aligned&&r.noteCriteriaV45126?.length){
+    const audit={...ev,noteDrivenEvaluation:true,noteDrivenExact:n,noteCriteriaV45126:r.noteCriteriaV45126};
+    if(!verifyNoteCriteriaV45126(audit))throw Error('Répartition des critères incompatible avec la note : recalcule les critères avant de valider.');
+    ev.noteCriteriaV45126=r.noteCriteriaV45126.map(c=>({...c}));
+  }
+  ev.sourceNote20=n;ev.noteDrivenEvaluation=true;ev.noteDrivenRequested=n;ev.noteDrivenExact=n;ev.tpNoteAudit239={value:n,copyId:String(r.id),attempt:String(r.data?.cloud227?.attempt||r.data?.meta?.attempt||r.fileName||''),at:new Date().toISOString()};await persistEvaluation(ev,false);
   // Éviter qu'une correction soit marquée comme réussie si la note n'existe pas réellement dans IndexedDB.
   const stored240=(await getAll('evaluations')).find(e=>String(e.id)===String(evId));
   if(!stored240||String(stored240.tpCorrectionId)!==String(r.id)||String(stored240.studentId)!==String(st.id)||!stored240.noteDrivenEvaluation||Number(stored240.sourceNote20)!==n)throw Error('Contrôle V240 : évaluation ou note absente après enregistrement. Copie conservée, validation interrompue.');
@@ -21243,8 +21373,8 @@ const test=window.tpGenTestAction;window.tpGenTestAction=function(action){if(act
 <script id="criteria-ui-v232">(function(){
 const KEY='tp_correction_local_v54',read=()=>JSON.parse(localStorage.getItem(KEY)||'[]');
 function current(){return read().find(r=>String(r.id)===String(window.__tp55Current||window.__tpCorrectionCurrent))}
-function refresh(){const r=current(),box=document.getElementById('tp230-criteria');if(!r||!box||r.correctedAt)return;box.innerHTML=window.tp230.panel(r,true);if(window.tp230.extract(r.data)){const card=document.querySelector('.tpc-comp')?.closest('.tpc-card');if(card){card.querySelectorAll('.tpc-comp').forEach(el=>el.hidden=true);const hint=card.querySelector('p.muted');if(hint)hint.textContent='Le positionnement suit les critères liés aux questions. La note reste un choix distinct.';card.before(box)}}const tools=document.createElement('div');tools.innerHTML='<p>Les coches positionnent uniquement les critères associés aux questions. Plusieurs questions : toutes les réponses corrigées doivent être correctes pour proposer « Maîtrisé ». « Autonome » reste un choix du professeur.</p><button type="button" class="secondary" data-note232>Prépositionner les critères à partir de la note</button><label style="display:block;margin-top:10px"><input type="checkbox" data-keep-note232> Conserver la note /20 comme note finale de cette évaluation</label>';tools.querySelector('input').checked=!!r.keepNote232;
- tools.querySelector('[data-note232]').onclick=()=>{const rows=read(),row=rows.find(x=>String(x.id)===String(r.id));if(!row||row.correctedAt||String(row.workflowState||'').toUpperCase()==='CORRIGE')return;if(row.note===''||row.note==null||!Number.isFinite(Number(row.note)))return alert('Renseigne une note.');if(!confirm('Remplacer le positionnement de tous les critères par une proposition issue de la note ?'))return;const lv=Number(row.note)<12?'À renforcer':Number(row.note)<16?'Maîtrisé':'Autonome';row.criteriaLevels230=Object.fromEntries(Object.keys(window.tp232.effective(row)).map(k=>[k,lv]));localStorage.setItem(KEY,JSON.stringify(rows));refresh()};
+function refresh(){const r=current(),box=document.getElementById('tp230-criteria');if(!r||!box||r.correctedAt)return;box.innerHTML=window.tp230.panel(r,true);if(window.tp230.extract(r.data)){const card=document.querySelector('.tpc-comp')?.closest('.tpc-card');if(card){card.querySelectorAll('.tpc-comp').forEach(el=>el.hidden=true);const hint=card.querySelector('p.muted');if(hint)hint.textContent='Positionnement par critère lié au TP ; la note peut maintenant être répartie sur tous les critères.';card.before(box)}}const tools=document.createElement('div');tools.innerHTML='<p>Les coches positionnent uniquement les critères associés aux questions. Plusieurs questions : toutes les réponses corrigées doivent être correctes pour proposer « Maîtrisé ». « Autonome » reste un choix du professeur.</p><button type="button" class="secondary" data-note232>Calculer tous les critères à partir de la note</button><label style="display:block;margin-top:10px"><input type="checkbox" data-keep-note232> Conserver la note /20 comme note finale de cette évaluation</label>';tools.querySelector('input').checked=!!r.keepNote232;
+ tools.querySelector('[data-note232]').onclick=()=>{const row=current();if(!row||row.correctedAt||String(row.workflowState||'').toUpperCase()==='CORRIGE')return;const note=document.getElementById('tpc-note')?.value??row.note;if(String(note).trim()==='')return alert('Renseigne une note.');window.tpCorrectionAutoLevels?.(note)};
  tools.querySelector('input').onchange=e=>{const rows=read(),row=rows.find(x=>String(x.id)===String(r.id));if(!row||row.correctedAt||String(row.workflowState||'').toUpperCase()==='CORRIGE')return;row.keepNote232=e.target.checked;localStorage.setItem(KEY,JSON.stringify(rows))};box.append(tools);
 }
 window.tp235RefreshCriteria=refresh;
@@ -21905,7 +22035,7 @@ document.addEventListener('click',e=>{const b=e.target?.closest?.('[data-legacy-
 // Saisie manuelle en mode ancien : préserver la note choisie sans rafraîchir la page.
 document.addEventListener('input',e=>{if(e.target?.id!=='tpc-note'||!document.querySelector('.v45125-legacy'))return;const id=current();storeChange(id,r=>{r.note=e.target.value;r.noteModeV215='manual'},['note','noteModeV215'])},false);
 const style=document.createElement('style');style.id='v4515725-legacy-style';style.textContent='.v45125-legacy{border-left:4px solid #2a69b3}.v45125-item{display:flex;justify-content:space-between;gap:10px;border-top:1px solid #dce3ed;padding:10px 0;align-items:center;flex-wrap:wrap}.v45125-value{color:#566477;font-size:12px;overflow-wrap:anywhere;white-space:pre-wrap;max-width:48rem}.v45125-actions{display:flex;gap:5px;flex-wrap:wrap}.v45125-actions button{padding:6px 9px;font-size:12px;min-height:33px;background:#f3f7fc;color:#193f69;border:1px solid #c5d4e6;border-radius:7px}.v45125-actions button.active{background:#d6e8ff;border:2px solid #2363b0;font-weight:700}.v45125-summary{font-size:13px;font-weight:700;background:#eef5ff;padding:8px;border-radius:7px}';document.head.append(style);
-function versionBadge(){const b=document.getElementById('build-version');if(b&&/^(V250|V451\.57\.)/.test(b.textContent||''))b.textContent='V451.57.25 — Évaluation · Charge Atelier · TP · Correction'}
+function versionBadge(){const b=document.getElementById('build-version');if(b&&/^(V250|V451\.57\.)/.test(b.textContent||''))b.textContent='V451.57.26 — Évaluation · Charge Atelier · TP · Correction'}
 versionBadge();if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',versionBadge,{once:true});setTimeout(versionBadge,1200);
 console.info('Évaluation V451.57.25 : copie complète prioritaire, niveau sans saut, secours de correction manuelle prudent.');
 })();
