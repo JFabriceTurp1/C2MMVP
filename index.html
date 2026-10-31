@@ -10933,7 +10933,7 @@ const DEFAULT_RETRO_BILAN_PERIODS=[
   {id:"BILAN_2025_2026_P4",schoolYear:"2025-2026",code:"P4",name:"Bilan P4",date:"2026-06-12",retroactive:true,order:4}
 ];
 function normalizeBilanPeriod(x){
-  return {id:String(x?.id||("BILAN_"+Date.now()+"_"+Math.random().toString(36).slice(2,8))),schoolYear:String(x?.schoolYear||getSchoolSettings().schoolYear||"2026-2027").trim(),code:String(x?.code||"").trim(),name:String(x?.name||x?.code||"Bilan").trim(),date:isoComparableDate(x?.date)||"",retroactive:!!x?.retroactive,order:Number(x?.order||0),createdAt:x?.createdAt||Date.now(),updatedAt:x?.updatedAt||Date.now()};
+  return {id:String(x?.id||("BILAN_"+Date.now()+"_"+Math.random().toString(36).slice(2,8))),schoolYear:String(x?.schoolYear||getSchoolSettings().schoolYear||"2026-2027").trim(),code:String(x?.code||"").trim(),name:String(x?.name||x?.code||"Bilan").trim(),date:isoComparableDate(x?.date)||"",startDate:isoComparableDate(x?.startDate)||"",retroactive:!!x?.retroactive,order:Number(x?.order||0),createdAt:x?.createdAt||Date.now(),updatedAt:x?.updatedAt||Date.now()};
 }
 function loadBilanPeriods(){
   let rows=[];
@@ -10956,11 +10956,13 @@ function addBilanPeriod(){
   const code=(document.getElementById("bilan-new-code")?.value||"").trim();
   const name=(document.getElementById("bilan-new-name")?.value||code||"").trim();
   const date=isoComparableDate(document.getElementById("bilan-new-date")?.value||"");
-  if(!year||!code||!date){showWarningMessage("Renseigne l’année scolaire, le nom/code du bilan et sa date de clôture.");return;}
+  const startDate=isoComparableDate(document.getElementById("bilan-new-start")?.value||"")||`${String(year).slice(0,4)}-08-01`;
+  if(!year||!code||!date||!startDate){showWarningMessage("Renseigne l’année scolaire et les dates du bilan.");return;}
+  if(startDate>date){showWarningMessage("La date de début doit précéder ou égaler la clôture.");return;}
   const rows=loadBilanPeriods();
   if(rows.some(x=>x.schoolYear===year&&String(x.code).toUpperCase()===code.toUpperCase())){showWarningMessage(`Un bilan ${code} existe déjà pour ${year}.`);return;}
   const sameYear=rows.filter(x=>x.schoolYear===year);
-  rows.push(normalizeBilanPeriod({id:`BILAN_${year.replace(/\D/g,"")}_${code.replace(/[^A-Za-z0-9]+/g,"_")}_${Date.now()}`,schoolYear:year,code,name,date,retroactive:false,order:sameYear.length+1}));
+  rows.push(normalizeBilanPeriod({id:`BILAN_${year.replace(/\D/g,"")}_${code.replace(/[^A-Za-z0-9]+/g,"_")}_${Date.now()}`,schoolYear:year,code,name,date,startDate,retroactive:false,order:sameYear.length+1}));
   persistBilanPeriods(rows);showSuccessMessage("Période de bilan créée.",()=>bilansPage());
 }
 function saveBilanPeriod(id){
@@ -10969,9 +10971,11 @@ function saveBilanPeriod(id){
   const code=(document.getElementById(`bilan-code-${q}`)?.value||"").trim();
   const name=(document.getElementById(`bilan-name-${q}`)?.value||code).trim();
   const date=isoComparableDate(document.getElementById(`bilan-date-${q}`)?.value||"");
-  if(!code||!date){showWarningMessage("Le code et la date de clôture sont obligatoires.");return;}
+  const startDate=isoComparableDate(document.getElementById(`bilan-start-${q}`)?.value||"")||`${String(p.schoolYear).slice(0,4)}-08-01`;
+  if(!code||!date||!startDate){showWarningMessage("Les dates de début et de clôture sont obligatoires.");return;}
+  if(startDate>date){showWarningMessage("La date de début doit précéder ou égaler la clôture.");return;}
   if(rows.some(x=>String(x.id)!==String(id)&&x.schoolYear===p.schoolYear&&String(x.code).toUpperCase()===code.toUpperCase())){showWarningMessage(`Un autre bilan ${code} existe déjà pour ${p.schoolYear}.`);return;}
-  p.code=code;p.name=name;p.date=date;p.updatedAt=Date.now();persistBilanPeriods(rows);showSuccessMessage("Bilan mis à jour.",()=>bilansPage());
+  p.code=code;p.name=name;p.date=date;p.startDate=startDate;p.updatedAt=Date.now();persistBilanPeriods(rows);showSuccessMessage("Période mise à jour. Les bilans déjà enregistrés ne sont pas modifiés.",()=>bilansPage());
 }
 function deleteBilanPeriod(id){
   const rows=loadBilanPeriods();const p=rows.find(x=>String(x.id)===String(id));if(!p)return;
@@ -10990,7 +10994,7 @@ function bilanPeriodCard(p){
     <div class="bilan-meta">Date de référence : <b>${esc(bilanPeriodDateLabel(p.date))}</b></div>
     <label>Code / période</label><input id="bilan-code-${q}" value="${esc(p.code)}" placeholder="Ex. P1">
     <label>Libellé</label><input id="bilan-name-${q}" value="${esc(p.name)}" placeholder="Ex. Bilan période 1">
-    <label>Date de clôture</label><input id="bilan-date-${q}" type="date" value="${esc(p.date)}">
+    <label>Date de début</label><input id="bilan-start-${q}" type="date" value="${esc(p.startDate||`${String(p.schoolYear).slice(0,4)}-08-01`)}"><label>Date de clôture</label><input id="bilan-date-${q}" type="date" value="${esc(p.date)}">
     <div class="bilan-card-actions"><button type="button" class="primary" onclick="saveBilanPeriod('${String(p.id).replace(/'/g,"\\'")}')">💾 Enregistrer</button><button type="button" class="secondary" onclick="deleteBilanPeriod('${String(p.id).replace(/'/g,"\\'")}')">🗑️ Supprimer</button></div>
   </div>`;
 }
@@ -14521,7 +14525,9 @@ const oldDraft=window.tpGenCurrentDraft;window.tpGenCurrentDraft=function(){cons
 .bilan-create-grid{display:grid;grid-template-columns:minmax(190px,1fr) minmax(210px,1fr) minmax(240px,1.2fr) auto;gap:12px;align-items:end}.bilan-create-grid label{display:flex;flex-direction:column;gap:6px;font-weight:700}.bilan-create-grid select,.bilan-create-grid input{min-height:42px;box-sizing:border-box}.bilan-teachers-box{margin:0 0 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:11px;padding:12px}.bilan-teachers-box label{display:flex;flex-direction:column;gap:6px;font-weight:700}.bilan-teachers-box input{min-height:40px}.bilan-teachers-box span{display:block;color:#64748b;font-size:12px;margin-bottom:4px}.bilan-teachers-box strong{font-size:16px;color:#0f3f73}.bilan-history-row{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid #e5e7eb}.bilan-history-row small{color:#667085}.bilan-record-page{max-width:1180px;margin:0 auto}.bilan-record-actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-bottom:12px}.bilan-sheet{background:#fff;border:1px solid #dbe4f0;border-radius:16px;padding:24px;box-shadow:0 8px 26px rgba(15,23,42,.06)}.bilan-sheet-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;border-bottom:3px solid #2563eb;padding-bottom:14px}.bilan-sheet-head h1{margin:0;color:#123d72}.bilan-period-chip{background:#dbeafe;color:#1d4ed8;font-weight:900;padding:9px 14px;border-radius:999px}.bilan-identity{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:18px 0}.bilan-identity>div,.bilan-kpis>div,.bilan-kpis>label{background:#f8fafc;border:1px solid #e2e8f0;border-radius:11px;padding:12px}.bilan-identity span,.bilan-kpis span{display:block;color:#64748b;font-size:12px;margin-bottom:4px}.bilan-kpis{display:grid;grid-template-columns:1fr 1fr 1.2fr;gap:10px;margin:12px 0 22px}.bilan-kpis strong{font-size:20px;color:#0f3f73}.bilan-print-date{font-weight:700;display:flex;flex-direction:column;gap:5px}.bilan-table{width:100%;border-collapse:collapse;margin:8px 0 22px}.bilan-table th,.bilan-table td{border-bottom:1px solid #e5e7eb;padding:9px;text-align:left;vertical-align:top}.bilan-table th{background:#f8fafc;color:#334155}.bilan-progress{height:7px;background:linear-gradient(90deg,#d92d20 0 25%,#f79009 25% 50%,#fdb022 50% 75%,#12b76a 75% 100%);border-radius:999px;margin-top:6px;position:relative;overflow:visible}.bilan-progress span{display:block;height:100%;border-radius:999px;opacity:.30}.bilan-progress-marker{position:absolute;top:-3px;width:3px;height:13px;border-radius:2px;transform:translateX(-1px);box-shadow:0 0 0 1px rgba(255,255,255,.85)}.bilan-eval-comps{margin-top:7px;display:grid;gap:7px}.bilan-eval-comp{min-width:180px}.bilan-eval-comp-head{display:flex;justify-content:space-between;gap:8px;align-items:center;font-size:11px;line-height:1.2}.bilan-eval-comp-name{font-weight:700;color:#334155}.bilan-eval-comp-level{font-weight:800;white-space:nowrap}.bilan-eval-bar{height:6px;background:linear-gradient(90deg,#d92d20 0 25%,#f79009 25% 50%,#fdb022 50% 75%,#12b76a 75% 100%);border-radius:999px;margin-top:4px;position:relative}.bilan-eval-marker{position:absolute;top:-3px;width:3px;height:12px;border-radius:2px;transform:translateX(-1px);box-shadow:0 0 0 1px rgba(255,255,255,.9)}.bilan-eval-comp.unobserved .bilan-eval-bar{background:#e5e7eb}.bilan-eval-comp.unobserved .bilan-eval-marker{display:none}.bilan-observation{width:100%;box-sizing:border-box;border:1px solid #cbd5e1;border-radius:10px;padding:12px}.bilan-observation-print{border:1px solid #dbe4f0;border-radius:10px;padding:14px;min-height:70px}.bilan-signatures{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:28px}.bilan-signatures>div{min-height:90px;border-top:1px solid #94a3b8;padding-top:8px;color:#475569}.print-only{display:none!important}@media(max-width:900px){.bilan-create-grid,.bilan-identity,.bilan-kpis{grid-template-columns:1fr}.bilan-history-row{align-items:flex-start;flex-direction:column}}
 @media print{body.bilan-printing .side,body.bilan-printing .app-top-header,body.bilan-printing .permanent-owner-name,body.bilan-printing #active-teacher-chip,body.bilan-printing #firebase-sync-mini,body.bilan-printing .no-print{display:none!important}body.bilan-printing .main{margin:0!important;width:100%!important;padding:0!important}body.bilan-printing .bilan-record-page{max-width:none!important}body.bilan-printing .bilan-sheet{border:0!important;box-shadow:none!important;padding:0!important}.print-only{display:block!important}body.bilan-printing .bilan-table{font-size:10px}body.bilan-printing .bilan-sheet h2{font-size:15px;margin-top:14px}body.bilan-printing .bilan-progress,body.bilan-printing .bilan-eval-bar,body.bilan-printing .bilan-progress-marker,body.bilan-printing .bilan-eval-marker{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}body.bilan-printing .bilan-eval-comp{break-inside:avoid;page-break-inside:avoid}@page{size:A4 portrait;margin:9mm}}
 </style>
+<style id="v45129-bilans-date-style">.bilan-create-panel .bilan-create-grid{grid-template-columns:minmax(150px,1fr) minmax(190px,1fr) minmax(210px,1.1fr) auto}@media(max-width:970px){.bilan-create-panel .bilan-create-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}</style>
 <script id="v92-bilans-eleves-runtime">
+/* V451.57.29 — Bilans uniquement : dates, génération classe, audit des évaluations ; démarrage inchangé */
 /* V10 — Bilans : pondération périodes + progression dans le parcours */
 (function(){
   const BILAN_RECORDS_KEY="evaluation_bilan_records_v92";
@@ -14552,7 +14558,7 @@ const oldDraft=window.tpGenCurrentDraft;window.tpGenCurrentDraft=function(){cons
       const sig=ev?.id!==undefined&&ev?.id!==null?`id:${String(ev.id)}`:`sig:${String(ev?.studentId||key)}|${String(ev?.date||"")}|${String(ev?.title||ev?.type||"")}|${String(ev?.batchId||"")}`;
       if(!seen.has(sig)){seen.add(sig);out.push(ev)}
     }));
-    return typeof visibleEvaluations==="function"?visibleEvaluations(out):out.filter(e=>!e?.archived);
+    return out;
   }
   function resolveClassName(classId,student){
     try{
@@ -14610,11 +14616,24 @@ const oldDraft=window.tpGenCurrentDraft;window.tpGenCurrentDraft=function(){cons
     }catch(err){return null}
   }
   function buildSnapshot(student,period){
-    const start=yearStart(period.schoolYear),end=period.date;
+    const start=isoComparableDate(period.startDate)||yearStart(period.schoolYear),end=isoComparableDate(period.date);
     // Même source que l'Historique : allStudents est prioritaire, puis students.
     // Cela évite les bilans à 0 lorsque l'objet élève passé au module n'embarque pas ses évaluations.
     const all=evaluationsForStudent(student);
-    const evs=(typeof filterEvaluationsByPeriod==="function"?filterEvaluationsByPeriod(all,start,end):all.filter(e=>{const d=isoComparableDate(e.date);return d&&(!start||d>=start)&&(!end||d<=end)}));
+    const evs=[],excluded=[];
+    all.forEach(e=>{
+      const d=isoComparableDate(e?.date);
+      let reason="";
+      if(e?.archived)reason="Archivée";
+      else if(!d)reason="Date absente ou illisible";
+      else if(start&&d<start)reason="Avant la date de début";
+      else if(end&&d>end)reason="Après la date de clôture";
+      if(reason)excluded.push({id:e?.id||"",date:e?.date||"",title:e?.title||e?.type||"Évaluation",reason});
+      else evs.push(e);
+    });
+    evs.sort((a,b)=>isoComparableDate(a.date).localeCompare(isoComparableDate(b.date)));
+    // Un bilan peut signaler les exclusions sans altérer les notes ni les originaux.
+    const audit={sourceCount:all.length,includedCount:evs.length,excludedCount:excluded.length,excluded};
     const compRows=(competencies||[]).map(c=>{
       let score=null;try{score=weightedCompetenceScore(evs,c,period.schoolYear)}catch(e){}
       const progression=periodProgressForPeriod(period);
@@ -14637,60 +14656,68 @@ const oldDraft=window.tpGenCurrentDraft;window.tpGenCurrentDraft=function(){cons
       });
       return {id:e.id,date:e.date||"",title:e.title||e.type||"Évaluation",note:(()=>{try{return evaluationScore20(e)}catch(err){return null}})(),situation:e.profSituation||"",support:e.activitySupport||e.supportActivite||"",teacher:e.teacherName||"",competencies:compLevels};
     });
-    return {startDate:start,endDate:end,overallPct:overall,avgNote,competencies:compRows,evaluations:evalRows,evaluationCount:evs.length,emptyReason:evs.length?'':'Aucune évaluation disponible pour cette période'};
+    return {startDate:start,endDate:end,overallPct:overall,avgNote,competencies:compRows,evaluations:evalRows,evaluationCount:evs.length,audit,emptyReason:evs.length?'':'Aucune évaluation disponible pour cette période'};
   }
   function makeRecord(student,period,teacherNames=""){
     const snap=buildSnapshot(student,period);
     const now=Date.now();
     const classId=student.classId||getActiveClassId();
-    return {id:`BILANREC_${String(student.id)}_${String(period.id)}_${now}`,studentId:student.id,studentName:student.name||"",classId:classId,className:resolveClassName(classId,student),schoolYear:period.schoolYear,periodId:period.id,periodCode:period.code,periodName:period.name,closureDate:period.date,printDate:period.retroactive?period.date:new Date().toISOString().slice(0,10),teacherNames:String(teacherNames||"").trim(),observation:retroObservation(student.id,period),retroactive:!!period.retroactive,snapshot:snap,createdAt:now,updatedAt:now};
+    return {id:`BILANREC_${String(student.id)}_${String(period.id)}_${now}`,studentId:student.id,studentName:student.name||"",classId:classId,className:resolveClassName(classId,student),schoolYear:period.schoolYear,periodId:period.id,periodCode:period.code,periodName:period.name,startDate:snap.startDate,closureDate:period.date,printDate:period.retroactive?period.date:new Date().toISOString().slice(0,10),teacherNames:String(teacherNames||"").trim(),observation:retroObservation(student.id,period),retroactive:!!period.retroactive,snapshot:snap,createdAt:now,updatedAt:now};
   }
   function createOrOpen(){
     const sid=document.getElementById("bilan-student-select")?.value||"",pid=document.getElementById("bilan-period-select")?.value||"";
     const teacherNames=String(document.getElementById("bilan-teachers-input")?.value||"").trim();
-    if(!sid||!pid){showWarningMessage("Choisis une période de bilan et un élève, ou Toute la classe.");return}
+    if(!sid||!pid){showWarningMessage("Choisis une période et un élève, ou Toute la classe.");return}
     const p=periodById(pid);if(!p){showWarningMessage("Période de bilan introuvable.");return}
+    const from=isoComparableDate(p.startDate)||yearStart(p.schoolYear),to=isoComparableDate(p.date);
+    if(!from||!to||from>to){showWarningMessage("Vérifie les dates de début et de clôture de cette période.");return}
+    const list=readRecords();
     if(sid==="__ALL__"){
       const classStudents=sortedStudents();
-      if(!classStudents.length){showWarningMessage("Aucun élève dans la classe active.");return}
-      const list=readRecords();
-      let created=0,already=0,updated=0;
-      classStudents.forEach(st=>{
-        const existing=list.find(r=>String(r.studentId)===String(st.id)&&String(r.periodId)===String(pid));
-        if(existing){
-          already++;
-          if(teacherNames&&!String(existing.teacherNames||"").trim()){existing.teacherNames=teacherNames;existing.updatedAt=Date.now();updated++}
-          if(Number(existing.snapshot?.evaluationCount||0)===0){const fresh=buildSnapshot(st,p);if(fresh.evaluationCount>0){existing.snapshot=fresh;existing.updatedAt=Date.now();updated++}}
-          return;
-        }
-        list.push(makeRecord(st,p,teacherNames));created++;
-      });
-      writeRecords(list);
-      showSuccessMessage(`${created} bilan(s) créé(s) pour la classe${already?` · ${already} déjà existant(s)`:""}${updated?` · ${updated} mis à jour`:""}.`,()=>bilansPage());
+      if(!classStudents.length){showWarningMessage("Aucun élève dans la classe active : vérifie la classe sélectionnée.");return}
+      const pending=[];let existing=0,errors=0;
+      for(const st of classStudents){
+        if(list.some(r=>String(r.studentId)===String(st.id)&&String(r.periodId)===String(pid))){existing++;continue}
+        try{pending.push(makeRecord(st,p,teacherNames))}catch(err){errors++;console.error("Bilan non créé :",st.id,err)}
+      }
+      // Écriture unique : pas de bilan partiel en cas de problème de stockage.
+      try{if(pending.length)writeRecords(list.concat(pending))}
+      catch(err){showWarningMessage("Aucun nouveau bilan enregistré : "+(err?.message||err));return}
+      const msg=`${pending.length} bilan(s) individuel(s) créé(s) · ${existing} déjà existant(s) conservé(s) · ${errors} erreur(s).`;
+      if(errors)showWarningMessage(msg);else showSuccessMessage(msg,()=>bilansPage());
       return;
     }
-    const list=readRecords();
     const existing=list.filter(r=>String(r.studentId)===String(sid)&&String(r.periodId)===String(pid)).sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0))[0];
-    if(existing){
-      let changed=false;
-      if(teacherNames&&!String(existing.teacherNames||"").trim()){existing.teacherNames=teacherNames;changed=true}
-      if(Number(existing.snapshot?.evaluationCount||0)===0){const st=findStudent(sid);if(st){const fresh=buildSnapshot(st,p);if(fresh.evaluationCount>0){existing.snapshot=fresh;changed=true}}}
-      if(changed){existing.updatedAt=Date.now();writeRecords(list)}
-      openRecord(existing.id);return
-    }
+    if(existing){openRecord(existing.id);return}
     const st=findStudent(sid);if(!st){showWarningMessage("Élève introuvable.");return}
-    const rec=makeRecord(st,p,teacherNames);list.push(rec);writeRecords(list);openRecord(rec.id);
+    try{const rec=makeRecord(st,p,teacherNames);writeRecords(list.concat([rec]));openRecord(rec.id)}
+    catch(err){showWarningMessage("Création du bilan impossible : "+(err?.message||err))}
   }
   function openRecord(id){
-    const list=readRecords(),i=list.findIndex(x=>String(x.id)===String(id));
-    if(i<0){showWarningMessage("Bilan introuvable.");return}
-    const r=list[i];
-    // Réparation automatique des anciens bilans créés à 0 alors que l'historique contient des évaluations.
-    if(Number(r.snapshot?.evaluationCount||0)===0){
-      const p=periodById(r.periodId),st=findStudent(r.studentId);
-      if(p&&st){const fresh=buildSnapshot(st,p);if(fresh.evaluationCount>0){r.snapshot=fresh;r.updatedAt=Date.now();writeRecords(list)}}
-    }
+    const r=readRecords().find(x=>String(x.id)===String(id));
+    if(!r){showWarningMessage("Bilan introuvable.");return}
+    // Lecture seule du cliché existant, même si l'Historique a changé.
+    // Seul le bouton « Actualiser avec les évaluations » autorise un recalcul explicite.
     renderRecord(r);
+    const st=findStudent(r.studentId),p=periodById(r.periodId);
+    if(!st||!p)return;
+    try{
+      // Comparer les évaluations réellement disponibles sans changer le bilan sauvegardé.
+      const frozenPeriod={...p,startDate:r.startDate||r.snapshot?.startDate||yearStart(r.schoolYear),date:r.closureDate};
+      const current=buildSnapshot(st,frozenPeriod),historical=r.snapshot||{};
+      const known=new Set((historical.evaluations||[]).map((e,i)=>String(e.id??`missing_${i}`)));
+      const additions=(current.evaluations||[]).filter(e=>!known.has(String(e.id)));
+      const oldById=new Map((historical.evaluations||[]).map(e=>[String(e.id),e]));
+      const updated=(current.evaluations||[]).filter(e=>oldById.has(String(e.id))&&Number(oldById.get(String(e.id)).note)!==Number(e.note));
+      const pane=document.createElement("div");pane.className="bilan-help no-print";pane.style.margin="10px 0";
+      if(additions.length||updated.length){
+        pane.style.borderLeft="4px solid #d97706";
+        pane.textContent=`Bilan conservé sans modification : ${additions.length} évaluation(s) manquante(s) et ${updated.length} note(s) modifiée(s) dans l'Historique. Clique sur « Actualiser avec les évaluations » si tu souhaites recalculer ce bilan.`;
+      }else{
+        pane.textContent=`Contrôle : ${current.evaluationCount} évaluation(s) disponible(s) dans la période enregistrée. Le bilan n'a pas été modifié.`;
+      }
+      document.querySelector(".bilan-record-actions")?.after(pane);
+    }catch(e){console.warn("Vérification de complétude du bilan indisponible",e)}
   }
   function saveRecord(id){
     const list=readRecords(),i=list.findIndex(x=>String(x.id)===String(id));if(i<0)return;
@@ -14702,7 +14729,7 @@ const oldDraft=window.tpGenCurrentDraft;window.tpGenCurrentDraft=function(){cons
   function refreshSnapshot(id){
     const list=readRecords(),i=list.findIndex(x=>String(x.id)===String(id));if(i<0)return;
     const p=periodById(list[i].periodId),s=findStudent(list[i].studentId);if(!p||!s){showWarningMessage("Impossible d’actualiser : période ou élève introuvable.");return}
-    list[i].closureDate=p.date;list[i].periodCode=p.code;list[i].periodName=p.name;list[i].snapshot=buildSnapshot(s,p);list[i].updatedAt=Date.now();writeRecords(list);renderRecord(list[i]);
+    list[i].startDate=isoComparableDate(p.startDate)||yearStart(p.schoolYear);list[i].closureDate=p.date;list[i].periodCode=p.code;list[i].periodName=p.name;list[i].snapshot=buildSnapshot(s,p);list[i].updatedAt=Date.now();writeRecords(list);renderRecord(list[i]);
   }
   function printRecord(id){
     const list=readRecords(),i=list.findIndex(x=>String(x.id)===String(id));if(i<0)return;
@@ -14732,21 +14759,23 @@ const oldDraft=window.tpGenCurrentDraft;window.tpGenCurrentDraft=function(){cons
       <div class="bilan-record-actions no-print"><button class="secondary" onclick="bilansPage()">← Bilans</button><button class="secondary" onclick="refreshBilanSnapshot('${String(r.id).replace(/'/g,"\\'")}')">↻ Actualiser avec les évaluations</button><button class="primary" onclick="saveBilanRecord('${String(r.id).replace(/'/g,"\\'")}')">💾 Enregistrer</button><button class="primary" onclick="printBilanRecord('${String(r.id).replace(/'/g,"\\'")}')">🖨️ Imprimer</button></div>
       <section class="bilan-sheet">
         <div class="bilan-sheet-head"><div><h1>Bilan de compétences</h1><p>${esc(r.periodName||r.periodCode||"Bilan")} — année scolaire ${esc(r.schoolYear||"")}</p></div><div class="bilan-period-chip">${esc(r.periodCode||"")}</div></div>
-        <div class="bilan-identity"><div><span>Élève</span><b>${esc(r.studentName||"")}</b></div><div><span>Classe</span><b>${esc(r.className||resolveClassName(r.classId,findStudent(r.studentId))||"")}</b></div><div><span>Date de clôture</span><b>${esc(fmt(r.closureDate))}</b></div><div><span>Évaluations prises en compte</span><b>${Number(s.evaluationCount||0)}</b></div></div>
+        <div class="bilan-identity"><div><span>Élève</span><b>${esc(r.studentName||"")}</b></div><div><span>Classe</span><b>${esc(r.className||resolveClassName(r.classId,findStudent(r.studentId))||"")}</b></div><div><span>Date de début</span><b>${esc(fmt(r.startDate||s.startDate||yearStart(r.schoolYear)))}</b></div><div><span>Date de clôture</span><b>${esc(fmt(r.closureDate))}</b></div><div><span>Évaluations prises en compte</span><b>${Number(s.evaluationCount||0)}</b></div></div>
         <div class="bilan-teachers-box"><label class="no-print">Professeur(s) évaluateur(s)<input id="bilan-teachers-record" type="text" value="${esc(r.teacherNames||"")}" placeholder="Ex. M. Dupont / Mme Martin"></label><div class="print-only"><span>Professeur(s) évaluateur(s)</span><strong>${esc(r.teacherNames||"—")}</strong></div></div>
         <div class="bilan-kpis"><div><span>Progression vers le niveau attendu</span><strong>${Number(s.overallPct||0)} %</strong><small style="display:block;color:#64748b;margin-top:4px">Pondérée selon la période</small></div><div><span>Moyenne des notes disponibles</span><strong>${s.avgNote===null||s.avgNote===undefined?"—":String(s.avgNote).replace(".",",")+" / 20"}</strong></div><label class="bilan-print-date no-print">Date d’édition / signature<input id="bilan-print-date" type="date" value="${esc(r.printDate||r.closureDate||"")}"></label><div class="print-only"><span>Date d’édition / signature</span><strong>${esc(fmt(r.printDate||r.closureDate))}</strong></div></div>
         <h2>Positionnement par compétence</h2><table class="bilan-table"><thead><tr><th>Compétence</th><th>Positionnement</th><th>Dernière observation</th></tr></thead><tbody>${compHtml(s.competencies)}</tbody></table>
-        <h2>Évaluations retenues jusqu’au ${esc(fmt(r.closureDate))}</h2><table class="bilan-table"><thead><tr><th>Date</th><th>Évaluation</th><th>Situation</th><th>Support</th><th>Résultat</th></tr></thead><tbody>${evalHtml(s.evaluations)}</tbody></table>
-        <h2>Observation de période</h2><textarea id="bilan-observation" class="bilan-observation no-print" rows="6" placeholder="Observation personnalisée…">${esc(r.observation||"")}</textarea><div class="bilan-observation-print print-only">${esc(r.observation||"").replace(/\n/g,"<br>")||"—"}</div>
+        <h2>Évaluations retenues du ${esc(fmt(r.startDate||s.startDate||yearStart(r.schoolYear)))} au ${esc(fmt(r.closureDate))}</h2><table class="bilan-table"><thead><tr><th>Date</th><th>Évaluation</th><th>Situation</th><th>Support</th><th>Résultat</th></tr></thead><tbody>${evalHtml(s.evaluations)}</tbody></table>
+         ${s.audit?`<div class="bilan-help no-print" style="margin:12px 0"><b>Contrôle de complétude :</b> ${Number(s.audit.sourceCount||0)} évaluation(s) retrouvée(s), ${Number(s.audit.includedCount||0)} retenue(s), ${Number(s.audit.excludedCount||0)} exclue(s).
+           ${s.audit.excluded?.length?`<details style="margin-top:7px"><summary>Voir les évaluations exclues et le motif</summary><ul>${s.audit.excluded.map(e=>`<li>${esc(fmt(e.date))} — ${esc(e.title)} : <b>${esc(e.reason)}</b></li>`).join("")}</ul></details>`:""}</div>`:`<div class="bilan-help no-print">Bilan historique : contrôle de complétude disponible après actualisation volontaire.</div>`}
+         <h2>Observation de période</h2><textarea id="bilan-observation" class="bilan-observation no-print" rows="6" placeholder="Observation personnalisée…">${esc(r.observation||"")}</textarea><div class="bilan-observation-print print-only">${esc(r.observation||"").replace(/\n/g,"<br>")||"—"}</div>
         <div class="bilan-signatures"><div>Signature de l’élève</div><div>Signature du/des professeur(s)</div></div>
       </section></div>`;
   }
-  function periodOptions(rows){return rows.map(p=>`<option value="${esc(p.id)}">${esc(p.schoolYear)} — ${esc(p.code)} — clôture ${esc(fmt(p.date))}</option>`).join("")}
+  function periodOptions(rows){return rows.map(p=>`<option value="${esc(p.id)}">${esc(p.schoolYear)} — ${esc(p.code)} — ${esc(fmt(p.startDate||yearStart(p.schoolYear)))} → ${esc(fmt(p.date))}</option>`).join("")}
   function studentOptions(rows){const cls=resolveClassName(getActiveClassId(),rows?.[0]);return `<option value="__ALL__">👥 Toute la classe${cls?` — ${esc(cls)}`:""} (${rows.length} élèves)</option>`+rows.map(s=>`<option value="${esc(s.id)}">${esc(s.name||"")}</option>`).join("")}
   function historyHtml(){
     const list=readRecords().slice().sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
     if(!list.length)return '<p class="muted">Aucun bilan élève enregistré.</p>';
-    return `<div class="bilan-history-list">${list.map(r=>`<div class="bilan-history-row"><div><b>${esc(r.studentName||"")}</b><div>${esc(r.periodCode||"")} · ${esc(r.schoolYear||"")} · clôture ${esc(fmt(r.closureDate))}</div><small>Édité/signé : ${esc(fmt(r.printDate))}${r.teacherNames?` · Professeur(s) : ${esc(r.teacherNames)}`:""}</small></div><div><button class="secondary" onclick="openBilanRecord('${String(r.id).replace(/'/g,"\\'")}')">Ouvrir / rééditer</button><button class="secondary" onclick="deleteBilanRecord('${String(r.id).replace(/'/g,"\\'")}')">🗑️</button></div></div>`).join("")}</div>`;
+    return `<div class="bilan-history-list">${list.map(r=>`<div class="bilan-history-row"><div><b>${esc(r.studentName||"")}</b><div>${esc(r.periodCode||"")} · ${esc(r.schoolYear||"")} · du ${esc(fmt(r.startDate||r.snapshot?.startDate||yearStart(r.schoolYear)))} au ${esc(fmt(r.closureDate))}</div><small>Édité/signé : ${esc(fmt(r.printDate))}${r.teacherNames?` · Professeur(s) : ${esc(r.teacherNames)}`:""}</small></div><div><button class="secondary" onclick="openBilanRecord('${String(r.id).replace(/'/g,"\\'")}')">Ouvrir / rééditer</button><button class="secondary" onclick="deleteBilanRecord('${String(r.id).replace(/'/g,"\\'")}')">🗑️</button></div></div>`).join("")}</div>`;
   }
   window.getBilanWeighting=getBilanWeighting;
   window.saveBilanWeightingSettings=function(){
@@ -14762,10 +14791,10 @@ const oldDraft=window.tpGenCurrentDraft;window.tpGenCurrentDraft=function(){cons
   };
   window.bilansPage=function(){
     setActive("bilans");const periods=loadBilanPeriods(),studs=sortedStudents(),groups={};periods.forEach(p=>(groups[p.schoolYear]??=[]).push(p));const years=Object.keys(groups).sort((a,b)=>b.localeCompare(a));const defaultYear=getSchoolSettings().schoolYear||"2026-2027";
-    document.getElementById("main").innerHTML=`<div class="bilan-page"><div class="page-header"><div><h1>Bilans</h1><p>Créer, enregistrer, rééditer et imprimer un bilan pour chaque élève à une date de clôture précise.</p></div><button class="secondary" onclick="go('home')">🏠 Accueil</button></div>
-      <div class="panel bilan-create-panel"><h2>📋 Créer / ouvrir un bilan élève</h2><p class="muted">Le bilan est un instantané des évaluations de l’élève jusqu’à la date de clôture de la période. Pour générer tous les bilans d’un seul coup, choisis <b>Toute la classe</b>. Le nom du ou des professeurs n’est à saisir qu’une fois lors de la génération et sera repris sur tous les bilans créés.</p><div class="bilan-create-grid"><label>Période<select id="bilan-period-select"><option value="">Choisir…</option>${periodOptions(periods)}</select></label><label>Élève / classe<select id="bilan-student-select"><option value="">Choisir…</option>${studentOptions(studs)}</select></label><label>Professeur(s) évaluateur(s)<input id="bilan-teachers-input" type="text" placeholder="Ex. M. Dupont / Mme Martin"></label><button class="primary" onclick="createOrOpenBilanRecord()">Créer / ouvrir le bilan</button></div></div>
+    document.getElementById("main").innerHTML=`<div class="bilan-page"><div class="page-header"><div><h1>Bilans</h1><p>Créer, enregistrer, rééditer et imprimer un bilan individuel pour une période avec dates de début et de clôture.</p></div><button class="secondary" onclick="go('home')">🏠 Accueil</button></div>
+      <div class="panel bilan-create-panel"><h2>📋 Créer / ouvrir un bilan élève</h2><p class="muted">Le bilan conserve les évaluations de l’élève entre la date de début et la date de clôture incluses. Pour générer un bilan individuel par élève, choisis <b>Toute la classe</b>. Pour générer tous les bilans d’un seul coup, choisis <b>Toute la classe</b>. Le nom du ou des professeurs n’est à saisir qu’une fois lors de la génération et sera repris sur tous les bilans créés.</p><div class="bilan-create-grid"><label>Période<select id="bilan-period-select"><option value="">Choisir…</option>${periodOptions(periods)}</select></label><label>Élève / classe<select id="bilan-student-select"><option value="">Choisir…</option>${studentOptions(studs)}</select></label><label>Professeur(s) évaluateur(s)<input id="bilan-teachers-input" type="text" placeholder="Ex. M. Dupont / Mme Martin"></label><button class="primary" onclick="createOrOpenBilanRecord()">Créer / ouvrir le bilan</button></div></div>
       <div class="panel"><h2>🕘 Historique des bilans enregistrés</h2>${historyHtml()}</div>
-      <details class="panel" style="margin-top:16px"><summary><b>⚙️ Gérer les périodes et dates de clôture</b></summary><div class="bilan-help" style="margin-top:12px"><b>Références rétroactives :</b> P1 10/10/2025 · P2 05/12/2025 · P3 27/03/2026 · P4 12/06/2026. Pour les années suivantes, les périodes et dates restent modifiables.</div><div class="bilan-toolbar"><label>Année scolaire<input id="bilan-new-year" value="${esc(defaultYear)}"></label><label>Code / période<input id="bilan-new-code" placeholder="P1"></label><label>Libellé<input id="bilan-new-name" placeholder="Bilan période 1"></label><label>Date de clôture<input id="bilan-new-date" type="date"></label><button class="primary" onclick="addBilanPeriod()">＋ Créer</button></div>${years.map(y=>`<section class="bilan-year-block"><div class="bilan-year-head"><h3>Année scolaire ${esc(y)}</h3>${y==="2025-2026"?'<button class="secondary" onclick="resetRetroBilanPeriods()">↺ Rétablir P1 à P4</button>':''}</div><div class="bilan-grid">${groups[y].map(bilanPeriodCard).join("")}</div></section>`).join("")}</details></div>`;
+      <details class="panel" style="margin-top:16px"><summary><b>⚙️ Gérer les périodes et dates de début / clôture</b></summary><div class="bilan-help" style="margin-top:12px"><b>Références rétroactives :</b> P1 10/10/2025 · P2 05/12/2025 · P3 27/03/2026 · P4 12/06/2026. Pour les années suivantes, les périodes et dates restent modifiables.</div><div class="bilan-toolbar"><label>Année scolaire<input id="bilan-new-year" value="${esc(defaultYear)}"></label><label>Code / période<input id="bilan-new-code" placeholder="P1"></label><label>Libellé<input id="bilan-new-name" placeholder="Bilan période 1"></label><label>Date de début<input id="bilan-new-start" type="date" value="${esc(`${String(defaultYear).slice(0,4)}-08-01`)}"></label><label>Date de clôture<input id="bilan-new-date" type="date"></label><button class="primary" onclick="addBilanPeriod()">＋ Créer</button></div>${years.map(y=>`<section class="bilan-year-block"><div class="bilan-year-head"><h3>Année scolaire ${esc(y)}</h3>${y==="2025-2026"?'<button class="secondary" onclick="resetRetroBilanPeriods()">↺ Rétablir P1 à P4</button>':''}</div><div class="bilan-grid">${groups[y].map(bilanPeriodCard).join("")}</div></section>`).join("")}</details></div>`;
   };
   window.createOrOpenBilanRecord=createOrOpen;window.openBilanRecord=openRecord;window.saveBilanRecord=saveRecord;window.refreshBilanSnapshot=refreshSnapshot;window.printBilanRecord=printRecord;window.deleteBilanRecord=deleteRecord;
 })();
