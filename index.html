@@ -23301,10 +23301,10 @@ if(typeof previous==='function')window.bilansPage=function(){const r=previous.ap
 #tfab61-shared-panel h3{margin:0 0 6px;font-size:17px}#tfab61-shared-panel .tfab61-actions,#tfab61-page .tfab61-actions{display:flex;flex-wrap:wrap;gap:7px;margin:9px 0}
 #tfab61-shared-panel button,#tfab61-page button,#tfab61-page select{font:inherit;padding:7px 11px;border-radius:8px;border:1px solid #b9cadb;background:#fff;color:#163a5b;cursor:pointer}
 #tfab61-shared-panel button.primary,#tfab61-page button.primary{background:#176db1;color:#fff;border-color:#176db1}
-.tfab61-counters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin:12px 0}
+.tfab61-counters{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:9px;margin:12px 0}
 .tfab61-count{border:1px solid #dbe7f2;border-radius:10px;background:white;padding:10px;text-align:center;cursor:pointer}
 .tfab61-count b{display:block;font-size:24px;line-height:1.2}.tfab61-count small{display:block;font-size:12px;color:#587083}
-.tfab61-count[data-status=todo] b{color:#e77a13}.tfab61-count[data-status=corrected] b{color:#188c54}.tfab61-count[data-status=skip] b{color:#7a6b8a}
+.tfab61-count[data-status=historical] b{color:#235b9c}.tfab61-count[data-status=total] b{color:#167b65}.tfab61-count[data-status=historical],.tfab61-count[data-status=total]{cursor:default}.tfab61-count[data-status=todo] b{color:#e77a13}.tfab61-count[data-status=corrected] b{color:#188c54}.tfab61-count[data-status=skip] b{color:#7a6b8a}
 .tfab61-count[aria-pressed=true]{outline:2px solid #176db1}
 .tfab61-muted{color:#57728a;font-size:12px}.tfab61-warning{color:#9f3e25;font-weight:650}
 .tfab61-table-wrap{max-height:430px;overflow:auto;border:1px solid #d8e3ee;border-radius:10px;background:#fff}
@@ -23316,7 +23316,7 @@ if(typeof previous==='function')window.bilansPage=function(){const r=previous.ap
 #tfab61-page .tfab61-table-wrap{max-height:65vh}
 #tfab451574-manager .tfab61-launch{background:#dceeff;color:#145286;border-color:#afd6f1}
 .tpc-shell.tfab61-online .tfab-v17-stats{display:none!important}
-@media(max-width:680px){.tfab61-counters{grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}#tfab61-page .tfab61-summary{grid-template-columns:repeat(2,minmax(0,1fr))}#tfab61-page{padding:12px}}
+@media(max-width:940px){.tfab61-counters{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}}@media(max-width:680px){.tfab61-counters{grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}#tfab61-page .tfab61-summary{grid-template-columns:repeat(2,minmax(0,1fr))}#tfab61-page{padding:12px}}
 @media print{#tfab61-page .tfab61-actions,#tfab61-page .tfab61-filters{display:none!important}#tfab61-page .tfab61-table-wrap{max-height:none;overflow:visible}}
 </style>
 <script id="tfab45161-cloud-shared-status">
@@ -23332,6 +23332,40 @@ const identity=r=>{const d=r?.data||{},c=d.cloud451||d.data?.cloud451||{},s=d.su
 const key=(c,u)=>String(c)+'|'+String(u);
 function indexLocal(){const map=new Map();for(const r of local()){const k=identity(r);if(k.campaignId&&k.userId)map.set(key(k.campaignId,k.userId),r)}return map}
 const current={items:null,error:'',updatedAt:'',busy:null,filter:'all',classFilter:'all',campaignId:'',roster:[],rosterClass:'',requestAt:0};
+// V451.57.65 : archives D1 de 2MAC1, lecture uniquement. Les copies sont gardées dans leur registre indépendant.
+const historical65={count:null,error:'',updatedAt:'',requestAt:0,busy:null};
+function historyCount65(){return Number.isSafeInteger(historical65.count)&&historical65.count>=0&&!historical65.error?historical65.count:null;}
+async function loadHistory65(force=false){
+ if(!token()){historical65.count=null;historical65.error='Liaison professeur inactive';correctionPanel();return null;}
+ if(historical65.busy)return historical65.busy;
+ if(!force && historical65.requestAt && Date.now()-historical65.requestAt<120000)return historyCount65();
+ historical65.requestAt=Date.now();
+ historical65.busy=(async()=>{
+  try{
+   const d=await api('historiques?classe=2MAC1');
+   const n=Number(d.count);
+   if(d.limited||!Number.isSafeInteger(n)||n<0||!Array.isArray(d.items)||d.items.length!==n)
+    throw Error('Inventaire historique incomplet : total non calculable');
+   historical65.count=n;historical65.error='';historical65.updatedAt=d.updatedAt||new Date().toISOString();
+   window.dispatchEvent(new CustomEvent('tfab45165-history-loaded',{detail:{count:n,updatedAt:historical65.updatedAt}}));
+   return n;
+  }catch(e){historical65.count=null;historical65.error=String(e?.message||e);return null;}
+  finally{historical65.busy=null;correctionPanel();}
+ })();
+ return historical65.busy;
+}
+async function refreshBoth65(){await Promise.all([refresh(true),loadHistory65(true)]);}
+function sharedStats65(classe=''){return validCloud()?counts(current.items.filter(r=>r.submission_id&&(!classe||String(r.classe||'').toUpperCase()===classe))):null;}
+window.tfab45165CurrentCounts=sharedStats65;
+window.tfab45165HistoryCount=historyCount65;
+window.tfab45165Refresh=refreshBoth65;
+window.addEventListener('tfab45163-history-updated',event=>{
+ const n=Number(event?.detail?.count);
+ if(!Number.isSafeInteger(n)||n<0)return;
+ historical65.count=n;historical65.error='';historical65.updatedAt=event?.detail?.updatedAt||new Date().toISOString();
+ historical65.requestAt=Date.now();correctionPanel();
+});
+
 async function api(path,opts){const t=token();if(!t)throw Error('Liaison Cloudflare inactive. Utilise le bouton Cloudflare en haut à droite.');const res=await fetch(ROOT+'/api/prof/v45156/'+path,{...opts,headers:{Authorization:'Bearer '+t,...opts?.headers},cache:'no-store',credentials:'omit'});let d=await res.json().catch(()=>({}));if(!res.ok||d.ok!==true){if(res.status===404&&path.startsWith('suivi-tp'))throw Error('Worker V451.73.35 non déployé ou copie introuvable.');throw Error(d.error||'Erreur Cloudflare HTTP '+res.status)}return d}
 function counts(rows){const r={diffused:0,todo:0,skip:0,corrected:0,unassigned:0};for(const x of rows)if(Object.prototype.hasOwnProperty.call(r,x.statut))r[x.statut]++;return r}
 function validCloud(){return Array.isArray(current.items)&&!current.error}
@@ -23361,13 +23395,19 @@ function decorateLocalRows(shell){
  }
 }
 function correctionPanel(){const shell=document.querySelector('.tpc-shell');if(!shell||shell.querySelector('.tpc-editor'))return;let p=$('tfab61-shared-panel');if(!p){p=document.createElement('section');p.id='tfab61-shared-panel';const head=shell.querySelector('.page-header');if(head)head.after(p);else shell.prepend(p)}
- const renderKey=String(current.updatedAt)+'|'+String(current.error)+'|'+String(current.filter)+'|'+String(local().length)+'|'+String(!!token())+'|'+String((current.items||[]).length);if(p.dataset.renderKey===renderKey){decorateLocalRows(shell);return}p.dataset.renderKey=renderKey;
- if(!validCloud()){shell.classList.remove('tfab61-online');p.innerHTML='<h3>☁ Compteurs des TP partagés</h3><p class="tfab61-warning">'+safe(msg())+'</p><p class="tfab61-muted">Les compteurs habituels visibles ci-dessous sont locaux et peuvent différer entre ordinateurs.</p><button type="button" data-tfab61-refresh>↻ Vérifier Cloudflare</button>';p.querySelector('[data-tfab61-refresh]').onclick=()=>refresh(true);return}
+ if(validCloud()&&token()&&!historical65.requestAt&&!historical65.busy)void loadHistory65();
+ const renderKey=String(current.updatedAt)+'|'+String(current.error)+'|'+String(current.filter)+'|'+String(local().length)+'|'+String(!!token())+'|'+String((current.items||[]).length)+'|'+String(historyCount65())+'|'+historical65.error+'|'+historical65.updatedAt;if(p.dataset.renderKey===renderKey){decorateLocalRows(shell);return}p.dataset.renderKey=renderKey;
+ if(!validCloud()){shell.classList.remove('tfab61-online');p.innerHTML='<h3>☁ Compteurs des TP partagés</h3><p class="tfab61-warning">'+safe(msg())+'</p><p class="tfab61-muted">Les compteurs habituels visibles ci-dessous sont locaux et peuvent différer entre ordinateurs.</p><button type="button" data-tfab61-refresh>↻ Vérifier Cloudflare</button>';p.querySelector('[data-tfab61-refresh]').onclick=refreshBoth65;return}
  shell.classList.add('tfab61-online');const all=current.items.filter(r=>r.submission_id),cc=counts(all);const map=indexLocal();let rem=all.filter(x=>!map.has(key(x.campaign_id,x.user_id)));const active=current.filter; if(active!=='all')rem=rem.filter(x=>x.statut===active);
- const buttons=[['todo','▣','À corriger'],['corrected','✓','Corrigés'],['skip','▤','Sans correction']].map(([state,ic,lab])=>'<button class="tfab61-count" data-tfab61-filter="'+state+'" data-status="'+state+'" aria-pressed="'+(active===state)+'"><b>'+cc[state]+'</b><small>'+ic+' '+lab+'</small></button>').join('');
- p.innerHTML='<h3>☁ Compteurs partagés — BETA et 2MAC1 <small>V451.57.61</small></h3><p class="tfab61-muted">Même total sur tous les postes connectés. Les copies peuvent être physiquement présentes sur un autre poste.</p><div class="tfab61-counters">'+buttons+'</div><div class="tfab61-actions"><button data-tfab61-refresh>↻ Actualiser</button><button data-tfab61-all>Tout afficher</button><button data-tfab61-reconcile>Rattraper mes anciens statuts</button><button data-tfab61-suivi>Suivi d’un TP</button></div><p class="tfab61-muted">'+safe(msg())+'</p><details><summary><b>'+rem.length+' copie(s) '+(active==='all'?'tous statuts':active==='todo'?'à corriger':active==='corrected'?'corrigées':'sans correction')+' non présente(s) dans le correcteur de ce poste</b></summary><div class="tfab61-table-wrap"><table class="tfab61-table"><thead><tr><th>Élève</th><th>Classe / TP</th><th>Statut commun</th></tr></thead><tbody>'+rem.map(x=>'<tr><td class="tfab61-name '+safe(x.statut)+'">'+safe(x.eleve)+'</td><td>'+safe(x.classe)+' · '+safe(x.tp_code)+'</td><td>'+safe(label(x.statut))+'</td></tr>').join('')+'</tbody></table></div><small>Pour travailler sur une copie distante, utiliser « Rattraper une copie précise » dans la réception Cloudflare.</small></details>';
+ const buttons=[['todo','▣','À corriger'],['corrected','✓','Corrigés récents'],['skip','▤','Sans correction']].map(([state,ic,lab])=>'<button class="tfab61-count" data-tfab61-filter="'+state+'" data-status="'+state+'" aria-pressed="'+(active===state)+'"><b>'+cc[state]+'</b><small>'+ic+' '+lab+'</small></button>').join('');
+ const hist=historyCount65();const combined=hist===null?'—':String(hist+cc.corrected);
+ const extra='<div class="tfab61-count tfab65-history" data-status="historical"><b>'+(hist===null?'—':hist)+'</b><small>🗂️ Corrigés historiques · 2MAC1</small></div>'+
+  '<div class="tfab61-count tfab65-combined" data-status="total"><b>'+combined+'</b><small>Σ Total corrigés connus</small></div>';
+ const histState=hist===null?'⚠ Historiques D1 non vérifiés'+(historical65.error?' : '+safe(historical65.error):' — lecture en cours ou indisponible'):
+  'Historique 2MAC1 confirmé dans D1 : '+hist+' copie(s) distincte(s)';
+ p.innerHTML='<h3>☁ Compteurs TP partagés <small>V451.57.65</small></h3><p class="tfab61-muted">Nouvelles campagnes : BETA + 2MAC1 · archives historiques : 2MAC1 uniquement. Les copies peuvent être sur un autre poste.</p><div class="tfab61-counters">'+buttons+extra+'</div><p class="tfab61-muted">'+histState+' · Total corrigés = corrigés récents + archives historiques distinctes, sans fusion R1/R2.</p><div class="tfab61-actions"><button data-tfab61-refresh>↻ Actualiser les deux inventaires</button><button data-tfab61-all>Tout afficher</button><button data-tfab61-reconcile>Rattraper mes anciens statuts</button><button data-tfab61-suivi>Suivi d’un TP</button></div><p class="tfab61-muted">'+safe(msg())+'</p><details><summary><b>'+rem.length+' copie(s) '+(active==='all'?'tous statuts':active==='todo'?'à corriger':active==='corrected'?'corrigées':'sans correction')+' non présente(s) dans le correcteur de ce poste</b></summary><div class="tfab61-table-wrap"><table class="tfab61-table"><thead><tr><th>Élève</th><th>Classe / TP</th><th>Statut commun</th></tr></thead><tbody>'+rem.map(x=>'<tr><td class="tfab61-name '+safe(x.statut)+'">'+safe(x.eleve)+'</td><td>'+safe(x.classe)+' · '+safe(x.tp_code)+'</td><td>'+safe(label(x.statut))+'</td></tr>').join('')+'</tbody></table></div><small>Pour travailler sur une copie distante, utiliser « Rattraper une copie précise » dans la réception Cloudflare.</small></details>';
  p.querySelectorAll('[data-tfab61-filter]').forEach(b=>b.onclick=()=>{current.filter=current.filter===b.dataset.tfab61Filter?'all':b.dataset.tfab61Filter;correctionPanel()});
- p.querySelector('[data-tfab61-all]').onclick=()=>{current.filter='all';correctionPanel()};p.querySelector('[data-tfab61-refresh]').onclick=()=>refresh(true);
+ p.querySelector('[data-tfab61-all]').onclick=()=>{current.filter='all';correctionPanel()};p.querySelector('[data-tfab61-refresh]').onclick=refreshBoth65;
  p.querySelector('[data-tfab61-reconcile]').onclick=reconcile; p.querySelector('[data-tfab61-suivi]').onclick=()=>showPage();decorateLocalRows(shell);
 }
 function label(status){return({diffused:'Diffusé',todo:'Rendu · À corriger',corrected:'Corrigé',skip:'Sans correction',unassigned:'Non diffusé'})[status]||'Non renseigné'}
@@ -23733,7 +23773,9 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 (function(){'use strict';
 const API='https://portail-partage.khmg8np9yj.workers.dev/api/prof/v45156';
 const $=id=>document.getElementById(id);
-let remote=null,proposal=null,working=false,lastFetch=0;
+let remote=null,proposal=null,working=false,lastFetch=0,lastMessage='',lastKind='';
+function broadcastHistory(){if(remote&&Number.isSafeInteger(Number(remote.count)))window.dispatchEvent(new CustomEvent('tfab45163-history-updated',{detail:{count:Number(remote.count),updatedAt:remote.updatedAt||new Date().toISOString()}}));}
+window.addEventListener('tfab45165-history-loaded',e=>{const n=Number(e?.detail?.count);if(Number.isSafeInteger(n)&&n>=0){remote={count:n,updatedAt:e.detail.updatedAt};paintShared();if($('tfab63-box'))paint();}});
 const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function token(){try{return sessionStorage.getItem('tfab45156_session_token')||''}catch(e){return ''}}
 async function read(){const t=token();if(!t)throw Error('Liaison professeur Cloudflare absente : reconnecte la liaison.');
@@ -23750,14 +23792,14 @@ function selected(){const audit=window.tfab45162ReadReport?.();
  if(!items.length)throw Error('Aucune correction ancienne avec preuve et identifiant individuel.' );
  return items;
 }
-function paint(message='',kind=''){const box=$('tfab63-box');if(!box)return;
- const hist=remote?.count;const audit=window.tfab45162ReadReport?.(),tod=audit?.cloudflare?.counts?.todo;
- const correctedActive=audit?.cloudflare?.counts?.corrected;
+function paint(message=lastMessage,kind=lastKind){lastMessage=message;lastKind=kind;const box=$('tfab63-box');if(!box)return;
+ const hist=remote?.count;const modern=window.tfab45165CurrentCounts?.('2MAC1');const tod=modern?.todo;
+ const correctedActive=modern?.corrected;
  const total=(hist!==undefined&&correctedActive!==undefined)?hist+correctedActive:null;
  box.innerHTML='<h3>🗂️ Historique partagé 2MAC1 · V451.57.63</h3>'+
  '<p>Les anciennes corrections sont conservées dans un registre D1 séparé. Elles ne transforment pas les nouveaux rendus en copies corrigées.</p>'+
  '<div class="cards">'+card('Corrigés historiques partagés',hist??'—')+card('Rendus récents à corriger',tod??'—')+card('Corrigés connus au total',total??'—')+'</div>'+
- '<p class="subtle">« Total » = archives historiques + corrections D1 des nouvelles campagnes. Ce total n’est fiable que si les deux inventaires sont disponibles et distincts.</p>'+
+ '<p class="subtle">« Total 2MAC1 » = archives historiques + corrections D1 des nouvelles campagnes de 2MAC1. Sans connexion D1 aux deux registres, le total reste inconnu.</p>'+
  (message?'<div class="'+(kind||'warn')+'">'+esc(message)+'</div>':'')+
  '<div class="tools"><button type="button" id="tfab63-refresh">↻ Lire le registre partagé</button><button type="button" id="tfab63-prep">1 · Préparer les corrections anciennes</button></div>'+
  (proposal?'<div class="warn"><b>'+proposal.length+' corrections anciennes proposées.</b> Aucune n’a encore été envoyée.<p>Liste préparée depuis l’audit local de ce poste. Aucun changement des 21 rendus récents.</p><p><button type="button" id="tfab63-export">Exporter la proposition JSON (sauvegarde)</button></p><label>Pour confirmer le transfert D1, taper exactement <b>CONSOLIDER 2MAC1</b> : <input id="tfab63-confirm" autocomplete="off" spellcheck="false" placeholder="CONSOLIDER 2MAC1"></label><p><button type="button" id="tfab63-submit">2 · Confirmer et enregistrer dans D1</button></p></div>':'')+
@@ -23766,7 +23808,7 @@ function paint(message='',kind=''){const box=$('tfab63-box');if(!box)return;
  if(proposal){$('tfab63-export').onclick=saveProposal;$('tfab63-submit').onclick=submit}
 }
 function card(label,value){return '<div class="card"><b>'+esc(value)+'</b><span>'+esc(label)+'</span></div>'}
-async function refresh(){if(working)return;working=true;paint('Lecture du registre D1…');try{remote=await read();lastFetch=Date.now();paint('Lecture D1 réussie. '+remote.count+' corrections historiques disponibles sur tous les postes.','good')}catch(e){remote=null;paint('Registre historique indisponible : '+String(e.message||e),'bad')}finally{working=false;}}
+async function refresh(){if(working)return;working=true;paint('Lecture du registre D1…');try{remote=await read();lastFetch=Date.now();broadcastHistory();paint('Lecture D1 réussie. '+remote.count+' corrections historiques disponibles sur tous les postes.','good')}catch(e){remote=null;paint('Registre historique indisponible : '+String(e.message||e),'bad')}finally{working=false;paint();}}
 function prepare(){try{proposal=selected();paint('Proposition prête. Exporte une copie de la liste avant toute validation.','good')}
  catch(e){proposal=null;paint(String(e.message||e),'bad')}}
 function saveProposal(){if(!proposal)return;const blob=new Blob([JSON.stringify({format:'TFAB-45163-proposition',classe:'2MAC1',createdAt:new Date().toISOString(),records:proposal},null,2)],{type:'application/json'});
@@ -23780,10 +23822,10 @@ async function submit(){if(working||!proposal)return;
   const t=token();if(!t)throw Error('Liaison Cloudflare inactive.');
   const r=await fetch(API+'/historiques/ajouter',{method:'POST',headers:{Authorization:'Bearer '+t,'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify({classe:'2MAC1',confirmation:'CONSOLIDER 2MAC1',records:proposal}),cache:'no-store',credentials:'omit'});
   const j=await r.json();if(!r.ok||!j.ok)throw Error(j.error||'Erreur HTTP '+r.status);
-  const after=await read();remote=after;proposal=null;
+  const after=await read();remote=after;proposal=null;broadcastHistory();
   paint('D1 confirmé : '+j.inserted+' nouvelles archives, '+j.alreadyPresent+' déjà présentes. '+after.count+' historiques visibles sur tous les postes.','good');
  }catch(e){paint('Envoi non confirmé : '+String(e.message||e)+'. Réactualiser D1 avant de réessayer (envoi idempotent).','bad')}
- finally{working=false;}
+ finally{working=false;paint();}
 }
 function paintShared(){const p=$('tfab63-inline');if(!p)return;
  p.innerHTML='<b>🗂️ Corrigés historiques 2MAC1 : '+esc(remote?.count??'—')+'</b>'+
@@ -23794,7 +23836,8 @@ function paintShared(){const p=$('tfab63-inline');if(!p)return;
 function mountShared(){const container=$('tfab61-shared-panel');if(!container)return;
  if(!$('tfab63-inline')){const b=document.createElement('div');b.id='tfab63-inline';const counters=container.querySelector('.tfab61-counters');
  if(counters)counters.after(b);else container.append(b);paintShared();
- if(!remote&&token()&&Date.now()-lastFetch>60000){lastFetch=Date.now();read().then(j=>{remote=j;paintShared()}).catch(()=>{});}}
+ // Les compteurs V451.57.65 déclenchent déjà une lecture D1 : ne pas ajouter un second GET automatique.
+}
 }
 function mount(){const parent=$('tfab62-dialog');if(!parent||!parent.querySelector('.tfab62-inner'))return;
  const inner=parent.querySelector('.tfab62-inner');if(inner.querySelector('#tfab63-box'))return;
@@ -23805,4 +23848,4 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 })();
 </script>
 
-<script id="tfab45164-visible-version">(function(){function v(){var b=document.getElementById("build-version");if(b)b.textContent="V451.57.64 — Évaluation · Charge Atelier · TP · Correction";}if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",v,{once:true});else v();})();</script>
+<script id="tfab45165-visible-version">(function(){function v(){var b=document.getElementById("build-version");if(b)b.textContent="V451.57.65 — Évaluation · Charge Atelier · TP · Correction";}if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",v,{once:true});else v();})();</script>
