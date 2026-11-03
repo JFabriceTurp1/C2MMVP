@@ -23318,6 +23318,24 @@ if(typeof previous==='function')window.bilansPage=function(){const r=previous.ap
 .tpc-shell.tfab61-online .tfab-v17-stats{display:none!important}
 @media(max-width:940px){.tfab61-counters{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}}@media(max-width:680px){.tfab61-counters{grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}#tfab61-page .tfab61-summary{grid-template-columns:repeat(2,minmax(0,1fr))}#tfab61-page{padding:12px}}
 @media print{#tfab61-page .tfab61-actions,#tfab61-page .tfab61-filters{display:none!important}#tfab61-page .tfab61-table-wrap{max-height:none;overflow:visible}}
+
+/* V451.57.66 — Tableau de bord TP minimaliste, sans perte des outils existants. */
+#tfab61-shared-panel.tfab66-compact{margin:10px 0 16px;padding:15px 18px;background:#f9fcff;border:1px solid #cdddeb;border-radius:12px;box-shadow:none;max-width:none}
+#tfab61-shared-panel.tfab66-compact .tfab66-head{display:flex;justify-content:space-between;align-items:start;gap:12px}
+#tfab61-shared-panel.tfab66-compact .tfab66-figure{display:flex;align-items:center;gap:16px;min-width:0}
+#tfab61-shared-panel.tfab66-compact .tfab66-overline{color:#1b3853;font-size:16px;font-weight:750;line-height:1.3}
+#tfab61-shared-panel.tfab66-compact .tfab66-value{font-size:43px;line-height:1.1;font-weight:800;color:#bd650b;font-variant-numeric:tabular-nums;min-width:45px;text-align:center}
+#tfab61-shared-panel.tfab66-compact button.tfab66-refresh{font-weight:650;font-size:12px;white-space:nowrap;padding:5px 10px;border-radius:7px;color:#1b507d}
+#tfab61-shared-panel.tfab66-compact .tfab66-today{display:flex;align-items:baseline;gap:8px;margin:3px 0 0;color:#607487;font-size:13px}
+#tfab61-shared-panel.tfab66-compact .tfab66-today small{font-size:11px;color:#75879a}
+#tfab61-shared-panel.tfab66-compact .tfab66-today strong{font-size:14px;font-weight:750;color:#254866;font-variant-numeric:tabular-nums}
+#tfab61-shared-panel.tfab66-compact .tfab66-source{margin-top:7px;font-size:11px;color:#628170}
+#tfab61-shared-panel.tfab66-compact .tfab66-details{margin-top:8px;border-top:1px solid #e1eaf2;padding-top:5px;font-size:12px;color:#5d7288}
+#tfab61-shared-panel.tfab66-compact .tfab66-details>summary{cursor:pointer;display:list-item;list-style:disclosure-closed;padding:4px 0;color:#4f7390;font-weight:550}
+#tfab61-shared-panel.tfab66-compact .tfab66-details[open]>summary{list-style:disclosure-open}
+#tfab61-shared-panel.tfab66-compact .tfab66-details details{margin-top:8px}
+.tpc-shell:has(#tfab61-shared-panel.tfab66-compact) .tfab-v17-stats{display:none!important}
+@media(max-width:630px){#tfab61-shared-panel.tfab66-compact{padding:11px 12px}#tfab61-shared-panel.tfab66-compact .tfab66-figure{gap:10px}#tfab61-shared-panel.tfab66-compact .tfab66-value{font-size:37px}#tfab61-shared-panel.tfab66-compact .tfab66-overline{font-size:14px}#tfab61-shared-panel.tfab66-compact button.tfab66-refresh span{display:none}}
 </style>
 <script id="tfab45161-cloud-shared-status">
 (function(){'use strict';
@@ -23331,7 +23349,7 @@ const skips=()=>{try{return JSON.parse(localStorage.getItem(SKIP)||'{}')||{}}cat
 const identity=r=>{const d=r?.data||{},c=d.cloud451||d.data?.cloud451||{},s=d.submission||d.data?.submission||{};return {campaignId:String(c.campaignId||s.campaignId||''),userId:String(c.userId||s.userId||''),submittedAt:String(s.submittedAt||'')}};
 const key=(c,u)=>String(c)+'|'+String(u);
 function indexLocal(){const map=new Map();for(const r of local()){const k=identity(r);if(k.campaignId&&k.userId)map.set(key(k.campaignId,k.userId),r)}return map}
-const current={items:null,error:'',updatedAt:'',busy:null,filter:'all',classFilter:'all',campaignId:'',roster:[],rosterClass:'',requestAt:0};
+const current={items:null,error:'',limited:false,updatedAt:'',busy:null,filter:'all',classFilter:'all',campaignId:'',roster:[],rosterClass:'',requestAt:0};
 // V451.57.65 : archives D1 de 2MAC1, lecture uniquement. Les copies sont gardées dans leur registre indépendant.
 const historical65={count:null,error:'',updatedAt:'',requestAt:0,busy:null};
 function historyCount65(){return Number.isSafeInteger(historical65.count)&&historical65.count>=0&&!historical65.error?historical65.count:null;}
@@ -23368,10 +23386,10 @@ window.addEventListener('tfab45163-history-updated',event=>{
 
 async function api(path,opts){const t=token();if(!t)throw Error('Liaison Cloudflare inactive. Utilise le bouton Cloudflare en haut à droite.');const res=await fetch(ROOT+'/api/prof/v45156/'+path,{...opts,headers:{Authorization:'Bearer '+t,...opts?.headers},cache:'no-store',credentials:'omit'});let d=await res.json().catch(()=>({}));if(!res.ok||d.ok!==true){if(res.status===404&&path.startsWith('suivi-tp'))throw Error('Worker V451.73.35 non déployé ou copie introuvable.');throw Error(d.error||'Erreur Cloudflare HTTP '+res.status)}return d}
 function counts(rows){const r={diffused:0,todo:0,skip:0,corrected:0,unassigned:0};for(const x of rows)if(Object.prototype.hasOwnProperty.call(r,x.statut))r[x.statut]++;return r}
-function validCloud(){return Array.isArray(current.items)&&!current.error}
+function validCloud(){return Array.isArray(current.items)&&!current.error&&!current.limited}
 async function refresh(force=false){if(current.busy)return current.busy;if(!force&&Date.now()-current.requestAt<15000)return current.items;current.requestAt=Date.now();
- current.busy=(async()=>{try{const d=await api('suivi-tp');current.items=d.items||[];current.updatedAt=d.updatedAt||'';current.error='';return current.items}
- catch(e){current.error=String(e?.message||e);current.items=null;return null}finally{current.busy=null;draw()}})();return current.busy}
+ current.busy=(async()=>{try{const d=await api('suivi-tp');current.items=Array.isArray(d.items)?d.items:[];current.limited=!!d.limited;current.updatedAt=d.updatedAt||'';current.error=current.limited?'Inventaire Cloudflare tronqué : compteur indisponible.':'';return current.items}
+ catch(e){current.error=String(e?.message||e);current.items=null;current.limited=false;return null}finally{current.busy=null;draw()}})();return current.busy}
 async function setStatus(x,status){const payload={campaignId:String(x.campaign_id||x.campaignId),userId:Number(x.user_id||x.userId),status,submittedAt:String(x.submitted_at||x.submittedAt||'')};
  const result=await api('suivi-tp/statut',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});current.requestAt=0;await refresh(true);return result}
 function msg(){return current.error?'⚠ '+current.error:'Source : Cloudflare D1 · dernière actualisation '+(current.updatedAt?new Date(current.updatedAt).toLocaleTimeString('fr-FR'):'—')}
@@ -23394,22 +23412,70 @@ function decorateLocalRows(shell){
   tag.style.color=cloud.statut==='corrected'?'#16814e':cloud.statut==='todo'?'#cc6a0b':'#816289';
  }
 }
-function correctionPanel(){const shell=document.querySelector('.tpc-shell');if(!shell||shell.querySelector('.tpc-editor'))return;let p=$('tfab61-shared-panel');if(!p){p=document.createElement('section');p.id='tfab61-shared-panel';const head=shell.querySelector('.page-header');if(head)head.after(p);else shell.prepend(p)}
- if(validCloud()&&token()&&!historical65.requestAt&&!historical65.busy)void loadHistory65();
- const renderKey=String(current.updatedAt)+'|'+String(current.error)+'|'+String(current.filter)+'|'+String(local().length)+'|'+String(!!token())+'|'+String((current.items||[]).length)+'|'+String(historyCount65())+'|'+historical65.error+'|'+historical65.updatedAt;if(p.dataset.renderKey===renderKey){decorateLocalRows(shell);return}p.dataset.renderKey=renderKey;
- if(!validCloud()){shell.classList.remove('tfab61-online');p.innerHTML='<h3>☁ Compteurs des TP partagés</h3><p class="tfab61-warning">'+safe(msg())+'</p><p class="tfab61-muted">Les compteurs habituels visibles ci-dessous sont locaux et peuvent différer entre ordinateurs.</p><button type="button" data-tfab61-refresh>↻ Vérifier Cloudflare</button>';p.querySelector('[data-tfab61-refresh]').onclick=refreshBoth65;return}
- shell.classList.add('tfab61-online');const all=current.items.filter(r=>r.submission_id),cc=counts(all);const map=indexLocal();let rem=all.filter(x=>!map.has(key(x.campaign_id,x.user_id)));const active=current.filter; if(active!=='all')rem=rem.filter(x=>x.statut===active);
- const buttons=[['todo','▣','À corriger'],['corrected','✓','Corrigés récents'],['skip','▤','Sans correction']].map(([state,ic,lab])=>'<button class="tfab61-count" data-tfab61-filter="'+state+'" data-status="'+state+'" aria-pressed="'+(active===state)+'"><b>'+cc[state]+'</b><small>'+ic+' '+lab+'</small></button>').join('');
- const hist=historyCount65();const combined=hist===null?'—':String(hist+cc.corrected);
- const extra='<div class="tfab61-count tfab65-history" data-status="historical"><b>'+(hist===null?'—':hist)+'</b><small>🗂️ Corrigés historiques · 2MAC1</small></div>'+
-  '<div class="tfab61-count tfab65-combined" data-status="total"><b>'+combined+'</b><small>Σ Total corrigés connus</small></div>';
- const histState=hist===null?'⚠ Historiques D1 non vérifiés'+(historical65.error?' : '+safe(historical65.error):' — lecture en cours ou indisponible'):
-  'Historique 2MAC1 confirmé dans D1 : '+hist+' copie(s) distincte(s)';
- p.innerHTML='<h3>☁ Compteurs TP partagés <small>V451.57.65</small></h3><p class="tfab61-muted">Nouvelles campagnes : BETA + 2MAC1 · archives historiques : 2MAC1 uniquement. Les copies peuvent être sur un autre poste.</p><div class="tfab61-counters">'+buttons+extra+'</div><p class="tfab61-muted">'+histState+' · Total corrigés = corrigés récents + archives historiques distinctes, sans fusion R1/R2.</p><div class="tfab61-actions"><button data-tfab61-refresh>↻ Actualiser les deux inventaires</button><button data-tfab61-all>Tout afficher</button><button data-tfab61-reconcile>Rattraper mes anciens statuts</button><button data-tfab61-suivi>Suivi d’un TP</button></div><p class="tfab61-muted">'+safe(msg())+'</p><details><summary><b>'+rem.length+' copie(s) '+(active==='all'?'tous statuts':active==='todo'?'à corriger':active==='corrected'?'corrigées':'sans correction')+' non présente(s) dans le correcteur de ce poste</b></summary><div class="tfab61-table-wrap"><table class="tfab61-table"><thead><tr><th>Élève</th><th>Classe / TP</th><th>Statut commun</th></tr></thead><tbody>'+rem.map(x=>'<tr><td class="tfab61-name '+safe(x.statut)+'">'+safe(x.eleve)+'</td><td>'+safe(x.classe)+' · '+safe(x.tp_code)+'</td><td>'+safe(label(x.statut))+'</td></tr>').join('')+'</tbody></table></div><small>Pour travailler sur une copie distante, utiliser « Rattraper une copie précise » dans la réception Cloudflare.</small></details>';
- p.querySelectorAll('[data-tfab61-filter]').forEach(b=>b.onclick=()=>{current.filter=current.filter===b.dataset.tfab61Filter?'all':b.dataset.tfab61Filter;correctionPanel()});
- p.querySelector('[data-tfab61-all]').onclick=()=>{current.filter='all';correctionPanel()};p.querySelector('[data-tfab61-refresh]').onclick=refreshBoth65;
- p.querySelector('[data-tfab61-reconcile]').onclick=reconcile; p.querySelector('[data-tfab61-suivi]').onclick=()=>showPage();decorateLocalRows(shell);
+// V451.57.66 : lecture d'une date Cloudflare dans le fuseau fixe de La Réunion.
+// Le jour local de l'appareil n'intervient jamais dans le compteur « reçues aujourd'hui ».
+function reunionDay66(date){
+ const parts=new Intl.DateTimeFormat('en-GB',{timeZone:'Indian/Reunion',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(date);
+ const v=Object.fromEntries(parts.map(p=>[p.type,p.value]));
+ return v.year+'-'+v.month+'-'+v.day;
 }
+function receivedAt66(raw){
+ const val=String(raw||'').trim();if(!val)return null;
+ // Les timestamps D1 sans fuseau explicite sont des heures UTC ; ne pas les lire en heure locale de l'appareil.
+ let iso=val.replace(' ','T');
+ if(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(iso)&&!/Z$|[+-]\d{2}:?\d{2}$/i.test(iso))iso+='Z';
+ const d=new Date(iso);return Number.isFinite(d.getTime())?d:null;
+}
+function receivedToday66(rows){
+ const day=reunionDay66(new Date()),seen=new Set();let n=0,undated=0;
+ for(const r of rows){
+  const id=String(r.submission_id||'');if(!id||seen.has(id))continue;seen.add(id);
+  const instant=receivedAt66(r.submitted_at);
+  if(!instant){undated++;continue}
+  if(reunionDay66(instant)===day)n++;
+ }
+ return {day,count:undated?null:n,undated,formatted:new Intl.DateTimeFormat('fr-FR',{timeZone:'Indian/Reunion',day:'2-digit',month:'2-digit',year:'numeric'}).format(new Date())};
+}
+function correctionPanel(){
+ const shell=document.querySelector('.tpc-shell');
+ if(!shell||shell.querySelector('.tpc-editor'))return;
+ let p=$('tfab61-shared-panel');
+ if(!p){p=document.createElement('section');p.id='tfab61-shared-panel';const head=shell.querySelector('.page-header');if(head)head.after(p);else shell.prepend(p)}
+ p.classList.add('tfab66-compact');
+ // Ne plus lancer la lecture supplémentaire du registre historique sur ce tableau réduit.
+ // Le bouton d'audit permet toujours d'accéder au registre 2MAC1 à la demande.
+ const todayKey=reunionDay66(new Date());
+ const renderKey=String(current.updatedAt)+'|'+String(current.error)+'|'+String(!!token())+'|'+String((current.items||[]).length)+'|'+String(local().length)+'|'+todayKey+'|'+String((current.items||[]).reduce((n,r)=>n+(r.submission_id?String(r.submitted_at||'').length:0),0));
+ if(p.dataset.renderKey===renderKey){decorateLocalRows(shell);return}
+ p.dataset.renderKey=renderKey;
+ const online=validCloud()&&!current.limited;
+ shell.classList.toggle('tfab61-online',online);
+ const copies=online?current.items.filter(r=>r.submission_id):[];
+ const seen=new Set();let todo=0;
+ for(const r of copies){const id=String(r.submission_id);if(!seen.has(id)){seen.add(id);if(r.statut==='todo')todo++;}}
+ const day=online?receivedToday66(copies):{day:todayKey,count:null,undated:0,formatted:new Intl.DateTimeFormat('fr-FR',{timeZone:'Indian/Reunion',day:'2-digit',month:'2-digit',year:'numeric'}).format(new Date())};
+ const source=online?'☁ Cloudflare D1 · actualisé à '+(current.updatedAt?new Date(current.updatedAt).toLocaleTimeString('fr-FR',{timeZone:'Indian/Reunion',hour:'2-digit',minute:'2-digit'}):'—')+' (La Réunion)':'⚠ Lecture Cloudflare indisponible — compteur non confirmé';
+ const extraInfo=day.undated?'Certaines copies n’ont pas d’horodatage exploitable ('+day.undated+'). Le total reçu aujourd’hui n’est pas affirmé.':'';
+ const localMap=online?indexLocal():new Map();
+ const missing=online?copies.filter(x=>!localMap.has(key(x.campaign_id,x.user_id))):[];
+ p.innerHTML='<div class="tfab66-head">'+
+  '<div class="tfab66-figure"><span class="tfab66-overline">Copies restant à corriger</span><div class="tfab66-value" id="tfab66-remaining" role="status" aria-live="polite">'+(online?todo:'—')+'</div></div>'+
+  '<button type="button" class="tfab66-refresh" data-tfab61-refresh aria-label="Actualiser le nombre de copies à corriger depuis Cloudflare" title="Actualiser depuis Cloudflare">↻ <span>Actualiser</span></button></div>'+
+  '<div class="tfab66-today"><span>Reçues aujourd’hui <small>('+safe(day.formatted)+')</small></span><strong id="tfab66-today" aria-label="Copies reçues aujourd’hui">'+(day.count===null?'—':day.count)+'</strong></div>'+
+  '<div class="tfab66-source" role="status">'+safe(source)+'</div>'+
+  '<details class="tfab66-details"><summary>Détails et outils de suivi</summary>'+
+  '<p class="tfab61-muted">Périmètre : nouvelles campagnes TP Cloudflare BETA et 2MAC1. « Reçues aujourd’hui » utilise la date de dépôt Cloudflare à La Réunion et inclut les copies déjà corrigées ou classées sans correction. Les 59 archives historiques ne sont pas de nouveaux rendus à corriger.</p>'+
+  (extraInfo?'<p class="tfab61-warning">'+safe(extraInfo)+'</p>':'')+
+  (!online?'<p class="tfab61-warning">'+safe(current.error||(!token()?'Liaison professeur inactive.':'Données D1 non disponibles ou incomplètes.'))+'</p>':'')+
+  '<div class="tfab61-actions"><button type="button" data-tfab61-suivi>Suivi d’un TP</button><button type="button" data-tfab61-reconcile>Rattraper mes anciens statuts</button></div>'+
+  (online?'<details><summary>'+missing.length+' copie(s) distantes ou absentes du coffre local</summary><div class="tfab61-table-wrap"><table class="tfab61-table"><thead><tr><th>Élève</th><th>Classe / TP</th><th>Statut D1</th></tr></thead><tbody>'+missing.map(x=>'<tr><td class="tfab61-name '+safe(x.statut)+'">'+safe(x.eleve)+'</td><td>'+safe(x.classe)+' · '+safe(x.tp_code)+'</td><td>'+safe(label(x.statut))+'</td></tr>').join('')+'</tbody></table></div><small>Pour récupérer une copie distante, utiliser « Rattraper une copie précise » dans la réception Cloudflare.</small></details>':'')+
+  '</details>';
+ p.querySelector('[data-tfab61-refresh]').onclick=()=>refresh(true);
+ p.querySelector('[data-tfab61-suivi]').onclick=()=>showPage();
+ p.querySelector('[data-tfab61-reconcile]').onclick=reconcile;
+ decorateLocalRows(shell);
+}
+
 function label(status){return({diffused:'Diffusé',todo:'Rendu · À corriger',corrected:'Corrigé',skip:'Sans correction',unassigned:'Non diffusé'})[status]||'Non renseigné'}
 function showLaunch(){const m=$('tfab451574-manager');if(!m)return;const toolbar=m.querySelector('.tp574-toolbar');if(!toolbar||toolbar.querySelector('.tfab61-launch'))return;const b=document.createElement('button');b.type='button';b.className='tfab61-launch';b.textContent='📊 Suivi d’un TP';b.onclick=showPage;toolbar.prepend(b)}
 async function rosterFor(cls){if(current.rosterClass===cls)return current.roster;try{const d=await api('eleves?classe='+encodeURIComponent(cls));current.roster=d.items||[];current.rosterClass=cls}catch(e){current.roster=[];current.rosterClass='';const p=$('tfab61-page-state');if(p)p.textContent='Liste complète des élèves indisponible : '+e.message}return current.roster}
@@ -23834,6 +23900,7 @@ function paintShared(){const p=$('tfab63-inline');if(!p)return;
  catch(e){p.insertAdjacentHTML('beforeend','<small>⚠ '+esc(String(e.message||e))+'</small>')}};
 }
 function mountShared(){const container=$('tfab61-shared-panel');if(!container)return;
+ if(container.classList.contains('tfab66-compact')){$('tfab63-inline')?.remove();return;}
  if(!$('tfab63-inline')){const b=document.createElement('div');b.id='tfab63-inline';const counters=container.querySelector('.tfab61-counters');
  if(counters)counters.after(b);else container.append(b);paintShared();
  // Les compteurs V451.57.65 déclenchent déjà une lecture D1 : ne pas ajouter un second GET automatique.
@@ -23848,4 +23915,4 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 })();
 </script>
 
-<script id="tfab45165-visible-version">(function(){function v(){var b=document.getElementById("build-version");if(b)b.textContent="V451.57.65 — Évaluation · Charge Atelier · TP · Correction";}if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",v,{once:true});else v();})();</script>
+<script id="tfab45166-visible-version">(function(){function v(){var b=document.getElementById("build-version");if(b)b.textContent="V451.57.66 — Évaluation · Charge Atelier · TP · Correction";}if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",v,{once:true});else v();})();</script>
