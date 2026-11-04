@@ -7,7 +7,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1" name="viewport"/>
-<title>V451.57.67 — Évaluation · Charge Atelier · TP · Correction</title>
+<title>V451.57.86 — Évaluation · Charge Atelier · TP · Correction</title>
 <style>
 *{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f5f7fa;color:#172033}
 .app{display:flex;min-height:100vh}.side{width:235px;background:#172033;color:#fff;padding:22px 14px}.logo{font-size:19px;font-weight:700;padding:8px 10px 24px}
@@ -2818,6 +2818,11 @@ body{background:#f7f9fc;color:var(--text)}
 @media print{.v45140-pfmp-only .app,.v45140-pfmp-only #build-version{display:none!important}.v45140-pfmp-only #v45140-pfmp-print{display:block!important;position:static!important;overflow:visible!important;max-height:none!important;box-shadow:none!important;border:0!important;padding:0!important}.v45140-pfmp-only #v45140-pfmp-print button{display:none!important}}
 </style>
 <style id="tfab-v45148-tutor-observation">#v45143-pfmp-preview .v45143-pfmp-case .v45143-lines{min-height:29px}#v45143-pfmp-preview>h3 + p + .v45143-lines{min-height:28px}</style>
+
+<!-- V451.57.83 : base fonctionnelle V451.57.74. Masquage VISUEL des panneaux temporaires C2MMVP uniquement. -->
+<style id="tfab-v83-maintenance-ui-hidden">
+#tfab-v70-audit, #tfab-v74-delete { display:none !important; }
+</style>
 </head>
 <body class="firebase-disabled-mode">
 <!-- V88 — DONNÉES DE RÉFÉRENCE RÉINTÉGRÉES DEPUIS V86.5
@@ -22681,7 +22686,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 #tfab451725-modal{position:fixed;inset:0;z-index:2147483000;display:flex;align-items:center;justify-content:center;background:#0b2035a8;padding:18px;font:14px Arial,sans-serif;color:#183653}
 #tfab451725-modal[hidden]{display:none}#tfab451725-modal .panel{background:#fff;border-radius:16px;width:min(750px,96vw);max-height:91vh;overflow:auto;padding:23px;box-shadow:0 20px 70px #10273b77}
 #tfab451725-modal h2{margin:0 0 13px}#tfab451725-modal .line{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0}#tfab451725-modal label{display:block;flex:1;min-width:180px}#tfab451725-modal input,#tfab451725-modal select{box-sizing:border-box;width:100%;padding:10px;border:1px solid #c0d1df;border-radius:8px;margin-top:5px}#tfab451725-modal button,.tfab725-button{padding:9px 12px;border-radius:8px;border:1px solid #bdcedd;background:#edf5fc;color:#163d60;cursor:pointer;font-weight:bold}
-#tfab451725-modal button.primary{background:#175a92;color:#fff}#tfab451725-modal button:disabled{opacity:.5;cursor:default}#tfab451725-students{border:1px solid #d0dde9;border-radius:8px;padding:10px;max-height:225px;overflow:auto}#tfab451725-students label{display:flex;align-items:center;gap:8px;margin:7px 0;font-weight:normal;min-width:0}#tfab451725-students input{width:auto;margin:0}
+#tf725-state{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.4;font-weight:600;margin:10px 0;color:#163d60}#tfab451725-modal button.primary{background:#175a92;color:#fff}#tfab451725-modal button:disabled{opacity:.5;cursor:default}#tfab451725-students{border:1px solid #d0dde9;border-radius:8px;padding:10px;max-height:225px;overflow:auto}#tfab451725-students label{display:flex;align-items:center;gap:8px;margin:7px 0;font-weight:normal;min-width:0}#tfab451725-students input{width:auto;margin:0}
 #tfab451574-manager .tp725-card{background:#fff;border:1px solid #d5e1eb;border-radius:12px;padding:15px;margin:12px 0;box-shadow:0 2px 8px #17344c0c}#tfab451574-manager .tp725-card h3{margin:0 0 5px;font-size:16px}#tfab451574-manager .tp725-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}#tfab451574-manager .tp725-pill{display:inline-block;padding:4px 9px;border-radius:12px;background:#eef4fa;color:#265179;font-size:12px;margin:5px 5px 3px 0}#tfab451574-manager .tp725-pill.finished{background:#e3f4e8;color:#236c3c}#tfab451574-manager .tp574-table-wrap{overflow:visible}#tfab451574-manager .tp574-table-wrap table{display:none}#tp725-cards{display:block}
 .tp725-admin-zone{border-top:1px solid #d0dfeb;padding-top:13px;margin-top:12px}.tp725-admin-list{max-height:380px;overflow:auto}.tp725-admin-row{display:flex;gap:12px;justify-content:space-between;align-items:center;border:1px solid #d9e4ed;border-radius:9px;padding:12px;margin:8px 0;flex-wrap:wrap}.tp725-admin-row small{display:block;color:#657a8c}
 </style>
@@ -22690,8 +22695,41 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 const ORIGIN='https://portail-partage.khmg8np9yj.workers.dev';
 const html=s=>String(s??'').replace(/[&<>"']/g,x=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[x]));
 const cache={items:[],loaded:0,pending:null};let sending=false;
+// Diagnostic en lecture seule, sans jeton ni données d'élèves dans l'export.
+let lastDiagnostic={version:'V451.57.86',generatedAt:'',checks:[]};
+function safeDiagnostic(value){
+ if(!value||typeof value!=='object')return {type:typeof value};
+ const allowed=['ok','success','error','message','status','code','created','campaignId','campagneId','campaign_id','campagne_id','nb_eleves','count','total'];
+ const result={keys:Object.keys(value).slice(0,40),fieldTypes:{}};
+ for(const [k,v] of Object.entries(value)){
+  if(allowed.includes(k)&&['boolean','number','string'].includes(typeof v))result[k]=String(v).slice(0,200);
+  else result.fieldTypes[k]=Array.isArray(v)?'array':typeof v;
+ }
+ if(Array.isArray(value.items))result.itemsCount=value.items.length;
+ return result;
+}
+function addDiagnostic(entry){lastDiagnostic.generatedAt=new Date().toISOString();lastDiagnostic.checks.push(entry);}
+function exportDiagnostic(){
+ const blob=new Blob([JSON.stringify(lastDiagnostic,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob);
+ const a=document.createElement('a');a.href=url;a.download='TFAB_V451_57_86_DIAGNOSTIC_CLOUDFLARE.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1500);
+}
+
 const readToken=()=>{try{return sessionStorage.getItem('tfab45156_session_token')||''}catch(_){return ''}};
-async function request(path,options={}){const token=readToken();if(!token)throw Error('Active d’abord la réception Cloudflare en haut à droite.');const response=await fetch(ORIGIN+path,{...options,headers:{Authorization:'Bearer '+token,...(options.headers||{})},credentials:'omit',cache:'no-store'});const data=await response.json().catch(()=>({}));if(!response.ok||!data.ok)throw Error(data.error||'Erreur Cloudflare ('+response.status+')');return data}
+async function request(path,options={}){
+ const token=readToken();if(!token)throw Error('Active d’abord la réception Cloudflare en haut à droite.');
+ const response=await fetch(ORIGIN+path,{...options,headers:{Authorization:'Bearer '+token,...(options.headers||{})},credentials:'omit',cache:'no-store'});
+ const raw=await response.text();let data={};try{data=raw?JSON.parse(raw):{}}catch(_){data={}}
+ const isPost=String(options.method||'GET').toUpperCase()==='POST'&&path==='/api/prof/v45156/campagnes';
+ if(!response.ok)throw Error(String(data?.error||data?.message||'Erreur HTTP '+response.status));
+ // Réponse HTTP 200 sans indicateur ok : ne jamais déclencher de deuxième POST.
+ // Relecture GET de la campagne obligatoire avant d'annoncer une diffusion confirmée.
+ if(isPost){if(data?.ok===false||data?.success===false||data?.error)throw Error(String(data.error||data.message||'Le Worker a refusé la diffusion (HTTP '+response.status+').'));
+  addDiagnostic({type:'POST_RESULTAT',httpStatus:response.status,contentType:response.headers.get('content-type')||'',responseLength:raw.length,summary:safeDiagnostic(data)});
+  return {...(data&&typeof data==='object'&&!Array.isArray(data)?data:{}),_httpStatus:response.status,_responseFormat:raw?(Object.keys(data).length?'json':'non-json'):'vide'};
+ }
+ if(!data||data.ok!==true)throw Error(String(data?.error||data?.message||'Réponse de lecture Cloudflare inattendue (HTTP '+response.status+').'));
+ return data;
+}
 async function campaigns(force=false){if(!force&&Date.now()-cache.loaded<30000)return cache.items;if(cache.pending)return cache.pending;cache.pending=request('/api/prof/v45156/campagnes').then(x=>{cache.items=x.items||[];cache.loaded=Date.now();return cache.items}).finally(()=>{cache.pending=null});return cache.pending}
 window.tfab451725Campaigns=campaigns;
 function className(){let c=String(window.activeClassName?.()||'').trim().toUpperCase();return ['BETA','2MAC1'].includes(c)?c:''}
@@ -22700,12 +22738,65 @@ function locked(){try{return window.tpGenLockedSnapshot?.()||null}catch(_){retur
 function master(tp){const raw=tp.rawProject&&typeof tp.rawProject==='object'?tp.rawProject:tp;return JSON.parse(JSON.stringify(raw))}
 async function openPublish(){const tp=locked();if(!tp){alert('Choisis d’abord un TP enregistré et verrouillé dans « Diffuser un TP ».');return}
 const code=String(tp.code||tp.tpCode||window.tpGenTpCode?.(tp)||'').trim(),title=String(tp.titre||tp.title||tp.activity||tp.rawProject?.data?.publicTitle||tp.rawProject?.publicTitle||code).trim();if(!code){alert('Code du TP introuvable.');return}
-close();const wrap=document.createElement('div');wrap.id='tfab451725-modal';wrap.innerHTML='<div class="panel" role="dialog" aria-modal="true"><h2>☁ Diffuser un TP — Cloudflare</h2><p><b>'+html(code)+'</b> — '+html(title)+'</p><div class="line"><label>Classe<select id="tf725-class"><option value="2MAC1">2MAC1</option><option value="BETA">BETA</option></select></label><label>Code du TP<input value="'+html(code)+'" readonly></label></div><label style="display:block;width:100%;margin:12px 0">Titre du TP diffusé<input id="tf725-title" type="text" maxlength="180" value="'+html(title)+'" required placeholder="Saisir le titre visible par les élèves"></label><p><small>Ce titre concerne seulement cette campagne. Le code du TP et le document source sont conservés.</small></p><p><button type="button" id="tf725-selectall">Tout sélectionner</button> <button type="button" id="tf725-selectnone">Tout décocher</button></p><div id="tfab451725-students">Chargement des élèves…</div><p id="tf725-count"></p><div id="tf725-state" role="status" aria-live="polite"></div><div class="line"><button type="button" id="tf725-cancel">Annuler</button><button type="button" class="primary" id="tf725-send" disabled>Confirmer la diffusion sur Cloudflare</button></div><p><small>Une campagne distincte sera créée. Les précédents rendus et corrections sont conservés.</small></p></div>';document.body.append(wrap);const $=id=>document.getElementById(id);$('tf725-class').value=className()||'2MAC1';$('tf725-cancel').onclick=()=>{if(!sending)close()};$('tf725-selectall').onclick=()=>{$('tfab451725-students').querySelectorAll('input[type=checkbox]').forEach(x=>x.checked=true);count()};$('tf725-selectnone').onclick=()=>{$('tfab451725-students').querySelectorAll('input[type=checkbox]').forEach(x=>x.checked=false);count()};
+close();const wrap=document.createElement('div');wrap.id='tfab451725-modal';wrap.innerHTML='<div class="panel" role="dialog" aria-modal="true"><h2>☁ Diffuser un TP — Cloudflare</h2><p><b>'+html(code)+'</b> — '+html(title)+'</p><div class="line"><label>Classe<select id="tf725-class"><option value="2MAC1">2MAC1</option><option value="BETA">BETA</option></select></label><label>Code du TP<input value="'+html(code)+'" readonly></label></div><label style="display:block;width:100%;margin:12px 0">Titre du TP diffusé<input id="tf725-title" type="text" maxlength="180" value="'+html(title)+'" required placeholder="Saisir le titre visible par les élèves"></label><p><small>Ce titre concerne seulement cette campagne. Le code du TP et le document source sont conservés.</small></p><p><button type="button" id="tf725-selectall">Tout sélectionner</button> <button type="button" id="tf725-selectnone">Tout décocher</button></p><div id="tfab451725-students">Chargement des élèves…</div><p id="tf725-count"></p><div id="tf725-state" role="status" aria-live="polite"></div><div class="line"><button type="button" id="tf725-diagnostic">🔎 Diagnostiquer Cloudflare (sans envoi)</button><button type="button" id="tf725-report">Exporter diagnostic JSON</button></div><div class="line"><button type="button" id="tf725-cancel">Annuler</button><button type="button" class="primary" id="tf725-send" disabled>Confirmer la diffusion sur Cloudflare</button></div><p><small>Une campagne distincte sera créée. Les précédents rendus et corrections sont conservés.</small></p></div>';document.body.append(wrap);const $=id=>document.getElementById(id);$('tf725-class').value=className()||'2MAC1';$('tf725-cancel').onclick=()=>{if(!sending)close()};$('tf725-selectall').onclick=()=>{$('tfab451725-students').querySelectorAll('input[type=checkbox]').forEach(x=>x.checked=true);count()};$('tf725-selectnone').onclick=()=>{$('tfab451725-students').querySelectorAll('input[type=checkbox]').forEach(x=>x.checked=false);count()};
 const count=()=>{const n=$('tfab451725-students').querySelectorAll('input:checked').length;$('tf725-count').textContent=n+' élève(s) sélectionné(s)';$('tf725-send').disabled=!n||sending};
-async function load(){const cl=$('tf725-class').value;$('tfab451725-students').textContent='Chargement des élèves de '+cl+'…';$('tf725-send').disabled=true;try{const data=await request('/api/prof/v45156/eleves?classe='+encodeURIComponent(cl));if(!$('tf725-class')||$('tf725-class').value!==cl)return;const students=$('tfab451725-students');students.replaceChildren();for(const s of data.items||[]){const row=document.createElement('label'),input=document.createElement('input');input.type='checkbox';input.checked=true;input.value=String(s.id);input.onchange=count;row.append(input,document.createTextNode(String(s.nom||'Élève #'+s.id)));students.append(row)}if(!students.children.length)students.textContent='Aucun élève actif pour cette classe';count()}catch(e){$('tfab451725-students').textContent='Erreur : '+e.message;$('tf725-state').textContent='Vérifie ta connexion Cloudflare';count()}}
+async function load(){const cl=$('tf725-class').value;$('tfab451725-students').textContent='Chargement des élèves de '+cl+'…';$('tf725-send').disabled=true;try{const data=await request('/api/prof/v45156/eleves?classe='+encodeURIComponent(cl));if(!$('tf725-class')||$('tf725-class').value!==cl)return;const students=$('tfab451725-students');students.replaceChildren();for(const s of data.items||[]){const sid=Number(s?.id);if(!Number.isSafeInteger(sid)||sid<=0)continue;const row=document.createElement('label'),input=document.createElement('input');input.type='checkbox';input.checked=true;input.value=String(sid);input.onchange=count;row.append(input,document.createTextNode(String(s.nom||'Élève #'+sid)));students.append(row)}if(!students.children.length)students.textContent='Aucun élève actif pour cette classe';count()}catch(e){$('tfab451725-students').textContent='Erreur : '+e.message;$('tf725-state').textContent='Vérifie ta connexion Cloudflare';count()}}
 $('tf725-class').onchange=load;
-$('tf725-send').onclick=async()=>{if(sending)return;const ids=Array.from($('tfab451725-students').querySelectorAll('input:checked'),x=>Number(x.value)),cl=$('tf725-class').value;if(!ids.length)return;const diffusionTitle=String($('tf725-title').value||'').trim();if(!diffusionTitle||diffusionTitle.length>180){$('tf725-state').textContent='Saisis un titre valide (180 caractères maximum).';$('tf725-title').focus();return}const message='Diffuser « '+diffusionTitle+' » ('+code+') à '+ids.length+' élève(s) de '+cl+' ?\n\nCette action crée une nouvelle campagne.';if(!confirm(message))return;sending=true;count();$('tf725-cancel').disabled=true;$('tf725-class').disabled=true;$('tf725-state').textContent='Préparation et transfert du TP sur Cloudflare… Ne ferme pas cette fenêtre.';
-let beforeIds=null;try{const baseline=await request('/api/prof/v45156/campagnes');beforeIds=new Set((baseline.items||[]).map(c=>String(c.id)));$('tf725-state').textContent='Contrôle des campagnes effectué. Transfert vers Cloudflare…';}catch(error){$('tf725-state').textContent='Diffusion non lancée : impossible de vérifier les campagnes avant envoi ('+String(error.message||error)+').';sending=false;$('tf725-class').disabled=false;$('tf725-cancel').disabled=false;count();return}try{const filedata=master(tp);if(filedata.schema==='evaluation.tp.v1'&&filedata.data){filedata.data.publicId=filedata.data.publicId||code;filedata.data.publicTitle=diffusionTitle}else{filedata.publicId=filedata.publicId||code;filedata.publicTitle=diffusionTitle}const blob=new Blob([JSON.stringify(filedata)],{type:'application/json'}),fd=new FormData();fd.append('file',blob,code.replace(/[^\w-]/g,'_')+'_MAITRE.json');fd.append('classe',cl);fd.append('tpCode',code);fd.append('titre',diffusionTitle);fd.append('studentIds',JSON.stringify(ids));const response=await request('/api/prof/v45156/campagnes',{method:'POST',body:fd});$('tf725-state').textContent='✓ Campagne confirmée sur Cloudflare : '+response.nb_eleves+' élève(s).';cache.loaded=0;setTimeout(()=>{close();window.tpV76DiffusionsPage?.()},1200) }catch(e){
+$('tf725-report').onclick=exportDiagnostic;
+$('tf725-diagnostic').onclick=async()=>{
+ $('tf725-diagnostic').disabled=true;
+ const cl=$('tf725-class').value;
+ const codeCurrent=code;
+ $('tf725-state').textContent='Diagnostic en lecture seule : consultation des campagnes et des élèves. Aucun envoi.';
+ try{
+  const r=await fetch(ORIGIN+'/api/prof/v45156/campagnes',{headers:{Authorization:'Bearer '+readToken()},credentials:'omit',cache:'no-store'});
+  const raw=await r.text();let data;try{data=JSON.parse(raw)}catch(_){data=null}
+  const items=Array.isArray(data?.items)?data.items:[];
+  const matches=items.filter(x=>String(x.tp_code??x.tpCode??'').trim()===codeCurrent && String(x.classe||'').toUpperCase()===cl.toUpperCase());
+  const entry={type:'LECTURE_SEULE',httpStatus:r.status,contentType:r.headers.get('content-type')||'',payload:safeDiagnostic(data),campaignCount:items.length,matchingCampaignCount:matches.length};
+  addDiagnostic(entry);
+  $('tf725-state').textContent='Diagnostic terminé. HTTP '+r.status+' ; réponse : '+entry.contentType+' ; '+items.length+' campagne(s) dans la liste ; '+matches.length+' correspondant au code '+codeCurrent+' / '+cl+'. Aucun envoi effectué. Clique sur « Exporter diagnostic JSON » et transmets-moi le rapport.';
+ }catch(err){addDiagnostic({type:'ERREUR_LECTURE',message:String(err?.message||err).slice(0,250)});$('tf725-state').textContent='Erreur de lecture : '+String(err?.message||err)+' — Aucun envoi effectué.'}
+ finally{$('tf725-diagnostic').disabled=false;}
+};
+$('tf725-send').onclick=async()=>{if(sending)return;const ids=Array.from($('tfab451725-students').querySelectorAll('input:checked'),x=>Number(x.value)),cl=$('tf725-class').value;if(!ids.length)return;if(ids.some(id=>!Number.isSafeInteger(id)||id<=0)){ $('tf725-state').textContent='Diffusion non lancée : identifiant élève absent ou invalide. Réouvre la liste des élèves.';return}const diffusionTitle=String($('tf725-title').value||'').trim();if(!diffusionTitle||diffusionTitle.length>180){$('tf725-state').textContent='Saisis un titre valide (180 caractères maximum).';$('tf725-title').focus();return}const message='Diffuser « '+diffusionTitle+' » ('+code+') à '+ids.length+' élève(s) de '+cl+' ?\n\nCette action crée une nouvelle campagne.';if(!confirm(message))return;sending=true;count();$('tf725-cancel').disabled=true;$('tf725-class').disabled=true;$('tf725-state').textContent='Préparation et transfert du TP sur Cloudflare… Ne ferme pas cette fenêtre.';
+let beforeIds=null;try{const baseline=await request('/api/prof/v45156/campagnes');beforeIds=new Set((baseline.items||[]).map(c=>String(c.id)));
+ addDiagnostic({type:'AVANT_DIFFUSION',campaignCount:beforeIds.size});$('tf725-state').textContent='Contrôle des campagnes effectué. Transfert vers Cloudflare…';}catch(error){$('tf725-state').textContent='Diffusion non lancée : impossible de vérifier les campagnes avant envoi ('+String(error.message||error)+').';sending=false;$('tf725-class').disabled=false;$('tf725-cancel').disabled=false;count();return}try{const filedata=master(tp);if(filedata.schema==='evaluation.tp.v1'&&filedata.data){filedata.data.publicId=filedata.data.publicId||code;filedata.data.publicTitle=diffusionTitle}else{filedata.publicId=filedata.publicId||code;filedata.publicTitle=diffusionTitle}const blob=new Blob([JSON.stringify(filedata)],{type:'application/json'}),fd=new FormData();fd.append('file',blob,code.replace(/[^\w-]/g,'_')+'_MAITRE.json');fd.append('classe',cl);fd.append('tpCode',code);fd.append('titre',diffusionTitle);fd.append('studentIds',JSON.stringify(ids));const response=await request('/api/prof/v45156/campagnes',{method:'POST',body:fd});
+// Le Worker peut répondre {ok:true} sans nb_eleves : ne JAMAIS afficher « undefined élèves ».
+// Un POST accepté n'est pas une preuve du nombre de destinataires : relire les campagnes.
+const workerCount=Number(response.nb_eleves);
+const countKnown=response.nb_eleves!==null&&response.nb_eleves!==undefined&&response.nb_eleves!==''&&Number.isSafeInteger(workerCount)&&workerCount>=0;
+const responseId=String(response.campagne_id??response.campaign_id??response.id??response.campagne?.id??response.campaign?.id??'').trim();
+$('tf725-state').textContent='Cloudflare a répondu HTTP '+response._httpStatus+'. Vérification de la campagne en lecture seule : cette réponse ne suffit pas à confirmer l’envoi…';
+let verified=null,verifyIssue='';
+for(let attempt=0;attempt<3&&!verified;attempt++){
+ if(attempt)await new Promise(resolve=>setTimeout(resolve,1100));
+ try{
+  const listing=await request('/api/prof/v45156/campagnes');
+  const all=Array.isArray(listing.items)?listing.items:[];
+  addDiagnostic({type:'APRES_DIFFUSION_LECTURE',attempt:attempt+1,campaignCount:all.length,newIds:all.filter(c=>!beforeIds.has(String(c.id))).length});
+  const candidates=all.filter(c=>{
+   if(beforeIds?.has(String(c.id)))return false;
+   if(responseId&&String(c.id)===responseId)return true;
+   return String(c.classe||'').trim().toUpperCase()===String(cl).trim().toUpperCase()
+    &&String(c.tp_code??c.tpCode??'').trim()===code
+    &&String(c.titre??c.title??'').trim()===diffusionTitle;
+  });
+  if(candidates.length===1)verified=candidates[0];
+  if(candidates.length>1){verifyIssue='Plusieurs nouvelles campagnes correspondent à cet envoi.';break}
+ }catch(ex){verifyIssue=String(ex?.message||ex)}
+}
+cache.loaded=0;
+if(verified){
+ const cCount=Number(verified.nb_eleves);
+ const confirmedCount=Number.isSafeInteger(cCount)&&cCount>=0&&verified.nb_eleves!==null&&verified.nb_eleves!==undefined;
+ const countDetail=confirmedCount?'Le serveur indique '+cCount+' élève(s).':countKnown?'Réponse d’envoi : '+workerCount+' élève(s).':'Le serveur n’a pas fourni de nombre de destinataires.';
+ $('tf725-state').textContent='✓ Campagne retrouvée sur Cloudflare (ID : '+String(verified.id)+'). '+ids.length+' élève(s) sélectionné(s). '+countDetail+(confirmedCount&&cCount!==ids.length?' ATTENTION : nombre différent de la sélection ; contrôler les destinataires.':'')+' Vérifie les destinataires dans Gestion des campagnes.';
+}else{
+ $('tf725-state').textContent='Cloudflare a répondu HTTP '+response._httpStatus+' ('+response._responseFormat+'), mais aucune nouvelle campagne n’a été identifiée. Diffusion NON CONFIRMÉE. '+ids.length+' élève(s) sélectionné(s). '+(countKnown?'Réponse serveur : '+workerCount+' élève(s). ':'Aucun nombre d’élèves transmis par le serveur. ')+(verifyIssue?verifyIssue+' ':'')+'NE RELANCE PAS : vérifie Gestion des campagnes / TP remis. Exporte le diagnostic JSON pour analyser la réponse du Worker.';
+}
+// Conserver le résultat à l'écran : aucun auto-fermeture, aucun deuxième POST.
+sending=true;$('tf725-send').disabled=true;$('tf725-class').disabled=true;$('tf725-cancel').disabled=false;$('tf725-cancel').textContent='Fermer'; }catch(e){
  const msg=String(e?.message||e);$('tf725-state').textContent='Confirmation non reçue ('+msg+'). Vérification de la campagne sur Cloudflare, sans nouvel envoi…';
  let match=null,verificationError='';
  for(let attempt=0;attempt<3&&!match;attempt++){
@@ -22715,17 +22806,19 @@ let beforeIds=null;try{const baseline=await request('/api/prof/v45156/campagnes'
    const candidates=(check.items||[]).filter(c=>{
     if(beforeIds?.has(String(c.id)))return false;
     if(String(c.classe||'').trim().toUpperCase()!==String(cl).trim().toUpperCase()||String(c.tp_code||'').trim()!==code||String(c.titre||'').trim()!==diffusionTitle)return false;
-    const members=(c.destinataires||[]).map(x=>Number(x.id));
-    return members.length===ids.length&&ids.every(id=>members.includes(id));
+    const members=Array.isArray(c.destinataires)?c.destinataires.map(x=>Number(x?.id??x)):null;
+    // Si les destinataires ne figurent pas dans la réponse de liste, ne pas refuser
+    // l'identification de la campagne, mais ne pas certifier les destinataires.
+    return !members||(members.length===ids.length&&ids.every(id=>members.includes(id)));
    });
    if(candidates.length===1)match=candidates[0];
    else if(candidates.length>1){verificationError='Plusieurs nouvelles campagnes correspondent à la demande.';break}
   }catch(checkError){verificationError=String(checkError?.message||checkError)}
  }
- if(match){cache.loaded=0;$('tf725-state').textContent='✓ Diffusion confirmée après vérification Cloudflare : campagne '+match.id+' · '+ids.length+' élève(s). Aucun deuxième envoi.';setTimeout(()=>{close();window.tpV76DiffusionsPage?.()},1900);return}
+ if(match){cache.loaded=0;$('tf725-state').textContent='Campagne retrouvée après relecture Cloudflare : '+match.id+'. Vérifie les destinataires dans Gestion des campagnes. Aucun deuxième envoi effectué.';$('tf725-cancel').disabled=false;$('tf725-cancel').textContent='Fermer';return}
  $('tf725-state').textContent='Diffusion NON CONFIRMÉE : '+msg+'. '+(verificationError?verificationError+' ':'')+'Aucun nouvel envoi automatique. Contrôle obligatoire dans Gestion des campagnes et dans TP remis avant toute autre action.';
  // Verrouiller la relance depuis cette fenêtre : fermer puis contrôler les campagnes.
- sending=true;$('tf725-send').disabled=true;$('tf725-class').disabled=true;$('tf725-cancel').disabled=false;
+ sending=true;$('tf725-send').disabled=true;$('tf725-class').disabled=true;$('tf725-cancel').disabled=false;$('tf725-cancel').textContent='Fermer';
  }}
 await load()}
 window.tfab451725Publish=openPublish;
@@ -24284,4 +24377,315 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 const root=document.getElementById('main');if(root){let pending=0;new MutationObserver(()=>{clearTimeout(pending);pending=setTimeout(attach,180)}).observe(root,{childList:true,subtree:true})}
 })();
 </script>
-<script id="tfab45169-footer-version">(function(){const version='V451.57.69 — Évaluation · Charge Atelier · TP · Correction';const apply=()=>{const el=document.getElementById('build-version');if(el)el.textContent=version;};if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',apply,{once:true});else apply();})();</script>
+<script id="tfab45169-footer-version">(function(){const version='V451.57.73 — Évaluation · Charge Atelier · TP · Correction';const apply=()=>{const el=document.getElementById('build-version');if(el)el.textContent=version;};if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',apply,{once:true});else apply();})();</script>
+
+<!-- V451.57.73 — Comparaison des critères et contrôle après reconnexion C2MMVP et focus Cloudflare, sans écritures -->
+<style id="tfab-v70-consolidation-style">
+#tfab-v70-audit{grid-column:1/-1;margin:16px 0;padding:17px;border:1px solid #97b8d7;border-radius:12px;background:#f8fbff;color:#17365d}
+#tfab-v70-audit h3{margin:0 0 8px}#tfab-v70-audit p{font-size:13px;line-height:1.55}
+#tfab-v70-audit .v70-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+#tfab-v70-audit .v70-panel{border:1px solid #d7e4f0;border-radius:9px;padding:10px;background:white}
+#tfab-v70-audit .v70-panel strong{font-size:23px;display:block}
+#tfab-v70-audit .v70-actions{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+#tfab-v70-audit .v70-log{font:12px/1.5 ui-monospace,Consolas,monospace;max-height:210px;overflow:auto;white-space:pre-wrap;background:#0e233b;color:#e5f3ff;padding:12px;border-radius:8px}
+#tfab-v70-audit .v70-warn{border-left:4px solid #d97706;background:#fff6e8;padding:10px;margin:12px 0;font-size:12px}
+#tfab-v70-audit .v72-table{width:100%;border-collapse:collapse;font-size:11px;margin:8px 0}#tfab-v70-audit .v72-table th,#tfab-v70-audit .v72-table td{border:1px solid #d4dfeb;padding:6px;text-align:left;vertical-align:top}#tfab-v70-audit .v72-table th{background:#e6f0fa}#tfab-v72-details{max-height:300px;overflow:auto;margin:10px 0}#tfab-v70-audit input[type=file]{font-size:12px;padding:7px;max-width:100%}
+@media(max-width:650px){#tfab-v70-audit .v70-grid{grid-template-columns:1fr}}
+</style>
+<script id="tfab-v70-consolidation" type="text/javascript">
+(function(){'use strict';
+const version='V451.57.74';
+const REC=["EVAL_1400d035-ccd0-48b4-ad68-57435d30339d", "EVAL_4b6085a0-2a27-4f20-9147-7f8bcff56f58", "EVAL_4d1d766c-6c1f-418c-a47a-15fa11b69c90", "EVAL_66eea9ad-c320-43b0-84e2-29f68ef7401d", "EVAL_9307557d-fdc6-48a7-b73c-1fcab15a5253", "EVAL_936f6dcf-c9de-4c26-a57c-5b928fcd3d77", "EVAL_979f5076-c092-4ba6-b4cb-92e3143dc017", "EVAL_a05b1a06-d581-4dca-b9ed-2dc26aa9ad3b", "EVAL_aa5f151c-8308-4176-83ce-dbe5286d6e73", "EVAL_bed426d6-8f79-4a08-a51e-1a1b759d00f9", "EVAL_c0886077-497c-4b5f-bc05-2cb755b1c280", "EVAL_d6bfbb63-baf5-4d95-9102-95f447d3cf18", "EVAL_d9038bda-8c40-4905-aa59-458afb1fbffd"];
+const DEL=["EVAL_a50e0a8d-d3e6-4b7e-b24a-c304619f4e9d", "EVAL_e3756c7e-d17e-41c4-a030-af4e658d4ee2", "EVAL_6b47c829-c192-451a-9413-27f5f3e3ad2e"];
+const targetSet=new Set([...REC,...DEL]);
+let archive=null, lot=null, analysis=null, remoteCheck=null, auditSnapshot=null, previousReport=null, latestBackup=null, restartConfirmed=false;
+const rootId='evaluation-mv-main';
+function status(s){const el=document.getElementById('tfab-v70-status');if(el)el.textContent=s;}
+function log(message){const el=document.getElementById('tfab-v70-log');if(el){el.textContent+='\n'+new Date().toLocaleTimeString('fr-FR')+' · '+message;el.scrollTop=el.scrollHeight;}}
+function uid(x){return String(x?.id??x?.key??'')}
+function note(x){return x?.sourceNote20??x?.note20??x?.note??null}
+function idMap(list){const map=new Map();for(const v of list||[]){if(!v||!uid(v))throw Error('Évaluation sans identifiant');if(map.has(uid(v)))throw Error('Identifiant répété : '+uid(v));map.set(uid(v),v)}return map}
+function sortDeep(x){if(Array.isArray(x))return x.map(sortDeep);if(x&&typeof x==='object'){const r={};for(const k of Object.keys(x).sort())r[k]=sortDeep(x[k]);return r;}return x;}
+function tally(evals){const r=Array.isArray(evals)?evals:[];return {count:r.length,map:idMap(r)};}
+async function readFile(input){const file=input.files?.[0];if(!file)throw Error('Sélectionne un fichier JSON.');if(file.size>190000000)throw Error('Fichier trop volumineux pour cet écran.');return JSON.parse(await file.text());}
+function allStudentEvals(s){return (s||[]).flatMap(x=>Array.isArray(x.evaluations)?x.evaluations:[])}
+function compare(){
+ if(!archive||!lot)throw Error('Charge les deux fichiers avant la simulation.');
+ if(!Array.isArray(archive.evaluations)||!Array.isArray(archive.students))throw Error('Sauvegarde globale non reconnue.');
+ if(!Array.isArray(lot.evaluations)||!Array.isArray(lot.target_deletions))throw Error('Lot des 13 évaluations non reconnu.');
+ const a=tally(archive.evaluations), l=tally(lot.evaluations), students=new Set(archive.students.map(x=>String(x.id)));
+ if(a.count!==577)throw Error('Base différente de 577 évaluations : stopper et refaire un audit.');
+ if(l.count!==13||REC.some(x=>!l.map.has(x))||[...l.map.keys()].some(x=>!REC.includes(x)))throw Error('Lot de récupération différent des 13 identifiants validés.');
+ const listDel=lot.target_deletions.map(x=>typeof x==='string'?x:String(x.evaluation_id||x.id));
+ if(listDel.length!==3||DEL.some(x=>!listDel.includes(x))||listDel.some(x=>!DEL.includes(x)))throw Error('La liste de suppressions du lot diffère de notre validation.');
+ for(const id of REC){let ev=l.map.get(id)?.value||l.map.get(id);if(a.map.has(id))throw Error('Récupération déjà présente : '+id);if(!students.has(String(ev.studentId)))throw Error('Élève absent : '+id)}
+ for(const id of DEL){if(!a.map.has(id))throw Error('Évaluation désignée absente : '+id);const st=String(a.map.get(id).studentId);if(!students.has(st))throw Error('Rattachement suppression inconnu : '+id)}
+ const embedded=allStudentEvals(archive.students), emb=tally(embedded);
+ const overlay=[...a.map.keys()].filter(x=>emb.map.has(x));
+ if(overlay.some(id=>JSON.stringify(a.map.get(id))!==JSON.stringify(emb.map.get(id))))log('Attention : copies top-level/élèves potentiellement divergentes (ordre des propriétés ou données).');
+ analysis={ready:true,source:a.count,embedded:emb.count,after:a.count+13-3,rec:REC.length,del:DEL.length,studentCount:archive.students.length,checkedAt:new Date().toISOString(),sourceTime:archive.generatedAtIso||archive.generatedAt||'',ids:{recover:REC,delete:DEL},remote:null};
+ remoteCheck=null;previousReport=null;latestBackup=null;auditSnapshot=null;restartConfirmed=false;status('Simulation locale valide · 13 récupérations + 3 suppressions · 587 évaluations prévues.');log('Simulation locale réussie : 577 → 587. Aucune écriture.');return analysis;
+}
+function safeAdmin(){try{return typeof isAdminTeacher==='function'&&isAdminTeacher()}catch(_){return false}}
+async function inspectRemote(){
+ if(!analysis?.ready)throw Error('Lance la simulation locale avant le contrôle Firebase.');
+ if(!safeAdmin())throw Error('Session administrateur requise.');
+ const user=window.firebase?.auth?.().currentUser;
+ if(!user)throw Error('Firebase : utilisateur non connecté.');
+ const fs=window.firebase?.firestore?.();if(!fs)throw Error('Firestore indisponible.');
+ const root=fs.collection('workspaces').doc(rootId);
+ const col=root.collection('evaluations');
+ const checks=[];
+ for(const id of [...REC,...DEL]){
+  const snap=await col.doc(id).get({source:'server'});
+  if(snap.metadata?.fromCache||snap.metadata?.hasPendingWrites)throw Error('Lecture Firebase non confirmée par le serveur : '+id);
+  const record=snap.exists?snap.data():null;
+  const expected=REC.includes(id)?(lot.evaluations.find(e=>uid(e)===id)?.value||null):null;
+  const normalized=x=>JSON.stringify(sortDeep(x));
+  const criteriaExpected=expected?.criteriaResults233;
+  const criteriaRemote=record?.criteriaResults233;
+  const criteriaMatch=snap.exists&&REC.includes(id)?(
+   criteriaExpected===undefined||criteriaRemote===undefined?null:normalized(criteriaExpected)===normalized(criteriaRemote)
+  ):null;
+  const noteMatches=snap.exists&&REC.includes(id)?(Number(note(record))===Number(note(expected))):null;
+  const propsToCompare=['batchId','activityId','date','title','sourceNote20','criteriaResults233','levels','comps'];
+  const fieldDifferences=snap.exists&&REC.includes(id)?propsToCompare.filter(k=>normalized(record?.[k])!==normalized(expected?.[k])):[];
+  checks.push({id,action:REC.includes(id)?'RECUPERER':'SUPPRIMER',exists:snap.exists,studentId:record?.studentId||null,note:snap.exists?note(record):null,criteriaMatch,noteMatches,fieldDifferences});
+ }
+ const pending={};let pendingUnreliable=false;
+ try{
+   const name='evaluation_firebase_pending_ops_v14';
+   const value=JSON.parse(localStorage.getItem(name)||'[]');
+   if(!Array.isArray(value))throw Error('File illisible');
+   pending[name]=value.filter(x=>targetSet.has(String(x.id)));
+ }catch(e){pendingUnreliable=true;pending.evaluation_firebase_pending_ops_v14=[{error:'File locale illisible'}];}
+ const studentConflicts=checks.filter(x=>x.exists&&String(x.studentId)!==String(
+  REC.includes(x.id)?(lot.evaluations.find(e=>uid(e)===x.id)?.value||lot.evaluations.find(e=>uid(e)===x.id))?.studentId:
+  archive.evaluations.find(e=>e.id===x.id)?.studentId
+ )).map(x=>x.id);
+ const pendingOps=pending.evaluation_firebase_pending_ops_v14||[];
+ const pendingPutConflicts=pendingOps.filter(x=>x.action!=='delete').map(x=>String(x.id));
+ const pendingDelete=pendingOps.filter(x=>x.action==='delete').map(x=>String(x.id));
+ const alreadyAbsent=checks.filter(x=>x.action==='SUPPRIMER'&&!x.exists).map(x=>x.id);
+ const recoverNeeded=checks.filter(x=>x.action==='RECUPERER'&&!x.exists).map(x=>x.id);
+ const deleteNeeded=checks.filter(x=>x.action==='SUPPRIMER'&&x.exists).map(x=>x.id);
+ remoteCheck={checkedAt:new Date().toISOString(),checks,alreadyAbsent,recoverNeeded,deleteNeeded,studentConflicts,pendingDelete,pendingPutConflicts,pending,pendingUnreliable};
+ analysis.remote=remoteCheck;
+ const recordDivergences=checks.filter(x=>x.action==='RECUPERER'&&x.exists&&(x.criteriaMatch!==true||x.noteMatches!==true||x.fieldDifferences.length));
+ remoteCheck.recordDivergences=recordDivergences.map(x=>x.id);
+ const blocked=studentConflicts.length||pendingPutConflicts.length||pendingUnreliable||recordDivergences.length;
+ status(blocked?'Firebase : conflit de données, intervention bloquée.':
+  `Firebase : ${recoverNeeded.length} récupérations nécessaires, ${deleteNeeded.length} suppressions restantes, ${alreadyAbsent.length} déjà absente(s).`);
+ log('Contrôle serveur : '+recoverNeeded.length+' récupération(s) manquante(s), '+deleteNeeded.length+' suppression(s) restante(s), '+alreadyAbsent.length+' suppression(s) déjà effective(s).');
+ log('Opérations en attente : '+pendingDelete.length+' suppression(s) ; '+pendingPutConflicts.length+' écriture(s) conflictuelle(s).');
+ if(recordDivergences.length)log('ATTENTION : '+recordDivergences.length+' récupération(s) présentes mais contenu/critères différents ou non vérifiables.');
+ if(blocked)log('ALERTE : divergence ou écriture concurrente. Aucune intervention autorisée.');
+ renderChecks();renderDecision();
+ return remoteCheck;
+}
+function renderChecks(){
+ const container=document.getElementById('tfab-v72-details');if(!container||!remoteCheck)return;
+ const ids=remoteCheck.checks;const short=x=>String(x).replace(/^EVAL_/,'').slice(0,8);
+ const rows=ids.map(x=>{let desc=x.action==='RECUPERER'?(x.exists?(x.criteriaMatch===true&&x.noteMatches===true&&x.fieldDifferences.length===0?'Présente · note et critères conformes':'Présente · détails divergents ou incomplets'):'Absente · récupération nécessaire'):(x.exists?'Présente · suppression à examiner':'Déjà absente · ne rien supprimer');
+  const check=x.action==='RECUPERER'&&x.exists?' · critères '+(x.criteriaMatch===true?'OK':x.criteriaMatch===false?'DIFFÉRENTS':'non vérifiables'):'';
+  return '<tr><td title="'+x.id+'">'+short(x.id)+'</td><td>'+x.action+'</td><td>'+desc+check+'</td><td>'+(x.note??'—')+'</td></tr>';
+ }).join('');
+ container.innerHTML='<table class="v72-table"><thead><tr><th>Identifiant</th><th>Action initiale</th><th>État Firebase / comparaison</th><th>Note</th></tr></thead><tbody>'+rows+'</tbody></table>';
+}
+async function loadPrevious(){
+ if(!analysis?.ready)throw Error('Commence par la simulation locale.');
+ const f=document.getElementById('tfab-v72-previous')?.files?.[0];if(!f)throw Error('Sélectionne le rapport du contrôle antérieur.');
+ const d=JSON.parse(await f.text());
+ if(!d?.format?.includes('PREFLIGHT_SANS_ECRITURE')||!d?.analysis?.remote?.checks||d.analysis.remote.checks.length!==16)throw Error('Rapport antérieur non reconnu.');
+ const expected=[...REC,...DEL];if(expected.some(id=>!d.analysis.remote.checks.some(x=>x.id===id)))throw Error('Le rapport antérieur ne correspond pas aux 16 identifiants de ce lot.');
+ previousReport=d;log('Rapport précédent chargé : '+(d.analysis.remote.checkedAt||'date inconnue')+'.');
+ status('Rapport antérieur chargé. Effectue une nouvelle lecture Firebase puis compare.');renderDecision();
+}
+function compareTwoReads(){
+ if(!remoteCheck||!previousReport)throw Error('Charge le rapport précédent et effectue la lecture Firebase actuelle.');
+ const prevDate=Date.parse(previousReport.analysis.remote.checkedAt);const nowDate=Date.parse(remoteCheck.checkedAt);
+ if(!Number.isFinite(prevDate)||!Number.isFinite(nowDate)||nowDate<=prevDate)throw Error('La lecture Firebase actuelle doit être postérieure au rapport précédent.');
+ const a=new Map(previousReport.analysis.remote.checks.map(x=>[x.id,x]));
+ const changed=remoteCheck.checks.filter(x=>a.get(x.id)?.exists!==x.exists).map(x=>x.id);
+ const integrityChanged=remoteCheck.checks.filter(x=>x.action==='RECUPERER' && a.get(x.id)?.exists && x.exists &&
+ (a.get(x.id)?.note!==x.note || a.get(x.id)?.studentId!==x.studentId ||
+ (a.get(x.id)?.criteriaMatch!==undefined&&a.get(x.id)?.criteriaMatch!==x.criteriaMatch))).map(x=>x.id);
+ auditSnapshot={comparisonTime:new Date().toISOString(),previousCheckAt:previousReport.analysis.remote.checkedAt,currentCheckAt:remoteCheck.checkedAt,changedIds:changed,integrityChangedIds:integrityChanged,unchangedIds:remoteCheck.checks.filter(x=>!changed.includes(x.id)&&!integrityChanged.includes(x.id)).map(x=>x.id),checks:remoteCheck.checks,criteriaDivergences:remoteCheck.recordDivergences||[],verifiedRestart:restartConfirmed};
+ log('Comparaison des lectures serveur : '+changed.length+' changement(s) de présence et '+integrityChanged.length+' changement(s) de note, élève ou critères.');
+ log('Vérification de redémarrage : deux lectures distinctes, mais la fermeture du navigateur ne peut pas être attestée automatiquement.');
+ if(changed.length)log('Identifiants dont l’état a changé : '+changed.join(', '));
+ status('Deux lectures comparées · '+changed.length+' changement(s) de présence · '+integrityChanged.length+' changement(s) de contenu.');renderDecision();
+}
+async function loadNewBackup(){
+ if(!analysis?.ready)throw Error('Commence par la simulation locale.');
+ const input=document.getElementById('tfab-v72-latest');const f=input?.files?.[0];if(!f)throw Error('Choisis la nouvelle sauvegarde globale exportée après reconnexion.');
+ const d=await readFile(input);
+ if(!Array.isArray(d.evaluations)||!Array.isArray(d.students))throw Error('La nouvelle sauvegarde n’est pas reconnue.');
+ const ids=idMap(d.evaluations);const original=new Map(lot.evaluations.map(x=>[x.key,x.value]));
+ const results=REC.map(id=>{const actual=ids.get(id);const expected=original.get(id);const ok=!!actual;return{id,exists:ok,studentMatch:ok?String(actual.studentId)===String(expected.studentId):false,criteriaMatch:ok&&actual.criteriaResults233!==undefined&&expected.criteriaResults233!==undefined?JSON.stringify(sortDeep(actual.criteriaResults233))===JSON.stringify(sortDeep(expected.criteriaResults233)):null,noteMatch:ok?Number(note(actual))===Number(note(expected)):false};});
+ const deletions=DEL.map(id=>({id,exists:ids.has(id)}));
+ const first=Date.parse(archive.generatedAtIso||archive.generatedAt),last=Date.parse(d.generatedAtIso||d.generatedAt);
+ latestBackup={fileName:f.name,generatedAt:d.generatedAtIso||d.generatedAt||null,afterSource: Number.isFinite(first)&&Number.isFinite(last)&&last>first,evaluationCount:d.evaluations.length,studentCount:d.students.length,recoveries:results,deletions};
+ const found=results.filter(x=>x.exists).length;const valid=results.filter(x=>x.criteriaMatch===true&&x.studentMatch&&x.noteMatch).length;
+ log('Nouvel export : '+d.evaluations.length+' évaluations ; '+found+'/13 retrouvées ; '+valid+'/13 notes/critères/rattachements identiques à la source.');
+ log('Suppressions présentes dans le nouvel export : '+deletions.filter(x=>x.exists).length+'/3.');
+ if(!latestBackup.afterSource)log('ALERTE : l’horodatage du nouvel export n’est pas postérieur à la sauvegarde initiale, ou n’est pas vérifiable.');
+ status('Nouvel export analysé · '+valid+'/13 récupérations conformes · '+deletions.filter(x=>x.exists).length+' suppression(s) encore présente(s).');renderDecision();
+}
+function renderDecision(){
+ const el=document.getElementById('tfab-v73-summary');if(!el)return;
+ const hasRemote=!!remoteCheck;
+ const allFound=hasRemote&&remoteCheck.recoverNeeded.length===0;
+ const intact=allFound&&remoteCheck.recordDivergences.length===0&&remoteCheck.studentConflicts.length===0;
+ const cleanQueue=hasRemote&&!remoteCheck.pendingUnreliable&&!remoteCheck.pendingPutConflicts.length&&!remoteCheck.pendingDelete.length;
+ const rightDeletion=hasRemote&&remoteCheck.deleteNeeded.length===1&&remoteCheck.deleteNeeded[0]===DEL[1]&&remoteCheck.alreadyAbsent.length===2;
+ const historical=!!auditSnapshot&&auditSnapshot.changedIds.length===0&&auditSnapshot.integrityChangedIds.length===0;
+ const exportOK=!!latestBackup&&latestBackup.recoveries.every(x=>x.exists&&x.studentMatch&&x.criteriaMatch===true&&x.noteMatch)&&latestBackup.afterSource;
+ const originalOthers=!!latestBackup&&latestBackup.deletions.filter(x=>x.exists).length===1&&latestBackup.deletions.find(x=>x.id===DEL[1])?.exists===true;
+ const conditions=[
+  ['Lecture Firebase : 13 récupérations conformes',intact],
+  ['État prévu des 3 suppressions (une seule restante)',rightDeletion],
+  ['Aucune opération locale en attente parmi les 16 IDs',cleanQueue],
+  ['Deux lectures sans changement',historical],
+  ['Réouverture du navigateur confirmée par toi',restartConfirmed],
+  ['Nouvelle sauvegarde datée et 13 données conformes',exportOK],
+  ['Nouvelle sauvegarde : seule CAPDOUZE encore à supprimer',originalOthers]
+ ];
+ const missing=conditions.filter(x=>!x[1]);
+ el.innerHTML='<h4>Bilan des vérifications — V451.57.73</h4><ul>'+conditions.map(([name,ok])=>'<li>'+(ok?'✅ ':'◻️ ')+name+'</li>').join('')+'</ul><p><strong>'+(missing.length?'Contrôles incomplets ('+missing.length+' point(s) à vérifier). Aucune écriture autorisée.':'Tous les contrôles documentaires sont réunis. La suppression réelle reste verrouillée : le risque multisession doit être traité dans un correctif distinct.')+'</strong></p>';
+}
+function exportReport(){
+ if(!analysis)throw Error('Aucune simulation disponible.');
+ const data={format:'TFAB_V451_57_73_PREFLIGHT_SANS_ECRITURE',version,sourceFilename:document.getElementById('tfab-v70-archive')?.files?.[0]?.name,lotFilename:document.getElementById('tfab-v70-lot')?.files?.[0]?.name,analysis,previousReportSummary:previousReport?{fileVersion:previousReport.version,checkedAt:previousReport.analysis.remote.checkedAt}:null,dualReadComparison:auditSnapshot,latestBackupComparison:latestBackup,restartConfirmedByUser:restartConfirmed,readiness:{remoteRecovered:!!remoteCheck&&!remoteCheck.recoverNeeded.length&&!remoteCheck.recordDivergences.length,onlyCapdouzeLeft:!!remoteCheck&&remoteCheck.deleteNeeded.length===1&&remoteCheck.deleteNeeded[0]===DEL[1],doubleReadStable:!!auditSnapshot&&!auditSnapshot.changedIds.length&&!auditSnapshot.integrityChangedIds.length,backupConformant:!!latestBackup&&latestBackup.afterSource&&latestBackup.recoveries.every(x=>x.criteriaMatch===true&&x.studentMatch&&x.noteMatch),realWritesEnabled:false},note:'Lecture seule. Ce rapport ne réalise aucune suppression ni importation Firebase. Toute divergence distante doit être traitée avant une écriture.'};
+ const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='TFAB_V451_57_73_precontrole_C2MMVP.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),3000);
+}
+function inject(){
+ if(document.getElementById('tfab-v70-audit'))return;
+ const main=document.getElementById('main');
+ if(!main||!main.querySelector('.settings-header-actions')||!safeAdmin())return;
+ const grid=main.querySelector('.settings-grid')||main;
+ const panel=document.createElement('section');panel.id='tfab-v70-audit';
+ panel.innerHTML=`<h3>🛡 Maintenance des données — C2MMVP · ${version}</h3>
+ <p>Précontrôle sécurisé de 13 récupérations et 3 suppressions. <strong>Les contrôles sont en lecture seule ; aucune modification Firebase n’est déclenchée ici.</strong></p>
+ <div class="v70-grid"><div class="v70-panel"><strong>13</strong>Récupérations</div><div class="v70-panel"><strong>3</strong>Suppressions ciblées</div><div class="v70-panel"><strong>587</strong>Total théorique</div></div>
+ <div class="v70-warn">⚠️ Ne pas utiliser « Restauration intégrale ». Le rapport V451.57.71 a identifié 13 récupérations présentes et une suppression CAPDOUZE encore nécessaire. La reprise et les suppressions resteront verrouillées tant que la protection du circuit de synchronisation et des autres postes ne sera pas validée. Ne publie pas les fichiers JSON des élèves sur GitHub.</div>
+ <div class="v70-grid"><label>Archive complète du 04/11 à 18 h 40<input id="tfab-v70-archive" type="file" accept=".json,application/json"></label><label>Lot source des 13 récupérations<input id="tfab-v70-lot" type="file" accept=".json,application/json"></label><div class="v70-panel">État : <span id="tfab-v70-status">Fichiers à charger.</span></div></div>
+ <div class="v70-actions"><button class="secondary" type="button" id="tfab-v70-local">1 · Vérifier / simuler</button><button class="secondary" type="button" id="tfab-v70-remote">2 · Actualiser Firebase (lecture seule)</button><button class="secondary" type="button" id="tfab-v70-report">5 · Exporter le rapport de contrôle</button><button class="secondary" type="button" disabled title="Verrouillé pour protéger les données réelles">Exécution réelle verrouillée · protection multisession requise</button></div>
+ <details><summary><b>Détail des 16 identifiants (lecture serveur)</b></summary><div id="tfab-v72-details">Lance la lecture Firebase pour afficher chaque statut.</div></details>
+ <div class="v70-warn"><b>Étape 3 · Contrôle après réouverture</b><p>Ferme complètement le navigateur, rouvre ce fichier, recharge les deux JSON, lance la simulation puis charge le rapport du contrôle précédent. Effectue une nouvelle lecture Firebase. Deux lectures ne prouvent pas techniquement la fermeture du navigateur : confirme cette étape toi-même.</p><label>Rapport Firebase précédent<input type="file" id="tfab-v72-previous" accept=".json,application/json"></label><div class="v70-actions"><button class="secondary" type="button" id="tfab-v72-previous-btn">Charger rapport précédent</button><button class="secondary" type="button" id="tfab-v72-compare-btn">Comparer les deux lectures</button></div></div>
+ <div class="v70-warn"><b>Étape 4 · Nouvelle sauvegarde globale</b><p>Après reconnexion, exporte une sauvegarde globale sans restaurer les données. Le contrôle compare les 13 notes, rattachements et critères détaillés, et les 3 suppressions, sans écrire sur Firebase.</p><label>Nouvelle sauvegarde globale<input type="file" id="tfab-v72-latest" accept=".json,application/json"></label><div class="v70-actions"><button class="secondary" type="button" id="tfab-v72-latest-btn">Comparer la nouvelle sauvegarde</button></div></div>
+ <div class="v70-warn"><label style="display:flex;align-items:center;gap:8px"><input id="tfab-v73-restart" type="checkbox"> J'atteste avoir fermé complètement le navigateur et rouvert le logiciel entre les deux contrôles Firebase.</label><p>Cette déclaration ne constitue pas une preuve technique de redémarrage. Elle est enregistrée dans le rapport.</p></div>
+ <div id="tfab-v73-summary" class="v70-warn">Bilan disponible après contrôles.</div>
+ <div class="v70-log" id="tfab-v70-log" aria-live="polite">Module prêt. Aucune écriture sur Firebase ou IndexedDB.</div>`;
+ grid.prepend(panel);
+ async function action(fn){try{await fn()}catch(e){status('Contrôle interrompu : '+e.message);log('BLOCAGE : '+e.message)}}
+ panel.querySelector('#tfab-v70-local').addEventListener('click',()=>action(async()=>{archive=await readFile(panel.querySelector('#tfab-v70-archive'));lot=await readFile(panel.querySelector('#tfab-v70-lot'));compare()}));
+ panel.querySelector('#tfab-v70-remote').addEventListener('click',()=>action(inspectRemote));
+ panel.querySelector('#tfab-v70-report').addEventListener('click',()=>action(exportReport));
+ panel.querySelector('#tfab-v72-previous-btn').addEventListener('click',()=>action(loadPrevious));
+ panel.querySelector('#tfab-v72-compare-btn').addEventListener('click',()=>action(compareTwoReads));
+ panel.querySelector('#tfab-v72-latest-btn').addEventListener('click',()=>action(loadNewBackup));
+ panel.querySelector('#tfab-v73-restart').addEventListener('change',e=>{restartConfirmed=e.target.checked;if(auditSnapshot)auditSnapshot.verifiedRestart=restartConfirmed;renderDecision();});
+ renderDecision();
+}
+// La page externe Cloudflare est sur un autre domaine : seul son Worker peut imposer le focus.
+// Cette amélioration garantit le focus de saisie dans le panneau local, et envoie une demande
+// non sensible à l'onglet externe. La page Cloudflare doit implémenter le récepteur.
+function installFocus(){
+ const panel=document.getElementById('tfab45156-panel');if(!panel||panel.dataset.tfabV70Focus)return;
+ panel.dataset.tfabV70Focus='1';
+ const input=panel.querySelector('input[type="password"]');
+ if(input){const focus=()=>{if(panel.hasAttribute('open'))setTimeout(()=>input.focus({preventScroll:true}),60)};
+  new MutationObserver(focus).observe(panel,{attributes:true,attributeFilter:['open']});
+  focus();
+ }
+ const link=[...panel.querySelectorAll('a')].find(a=>a.textContent.includes('Obtenir un code administrateur'));
+ if(link)link.addEventListener('click',()=>{setTimeout(()=>{try{const w=window.tfabLinkWindow;w?.postMessage({type:'tfab-focus-code-request-v1'},'*')}catch(_){}},500)},false);
+}
+let scanTimer=null;
+function scan(){inject();installFocus();}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{scan();setInterval(scan,1000)},{once:true});else{scan();setInterval(scan,1000)}
+window.TFABV70={inspectRemote,compare};
+})();
+</script>
+
+<style id="tfab-v74-delete-style">
+#tfab-v74-delete{margin:16px 0;padding:16px;border:2px solid #d59a9a;border-radius:12px;background:#fff9f8;color:#632727}
+#tfab-v74-delete button{background:#a72d2d;border:1px solid #8d2525;border-radius:8px;color:white;padding:12px 16px;font-weight:700;cursor:pointer}
+#tfab-v74-delete button:disabled{opacity:.55;cursor:not-allowed}
+#tfab-v74-delete .secondary{background:white;color:#702d2d;border-color:#c5a0a0}
+#tfab-v74-delete .log{white-space:pre-wrap;max-height:220px;overflow:auto;background:#fff;border:1px solid #e7cdcd;border-radius:8px;padding:9px;font-size:12px}
+</style>
+<script id="tfab-v74-targeted-delete">
+(function(){'use strict';
+const TARGET='EVAL_e3756c7e-d17e-41c4-a030-af4e658d4ee2';
+const STUDENT='stu_1789348741411_3_ohx0ej';
+const OLD_ABSENT=['EVAL_a50e0a8d-d3e6-4b7e-b24a-c304619f4e9d','EVAL_6b47c829-c192-451a-9413-27f5f3e3ad2e'];
+const REC=['EVAL_1400d035-ccd0-48b4-ad68-57435d30339d','EVAL_4b6085a0-2a27-4f20-9147-7f8bcff56f58','EVAL_4d1d766c-6c1f-418c-a47a-15fa11b69c90','EVAL_66eea9ad-c320-43b0-84e2-29f68ef7401d','EVAL_9307557d-fdc6-48a7-b73c-1fcab15a5253','EVAL_936f6dcf-c9de-4c26-a57c-5b928fcd3d77','EVAL_979f5076-c092-4ba6-b4cb-92e3143dc017','EVAL_a05b1a06-d581-4dca-b9ed-2dc26aa9ad3b','EVAL_aa5f151c-8308-4176-83ce-dbe5286d6e73','EVAL_bed426d6-8f79-4a08-a51e-1a1b759d00f9','EVAL_c0886077-497c-4b5f-bc05-2cb755b1c280','EVAL_d6bfbb63-baf5-4d95-9102-95f447d3cf18','EVAL_d9038bda-8c40-4905-aa59-458afb1fbffd'];
+let verified=false,busy=false, proofTime=null;
+const $=id=>document.getElementById(id);
+function log(s){const el=$('tfab-v74-log');if(el){el.textContent+='\n'+new Date().toLocaleTimeString('fr-FR')+' · '+s;el.scrollTop=el.scrollHeight;}}
+function admin(){try{return typeof isAdminTeacher==='function'&&isAdminTeacher()}catch(_){return false}}
+function firestore(){if(!admin())throw Error('Connexion administrateur requise.');if(!window.firebase?.auth?.().currentUser)throw Error('Connecte Firebase avant la suppression.');const f=window.firebase?.firestore?.();if(!f)throw Error('Firebase indisponible.');return f;}
+function ref(fs,id){return fs.collection('workspaces').doc('evaluation-mv-main').collection('evaluations').doc(id)}
+async function serverGet(r){const s=await r.get({source:'server'});if(s.metadata?.fromCache||s.metadata?.hasPendingWrites)throw Error('Réponse Firebase non confirmée par le serveur.');return s;}
+async function pendingCheck(){
+ let ops;try{ops=JSON.parse(localStorage.getItem('evaluation_firebase_pending_ops_v14')||'[]');if(!Array.isArray(ops))throw Error('format invalide');}catch(_){throw Error('La file des opérations locales est illisible.');}
+ const all=new Set([...REC,TARGET,...OLD_ABSENT]);
+ const conflicts=ops.filter(x=>all.has(String(x.id)));
+ if(conflicts.length)throw Error('Une opération locale sur les 16 évaluations est encore en attente. Ne pas supprimer.');
+ const connection=await openDB();
+ const cfg=await new Promise((resolve,reject)=>{const r=connection.transaction('appConfig','readonly').objectStore('appConfig').get('firebase_eval_pending_v45131:'+TARGET);r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)});
+ if(cfg?.value)throw Error('Une écriture collective IndexedDB est en attente pour CAPDOUZE.');
+ return connection;
+}
+async function inspect(){
+ verified=false;proofTime=null;$('tfab-v74-delete-btn').disabled=true;const fs=firestore();await pendingCheck();
+ const all=[...REC,...OLD_ABSENT,TARGET],snaps=[];
+ for(const id of all)snaps.push(await serverGet(ref(fs,id)));
+ const missing=REC.filter((id,i)=>!snaps[i].exists);if(missing.length)throw Error(missing.length+' récupération(s) historiques absente(s) de Firebase : suppression bloquée.');
+ for(let i=0;i<OLD_ABSENT.length;i++)if(snaps[REC.length+i].exists)throw Error('Une ancienne évaluation ciblée est réapparue : suppression bloquée.');
+ const target=snaps[snaps.length-1];if(!target.exists){log('CAPDOUZE : évaluation déjà absente sur Firebase.');$('tfab-v74-check').textContent='Déjà absente de Firebase';return;}
+ const data=target.data()||{};
+ if(String(data.studentId)!==STUDENT)throw Error('L’identifiant élève ne correspond pas à CAPDOUZE Lucas.');
+ const n=Number(data.sourceNote20??data.note20??data.note);
+ if(n!==10)throw Error('La note ne correspond pas à 10/20 (trouvée : '+n+').');
+ const date=String(data.date||'');if(!date.includes('06/10/2026')&&!date.includes('2026-10-06'))throw Error('Date différente du 06/10/2026 : '+date);
+ verified=true;proofTime=Date.now();$('tfab-v74-check').textContent='16 identifiants contrôlés · seule la copie CAPDOUZE reste à supprimer';$('tfab-v74-delete-btn').disabled=false;
+ log('Contrôle Firebase valide : 13 historiques présents, HUET et MAGNELE absents, CAPDOUZE présent (10/20).');
+}
+async function deleteOne(){
+ if(!verified||!proofTime||Date.now()-proofTime>120000)throw Error('Vérification trop ancienne. Relance le contrôle.');
+ verified=false;$('tfab-v74-delete-btn').disabled=true;
+ const word=prompt('SUPPRESSION DÉFINITIVE : CAPDOUZE Lucas · 06/10/2026 · 10/20.\nPour confirmer, saisis exactement SUPPRIMER :');
+ if(word!=='SUPPRIMER'){log('Suppression annulée.');return;}
+ const fs=firestore();const connection=await pendingCheck();
+ const current=await serverGet(ref(fs,TARGET));
+ if(!current.exists){log('Le document est déjà absent : aucune écriture effectuée.');return;}
+ const d=current.data()||{};if(String(d.studentId)!==STUDENT||Number(d.sourceNote20??d.note20??d.note)!==10)throw Error('Fiche modifiée depuis le contrôle : suppression refusée.');
+ // On lit à nouveau la présence des 13 historiques juste avant l'écriture.
+ for(const id of REC){if(!(await serverGet(ref(fs,id))).exists)throw Error('Une des 13 évaluations n’est plus présente. Suppression refusée.');}
+ // La suppression serveur est exécutée avant la suppression locale pour ne pas dépendre d'un envoi différé.
+ await ref(fs,TARGET).delete();
+ const proof=await serverGet(ref(fs,TARGET));if(proof.exists)throw Error('Le serveur retourne encore la fiche : suppression non confirmée.');
+ log('Firebase : suppression confirmée pour le seul identifiant CAPDOUZE.');
+ try{
+  // Utiliser la transaction native IndexedDB : ne pas mettre en file une seconde suppression.
+  await new Promise((resolve,reject)=>{const tx=connection.transaction('evaluations','readwrite');tx.objectStore('evaluations').delete(TARGET);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error)});
+  log('Cache local IndexedDB : fiche CAPDOUZE supprimée.');
+ }catch(e){log('ATTENTION : serveur supprimé, cache local non nettoyé : '+e.message);throw Error('Suppression Firebase validée, mais nettoyage local incomplet. Conserve ce message et évite les anciennes versions.');}
+ if(typeof loadData==='function')await loadData();
+ const confirm=await serverGet(ref(fs,TARGET));if(confirm.exists)throw Error('Le document a réapparu pendant la vérification.');
+ $('tfab-v74-check').textContent='SUPPRESSION CONFIRMÉE SUR FIREBASE';
+ log('Terminé : CAPDOUZE supprimé sur Firebase et dans le cache local. Les 13 historiques n’ont pas été modifiés.');
+ alert('Suppression confirmée sur Firebase et dans le cache local : CAPDOUZE Lucas, 06/10/2026, 10/20.');
+}
+function mount(){const container=$('tfab-v70-audit');if(!container||$('tfab-v74-delete')||!admin())return;
+ const box=document.createElement('section');box.id='tfab-v74-delete';box.innerHTML='<h3>🗑️ Suppression ciblée — CAPDOUZE Lucas</h3><p>Une seule évaluation : <strong>06/10/2026 · Révision — entretien périodique 3 filtres · 10/20</strong>.</p><p>Cette action vérifie directement les 16 identifiants sur Firebase. Les 13 évaluations historiques ne seront pas modifiées.</p><p id="tfab-v74-check"><strong>À contrôler sur Firebase.</strong></p><div style="display:flex;gap:10px;flex-wrap:wrap"><button type="button" class="secondary" id="tfab-v74-inspect">1 · Vérifier la copie à supprimer</button><button type="button" id="tfab-v74-delete-btn" disabled>2 · Supprimer définitivement CAPDOUZE</button></div><p style="font-size:12px">La suppression est irréversible. Ne conserve pas une ancienne version du logiciel ouverte sur un autre appareil pendant cette opération. L’absence sur des appareils non connectés ne peut pas être garantie par ce seul module.</p><div id="tfab-v74-log" class="log">Aucune écriture effectuée.</div>';
+ container.insertBefore(box,container.firstChild);
+ const act=async(fn)=>{if(busy)return;busy=true;for(const b of box.querySelectorAll('button'))b.disabled=true;try{await fn()}catch(e){log('BLOCAGE : '+e.message);alert('Suppression interrompue : '+e.message);}finally{busy=false;$('tfab-v74-inspect').disabled=false;$('tfab-v74-delete-btn').disabled=!verified;}};
+ $('tfab-v74-inspect').onclick=()=>act(inspect);$('tfab-v74-delete-btn').onclick=()=>act(deleteOne);
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{mount();setInterval(mount,1300)},{once:true});else{mount();setInterval(mount,1300)}
+})();
+</script>
