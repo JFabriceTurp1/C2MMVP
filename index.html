@@ -7,7 +7,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1" name="viewport"/>
-<title>V451.57.86 — Évaluation · Charge Atelier · TP · Correction</title>
+<title>V451.57.88 — Évaluation · Charge Atelier · TP · Correction</title>
 <style>
 *{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f5f7fa;color:#172033}
 .app{display:flex;min-height:100vh}.side{width:235px;background:#172033;color:#fff;padding:22px 14px}.logo{font-size:19px;font-weight:700;padding:8px 10px 24px}
@@ -22686,7 +22686,9 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 #tfab451725-modal{position:fixed;inset:0;z-index:2147483000;display:flex;align-items:center;justify-content:center;background:#0b2035a8;padding:18px;font:14px Arial,sans-serif;color:#183653}
 #tfab451725-modal[hidden]{display:none}#tfab451725-modal .panel{background:#fff;border-radius:16px;width:min(750px,96vw);max-height:91vh;overflow:auto;padding:23px;box-shadow:0 20px 70px #10273b77}
 #tfab451725-modal h2{margin:0 0 13px}#tfab451725-modal .line{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0}#tfab451725-modal label{display:block;flex:1;min-width:180px}#tfab451725-modal input,#tfab451725-modal select{box-sizing:border-box;width:100%;padding:10px;border:1px solid #c0d1df;border-radius:8px;margin-top:5px}#tfab451725-modal button,.tfab725-button{padding:9px 12px;border-radius:8px;border:1px solid #bdcedd;background:#edf5fc;color:#163d60;cursor:pointer;font-weight:bold}
-#tf725-state{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.4;font-weight:600;margin:10px 0;color:#163d60}#tfab451725-modal button.primary{background:#175a92;color:#fff}#tfab451725-modal button:disabled{opacity:.5;cursor:default}#tfab451725-students{border:1px solid #d0dde9;border-radius:8px;padding:10px;max-height:225px;overflow:auto}#tfab451725-students label{display:flex;align-items:center;gap:8px;margin:7px 0;font-weight:normal;min-width:0}#tfab451725-students input{width:auto;margin:0}
+#tf725-state{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.4;font-weight:600;margin:10px 0;color:#163d60}
+#tf725-testlight{display:inline-flex;align-items:center;gap:9px;margin:0 0 8px;font-weight:750;min-height:28px;color:#586b80}#tf725-testlight .tf725-lamp{display:inline-block;width:18px;height:18px;border-radius:50%;background:#bdc7d1;box-shadow:inset 0 0 0 2px #8495a83d}#tf725-testlight[data-state="ok"]{color:#16743c}#tf725-testlight[data-state="ok"] .tf725-lamp{background:#20b15e;box-shadow:0 0 0 3px #20b15e29}#tf725-testlight[data-state="error"]{color:#a72d32}#tf725-testlight[data-state="error"] .tf725-lamp{background:#df3743;box-shadow:0 0 0 3px #df374329}
+#tfab451725-modal button.primary{background:#175a92;color:#fff}#tfab451725-modal button:disabled{opacity:.5;cursor:default}#tfab451725-students{border:1px solid #d0dde9;border-radius:8px;padding:10px;max-height:225px;overflow:auto}#tfab451725-students label{display:flex;align-items:center;gap:8px;margin:7px 0;font-weight:normal;min-width:0}#tfab451725-students input{width:auto;margin:0}
 #tfab451574-manager .tp725-card{background:#fff;border:1px solid #d5e1eb;border-radius:12px;padding:15px;margin:12px 0;box-shadow:0 2px 8px #17344c0c}#tfab451574-manager .tp725-card h3{margin:0 0 5px;font-size:16px}#tfab451574-manager .tp725-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}#tfab451574-manager .tp725-pill{display:inline-block;padding:4px 9px;border-radius:12px;background:#eef4fa;color:#265179;font-size:12px;margin:5px 5px 3px 0}#tfab451574-manager .tp725-pill.finished{background:#e3f4e8;color:#236c3c}#tfab451574-manager .tp574-table-wrap{overflow:visible}#tfab451574-manager .tp574-table-wrap table{display:none}#tp725-cards{display:block}
 .tp725-admin-zone{border-top:1px solid #d0dfeb;padding-top:13px;margin-top:12px}.tp725-admin-list{max-height:380px;overflow:auto}.tp725-admin-row{display:flex;gap:12px;justify-content:space-between;align-items:center;border:1px solid #d9e4ed;border-radius:9px;padding:12px;margin:8px 0;flex-wrap:wrap}.tp725-admin-row small{display:block;color:#657a8c}
 </style>
@@ -22696,7 +22698,7 @@ const ORIGIN='https://portail-partage.khmg8np9yj.workers.dev';
 const html=s=>String(s??'').replace(/[&<>"']/g,x=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[x]));
 const cache={items:[],loaded:0,pending:null};let sending=false;
 // Diagnostic en lecture seule, sans jeton ni données d'élèves dans l'export.
-let lastDiagnostic={version:'V451.57.86',generatedAt:'',checks:[]};
+let lastDiagnostic={version:'V451.57.88',generatedAt:'',checks:[]};
 function safeDiagnostic(value){
  if(!value||typeof value!=='object')return {type:typeof value};
  const allowed=['ok','success','error','message','status','code','created','campaignId','campagneId','campaign_id','campagne_id','nb_eleves','count','total'];
@@ -22738,26 +22740,44 @@ function locked(){try{return window.tpGenLockedSnapshot?.()||null}catch(_){retur
 function master(tp){const raw=tp.rawProject&&typeof tp.rawProject==='object'?tp.rawProject:tp;return JSON.parse(JSON.stringify(raw))}
 async function openPublish(){const tp=locked();if(!tp){alert('Choisis d’abord un TP enregistré et verrouillé dans « Diffuser un TP ».');return}
 const code=String(tp.code||tp.tpCode||window.tpGenTpCode?.(tp)||'').trim(),title=String(tp.titre||tp.title||tp.activity||tp.rawProject?.data?.publicTitle||tp.rawProject?.publicTitle||code).trim();if(!code){alert('Code du TP introuvable.');return}
-close();const wrap=document.createElement('div');wrap.id='tfab451725-modal';wrap.innerHTML='<div class="panel" role="dialog" aria-modal="true"><h2>☁ Diffuser un TP — Cloudflare</h2><p><b>'+html(code)+'</b> — '+html(title)+'</p><div class="line"><label>Classe<select id="tf725-class"><option value="2MAC1">2MAC1</option><option value="BETA">BETA</option></select></label><label>Code du TP<input value="'+html(code)+'" readonly></label></div><label style="display:block;width:100%;margin:12px 0">Titre du TP diffusé<input id="tf725-title" type="text" maxlength="180" value="'+html(title)+'" required placeholder="Saisir le titre visible par les élèves"></label><p><small>Ce titre concerne seulement cette campagne. Le code du TP et le document source sont conservés.</small></p><p><button type="button" id="tf725-selectall">Tout sélectionner</button> <button type="button" id="tf725-selectnone">Tout décocher</button></p><div id="tfab451725-students">Chargement des élèves…</div><p id="tf725-count"></p><div id="tf725-state" role="status" aria-live="polite"></div><div class="line"><button type="button" id="tf725-diagnostic">🔎 Diagnostiquer Cloudflare (sans envoi)</button><button type="button" id="tf725-report">Exporter diagnostic JSON</button></div><div class="line"><button type="button" id="tf725-cancel">Annuler</button><button type="button" class="primary" id="tf725-send" disabled>Confirmer la diffusion sur Cloudflare</button></div><p><small>Une campagne distincte sera créée. Les précédents rendus et corrections sont conservés.</small></p></div>';document.body.append(wrap);const $=id=>document.getElementById(id);$('tf725-class').value=className()||'2MAC1';$('tf725-cancel').onclick=()=>{if(!sending)close()};$('tf725-selectall').onclick=()=>{$('tfab451725-students').querySelectorAll('input[type=checkbox]').forEach(x=>x.checked=true);count()};$('tf725-selectnone').onclick=()=>{$('tfab451725-students').querySelectorAll('input[type=checkbox]').forEach(x=>x.checked=false);count()};
+close();const wrap=document.createElement('div');wrap.id='tfab451725-modal';wrap.innerHTML='<div class="panel" role="dialog" aria-modal="true"><h2>☁ Diffuser un TP — Cloudflare</h2><p><b>'+html(code)+'</b> — '+html(title)+'</p><div class="line"><label>Classe<select id="tf725-class"><option value="2MAC1">2MAC1</option><option value="BETA">BETA</option></select></label><label>Code du TP<input value="'+html(code)+'" readonly></label></div><label style="display:block;width:100%;margin:12px 0">Titre du TP diffusé<input id="tf725-title" type="text" maxlength="180" value="'+html(title)+'" required placeholder="Saisir le titre visible par les élèves"></label><p><small>Ce titre concerne seulement cette campagne. Le code du TP et le document source sont conservés.</small></p><p><button type="button" id="tf725-selectall">Tout sélectionner</button> <button type="button" id="tf725-selectnone">Tout décocher</button></p><div id="tfab451725-students">Chargement des élèves…</div><p id="tf725-count"></p><div id="tf725-testlight" role="status" aria-live="polite" data-state="idle"><span class="tf725-lamp" aria-hidden="true"></span><span id="tf725-testlabel">Test non effectué</span></div><div id="tf725-state" role="status" aria-live="polite"></div><div class="line"><button type="button" id="tf725-diagnostic">🔎 Tester la diffusion (sans envoi)</button><button type="button" id="tf725-report">Exporter diagnostic JSON</button></div><div class="line"><button type="button" id="tf725-cancel">Annuler</button><button type="button" class="primary" id="tf725-send" disabled>Confirmer la diffusion sur Cloudflare</button></div><p><small>Une campagne distincte sera créée. Les précédents rendus et corrections sont conservés.</small></p></div>';document.body.append(wrap);const $=id=>document.getElementById(id);$('tf725-class').value=className()||'2MAC1';$('tf725-cancel').onclick=()=>{if(!sending || !$('tf725-cancel').disabled)close()};$('tf725-selectall').onclick=()=>{$('tfab451725-students').querySelectorAll('input[type=checkbox]').forEach(x=>x.checked=true);count()};$('tf725-selectnone').onclick=()=>{$('tfab451725-students').querySelectorAll('input[type=checkbox]').forEach(x=>x.checked=false);count()};
 const count=()=>{const n=$('tfab451725-students').querySelectorAll('input:checked').length;$('tf725-count').textContent=n+' élève(s) sélectionné(s)';$('tf725-send').disabled=!n||sending};
 async function load(){const cl=$('tf725-class').value;$('tfab451725-students').textContent='Chargement des élèves de '+cl+'…';$('tf725-send').disabled=true;try{const data=await request('/api/prof/v45156/eleves?classe='+encodeURIComponent(cl));if(!$('tf725-class')||$('tf725-class').value!==cl)return;const students=$('tfab451725-students');students.replaceChildren();for(const s of data.items||[]){const sid=Number(s?.id);if(!Number.isSafeInteger(sid)||sid<=0)continue;const row=document.createElement('label'),input=document.createElement('input');input.type='checkbox';input.checked=true;input.value=String(sid);input.onchange=count;row.append(input,document.createTextNode(String(s.nom||'Élève #'+sid)));students.append(row)}if(!students.children.length)students.textContent='Aucun élève actif pour cette classe';count()}catch(e){$('tfab451725-students').textContent='Erreur : '+e.message;$('tf725-state').textContent='Vérifie ta connexion Cloudflare';count()}}
-$('tf725-class').onchange=load;
+$('tf725-class').onchange=()=>{setTestLight('idle','Test non effectué');load()};
 $('tf725-report').onclick=exportDiagnostic;
+// Test en lecture seule : un voyant vert certifie la connexion et les deux lectures,
+// jamais la création d'une campagne, qui est confirmée uniquement après le POST.
+function setTestLight(state, label){
+ const lamp=$('tf725-testlight'), txt=$('tf725-testlabel');
+ if(lamp&&txt){lamp.dataset.state=state;txt.textContent=label;}
+}
 $('tf725-diagnostic').onclick=async()=>{
  $('tf725-diagnostic').disabled=true;
- const cl=$('tf725-class').value;
- const codeCurrent=code;
- $('tf725-state').textContent='Diagnostic en lecture seule : consultation des campagnes et des élèves. Aucun envoi.';
+ setTestLight('idle','Test en cours…');
+ const cl=$('tf725-class').value, codeCurrent=code;
  try{
-  const r=await fetch(ORIGIN+'/api/prof/v45156/campagnes',{headers:{Authorization:'Bearer '+readToken()},credentials:'omit',cache:'no-store'});
-  const raw=await r.text();let data;try{data=JSON.parse(raw)}catch(_){data=null}
-  const items=Array.isArray(data?.items)?data.items:[];
-  const matches=items.filter(x=>String(x.tp_code??x.tpCode??'').trim()===codeCurrent && String(x.classe||'').toUpperCase()===cl.toUpperCase());
-  const entry={type:'LECTURE_SEULE',httpStatus:r.status,contentType:r.headers.get('content-type')||'',payload:safeDiagnostic(data),campaignCount:items.length,matchingCampaignCount:matches.length};
-  addDiagnostic(entry);
-  $('tf725-state').textContent='Diagnostic terminé. HTTP '+r.status+' ; réponse : '+entry.contentType+' ; '+items.length+' campagne(s) dans la liste ; '+matches.length+' correspondant au code '+codeCurrent+' / '+cl+'. Aucun envoi effectué. Clique sur « Exporter diagnostic JSON » et transmets-moi le rapport.';
- }catch(err){addDiagnostic({type:'ERREUR_LECTURE',message:String(err?.message||err).slice(0,250)});$('tf725-state').textContent='Erreur de lecture : '+String(err?.message||err)+' — Aucun envoi effectué.'}
- finally{$('tf725-diagnostic').disabled=false;}
+  const token=readToken();if(!token)throw Error('Liaison administrateur Cloudflare absente.');
+  // Employez la même fonction authentifiée que lors d'une diffusion ; aucune écriture.
+  const [campaignData,studentsData]=await Promise.all([
+   request('/api/prof/v45156/campagnes'),
+   request('/api/prof/v45156/eleves?classe='+encodeURIComponent(cl))
+  ]);
+  if(!Array.isArray(campaignData.items))throw Error('Liste des campagnes invalide.');
+  if(!Array.isArray(studentsData.items))throw Error('Liste des élèves invalide.');
+  const validIds=new Set(studentsData.items.map(s=>Number(s.id)).filter(x=>Number.isSafeInteger(x)&&x>0));
+  const selected=Array.from($('tfab451725-students').querySelectorAll('input:checked'),x=>Number(x.value));
+  if(!selected.length)throw Error('Aucun élève sélectionné.');
+  if(selected.some(x=>!validIds.has(x)))throw Error('Un élève sélectionné est absent de la liste Cloudflare.');
+  const matches=campaignData.items.filter(x=>String(x.tp_code??x.tpCode??'').trim()===codeCurrent && String(x.classe||'').toUpperCase()===cl.toUpperCase());
+  addDiagnostic({type:'TEST_DIFFUSION_SANS_ENVOI',result:'OK',campaignCount:campaignData.items.length,matchingCampaignCount:matches.length,selectedCount:selected.length,validStudentCount:validIds.size});
+  setTestLight('ok','Connexion Cloudflare OK · '+selected.length+' élève(s) prêts');
+  $('tf725-state').textContent='Test de préparation réussi : lecture des campagnes et des élèves. Aucun TP envoyé. Ce test ne confirme pas la création d’une campagne.';
+ }catch(err){
+  const msg=String(err?.message||err);
+  addDiagnostic({type:'TEST_DIFFUSION_SANS_ENVOI',result:'ECHEC',message:msg.slice(0,250)});
+  setTestLight('error','Connexion ou sélection à vérifier');
+  $('tf725-state').textContent='Test échoué : '+msg+' · Aucun TP envoyé.';
+ }finally{$('tf725-diagnostic').disabled=false;}
 };
 $('tf725-send').onclick=async()=>{if(sending)return;const ids=Array.from($('tfab451725-students').querySelectorAll('input:checked'),x=>Number(x.value)),cl=$('tf725-class').value;if(!ids.length)return;if(ids.some(id=>!Number.isSafeInteger(id)||id<=0)){ $('tf725-state').textContent='Diffusion non lancée : identifiant élève absent ou invalide. Réouvre la liste des élèves.';return}const diffusionTitle=String($('tf725-title').value||'').trim();if(!diffusionTitle||diffusionTitle.length>180){$('tf725-state').textContent='Saisis un titre valide (180 caractères maximum).';$('tf725-title').focus();return}const message='Diffuser « '+diffusionTitle+' » ('+code+') à '+ids.length+' élève(s) de '+cl+' ?\n\nCette action crée une nouvelle campagne.';if(!confirm(message))return;sending=true;count();$('tf725-cancel').disabled=true;$('tf725-class').disabled=true;$('tf725-state').textContent='Préparation et transfert du TP sur Cloudflare… Ne ferme pas cette fenêtre.';
 let beforeIds=null;try{const baseline=await request('/api/prof/v45156/campagnes');beforeIds=new Set((baseline.items||[]).map(c=>String(c.id)));
