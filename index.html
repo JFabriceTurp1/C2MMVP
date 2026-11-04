@@ -7,7 +7,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1" name="viewport"/>
-<title>V451.57.88 — Évaluation · Charge Atelier · TP · Correction</title>
+<title>V451.57.89 — Évaluation · Charge Atelier · TP · Correction</title>
 <style>
 *{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f5f7fa;color:#172033}
 .app{display:flex;min-height:100vh}.side{width:235px;background:#172033;color:#fff;padding:22px 14px}.logo{font-size:19px;font-weight:700;padding:8px 10px 24px}
@@ -2822,6 +2822,10 @@ body{background:#f7f9fc;color:var(--text)}
 <!-- V451.57.83 : base fonctionnelle V451.57.74. Masquage VISUEL des panneaux temporaires C2MMVP uniquement. -->
 <style id="tfab-v83-maintenance-ui-hidden">
 #tfab-v70-audit, #tfab-v74-delete { display:none !important; }
+</style>
+<style id="tfab-v4515789-hide-storage-badge">
+/* Purement visuel : le stockage, les sauvegardes et les alertes internes restent actifs. */
+#tfab45164-storage-status{display:none!important}
 </style>
 </head>
 <body class="firebase-disabled-mode">
@@ -22698,7 +22702,7 @@ const ORIGIN='https://portail-partage.khmg8np9yj.workers.dev';
 const html=s=>String(s??'').replace(/[&<>"']/g,x=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[x]));
 const cache={items:[],loaded:0,pending:null};let sending=false;
 // Diagnostic en lecture seule, sans jeton ni données d'élèves dans l'export.
-let lastDiagnostic={version:'V451.57.88',generatedAt:'',checks:[]};
+let lastDiagnostic={version:'V451.57.89',generatedAt:'',checks:[]};
 function safeDiagnostic(value){
  if(!value||typeof value!=='object')return {type:typeof value};
  const allowed=['ok','success','error','message','status','code','created','campaignId','campagneId','campaign_id','campagne_id','nb_eleves','count','total'];
@@ -22735,12 +22739,24 @@ async function request(path,options={}){
 async function campaigns(force=false){if(!force&&Date.now()-cache.loaded<30000)return cache.items;if(cache.pending)return cache.pending;cache.pending=request('/api/prof/v45156/campagnes').then(x=>{cache.items=x.items||[];cache.loaded=Date.now();return cache.items}).finally(()=>{cache.pending=null});return cache.pending}
 window.tfab451725Campaigns=campaigns;
 function className(){let c=String(window.activeClassName?.()||'').trim().toUpperCase();return ['BETA','2MAC1'].includes(c)?c:''}
-function close(){document.getElementById('tfab451725-modal')?.remove()}
+// V451.57.89 — fermeture d'une diffusion achevée : lever uniquement le verrou de la fenêtre.
+// Ne pas autoriser une fermeture pendant l'envoi réseau pour éviter les doubles POST.
+function close(){
+ const modal=document.getElementById('tfab451725-modal');
+ if(modal?.querySelector('#tf725-cancel')?.disabled)return;
+ modal?.remove();
+ sending=false;
+}
+
 function locked(){try{return window.tpGenLockedSnapshot?.()||null}catch(_){return null}}
 function master(tp){const raw=tp.rawProject&&typeof tp.rawProject==='object'?tp.rawProject:tp;return JSON.parse(JSON.stringify(raw))}
 async function openPublish(){const tp=locked();if(!tp){alert('Choisis d’abord un TP enregistré et verrouillé dans « Diffuser un TP ».');return}
 const code=String(tp.code||tp.tpCode||window.tpGenTpCode?.(tp)||'').trim(),title=String(tp.titre||tp.title||tp.activity||tp.rawProject?.data?.publicTitle||tp.rawProject?.publicTitle||code).trim();if(!code){alert('Code du TP introuvable.');return}
-close();const wrap=document.createElement('div');wrap.id='tfab451725-modal';wrap.innerHTML='<div class="panel" role="dialog" aria-modal="true"><h2>☁ Diffuser un TP — Cloudflare</h2><p><b>'+html(code)+'</b> — '+html(title)+'</p><div class="line"><label>Classe<select id="tf725-class"><option value="2MAC1">2MAC1</option><option value="BETA">BETA</option></select></label><label>Code du TP<input value="'+html(code)+'" readonly></label></div><label style="display:block;width:100%;margin:12px 0">Titre du TP diffusé<input id="tf725-title" type="text" maxlength="180" value="'+html(title)+'" required placeholder="Saisir le titre visible par les élèves"></label><p><small>Ce titre concerne seulement cette campagne. Le code du TP et le document source sont conservés.</small></p><p><button type="button" id="tf725-selectall">Tout sélectionner</button> <button type="button" id="tf725-selectnone">Tout décocher</button></p><div id="tfab451725-students">Chargement des élèves…</div><p id="tf725-count"></p><div id="tf725-testlight" role="status" aria-live="polite" data-state="idle"><span class="tf725-lamp" aria-hidden="true"></span><span id="tf725-testlabel">Test non effectué</span></div><div id="tf725-state" role="status" aria-live="polite"></div><div class="line"><button type="button" id="tf725-diagnostic">🔎 Tester la diffusion (sans envoi)</button><button type="button" id="tf725-report">Exporter diagnostic JSON</button></div><div class="line"><button type="button" id="tf725-cancel">Annuler</button><button type="button" class="primary" id="tf725-send" disabled>Confirmer la diffusion sur Cloudflare</button></div><p><small>Une campagne distincte sera créée. Les précédents rendus et corrections sont conservés.</small></p></div>';document.body.append(wrap);const $=id=>document.getElementById(id);$('tf725-class').value=className()||'2MAC1';$('tf725-cancel').onclick=()=>{if(!sending || !$('tf725-cancel').disabled)close()};$('tf725-selectall').onclick=()=>{$('tfab451725-students').querySelectorAll('input[type=checkbox]').forEach(x=>x.checked=true);count()};$('tf725-selectnone').onclick=()=>{$('tfab451725-students').querySelectorAll('input[type=checkbox]').forEach(x=>x.checked=false);count()};
+// Un nouveau TP doit être diffusable après le traitement du TP précédent.
+// Refuser toute ouverture concurrente tant que le transfert en cours n'est pas achevé.
+if(document.querySelector('#tfab451725-modal #tf725-cancel:disabled'))return;
+close();sending=false;
+const wrap=document.createElement('div');wrap.id='tfab451725-modal';wrap.innerHTML='<div class="panel" role="dialog" aria-modal="true"><h2>☁ Diffuser un TP — Cloudflare</h2><p><b>'+html(code)+'</b> — '+html(title)+'</p><div class="line"><label>Classe<select id="tf725-class"><option value="2MAC1">2MAC1</option><option value="BETA">BETA</option></select></label><label>Code du TP<input value="'+html(code)+'" readonly></label></div><label style="display:block;width:100%;margin:12px 0">Titre du TP diffusé<input id="tf725-title" type="text" maxlength="180" value="'+html(title)+'" required placeholder="Saisir le titre visible par les élèves"></label><p><small>Ce titre concerne seulement cette campagne. Le code du TP et le document source sont conservés.</small></p><p><button type="button" id="tf725-selectall">Tout sélectionner</button> <button type="button" id="tf725-selectnone">Tout décocher</button></p><div id="tfab451725-students">Chargement des élèves…</div><p id="tf725-count"></p><div id="tf725-testlight" role="status" aria-live="polite" data-state="idle"><span class="tf725-lamp" aria-hidden="true"></span><span id="tf725-testlabel">Test non effectué</span></div><div id="tf725-state" role="status" aria-live="polite"></div><div class="line"><button type="button" id="tf725-diagnostic">🔎 Tester la diffusion (sans envoi)</button><button type="button" id="tf725-report">Exporter diagnostic JSON</button></div><div class="line"><button type="button" id="tf725-cancel">Annuler</button><button type="button" class="primary" id="tf725-send" disabled>Confirmer la diffusion sur Cloudflare</button></div><p><small>Une campagne distincte sera créée. Les précédents rendus et corrections sont conservés.</small></p></div>';document.body.append(wrap);const $=id=>document.getElementById(id);$('tf725-class').value=className()||'2MAC1';$('tf725-cancel').onclick=()=>{if(!sending || !$('tf725-cancel').disabled)close()};$('tf725-selectall').onclick=()=>{$('tfab451725-students').querySelectorAll('input[type=checkbox]').forEach(x=>x.checked=true);count()};$('tf725-selectnone').onclick=()=>{$('tfab451725-students').querySelectorAll('input[type=checkbox]').forEach(x=>x.checked=false);count()};
 const count=()=>{const n=$('tfab451725-students').querySelectorAll('input:checked').length;$('tf725-count').textContent=n+' élève(s) sélectionné(s)';$('tf725-send').disabled=!n||sending};
 async function load(){const cl=$('tf725-class').value;$('tfab451725-students').textContent='Chargement des élèves de '+cl+'…';$('tf725-send').disabled=true;try{const data=await request('/api/prof/v45156/eleves?classe='+encodeURIComponent(cl));if(!$('tf725-class')||$('tf725-class').value!==cl)return;const students=$('tfab451725-students');students.replaceChildren();for(const s of data.items||[]){const sid=Number(s?.id);if(!Number.isSafeInteger(sid)||sid<=0)continue;const row=document.createElement('label'),input=document.createElement('input');input.type='checkbox';input.checked=true;input.value=String(sid);input.onchange=count;row.append(input,document.createTextNode(String(s.nom||'Élève #'+sid)));students.append(row)}if(!students.children.length)students.textContent='Aucun élève actif pour cette classe';count()}catch(e){$('tfab451725-students').textContent='Erreur : '+e.message;$('tf725-state').textContent='Vérifie ta connexion Cloudflare';count()}}
 $('tf725-class').onchange=()=>{setTestLight('idle','Test non effectué');load()};
