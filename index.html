@@ -7,7 +7,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1" name="viewport"/>
-<title>V451.57.93 — Évaluation · Charge Atelier · TP · Correction</title>
+<title>V451.57.97 — Évaluation · Charge Atelier · TP · Correction</title>
 <style>
 *{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f5f7fa;color:#172033}
 .app{display:flex;min-height:100vh}.side{width:235px;background:#172033;color:#fff;padding:22px 14px}.logo{font-size:19px;font-weight:700;padding:8px 10px 24px}
@@ -2860,10 +2860,10 @@ body{background:#f7f9fc;color:var(--text)}
 <!-- V88 — DONNÉES DE RÉFÉRENCE RÉINTÉGRÉES DEPUIS V86.5
      Jeux embarqués repris : référentiel compétences, élèves par défaut, seconde classe fictive, situations professionnelles.
      Les données dynamiques (classes/élèves/évaluations réellement saisies) restent chargées par IndexedDB/localStorage et Firebase. -->
-<div id="build-version">V451.57.67 — Évaluation · Charge Atelier · TP · Correction</div>
+<div id="build-version">V451.57.97 — Évaluation · Charge Atelier · TP · Correction</div>
 <div id="firebase-auth-overlay">
 <div class="firebase-login-card">
-<h2>☁️ Connexion Firebase — V89</h2>
+<h2>☁️ Connexion Firebase — V451.57.97</h2>
 <p>Cette version synchronise les classes, les élèves et désormais les évaluations avec Firebase. Le stockage local reste utilisé comme cache de sécurité pendant cette phase de validation.</p>
 <form id="firebase-login-form">
 <label for="firebase-email">Adresse e-mail</label>
@@ -24954,7 +24954,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 #tfab451574-manager .tfab91-status-pill,#at-main .tfab91-status-pill{border-radius:999px;padding:5px 9px;font-size:12px;font-weight:750;white-space:nowrap}
 </style>
 <script id="tfab4515791-version">
-(function(){function update(){const n=document.getElementById('build-version');if(n)n.textContent='V451.57.93 — Évaluation · Charge Atelier · TP · Correction';document.title='V451.57.93 — Évaluation · Charge Atelier · TP · Correction';}
+(function(){function update(){const n=document.getElementById('build-version');if(n)n.textContent='V451.57.97 — Évaluation · Charge Atelier · TP · Correction';document.title='V451.57.97 — Évaluation · Charge Atelier · TP · Correction';}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',update,{once:true});else update();})();
 </script>
 
@@ -25044,5 +25044,62 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
  function schedule(){if(frame)return;frame=requestAnimationFrame(()=>{frame=0;setup()});}
  new MutationObserver(schedule).observe(document.querySelector('#main')||document.body,{childList:true,subtree:true});
  schedule();
+})();
+</script>
+
+ 
+<style id="tfab-v97-style">
+#tfab-v97-tools{position:fixed;bottom:14px;right:15px;z-index:30;display:flex;align-items:center;gap:6px;max-width:calc(100vw - 30px);flex-wrap:wrap;font:12px Arial,sans-serif}
+#tfab-v97-tools button{font:600 12px Arial,sans-serif;padding:7px 10px;border:1px solid #b4c7dc;border-radius:8px;background:#fff;color:#254466;cursor:pointer;box-shadow:0 1px 4px #0001}
+#tfab-v97-tools button:disabled{opacity:.5;cursor:wait}
+#tfab-v97-tools button:focus-visible{outline:2px solid #156fc6}
+@media print{#tfab-v97-tools{display:none!important}}
+</style>
+<script id="tfab-v97-storage-manual-only">
+(function(){'use strict';
+const KEY='tp_correction_local_v54',DB='fdmahy_corrections_v129',STORE='copies';
+let backupDone=false,busy=false;
+const message=e=>String(e&&e.message||e);
+function read(){let raw=localStorage.getItem(KEY)||'[]';let rows=JSON.parse(raw);if(!Array.isArray(rows))throw Error('Index des copies invalide.');return {raw,rows}}
+function download(text,name){const blob=new Blob([text],{type:'application/json;charset=utf-8'});const url=URL.createObjectURL(blob);let a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),15000)}
+function backup(){const v=read();download(v.raw,'TFAB_SAUVEGARDE_COPIES_LOCALES_'+new Date().toISOString().replace(/[:.]/g,'-')+'.json');backupDone=true;alert('Sauvegarde locale demandée : '+v.rows.length+' copie(s). Vérifie que le fichier JSON apparaît dans Téléchargements avant toute autre opération.');}
+function openDb(){return new Promise((resolve,reject)=>{if(!window.indexedDB)return reject(Error('IndexedDB indisponible'));const q=indexedDB.open(DB,1);q.onupgradeneeded=()=>{if(!q.result.objectStoreNames.contains(STORE))q.result.createObjectStore(STORE,{keyPath:'id'})};q.onsuccess=()=>resolve(q.result);q.onerror=()=>reject(q.error||Error('IndexedDB inaccessible'));q.onblocked=()=>reject(Error('IndexedDB utilisée par un autre onglet'))})}
+function get(db,id){return new Promise((yes,no)=>{const q=db.transaction(STORE,'readonly').objectStore(STORE).get(id);q.onsuccess=()=>yes(q.result||null);q.onerror=()=>no(q.error)})}
+function put(db,row){return new Promise((yes,no)=>{const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).put(row);tx.oncomplete=()=>yes();tx.onerror=()=>no(tx.error);tx.onabort=()=>no(tx.error||Error('Transaction annulée'))})}
+function validComplete(row){return !!(row&&row.id&&row.data&&typeof row.data==='object'&&!row.fullDataStored&&!row.v217ArchiveOnly&&!row.firebaseArchive227?.mediaRemoved)}
+function compact(row){const d=row.data||{},t=d.tp||{},i=d.identite||{},e=d.eleve||{};
+ return {...row,fullDataStored:'indexeddb-v129',data:{signature:d.signature||'',studentId:d.studentId||'',code:d.code||t.id||'',titre:d.titre||t.titre||'',classe:d.classe||i.classe||'',eleve:{nom:e.nom||'',prenom:e.prenom||'',name:e.name||''},identite:{nom:i.nom||'',prenom:i.prenom||'',classe:i.classe||''},tp:{id:t.id||d.code||'',titre:t.titre||d.titre||''},statut:d.statut||'RENDU',dates:d.dates||{},meta:{activityId:d.meta?.activityId||'',submittedAt:d.meta?.submittedAt||'',savedAt:d.meta?.savedAt||''},submission:{submission_id:d.submission?.submission_id||'',submittedAt:d.submission?.submittedAt||'',campaignId:d.submission?.campaignId||''},correction:d.correction?{note:d.correction.note,appreciation:d.correction.appreciation,date:d.correction.date}:undefined,autoEvaluation:d.autoEvaluation||undefined,competences:Array.isArray(d.competences)?d.competences.slice(0,40):[]}};
+}
+async function secure(){if(!backupDone){alert('Commence par « Sauvegarder les copies » et vérifie le téléchargement du fichier JSON.');return}
+ if(!confirm('La sauvegarde JSON est-elle bien présente dans Téléchargements ? Seules les copies intégralement vérifiées dans IndexedDB pourront être allégées. Les autres seront laissées intactes.'))return;
+ const start=read();const db=await openDb();let count=0,skipped=0,created=0;let updated;
+ try{
+  updated=[];
+  for(const row of start.rows){
+   if(!row||!row.id){updated.push(row);skipped++;continue}
+   const id=String(row.id);let full=await get(db,id);
+   if(!full){if(!validComplete(row)){updated.push(row);skipped++;continue}await put(db,row);full=await get(db,id);created++}
+   if(!validComplete(full)){updated.push(row);skipped++;continue}
+   if(!validComplete(row)){updated.push(row);skipped++;continue}
+   const shorter=compact(row);
+   if(JSON.stringify(shorter).length<JSON.stringify(row).length){updated.push(shorter);count++}else{updated.push(row);skipped++}
+  }
+  if(localStorage.getItem(KEY)!==start.raw)throw Error('Les copies ont changé durant le contrôle : aucune modification.');
+  const next=JSON.stringify(updated);
+  if(next.length>=start.raw.length){alert('Contrôle terminé : '+created+' copie(s) copiée(s) et vérifiée(s) dans IndexedDB, '+skipped+' laissée(s) intacte(s). Aucune réduction de l’index nécessaire ou possible sans risque.');return}
+  localStorage.setItem(KEY,next);
+  if(read().rows.length!==start.rows.length){try{localStorage.setItem(KEY,start.raw)}catch(e){}throw Error('Nombre de copies incohérent après sauvegarde. Une sauvegarde JSON existe.')}
+  alert('Contrôle terminé : '+count+' copie(s) sécurisée(s) et allégée(s), '+skipped+' laissée(s) intacte(s). Environ '+Math.round((start.raw.length-next.length)/1024)+' Ko libérés dans l’index local. Conserve impérativement ton fichier de sauvegarde.');
+ }finally{db.close()}
+}
+function init(){if(document.getElementById('tfab-v97-tools'))return;
+ const holder=document.createElement('div');holder.id='tfab-v97-tools';holder.setAttribute('aria-label','Outils de sécurisation des copies');
+ const a=document.createElement('button');a.type='button';a.textContent='1. Sauvegarder les copies';
+ const b=document.createElement('button');b.type='button';b.textContent='2. Sécuriser le stockage';
+ holder.append(a,b);document.body.append(holder);
+ a.addEventListener('click',()=>{try{backup()}catch(e){alert('Sauvegarde impossible : '+message(e))}});
+ b.addEventListener('click',async()=>{if(busy)return;busy=true;b.disabled=true;try{await secure()}catch(e){console.error('TFAB V97 sécurisation',e);alert('Sécurisation interrompue. Aucun nettoyage automatique effectué. '+message(e))}finally{b.disabled=false;busy=false}});
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })();
 </script>
