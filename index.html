@@ -7,7 +7,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1" name="viewport"/>
-<title>V451.57.111 — Évaluation · Charge Atelier · TP · Correction</title>
+<title>V451.57.112 — Évaluation · Charge Atelier · TP · Correction</title>
 <style>
 *{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f5f7fa;color:#172033}
 .app{display:flex;min-height:100vh}.side{width:235px;background:#172033;color:#fff;padding:22px 14px}.logo{font-size:19px;font-weight:700;padding:8px 10px 24px}
@@ -2951,7 +2951,7 @@ body{background:#f7f9fc;color:var(--text)}
 <!-- V88 — DONNÉES DE RÉFÉRENCE RÉINTÉGRÉES DEPUIS V86.5
      Jeux embarqués repris : référentiel compétences, élèves par défaut, seconde classe fictive, situations professionnelles.
      Les données dynamiques (classes/élèves/évaluations réellement saisies) restent chargées par IndexedDB/localStorage et Firebase. -->
-<div id="build-version">V451.57.111 — Évaluation · Charge Atelier · TP · Correction</div>
+<div id="build-version">V451.57.112 — Évaluation · Charge Atelier · TP · Correction</div>
 <div id="firebase-auth-overlay">
 <div class="firebase-login-card">
 <h2>☁️ Connexion Firebase — V451.57.111</h2>
@@ -2995,7 +2995,7 @@ body{background:#f7f9fc;color:var(--text)}
 <div class="app">
 <button aria-expanded="true" aria-label="Masquer la barre latérale" class="sidebar-toggle" id="sidebar-toggle" onclick="toggleSidebar()" title="Masquer la barre latérale" type="button">◀</button>
 <aside class="side">
-<div class="logo">COMPÉTENCES MV<br/><small style="font-size:11px;font-weight:400">V451.57.111 — Évaluation · Charge Atelier · TP · Correction</small></div>
+<div class="logo">COMPÉTENCES MV<br/><small style="font-size:11px;font-weight:400">V451.57.112 — Évaluation · Charge Atelier · TP · Correction</small></div>
 <div class="nav">
 <button id="nav-home" onclick="go('home')">🏠 <span>Accueil</span></button>
 <button id="nav-students" onclick="go('students')">👨‍🎓 <span>Élèves</span></button>
@@ -4490,7 +4490,7 @@ function home(){
     </div>`;
   /* Affichage de version de l'accueil : information uniquement, sans impact sur le bootstrap. */
   const homeVersionBadge=document.getElementById("build-version");
-  if(homeVersionBadge)homeVersionBadge.textContent='V451.57.111 — Évaluation · Charge Atelier · TP · Correction';
+  if(homeVersionBadge)homeVersionBadge.textContent='V451.57.112 — Évaluation · Charge Atelier · TP · Correction';
   void 0 /* titre géré uniquement par la personnalisation */;
 }
 
@@ -17250,7 +17250,7 @@ window.addEventListener('load',()=>setTimeout(resume,1500),{once:true});
  const oldDiffuse=window.tpGenDiffuseSaved;window.tpGenDiffuseSaved=async function(id){const x=rows().find(r=>String(r.savedId)===String(id));if(x?.snapshot?.rawProjectStored){const raw=await getProject(id);if(raw)mem.set(String(id),raw)}return oldDiffuse?.(id)};
  const oldLocked=window.tpGenLockedSnapshot;window.tpGenLockedSnapshot=function(){const d=oldLocked?.();if(d?.rawProjectStored&&!d.rawProject){const id=String(tpGenState.currentSavedId||window.__tpDiffusionSavedId||'');const raw=mem.get(id);if(raw)d.rawProject=JSON.parse(JSON.stringify(raw))}return d};
  const oldDelete=window.tpGenDeleteSaved;window.tpGenDeleteSaved=async function(id){const before=rows().some(x=>String(x.savedId)===String(id));const ret=await oldDelete?.(id);if(before&&!rows().some(x=>String(x.savedId)===String(id)))try{await delProject(id)}catch(e){console.warn(e)}return ret};
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V451.57.111 — Évaluation · Charge Atelier · TP · Correction';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V451.57.112 — Évaluation · Charge Atelier · TP · Correction';
  migrate();
  console.info('V113 actif : projets TP lourds stockés dans IndexedDB; localStorage limité aux métadonnées.');
 })();
@@ -17310,7 +17310,7 @@ window.addEventListener('load',()=>setTimeout(resume,1500),{once:true});
  };
  const oldDiffPage=window.tpV76DiffusionsPage;
  if(typeof oldDiffPage==='function')window.tpV76DiffusionsPage=function(){const out=oldDiffPage.apply(this,arguments);setTimeout(()=>{const data=diffRows().filter(r=>!new Set(deletedIds()).has(String(r.id))).sort((a,b)=>String(b.diffusedAt||'').localeCompare(String(a.diffusedAt||''))),els=[...document.querySelectorAll('.v76-diff-row')];els.forEach((el,i)=>{const r=data[i];if(!r||el.querySelector('[data-v114-delete]'))return;const oldBtn=el.querySelector('button');const wrap=document.createElement('div');wrap.className='v114-diff-actions';if(oldBtn){oldBtn.replaceWith(wrap);wrap.appendChild(oldBtn)}const b=document.createElement('button');b.type='button';b.className='tpgen-btn danger';b.dataset.v114Delete='1';b.textContent='🗑️ Supprimer';b.onclick=()=>window.tp114DeleteDiffusion(r.id);wrap.appendChild(b)})},0);return out};
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V451.57.111 — Évaluation · Charge Atelier · TP · Correction';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V451.57.112 — Évaluation · Charge Atelier · TP · Correction';
  console.info('V114 actif : import TP IndexedDB corrigé et suppression individuelle des TP diffusés.');
 })();
 </script>
@@ -17434,7 +17434,7 @@ const style=document.createElement('style');style.id='tp228-blocks';style.textCo
  window.addEventListener('pagehide',()=>{if(!isHome())return;try{const light={at:new Date().toISOString(),version:VERSION,localStorage:Object.fromEntries(Array.from({length:localStorage.length},(_,i)=>{const k=localStorage.key(i);return[k,localStorage.getItem(k)]}))};localStorage.setItem('evaluation_emergency_backup_v133',JSON.stringify(light))}catch(_){}});
  // Outil volontaire : efface les anciennes copies cloud des TP ENREGISTRÉS V132, jamais les diffusions.
  window.v133CleanSavedTpCloud=async function(){if(!confirm('Supprimer de Firebase les anciennes copies des TP enregistrés ?\nLes TP diffusés ne seront pas touchés.'))return false;const fs=window.firebase?.firestore?.();if(!fs)throw new Error('Firebase indisponible');const col=fs.collection('workspaces').doc('evaluation-mv-main').collection('tpProjectsV132'),snap=await col.get();for(const d of snap.docs){const c=await d.ref.collection('chunks').get();for(let i=0;i<c.docs.length;i+=300){const b=fs.batch();c.docs.slice(i,i+300).forEach(x=>b.delete(x.ref));await b.commit()}await d.ref.delete()}alert(snap.size+' TP enregistrés supprimés de Firebase. Les versions locales sont conservées.');return true};
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V451.57.111 — Évaluation · Charge Atelier · TP · Correction';void 0 /* titre géré uniquement par la personnalisation */;
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V451.57.112 — Évaluation · Charge Atelier · TP · Correction';void 0 /* titre géré uniquement par la personnalisation */;
  console.info('V133 poste maison:',isHome()?'actif':'inactif','— TP enregistrés locaux, diffusions Firebase.');
 })();
 </script>
@@ -17480,7 +17480,7 @@ const style=document.createElement('style');style.id='tp228-blocks';style.textCo
  window.addEventListener('storage',e=>{if(e.key===DKEY)purgeDeleted()});
  window.addEventListener('tp-v133-synced',purgeDeleted);
  setInterval(purgeDeleted,4000);
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V451.57.111 — Évaluation · Charge Atelier · TP · Correction';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V451.57.112 — Évaluation · Charge Atelier · TP · Correction';
  void 0 /* titre géré uniquement par la personnalisation */;
  console.info('V134 : page TP diffusés non intrusive et suppression Firebase V106/V132 sécurisée.');
 })();
@@ -17501,7 +17501,7 @@ const style=document.createElement('style');style.id='tp228-blocks';style.textCo
  window.tp138ToggleStudents=function(id){const el=document.getElementById('v138-students-'+CSS.escape(String(id)));if(!el)return;const hidden=el.hidden;el.hidden=!hidden;const b=document.querySelector(`[data-v138-toggle="${CSS.escape(String(id))}"]`);if(b)b.textContent=hidden?'▾ Masquer les élèves':'▸ Voir les élèves';};
  window.tpV76DiffusionsPage=function(){window.setActive?.('tpGenerator');const rows=diffs().sort((a,b)=>String(b.diffusedAt||'').localeCompare(String(a.diffusedAt||''))),main=document.getElementById('main');if(!main)return false;main.innerHTML=`<header class="app-top-header"></header><div class="tpgen-manager-shell"><div class="tpgen-head"><div><h1>📤 Mes TP diffusés</h1><p class="muted">Registre multiposte léger : gris = diffusé, jaune = rendu, vert = corrigé. Les fichiers TP restent locaux / Dropbox.</p></div><button class="tpgen-btn secondary" onclick="tpGeneratorPage()">← Retour</button></div><div class="tpgen-card">${rows.length?rows.map(r=>{const c=counts(r),id=String(r.id||'');return `<div class="v138-diff-card"><div class="v138-top"><div><b>${esc(r.tpCode||'TP')} — ${esc(r.title||'')}</b><div class="muted">${esc(r.className||'')} • ${r.diffusedAt?new Date(r.diffusedAt).toLocaleString('fr-FR'):''} • ${(r.students||[]).length} élève(s)</div></div><div class="v138-actions"><button class="tpgen-btn primary" onclick="tpV76AddDiffusionToDay('${esc(id)}')">＋ Affecter</button><button class="tpgen-btn danger" onclick="tp114DeleteDiffusion('${esc(id)}')">🗑️ Supprimer</button></div></div><div class="v138-counts"><span class="v138-count v138-grey">⬜ Diffusé <b>${c.grey}</b></span><span class="v138-count v138-yellow">🟨 Rendu <b>${c.yellow}</b></span><span class="v138-count v138-green">🟩 Corrigé <b>${c.green}</b></span></div><button class="v138-toggle" data-v138-toggle="${esc(id)}" onclick="tp138ToggleStudents('${esc(id)}')">▸ Voir les élèves</button><div class="v138-students" id="v138-students-${esc(id)}" hidden>${(r.students||[]).map(st=>{const q=state(r,st),label=q==='green'?'Corrigé':q==='yellow'?'Rendu':'Diffusé';return `<div class="v138-student ${q}"><b>${esc(sname(st))}</b><span>${label}</span></div>`}).join('')||'<span class="muted">Liste nominative absente de cette ancienne diffusion.</span>'}</div></div>`}).join(''):'<div class="muted">Aucun TP diffusé enregistré.</div>'}</div></div>`;return true};
  // Le registre Firebase ne doit jamais contenir le projet TP lourd : la V132 a été patchée pour n'envoyer que les métadonnées + élèves.
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V451.57.111 — Évaluation · Charge Atelier · TP · Correction';void 0 /* titre géré uniquement par la personnalisation */;
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V451.57.112 — Évaluation · Charge Atelier · TP · Correction';void 0 /* titre géré uniquement par la personnalisation */;
  console.info('V138 : registre TP diffusés léger + élèves repliés + compteurs gris/jaune/vert.');
 })();
 </script>
@@ -17546,7 +17546,7 @@ const style=document.createElement('style');style.id='tp228-blocks';style.textCo
  const oldImport=window.tpCorrectionImport;window.tpCorrectionImport=async function(files){let before=new Set((()=>{try{return (JSON.parse(localStorage.getItem(CORR)||'[]')||[]).map(x=>String(x.id))}catch(_){return[]}})());let out=await oldImport?.apply(this,arguments);setTimeout(async()=>{try{let rows=JSON.parse(localStorage.getItem(CORR)||'[]')||[], fresh=rows.filter(x=>!before.has(String(x.id))&&!x.correctedAt);for(const light of fresh){let full=null;try{let db=await new Promise((ok,no)=>{let q=indexedDB.open('fdmahy_corrections_v129',1);q.onsuccess=()=>ok(q.result);q.onerror=()=>no(q.error)});full=await new Promise((ok,no)=>{let q=db.transaction('copies').objectStore('copies').get(String(light.id));q.onsuccess=()=>ok(q.result);q.onerror=()=>no(q.error)});db.close()}catch(_){}await cloudPut(full||light)}if(fresh.length)console.info('V139 copies rendues envoyées temporairement vers Firebase:',fresh.length)}catch(e){console.warn('V139 Firebase copies rendues',e)}},250);return out};
  // V227 : nettoyage des fragments après sauvegarde complète confirmée, via tp227.
  // Version
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V451.57.111 — Évaluation · Charge Atelier · TP · Correction';void 0 /* titre géré uniquement par la personnalisation */;
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V451.57.112 — Évaluation · Charge Atelier · TP · Correction';void 0 /* titre géré uniquement par la personnalisation */;
  console.info('V139 : diffusion depuis fichier local + aperçu temporaire + registre léger + copies rendues Firebase temporaires.');
 })();
 </script>
@@ -17584,7 +17584,7 @@ const style=document.createElement('style');style.id='tp228-blocks';style.textCo
    o.querySelector('.v144-save').onclick=async()=>{const b=o.querySelector('.v144-save');b.disabled=true;b.textContent='Sauvegarde en cours…';try{const r=await window.v133SaveGlobalBackup?.();if(!r?.ok)throw Error('Sauvegarde non confirmée.');o.remove();await baseLogout?.()}catch(e){b.disabled=false;b.textContent='💾 Sauvegarder puis quitter';alert('Actualisation impossible : '+(e?.message||e))}};
    o.querySelector('.v144-nosave').onclick=async()=>{o.remove();await baseLogout?.()};return false;
  };
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V451.57.111 — Évaluation · Charge Atelier · TP · Correction';void 0 /* titre géré uniquement par la personnalisation */;
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V451.57.112 — Évaluation · Charge Atelier · TP · Correction';void 0 /* titre géré uniquement par la personnalisation */;
  console.info('V144 actif : base de démarrage V139 conservée; navigation diffusions et sortie corrigées sans modifier Firebase.');
 })();
 </script>
@@ -17618,7 +17618,7 @@ const style=document.createElement('style');style.id='tp228-blocks';style.textCo
   const mo=new MutationObserver(bind); mo.observe(document.documentElement,{childList:true,subtree:true}); bind();
   // Firebase/storage refreshes may update data but never navigate.
   window.addEventListener('tp-v133-synced',()=>{}, {passive:true});
-  const bv=document.getElementById('build-version'); if(bv) bv.textContent='V451.57.111 — Évaluation · Charge Atelier · TP · Correction';
+  const bv=document.getElementById('build-version'); if(bv) bv.textContent='V451.57.112 — Évaluation · Charge Atelier · TP · Correction';
   console.info('V145 actif : navigation Mes TP diffusés strictement réservée à une action utilisateur.');
 })();
 </script>
@@ -17633,7 +17633,7 @@ const style=document.createElement('style');style.id='tp228-blocks';style.textCo
  const clone=o=>JSON.parse(JSON.stringify(o||{}));
  const safe=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Za-z0-9_-]+/g,'-').replace(/^-+|-+$/g,'')||'TP';
  let folderHandle=null;
- function forceVersion(){const b=document.getElementById('build-version');if(b&&b.textContent!=='V451.57.111 — Évaluation · Charge Atelier · TP · Correction')b.textContent='V451.57.111 — Évaluation · Charge Atelier · TP · Correction';void 0 /* titre géré uniquement par la personnalisation */;document.getElementById('v144-version')?.remove();}
+ function forceVersion(){const b=document.getElementById('build-version');if(b&&b.textContent!=='V451.57.112 — Évaluation · Charge Atelier · TP · Correction')b.textContent='V451.57.112 — Évaluation · Charge Atelier · TP · Correction';void 0 /* titre géré uniquement par la personnalisation */;document.getElementById('v144-version')?.remove();}
  forceVersion();
  document.addEventListener('DOMContentLoaded',forceVersion,{once:true});
  setTimeout(forceVersion,0);setTimeout(forceVersion,500);
@@ -17661,7 +17661,7 @@ const style=document.createElement('style');style.id='tp228-blocks';style.textCo
   // 1) Une seule version visible. Ne touche ni à l'authentification ni au démarrage Firebase.
   function applyVersion(){
     const b=document.getElementById('build-version');
-    if(b) b.textContent='V451.57.111 — Évaluation · Charge Atelier · TP · Correction';
+    if(b) b.textContent='V451.57.112 — Évaluation · Charge Atelier · TP · Correction';
     void 0 /* titre géré uniquement par la personnalisation */;
     document.getElementById('v144-version')?.remove();
   }
@@ -17838,7 +17838,7 @@ const style=document.createElement('style');style.id='tp228-blocks';style.textCo
  };
  function markLegacyRows(root=document){root.querySelectorAll?.('.tpc-row').forEach(row=>{const b=row.querySelector('button[onclick*="tpCorrectionOpen"]');if(!b||row.querySelector('.v158-legacy-chip'))return;const m=(b.getAttribute('onclick')||'').match(/tpCorrectionOpen\(['\"]([^'\"]+)/);if(!m)return;const r=read().find(x=>String(x.id)===m[1]);if(r&&!project(r.data)&&r.fullDataStored!=='indexeddb-v129'){const target=row.children?.[1]||row.firstElementChild;target?.insertAdjacentHTML('beforeend','<span class="v158-legacy-chip">Ancien format</span>')}})}
  markLegacyRows();new MutationObserver(ms=>ms.forEach(m=>m.addedNodes.forEach(n=>{if(n.nodeType===1)markLegacyRows(n)}))).observe(document.documentElement,{childList:true,subtree:true});
- function setVersion(){const b=document.getElementById('build-version');if(b)b.textContent='V451.57.111 — Évaluation · Charge Atelier · TP · Correction';void 0 /* titre géré uniquement par la personnalisation */}
+ function setVersion(){const b=document.getElementById('build-version');if(b)b.textContent='V451.57.112 — Évaluation · Charge Atelier · TP · Correction';void 0 /* titre géré uniquement par la personnalisation */}
  setVersion();document.addEventListener('DOMContentLoaded',setVersion,{once:true});setTimeout(setVersion,250);
  console.info('V158 : compatibilité de correction des anciennes copies activée, sans modification du démarrage.');
 })();
@@ -18432,7 +18432,7 @@ if(typeof oldPage==='function'&&!oldPage.__v206pdf){
 }
 
 /* Version statique : pas de MutationObserver ni timer périodique. */
-const bv=document.getElementById('build-version');if(bv)bv.textContent='V451.57.111 — Évaluation · Charge Atelier · TP · Correction';
+const bv=document.getElementById('build-version');if(bv)bv.textContent='V451.57.112 — Évaluation · Charge Atelier · TP · Correction';
 void 0 /* titre géré uniquement par la personnalisation */;
 window.tp228Blocks.screen=(r,p,x,a)=>window.tp228Blocks.render(x,a,{signature:r.data?.reponses?.signatures232?.[x.id],format:formattedText,frame:blockFrameStyle(x),prefix:pictogram(r.data,p,x),suffix:callProfessor(x)});
 window.tpV206PdfV74={buildPdfPages,contentUnits,summaryUnits,criteriaSummary235,chooseFolder:window.tp206ChooseCorrectionFolder};
@@ -18767,7 +18767,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 <script id="tfab-v24-tab-customization">
 (function(){'use strict';
  const KEY='tfab_evaluation_tab_identity_v24';
- const DEFAULT_TITLE='V451.57.111 — Évaluation · Charge Atelier · TP · Correction';
+ const DEFAULT_TITLE='V451.57.112 — Évaluation · Charge Atelier · TP · Correction';
  let active={title:DEFAULT_TITLE,icon:''},candidate='';
  function load(){try{let v=JSON.parse(localStorage.getItem(KEY)||'null');if(v&&typeof v==='object')active={title:String(v.title||DEFAULT_TITLE).slice(0,120),icon:typeof v.icon==='string'&&v.icon.startsWith('data:image/png;base64,')?v.icon:''};}catch(e){console.warn('Personnalisation onglet non chargée',e)}}
  function apply(){if(document.title!==active.title)document.title=active.title;let link=document.getElementById('tfab-v24-favicon');if(active.icon){if(!link){link=document.createElement('link');link.id='tfab-v24-favicon';link.rel='icon';link.type='image/png';document.head.appendChild(link)}if(link.href!==active.icon)link.href=active.icon}else if(link){link.remove()}}
@@ -19045,7 +19045,7 @@ window.v45144PrintHTML=function(targetId,kind){
  window.tp116ViewDiffusion=function(id){const r=diffRows().find(x=>String(x.id)===String(id));if(!r)return alert('TP diffusé introuvable.');const p=r.tpProject||projectFromRaw(r.snapshot?.rawProject);if(p&&window.tp232PreviewProject)return window.tp232PreviewProject(p,r.title);const ov=document.createElement('div');ov.className='v116-preview-overlay';ov.innerHTML=`<div class="v116-preview-box"><div class="v116-preview-top"><div><b>👁 ${esc(r.tpCode)} — ${esc(r.title)}</b><div class="muted">${esc(r.className)} · ${r.students?.length||0} élève(s)</div></div><button type="button">✕ Fermer</button></div>${sheet(p)}</div>`;ov.querySelector('button').onclick=()=>ov.remove();document.body.appendChild(ov)};
  // Reconstruit Mes TP diffusés avec Voir + Affecter + Supprimer et ne dépend pas de l'ancien formulaire générateur.
  const priorPage=window.tpV76DiffusionsPage;window.tpV76DiffusionsPage=function(){priorPage?.();setTimeout(()=>{const data=diffRows().sort((a,b)=>String(b.diffusedAt||'').localeCompare(String(a.diffusedAt||''))),els=[...document.querySelectorAll('.v76-diff-row')];els.forEach((el,i)=>{const r=data[i];if(!r)return;let wrap=el.querySelector('.v114-diff-actions,.v116-diff-actions');if(!wrap){wrap=document.createElement('div');wrap.className='v116-diff-actions';const b=el.querySelector('button');if(b){b.replaceWith(wrap);wrap.appendChild(b)}}else wrap.classList.add('v116-diff-actions');if(!wrap.querySelector('[data-v116-view]')){const b=document.createElement('button');b.className='tpgen-btn secondary';b.dataset.v116View='1';b.textContent='👁 Voir le TP';b.onclick=()=>window.tp116ViewDiffusion(r.id);wrap.prepend(b)}})},0)};
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V451.57.111 — Évaluation · Charge Atelier · TP · Correction';
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V451.57.112 — Évaluation · Charge Atelier · TP · Correction';
  console.info('V117 actif : rendu TP polyvalent et diffusion tracée.');
 })();
 </script><style id="v117-prof-style">
@@ -19069,7 +19069,7 @@ window.v45144PrintHTML=function(targetId,kind){
  let oldBuild=window.tpGenBuildStudentPackage;window.tpGenBuildStudentPackage=function(student,d){let m=oldBuild.apply(this,arguments),p=window.__v117Project||window.__v116CurrentProject||null;if(p){m.tpProject=clone(p);m.tpPictograms=clone(p.__pictograms||[]);m.meta=m.meta||{};m.meta.readerRequired='V117';m.type='tp-eleve-v117';window.tp230.ensure(m)}return m};
  // Hydratation complète avec pictogrammes avant export.
  ['tpGenExportClassToFolder','tpGenExportClassZip'].forEach(name=>{let prev=window[name];if(typeof prev!=='function')return;window[name]=async function(){let sid=String(tpGenState?.currentSavedId||window.__tpDiffusionSavedId||''),rr=sid?await raw(sid):null;window.__v117Project=unpack(rr);try{return await prev.apply(this,arguments)}finally{window.__v117Project=null}}});
- let bv=document.getElementById('build-version');if(bv)bv.textContent='V451.57.111 — Évaluation · Charge Atelier · TP · Correction';console.info('V117 actif : vue TP polyvalente + diffusion persistante.');
+ let bv=document.getElementById('build-version');if(bv)bv.textContent='V451.57.112 — Évaluation · Charge Atelier · TP · Correction';console.info('V117 actif : vue TP polyvalente + diffusion persistante.');
 })();
 </script><!-- V118 — concordance Editeur / Logiciel / Lecteur + diffusion transactionnelle -->
 <style id="v118-style">
@@ -19107,7 +19107,7 @@ window.v45144PrintHTML=function(targetId,kind){
  function injectRetroSettings(){let main=document.getElementById('main');if(!main||main.querySelector('#v118-retro-settings'))return;let host=main.querySelector('.rubric-other-wrap .settings-rubric-collapse-body')||main.querySelector('.settings-grid')||main;let card=document.createElement('div');card.id='v118-retro-settings';card.className='settings-card section-other';card.innerHTML=`<h3>🕘 Évaluations rétroactives</h3><p class="muted">Choisis les cartes visibles dans « Nouvelle évaluation » pour le profil administrateur.</p><div class="v118-switch-row"><div><b>Positionnement rétroactif</b><div class="muted">Afficher la création d'un positionnement à une date antérieure.</div></div><label class="v118-switch"><input type="checkbox" ${retroOn(RETRO_POS)?'checked':''} onchange="v118ToggleRetro('${RETRO_POS}',this.checked)"><span class="v118-slider"></span></label></div><div class="v118-switch-row"><div><b>Import rétroactif collectif</b><div class="muted">Afficher l'import Excel rétroactif collectif.</div></div><label class="v118-switch"><input type="checkbox" ${retroOn(RETRO_XLS)?'checked':''} onchange="v118ToggleRetro('${RETRO_XLS}',this.checked)"><span class="v118-slider"></span></label></div>`;host.appendChild(card)}
  let oldSettings=window.renderSettingsPage;if(typeof oldSettings==='function')window.renderSettingsPage=function(){let r=oldSettings.apply(this,arguments);setTimeout(injectRetroSettings,0);return r};
  let oldChoice=window.evaluationChoicePage;if(typeof oldChoice==='function')window.evaluationChoicePage=function(){let r=oldChoice.apply(this,arguments);setTimeout(()=>{document.querySelectorAll('.eval-choice-card').forEach(c=>{let t=c.textContent||'';if(/Positionnement rétroactif/i.test(t)&&!retroOn(RETRO_POS))c.remove();if(/Import rétroactif collectif/i.test(t)&&!retroOn(RETRO_XLS))c.remove()})},0);return r};
- let bv=document.getElementById('build-version');if(bv)bv.textContent='V451.57.111 — Évaluation · Charge Atelier · TP · Correction';
+ let bv=document.getElementById('build-version');if(bv)bv.textContent='V451.57.112 — Évaluation · Charge Atelier · TP · Correction';
  console.info('V118 actif : diffusion transactionnelle, générateur replié, rétroactif paramétrable.');
 })();
 </script>
@@ -19131,7 +19131,7 @@ window.v45144PrintHTML=function(targetId,kind){
  window.tpGenExportClassToFolder=async function(){try{if(!folderHandle){const ok=await window.tpGenChooseClassFolder();if(!ok)return false}const ctx=await buildFiles();let perm='granted';if(folderHandle.queryPermission)perm=await folderHandle.queryPermission({mode:'readwrite'});if(perm!=='granted'&&folderHandle.requestPermission)perm=await folderHandle.requestPermission({mode:'readwrite'});if(perm!=='granted')throw Error('Autorisation d’écriture refusée.');for(const f of ctx.files){const fh=await folderHandle.getFileHandle(f.name,{create:true}),w=await fh.createWritable();await w.write(new Blob([f.text],{type:f.name.endsWith('.tp')?'application/json;charset=utf-8':'text/plain;charset=utf-8'}));await w.close()}persist(ctx);const n=ctx.sts.length,name=folderHandle.name;window.tpGenCloseClassExport?.();window.showSuccessMessage?.(`${n} TP élève généré(s) dans « ${name} » et diffusion enregistrée dans Mes TP diffusés.`);return true}catch(e){console.error('V119 dossier',e);window.showWarningMessage?.('Génération impossible : '+(e?.message||e));return false}finally{window.__v117Project=null;window.__v116CurrentProject=null}};
  window.tpGenExportClassZip=async function(){try{const ctx=await buildFiles();const blob=window.tpGenBuildStoreZip(ctx.files);const name=[filePart(ctx.code),filePart(ctx.className),'TP_ELEVES'].filter(Boolean).join('_')+'.zip';window.tpGenDownloadBlob(blob,name);persist(ctx);window.tpGenCloseClassExport?.();window.showSuccessMessage?.(`${ctx.sts.length} TP élève correspondant(s) à « ${ctx.code} » regroupé(s) dans le ZIP et diffusion enregistrée.`);return true}catch(e){console.error('V119 ZIP',e);window.showWarningMessage?.('Génération ZIP impossible : '+(e?.message||e));return false}finally{window.__v117Project=null;window.__v116CurrentProject=null}};
  const oldDiffuse=window.tpGenDiffuseSaved;window.tpGenDiffuseSaved=function(id){folderHandle=null;window.__tpDiffusionSavedId=String(id||'');if(window.tpGenState)window.tpGenState.currentSavedId=String(id||'');return oldDiffuse?.apply(this,arguments)};
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V451.57.111 — Évaluation · Charge Atelier · TP · Correction';void 0 /* titre géré uniquement par la personnalisation */;
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V451.57.112 — Évaluation · Charge Atelier · TP · Correction';void 0 /* titre géré uniquement par la personnalisation */;
  console.info('V127 actif : diffusion compacte, sans duplication du projet TP dans localStorage.');
 })();
 </script>
@@ -19190,7 +19190,7 @@ window.v45144PrintHTML=function(targetId,kind){
  };
  function wire(){document.querySelectorAll('#tp109-folder-input,#tp109-files-input,.tpc-toolbar input[type=file]').forEach(input=>{input.onchange=async()=>{const f=input.files;if(f?.length)await window.tpCorrectionImport(f);input.value=''}})}
  const oldPage=window.tpCorrectionPage;window.tpCorrectionPage=function(){const r=oldPage?.apply(this,arguments);setTimeout(wire,50);return r};setTimeout(wire,500);
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V451.57.111 — Évaluation · Charge Atelier · TP · Correction';void 0 /* titre géré uniquement par la personnalisation */;
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V451.57.112 — Évaluation · Charge Atelier · TP · Correction';void 0 /* titre géré uniquement par la personnalisation */;
  console.info('V130 — import Copies rendues V128/V130 actif avec stockage IndexedDB anti-quota.');
 })();
 </script>
@@ -19243,7 +19243,7 @@ window.v45144PrintHTML=function(targetId,kind){
  function render(r){const d=r.data||{},p=project(d);if(!p)return'';const a=answers(d),flow=Array.isArray(p.flow)?p.flow:(p.questions||[]).map(q=>({type:'question',id:q.id}));let html='',sec='',n=0;for(const f of flow){if(f.type!=='question'){let x=obj(p,f);if(x?.parentQuestionId)continue;html+=block(r,p,f,a);continue}let q=obj(p,f);if(!q||q.excluded)continue;if((q.section||'Activité')!==sec){sec=q.section||'Activité';html+=`<h2 class="section">${esc(sec)}</h2>`}let val=a[q.id],k='q_'+q.id;html+=`<section class="q"><div class="v131-qhead"><div><div class="qtitle">${++n}. ${esc(q.text||'')}</div><div class="meta">${esc(q.competence||'')}${q.criterionId?' · '+esc(q.criterionId):''}</div></div><div data-v131-mark="${esc(k)}">${markButtons(r,k)}</div></div>${(q.images||[]).map(im=>imageTag(im,'max-width:100%;max-height:280px;object-fit:contain;margin-top:8px')).join('')}${q.answerType==='none'?'':`<div class="answer">${esc(val||'—')}</div>`}${flow.filter(z=>z.type!=='question'&&obj(p,z)?.parentQuestionId===q.id).map(z=>block(r,p,z,a)).join('')}<div class="v234-comment-preview" data-comment-key="${esc(k)}">${esc(r.comments234?.[k]||'')}</div></section>`}return `<div class="v130-copy"><div class="tphead"><div><small>BAC PRO MAINTENANCE DES VÉHICULES · COPIE ÉLÈVE</small><h1>${esc(p.publicTitle||p.title||d.titre||'TP')}</h1><div>Durée : ${esc(p.duration||'—')}</div></div><span class="code">${esc(p.publicId||p.id||d.code||'TP')}</span></div><div class="brief"><section><h3>Situation professionnelle</h3>${esc(p.intro||'')}</section><section><h3>Objectifs</h3>${esc(p.objectives||'')}</section><section><h3>Support</h3>${esc(p.support||'')}</section><section><h3>Ressources et matériels</h3>${esc(p.resources||'')}</section></div>${html}</div>`}
  const previous=window.tpCorrectionOpen;
  window.tpCorrectionOpen=function(id){const light=read().find(x=>String(x.id)===String(id));if(!light)return previous?.apply(this,arguments);previous?.apply(this,arguments);setTimeout(async()=>{const ed=document.querySelector('.tpc-editor'),left=ed?.firstElementChild;if(!left)return;left.innerHTML='<div class="v131-hydrating">Chargement de la copie complète et de ses illustrations…</div>';const stored=await full(id),r=stored||light;if(String(window.__tp55Current)!==String(id)||!left.isConnected)return;if(!project(r.data)){left.innerHTML='<div class="tpc-card">Cette copie ne contient pas le projet TP complet nécessaire à la vue fidèle.</div>';return}const local=read().find(x=>String(x.id)===String(id));if(local){r.marks={...(r.marks||{}),...(local.marks||{})};r.comments234=local.comments234||r.comments234||{};r.note=local.note;r.noteModeV215=local.noteModeV215;r.correctedAt=local.correctedAt;r.workflowState=local.workflowState;}window.tp235Auto?.(r);left.innerHTML=render(r);setNoteUI(r);window.tp235RefreshCriteria?.()},20)};
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V451.57.111 — Évaluation · Charge Atelier · TP · Correction';void 0 /* titre géré uniquement par la personnalisation */;
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V451.57.112 — Évaluation · Charge Atelier · TP · Correction';void 0 /* titre géré uniquement par la personnalisation */;
  console.info('V131 correcteur : hydratation IndexedDB + images + coches par question.');
 })();
 </script><!-- V147 — correctif final diffusion TP local : DOIT rester le dernier runtime du fichier -->
@@ -19255,7 +19255,7 @@ window.v45144PrintHTML=function(targetId,kind){
  let folderHandle=null;
  function setVersion(){
    const b=document.getElementById('build-version');
-   if(b)b.textContent='V451.57.111 — Évaluation · Charge Atelier · TP · Correction';
+   if(b)b.textContent='V451.57.112 — Évaluation · Charge Atelier · TP · Correction';
    void 0 /* titre géré uniquement par la personnalisation */;
    document.getElementById('v144-version')?.remove();
  }
@@ -19344,7 +19344,7 @@ window.v45144PrintHTML=function(targetId,kind){
  });
  function compact(root=document){root.querySelectorAll?.('.v131-markbar .v131-mark').forEach(b=>{if(b.closest('[role=group]'))return;if(b.classList.contains('ok')){b.textContent='✓';b.title='Correct'}else if(b.classList.contains('bad')){b.textContent='✕';b.title='Incorrect'}else{b.textContent='—';b.title='Non évalué'}b.setAttribute('aria-label',b.title)})}
  compact(); new MutationObserver(m=>m.forEach(x=>x.addedNodes.forEach(n=>{if(n.nodeType===1)compact(n)}))).observe(document.documentElement,{childList:true,subtree:true});
- const bv=document.getElementById('build-version');if(bv)bv.textContent='V451.57.111 — Évaluation · Charge Atelier · TP · Correction';void 0 /* titre géré uniquement par la personnalisation */;
+ const bv=document.getElementById('build-version');if(bv)bv.textContent='V451.57.112 — Évaluation · Charge Atelier · TP · Correction';void 0 /* titre géré uniquement par la personnalisation */;
  console.info('V148 : Copies rendues stable pendant Firebase + coches compactes.');
 })();
 </script>
@@ -19370,7 +19370,7 @@ const rows=()=>window.getManagedEvaluationActivities?.()||[];
 const sortRows=a=>a.slice().sort((x,y)=>(Number(x.numero)||99999)-(Number(y.numero)||99999));
 function save(a){window.saveManagedEvaluationActivities?.(a);}
 function comps(s){return String(s||'').split(/[,;\n]+/).map(x=>x.trim()).filter(Boolean)}
-function forceVersion(){const b=document.getElementById('build-version');if(b)b.textContent='V451.57.111 — Évaluation · Charge Atelier · TP · Correction';void 0 /* titre géré uniquement par la personnalisation */;document.getElementById('v144-version')?.remove()}
+function forceVersion(){const b=document.getElementById('build-version');if(b)b.textContent='V451.57.112 — Évaluation · Charge Atelier · TP · Correction';void 0 /* titre géré uniquement par la personnalisation */;document.getElementById('v144-version')?.remove()}
 forceVersion();document.addEventListener('DOMContentLoaded',forceVersion,{once:true});setTimeout(forceVersion,250);setTimeout(forceVersion,1200);
 
 function installCategory(){
@@ -19579,7 +19579,7 @@ async function validate(){
  }catch(e){console.error('V172 validation',e);alert('Validation impossible : '+(e?.message||e));}
  finally{window.__v172Saving=false;if(btn){btn.disabled=false;btn.innerHTML=oldText||'💾 Valider la correction et l’évaluation'}}
 }
-function install(){window.tpCorrectionValidate=validate;const b=document.getElementById('build-version');if(b)b.textContent='V451.57.111 — Évaluation · Charge Atelier · TP · Correction';void 0 /* titre géré uniquement par la personnalisation */}
+function install(){window.tpCorrectionValidate=validate;const b=document.getElementById('build-version');if(b)b.textContent='V451.57.112 — Évaluation · Charge Atelier · TP · Correction';void 0 /* titre géré uniquement par la personnalisation */}
 install();
 })();
 </script>
@@ -19601,7 +19601,7 @@ function lockIfCorrected(id){
 function install(){
  const oldOpen=window.tpCorrectionOpen; if(typeof oldOpen==='function'&&!oldOpen.__v173){const w=function(id){const out=oldOpen.apply(this,arguments);setTimeout(()=>lockIfCorrected(id),450);setTimeout(()=>lockIfCorrected(id),1200);return out};w.__v173=true;window.tpCorrectionOpen=w;}
  const oldVal=window.tpCorrectionValidate; if(typeof oldVal==='function'&&!oldVal.__v173){const w=async function(){const out=await oldVal.apply(this,arguments);return out};w.__v173=true;window.tpCorrectionValidate=w;}
- const b=document.getElementById('build-version');if(b)b.textContent='V451.57.111 — Évaluation · Charge Atelier · TP · Correction';void 0 /* titre géré uniquement par la personnalisation */;
+ const b=document.getElementById('build-version');if(b)b.textContent='V451.57.112 — Évaluation · Charge Atelier · TP · Correction';void 0 /* titre géré uniquement par la personnalisation */;
 }
 // Accélère l'impression de synchronisation : les données locales sont déjà enregistrées avant le cloud.
 const oldSync=window.tpV159SyncCorrectionsNow; if(typeof oldSync==='function'){window.tpV159SyncCorrectionsNow=function(){try{const p=oldSync.apply(this,arguments);if(p&&p.catch)p.catch(e=>console.warn('V173 sync',e));return Promise.resolve(true)}catch(e){console.warn('V173 sync',e);return Promise.resolve(false)}}}
@@ -19682,7 +19682,7 @@ stamp();window.addEventListener('load',()=>{stamp();setTimeout(reconcile,300)},{
 (function(){
 'use strict';
 
-const VERSION='V451.57.111 — Évaluation · Charge Atelier · TP · Correction';
+const VERSION='V451.57.112 — Évaluation · Charge Atelier · TP · Correction';
 const MODE_KEYS={
   free:'evaluation_mode_free_v190',
   professional:'evaluation_mode_professional_v190',
@@ -21003,7 +21003,7 @@ if(typeof window.tpCorrectionImport==='function'){
 function stamp(){
   void 0 /* titre géré uniquement par la personnalisation */;
   const bv=document.getElementById('build-version');
-  if(bv)bv.textContent='V451.57.111 — Évaluation · Charge Atelier · TP · Correction';
+  if(bv)bv.textContent='V451.57.112 — Évaluation · Charge Atelier · TP · Correction';
 }
 stamp();
 setTimeout(stamp,700);
@@ -21172,7 +21172,7 @@ document.addEventListener('visibilitychange',()=>{
 /* Affichage de version seulement, sans timer périodique ni MutationObserver. */
 function stampVersion(){
   const b=document.getElementById('build-version');
-  if(b)b.textContent='V451.57.111 — Évaluation · Charge Atelier · TP · Correction';
+  if(b)b.textContent='V451.57.112 — Évaluation · Charge Atelier · TP · Correction';
   void 0 /* titre géré uniquement par la personnalisation */;
 }
 stampVersion();
@@ -21259,7 +21259,7 @@ if(typeof settings==='function'&&!settings.__v200){
 cleanUi(document);
 
 const bv=document.getElementById('build-version');
-if(bv)bv.textContent='V451.57.111 — Évaluation · Charge Atelier · TP · Correction';
+if(bv)bv.textContent='V451.57.112 — Évaluation · Charge Atelier · TP · Correction';
 void 0 /* titre géré uniquement par la personnalisation */;
 
 console.info('V200 : RTA retirée de l’interface et des évaluations ; ancien générateur TP neutralisé au profit du Portail TP.');
@@ -21631,7 +21631,7 @@ ensureMobileMenu();
 
 /* Version : affichage uniquement, aucun timer et aucun MutationObserver. */
 const bv=document.getElementById('build-version');
-if(bv)bv.textContent='V451.57.111 — Évaluation · Charge Atelier · TP · Correction';
+if(bv)bv.textContent='V451.57.112 — Évaluation · Charge Atelier · TP · Correction';
 void 0 /* titre géré uniquement par la personnalisation */;
 
 console.info('V201 : barre latérale scrollable + menu iPhone permanent + suppression TP V73/V159 persistante.');
@@ -21653,7 +21653,7 @@ window.V202_SETTINGS_POLICY={
   ephemeralUiLocalOnly:true
 };
 const bv=document.getElementById('build-version');
-if(bv)bv.textContent='V451.57.111 — Évaluation · Charge Atelier · TP · Correction';
+if(bv)bv.textContent='V451.57.112 — Évaluation · Charge Atelier · TP · Correction';
 void 0 /* titre géré uniquement par la personnalisation */;
 console.info('V202 : recherche/compteur fiches + paramètres fonctionnels multiposte, démarrage inchangé.');
 })();
@@ -21870,7 +21870,7 @@ forceActiveTpClass();
 addPortalClassBadge();
 
 const bv=document.getElementById('build-version');
-if(bv)bv.textContent='V451.57.111 — Évaluation · Charge Atelier · TP · Correction';
+if(bv)bv.textContent='V451.57.112 — Évaluation · Charge Atelier · TP · Correction';
 void 0 /* titre géré uniquement par la personnalisation */;
 
 console.info('V204 : Portail TP filtré strictement par classe active ; classId et className doivent être cohérents.');
@@ -21890,7 +21890,7 @@ window.V204_TP_CLASS_FILTER_POLICY={
   legacyStudentIdsMustAllBelongToActiveClass:true
 };
 const bv=document.getElementById('build-version');
-if(bv)bv.textContent='V451.57.111 — Évaluation · Charge Atelier · TP · Correction';
+if(bv)bv.textContent='V451.57.112 — Évaluation · Charge Atelier · TP · Correction';
 void 0 /* titre géré uniquement par la personnalisation */;
 console.info('V204 : filtrage strict des TP diffusés sur la classe active, démarrage inchangé.');
 })();
@@ -22020,7 +22020,7 @@ if(typeof oldOpen==='function'&&!oldOpen.__v205){
 }
 
 const bv=document.getElementById('build-version');
-if(bv)bv.textContent='V451.57.111 — Évaluation · Charge Atelier · TP · Correction';
+if(bv)bv.textContent='V451.57.112 — Évaluation · Charge Atelier · TP · Correction';
 void 0 /* titre géré uniquement par la personnalisation */;
 
 console.info('V205 : auto-évaluation TP lue depuis le JSON rendu ; Tableau du jour exclut les TP diffusés ; rendu le plus récent privilégié.');
@@ -22468,7 +22468,7 @@ const style=document.createElement('style');style.textContent=`.tpc-shell{max-wi
 <script id="tfab250-local-first">
 (function(){
 'use strict';
-const VERSION='V451.57.111 — Évaluation · Charge Atelier · TP · Correction';
+const VERSION='V451.57.112 — Évaluation · Charge Atelier · TP · Correction';
 const KEY='tp_correction_local_v54';
 const DATA_DB='fdmahy_corrections_v129';
 const STORE='copies';
@@ -22551,10 +22551,21 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 #tfab45156-panel{position:fixed;right:12px;top:42px;z-index:99991;width:min(400px,92vw);background:white;border:1px solid #b4cee1;border-radius:13px;box-shadow:0 8px 30px #18395733;padding:16px;font:13px Arial;color:#173d60;display:none}
 #tfab45156-panel[open]{display:block}#tfab45156-panel button,#tfab45156-panel a{display:inline-block;padding:8px 10px;margin:5px 4px 5px 0;border-radius:7px;border:1px solid #aac7e3;background:#ecf5ff;color:#174267;cursor:pointer}#tfab45156-panel input{width:100%;box-sizing:border-box;padding:9px;margin:8px 0;border:1px solid #c2d6e6;border-radius:6px}
 </style>
+
+<style id="tfab451112-connection-indicators">
+#tfab112-indicators{display:grid;gap:8px;margin:8px 0 10px;padding:9px;border:1px solid #d4e3f0;border-radius:10px;background:#f6faff;color:#183b5a}
+#tfab112-indicators>div{display:flex;align-items:center;gap:9px;font:600 12px Arial,sans-serif}
+#tfab112-indicators i{display:block;flex:none;width:11px;height:11px;border-radius:50%;background:#b93b3b;box-shadow:0 0 0 2px #ffffff}
+#tfab112-flow-led{background:#9ca3af!important}
+#tfab112-flow-led.tfab112-flowing{background:#2683e6!important;animation:tfab112-pulse 900ms ease-in-out infinite}
+@keyframes tfab112-pulse{0%,100%{opacity:1}50%{opacity:.2}}
+@media(prefers-reduced-motion:reduce){#tfab112-flow-led.tfab112-flowing{animation:none}}
+</style>
 <script id="tfab45156-direct-receiver">
 (()=>{'use strict';
 const ROOT='https://portail-partage.khmg8np9yj.workers.dev', KEY='tfab45156_session_token';
-let token='',busy=false,deadline=0,started=false;
+let token='',busy=false,deadline=0,started=false,verified=false,validating=false;
+let archivedThisSession=0;const failedUntil=new Map();
 try{token=sessionStorage.getItem(KEY)||''}catch(_){}
 const $=id=>document.getElementById(id),names={active:'Cloud',sync:'Cloud',received:'Cloud',login:'Cloud',offline:'Cloud'};let cloudProgress={total:null,done:0,remaining:null};window.tfab4515717Progress=()=>({...cloudProgress});
 const NOTICE_KEY='tfab451574_nouveautes_reception';
@@ -22584,7 +22595,55 @@ function tfabLinkMessage(e){
  activate.click();
 }
 window.addEventListener('message',tfabLinkMessage);
-function state(s,message){const el=$('tfab45156-pill');if(el){el.replaceChildren(document.createTextNode(names[s]+' '));const badge=document.createElement('span');badge.id='tfab451574-count';badge.className='tfab451574-count';el.append(badge);paintNotice();el.title=message||'';el.dataset.state=s;window.dispatchEvent(new CustomEvent('tfab-cloud-status',{detail:{state:s,message:message||'',progress:{...cloudProgress}}}));}const detail=$('tfab45156-details');if(detail)detail.textContent=message||'';}
+async function authenticateAndAcknowledge(){
+ if(validating||!token)return;
+ validating=true;
+ try{
+  // Signed GET validates the token and permissions, independently of any copy import.
+  await api('campagnes');
+  verified=true;
+  state('active','Code administrateur vérifié par Cloudflare. Réception indépendante de la liaison.');
+  window.__tfab4515717AwaitActivation=false;
+  const panel=$('tfab45156-panel');
+  if(tfabLinkPending){
+   const pending=tfabLinkPending;
+   // Tie acknowledgment to the exact tab and worker origin; do not send the token back.
+   if(pending.source===tfabLinkWindow&&pending.origin===tfabLinkOrigin){
+    try{pending.source.postMessage({type:'tfab-evaluation-reception-ack-v1',ok:true},tfabLinkOrigin)}catch(e){console.warn('TFAB liaison: retour confirmation',e)}
+   }
+   tfabLinkPending=null;
+   tfabLinkWindow=null;
+  }
+  tfabLinkActivating=false;
+  panel?.removeAttribute('open');
+  // Reception starts afterwards; failure of a copy does not revoke authentication.
+  if(!busy)void check();
+ }catch(e){
+  tfabLinkActivating=false;
+  verified=false;
+  if(/Liaison expirée/.test(String(e.message||e))){tfabLinkPending=null;state('login','Code administrateur refusé ou expiré.');}
+  else state('offline','Vérification de liaison impossible : '+String(e.message||e));
+ }finally{validating=false;paintIndicators()}
+}
+function paintIndicators(){
+ const auth=$('tfab112-auth-led'),flow=$('tfab112-flow-led');
+ if(auth){auth.style.background=verified?'#149455':'#bd3434';auth.title=verified?'Code vérifié par Cloudflare':'Aucun code administrateur vérifié';}
+ if(flow){flow.classList.toggle('tfab112-flowing',!!busy);flow.title=busy?'Échange avec Cloudflare en cours':'Aucun transfert en cours';}
+ const msg=$('tfab112-auth-label');if(msg)msg.textContent=verified?'Liaison administrateur vérifiée':'Liaison administrateur non vérifiée';
+ const x=$('tfab112-flow-label');if(x)x.textContent=busy?'Échanges en cours':'Échanges au repos';
+}
+async function archivedInIndexedDB(item){
+ if(!window.indexedDB)return false;
+ const q=indexedDB.open('fdmahy_corrections_v129',1);
+ const db=await new Promise((resolve,reject)=>{q.onsuccess=()=>resolve(q.result);q.onerror=()=>reject(q.error||Error('IndexedDB indisponible'));q.onupgradeneeded=()=>{if(!q.result.objectStoreNames.contains('copies'))q.result.createObjectStore('copies',{keyPath:'id'})}});
+ try{
+  const id='TPC-R2-V102-'+String(item.id||'');
+  const row=await new Promise((resolve,reject)=>{const req=db.transaction('copies','readonly').objectStore('copies').get(id);req.onsuccess=()=>resolve(req.result||null);req.onerror=()=>reject(req.error)});
+  return !!(row?.tfab102Archive&&row?.data&&row.tfab102Identity?.sub===String(item.id)&&row.tfab102Identity?.campaign===String(item.campaign_id||row.tfab102Identity?.campaign)&&row.tfab102Identity?.user===String(item.user_id||row.tfab102Identity?.user));
+ }finally{db.close()}
+}
+
+function state(s,message){if(verified&&s==='offline')s='active';const el=$('tfab45156-pill');if(el){el.replaceChildren(document.createTextNode(names[s]+' '));const badge=document.createElement('span');badge.id='tfab451574-count';badge.className='tfab451574-count';el.append(badge);paintNotice();el.title=message||'';el.dataset.state=s;window.dispatchEvent(new CustomEvent('tfab-cloud-status',{detail:{state:s,message:message||'',progress:{...cloudProgress}}}));}const detail=$('tfab45156-details');if(detail)detail.textContent=message||'';paintIndicators();}
 function known(id){try{return localStorage.getItem('tfab45156_recu_'+id)==='1'}catch(_){return false}}
 function mark(id){try{localStorage.setItem('tfab45156_recu_'+id,'1');return true}catch(_){return false}}
 function existingRow(doc,filename){
@@ -22601,7 +22660,7 @@ function existingRow(doc,filename){
   })||null;
  }catch(e){console.warn('TFAB V451.57.16 : index local inaccessible',e);return null}
 }
-async function api(path){const r=await fetch(ROOT+'/api/prof/v45156/'+path,{headers:{Authorization:'Bearer '+token},cache:'no-store',credentials:'omit'});if(r.status===401||r.status===403){token='';try{sessionStorage.removeItem(KEY)}catch(_){};state('login','Liaison expirée : créer un nouveau code administrateur.');throw Error('Liaison expirée')}if(!r.ok)throw Error('Erreur Cloudflare HTTP '+r.status);const d=await r.json();if(d.ok===false)throw Error(d.error||'Erreur Cloudflare');return d;}
+async function api(path){const r=await fetch(ROOT+'/api/prof/v45156/'+path,{headers:{Authorization:'Bearer '+token},cache:'no-store',credentials:'omit'});if(r.status===401||r.status===403){verified=false;token='';try{sessionStorage.removeItem(KEY)}catch(_){};state('login','Liaison expirée : créer un nouveau code administrateur.');throw Error('Liaison expirée')}if(!r.ok)throw Error('Erreur Cloudflare HTTP '+r.status);const d=await r.json();if(d.ok===false)throw Error(d.error||'Erreur Cloudflare');return d;}
 function chooseRendus(items){return new Promise(resolve=>{
  let done=false;const finish=rows=>{if(done)return;done=true;overlay.remove();resolve(rows)};
  const overlay=document.createElement('div');overlay.id='tfab45157-selector';overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');overlay.setAttribute('aria-label','Rattrapage des copies BETA');
@@ -22631,7 +22690,7 @@ function chooseRendus(items){return new Promise(resolve=>{
  actions.append(btn('Vérifier et rapatrier la sélection',()=>finish(items.filter(x=>selected.has(key(x)))),true),btn('Annuler',()=>finish([])),btn('Décocher tout',()=>{selected.clear();render()}));
  panel.append(title,intro,search,count,scroll,actions);overlay.append(panel);document.body.append(overlay);overlay.addEventListener('click',e=>{if(e.target===overlay)finish([])});search.focus();render();
 })}
-async function check(manual=false){if(busy||!token)return;busy=true;state('sync','Recherche sécurisée des rendus BETA et 2MAC1…');try{
+async function check(manual=false){if(busy||!token||!verified)return;busy=true;paintIndicators();state('sync','Recherche sécurisée des rendus BETA et 2MAC1…');try{
 const data=await api('rendus');let items=(data.items||[]).filter(x=>x.state==='submitted');if(!manual){const pendingAll=items.filter(x=>!known(x.id));cloudProgress={total:pendingAll.length+Number(window.__tfab4515717SessionDone||0),done:Number(window.__tfab4515717SessionDone||0),remaining:pendingAll.length};window.dispatchEvent(new CustomEvent('tfab-cloud-progress',{detail:{...cloudProgress}}));}
 if(manual){
  const pending=items.slice().sort((a,b)=>Date.parse(b.submitted_at||'')-Date.parse(a.submitted_at||''));
@@ -22642,10 +22701,13 @@ if(manual){
 }
 // Rattrapage automatique BETA : fenêtre de 72 heures, sans réimporter les copies connues.
 // Une limite par cycle évite une importation massive et conserve les anciens rendus sur Cloudflare.
-if(!manual)items=items.filter(x=>{const t=Date.parse(x.submitted_at||'');return Number.isFinite(t)&&t<=Date.now()+120000&&Date.now()-t<=72*3600000}).sort((a,b)=>Date.parse(b.submitted_at||'')-Date.parse(a.submitted_at||'')).slice(0,30);
-let received=0,processed=0,existing=0,errors=0;
+if(!manual)items=items.sort((a,b)=>Date.parse(a.submitted_at||'')-Date.parse(b.submitted_at||'')); // Rattrapage progressif, y compris anciens rendus
+let received=0,processed=0,existing=0,errors=0,archived=0;
 for(const item of items){if(!manual&&known(item.id))continue;
 if(!manual&&processed>=3)break;
+if(!manual&&Date.now()<(failedUntil.get(item.id)||0))continue;
+try{if(await archivedInIndexedDB(item)){archived++;continue}}catch(e){console.warn('TFAB réception: audit IndexedDB indisponible',e);}
+
 processed++;
 try{
 const doc=await api('rendu/'+encodeURIComponent(item.id));if(doc.submission?.final!==true||!['BETA','2MAC1'].includes(String(doc.cloud451?.classe||'').trim().toUpperCase())||doc.submission?.campaignId!==doc.cloud451?.campaignId||String(doc.submission?.userId)!==String(doc.cloud451?.userId))throw Error('Identité / campagne incohérente, copie conservée sur Cloudflare');
@@ -22660,19 +22722,22 @@ try{outcome=await window.tpCorrectionImport([new File([JSON.stringify(doc)],file
 finally{window.__tfabSilentCloudImport=false;document.body.classList.remove('tp129-importing')}
 // Contrôle sur la signature V130 ou l'identifiant de campagne, jamais sur le seul nom de fichier.
 const found=existingRow(doc,filename);
-if(!found){console.warn('TFAB réception: import non confirmé, copie conservée sur Cloudflare',item.id,outcome);errors++;continue}
+if(!found){
+  // A large copy can be safely staged in IndexedDB without changing the old local index.
+  // This is NOT a completed corrector import, so never mark it as received/corrected.
+  if(typeof window.tfab451102Stage==='function'){
+   const remote={submission_id:String(item.id),campaign_id:String(doc.cloud451?.campaignId||''),user_id:String(doc.cloud451?.userId||'')};
+   try{const proof=await window.tfab451102Stage(doc,remote);if(proof?.verified){archived++;archivedThisSession++;continue}}catch(stageError){console.warn('TFAB réception: archivage de secours impossible',item.id,stageError)}
+  }
+  console.warn('TFAB réception: import non confirmé, copie conservée sur Cloudflare',item.id,outcome);errors++;failedUntil.set(item.id,Date.now()+5*60000);continue
+ }
 mark(item.id);received++;
-}catch(copyError){errors++;console.warn('TFAB réception : copie ignorée, conservée sur Cloudflare',item.id,copyError)}
+}catch(copyError){errors++;failedUntil.set(item.id,Date.now()+5*60000);console.warn('TFAB réception : copie ignorée, conservée sur Cloudflare',item.id,copyError)}
 }
 if(received){newNotices(received);window.__tfab4515717SessionDone=(Number(window.__tfab4515717SessionDone)||0)+received;}if(!manual&&cloudProgress.total!==null){cloudProgress.done=Number(window.__tfab4515717SessionDone)||0;cloudProgress.remaining=Math.max(0,cloudProgress.total-cloudProgress.done);window.dispatchEvent(new CustomEvent('tfab-cloud-progress',{detail:{...cloudProgress}}));}
-if(manual){const msg='Rattrapage terminé : '+received+' nouvelle(s), '+existing+' déjà présente(s), '+errors+' échec(s).';state(errors?'offline':received?'received':'active',msg);if(errors)alert(msg+'\n\nLes copies en échec restent intactes sur Cloudflare. Consultez la console (F12) pour les détails.');}else if(errors&&!received){state('offline','Certaines copies ne sont pas confirmées localement. Vérifie le diagnostic (F12).');}else if(received){deadline=Date.now()+6000;state('received',received+' copie(s) reçue(s) dans À corriger.');setTimeout(()=>{if(Date.now()>=deadline)state('active','Réception prête.')},6100)}else state('active','Réception prête · aucun nouvel import. Rattrapage automatique BETA sur 72 h.');if(window.__tfab4515717AwaitActivation&&!errors){
- window.__tfab4515717AwaitActivation=false;
- document.getElementById('tfab45156-panel')?.removeAttribute('open');
- if(tfabLinkPending){try{tfabLinkPending.source.postMessage({type:'tfab-evaluation-reception-ack-v1',ok:true},tfabLinkPending.origin==='null'?'*':tfabLinkPending.origin)}catch(_){}tfabLinkPending=null;tfabLinkWindow=null;}
- tfabLinkActivating=false;
- }else if(window.__tfab4515717AwaitActivation&&errors){tfabLinkActivating=false;tfabLinkPending=null;}
-}catch(e){tfabLinkActivating=false;tfabLinkPending=null;console.warn('TFAB réception API',e);if(token)state(/Liaison expirée/.test(String(e.message||e))?'login':/Failed to fetch|NetworkError|HTTP 5\d\d/i.test(String(e.message||e))?'offline':'login',String(e.message||e))}finally{busy=false}}
-function boot(){if(started)return;started=true;const pill=document.createElement('button');pill.id='tfab45156-pill';pill.type='button';document.body.append(pill);const num=document.createElement('span');num.id='tfab451574-count';num.setAttribute('aria-label','Nouvelles copies');pill.append(num);paintNotice();const p=document.createElement('section');p.id='tfab45156-panel';p.innerHTML='<b>Réception Cloudflare directe</b><p id="tfab45156-details"></p><p>Code administrateur temporaire (2 h) :</p>';const input=document.createElement('input');input.type='password';input.placeholder='Coller le code de liaison';input.autocomplete='off';const save=document.createElement('button');save.textContent='Activer la liaison';save.onclick=()=>{const value=input.value.trim();if(!/^\d{10}\.[A-Za-z0-9_-]{32}\.[0-9a-f]{64}$/.test(value)){state('login','Code de liaison non reconnu.');return}token=value;try{sessionStorage.setItem(KEY,token)}catch(_){}input.value='';window.__tfab4515717AwaitActivation=true;check()};const link=document.createElement('a');link.href=ROOT+'/liaison-prof-v45156';link.target='_blank';link.textContent='Obtenir un code administrateur';link.onclick=e=>{e.preventDefault();tfabLinkPending=null;tfabLinkWindow=window.open(link.href,'tfab-evaluation-liaison');if(!tfabLinkWindow){window.alert('Autorisez les fenêtres surgissantes pour ouvrir la liaison TFAB.')}};const refresh=document.createElement('button');refresh.textContent='Actualiser';refresh.onclick=()=>check();const manualBtn=document.createElement('button');manualBtn.textContent='Rattraper une copie précise';manualBtn.onclick=()=>check(true);const close=document.createElement('button');close.textContent='Fermer';close.onclick=()=>p.removeAttribute('open');p.append(input,save,link,refresh,manualBtn,close);document.body.append(p);pill.onclick=()=>p.toggleAttribute('open');state(token?'sync':'login',token?'Connexion directe en cours…':'Cliquer ici, puis obtenir un code administrateur temporaire.');if(token)check();setInterval(()=>check(),30000);window.addEventListener('online',()=>check());}
+if(manual){const msg='Rattrapage terminé : '+received+' nouvelle(s), '+existing+' déjà présente(s), '+archived+' archivée(s) IndexedDB pour consultation, '+errors+' échec(s).';state(errors?'offline':received?'received':'active',msg);if(errors)alert(msg+'\n\nLes copies en échec restent intactes sur Cloudflare. Consultez la console (F12) pour les détails.');}else if(errors&&!received){state('active','Liaison OK · '+errors+' copie(s) non importée(s). Originaux conservés sur Cloudflare.');}else if(received){deadline=Date.now()+6000;state('received',received+' copie(s) reçue(s) dans À corriger.');setTimeout(()=>{if(Date.now()>=deadline)state('active','Réception prête.')},6100)}else state('active','Liaison OK · '+archived+' copie(s) déjà archivées en IndexedDB (non importées au correcteur). Reprise par lots de 3.');}catch(e){tfabLinkActivating=false;tfabLinkPending=null;console.warn('TFAB réception API',e);if(token)state(/Liaison expirée/.test(String(e.message||e))?'login':/Failed to fetch|NetworkError|HTTP 5\d\d/i.test(String(e.message||e))?'offline':'login',String(e.message||e))}finally{busy=false;paintIndicators()}}
+function boot(){if(started)return;started=true;const pill=document.createElement('button');pill.id='tfab45156-pill';pill.type='button';document.body.append(pill);const num=document.createElement('span');num.id='tfab451574-count';num.setAttribute('aria-label','Nouvelles copies');pill.append(num);paintNotice();const p=document.createElement('section');p.id='tfab45156-panel';p.innerHTML='<b>Réception Cloudflare directe</b><p id="tfab45156-details"></p><p>Code administrateur temporaire (2 h) :</p>';const input=document.createElement('input');input.type='password';input.placeholder='Coller le code de liaison';input.autocomplete='off';const save=document.createElement('button');save.textContent='Activer la liaison';save.onclick=()=>{const value=input.value.trim();if(!/^\d{10}\.[A-Za-z0-9_-]{32}\.[0-9a-f]{64}$/.test(value)){state('login','Code de liaison non reconnu.');return}token=value;try{sessionStorage.setItem(KEY,token)}catch(_){}input.value='';window.__tfab4515717AwaitActivation=true;verified=false;authenticateAndAcknowledge()};const link=document.createElement('a');link.href=ROOT+'/liaison-prof-v45156';link.target='_blank';link.textContent='Obtenir un code administrateur';link.onclick=e=>{e.preventDefault();tfabLinkPending=null;tfabLinkWindow=window.open(link.href,'tfab-evaluation-liaison');if(!tfabLinkWindow){window.alert('Autorisez les fenêtres surgissantes pour ouvrir la liaison TFAB.')}};const refresh=document.createElement('button');refresh.textContent='Actualiser';refresh.onclick=()=>check();const manualBtn=document.createElement('button');manualBtn.textContent='Rattraper une copie précise';manualBtn.onclick=()=>check(true);const close=document.createElement('button');close.textContent='Fermer';close.onclick=()=>p.removeAttribute('open');const leds=document.createElement('div');leds.id='tfab112-indicators';leds.innerHTML='<div><i id="tfab112-auth-led"></i><span id="tfab112-auth-label">Liaison administrateur non vérifiée</span></div><div><i id="tfab112-flow-led"></i><span id="tfab112-flow-label">Échanges au repos</span></div>';
+p.prepend(leds);p.append(input,save,link,refresh,manualBtn,close);document.body.append(p);paintIndicators();pill.onclick=()=>p.toggleAttribute('open');state(token?'sync':'login',token?'Connexion directe en cours…':'Cliquer ici, puis obtenir un code administrateur temporaire.');if(token)authenticateAndAcknowledge();setInterval(()=>{if(token&&!verified&&!validating)authenticateAndAcknowledge();else check()},30000);window.addEventListener('online',()=>check());}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
 </script>
@@ -23150,7 +23215,7 @@ document.addEventListener('click',e=>{const b=e.target?.closest?.('[data-legacy-
 // Saisie manuelle en mode ancien : préserver la note choisie sans rafraîchir la page.
 document.addEventListener('input',e=>{if(e.target?.id!=='tpc-note'||!document.querySelector('.v45125-legacy'))return;const id=current();storeChange(id,r=>{r.note=e.target.value;r.noteModeV215='manual'},['note','noteModeV215'])},false);
 const style=document.createElement('style');style.id='v4515725-legacy-style';style.textContent='.v45125-legacy{border-left:4px solid #2a69b3}.v45125-item{display:flex;justify-content:space-between;gap:10px;border-top:1px solid #dce3ed;padding:10px 0;align-items:center;flex-wrap:wrap}.v45125-value{color:#566477;font-size:12px;overflow-wrap:anywhere;white-space:pre-wrap;max-width:48rem}.v45125-actions{display:flex;gap:5px;flex-wrap:wrap}.v45125-actions button{padding:6px 9px;font-size:12px;min-height:33px;background:#f3f7fc;color:#193f69;border:1px solid #c5d4e6;border-radius:7px}.v45125-actions button.active{background:#d6e8ff;border:2px solid #2363b0;font-weight:700}.v45125-summary{font-size:13px;font-weight:700;background:#eef5ff;padding:8px;border-radius:7px}';document.head.append(style);
-function versionBadge(){const b=document.getElementById('build-version');if(b&&/^(V250|V451\.57\.)/.test(b.textContent||''))b.textContent='V451.57.111 — Évaluation · Charge Atelier · TP · Correction'}
+function versionBadge(){const b=document.getElementById('build-version');if(b&&/^(V250|V451\.57\.)/.test(b.textContent||''))b.textContent='V451.57.112 — Évaluation · Charge Atelier · TP · Correction'}
 versionBadge();if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',versionBadge,{once:true});setTimeout(versionBadge,1200);
 console.info('Évaluation V451.57.25 : copie complète prioritaire, niveau sans saut, secours de correction manuelle prudent.');
 })();
@@ -24245,7 +24310,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 @media(max-width:700px){#tfab67-remote .tfab67-item{align-items:stretch}#tfab67-tabs button{flex:1}#tfab67-remote{padding:10px}}
 </style>
 <script id="tfab45167-classe-active-et-corriges-cloud">
-/* V451.57.111 — correcteur filtré par classe active, lecture seule des PDF/JSON R2,
+/* V451.57.112 — correcteur filtré par classe active, lecture seule des PDF/JSON R2,
    BETA : archivage réversible déjà pris en charge par la gestion Firebase des classes.
    Aucune modification de notes, de copies ou des statuts partagés. */
 (function(){'use strict';
@@ -25091,7 +25156,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 #tfab451574-manager .tfab91-status-pill,#at-main .tfab91-status-pill{border-radius:999px;padding:5px 9px;font-size:12px;font-weight:750;white-space:nowrap}
 </style>
 <script id="tfab4515791-version">
-(function(){function update(){const n=document.getElementById('build-version');if(n)n.textContent='V451.57.111 — Évaluation · Charge Atelier · TP · Correction';void 0 /* titre géré uniquement par la personnalisation */;}
+(function(){function update(){const n=document.getElementById('build-version');if(n)n.textContent='V451.57.112 — Évaluation · Charge Atelier · TP · Correction';void 0 /* titre géré uniquement par la personnalisation */;}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',update,{once:true});else update();})();
 </script>
 
@@ -25479,7 +25544,7 @@ window.tfabReferenceExportHtml=async function(){try{if(location.protocol==='file
 </style>
 
 
-<!-- V451.57.111 — correctif d'affichage exclusivement ; aucun accès ou modification des données -->
+<!-- V451.57.112 — correctif d'affichage exclusivement ; aucun accès ou modification des données -->
 <style id="tfab-v110-scroll-unique-et-reponses-tableaux">
 /* La copie suit UNIQUEMENT le défilement vertical normal de la page.
    La règle V108 injectée en bas de page imposait à nouveau une hauteur fixe et
@@ -25583,3 +25648,10 @@ window.tfabReferenceExportHtml=async function(){try{if(location.protocol==='file
  }
 }
 </style>
+
+<script id="tfab451112-visible-version">
+(()=>{const value='V451.57.112 — Évaluation · Charge Atelier · TP · Correction';
+ const apply=()=>{const e=document.getElementById('build-version');if(e&&e.textContent!==value)e.textContent=value};
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',apply,{once:true});else apply();
+})();
+</script>
