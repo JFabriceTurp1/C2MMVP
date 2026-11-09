@@ -25783,73 +25783,71 @@ obs.observe(document.documentElement,{subtree:true,childList:true});
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',make,{once:true});else make();
 })();
 </script>
-<style id="tfab-e5-style">
-#tfab-e5{font-family:Arial,sans-serif;max-width:1480px;margin:12px auto;padding:12px 18px 55px;color:#1e344c}
-#tfab-e5 .e5-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
-#tfab-e5 .e5-columns{display:grid;grid-template-columns:minmax(0,1fr) 325px;gap:18px;align-items:start}
-#tfab-e5 .e5-card{background:#fff;border:1px solid #cbd9e8;border-radius:12px;padding:15px;margin:10px 0}
-#tfab-e5 .e5-side{position:sticky;top:12px;max-height:calc(100vh - 24px);overflow:auto}
-#tfab-e5 .e5-question{border-left:3px solid #a9c3dd;padding-left:13px;margin:12px 0}
-#tfab-e5 .e5-answer{white-space:pre-wrap;background:#f3f8ff;color:#1259af;border-radius:7px;padding:10px;margin:8px 0}
-#tfab-e5 .e5-reply{color:#168447;font-style:italic;width:100%;min-height:58px;box-sizing:border-box;border:1px solid #a9d6b2;border-radius:6px;padding:8px;background:#fafffb}
-#tfab-e5 .e5-marks{display:flex;gap:5px;flex-wrap:wrap;margin:8px 0}
-#tfab-e5 button{cursor:pointer;border:1px solid #aabfd3;border-radius:7px;background:#fff;color:#184269;padding:8px 11px;font-weight:600}
-#tfab-e5 button.e5-selected{background:#174b78;color:#fff;border-color:#174b78}
-#tfab-e5 button.e5-primary{background:#1e6094;color:#fff}
-#tfab-e5 button:disabled{opacity:.5;cursor:wait}
-#tfab-e5 textarea,#tfab-e5 input{font:inherit;width:100%;box-sizing:border-box;padding:8px;border:1px solid #bac9d5;border-radius:7px}
-#tfab-e5 img{max-width:100%;height:auto;max-height:320px;object-fit:contain}
-#tfab-e5 .e5-feedback{padding:9px;background:#eef5fc;border-radius:7px;white-space:pre-wrap;font-size:13px;margin:10px 0}
-#tfab-e5 .e5-block{margin:12px 0;padding:10px;border-radius:8px;background:#f8fafc}
-#tfab-e5 .e5-block table{border-collapse:collapse;width:100%}
-#tfab-e5 .e5-block td{border:1px solid #cdd9e6;padding:6px}
-#tfab102-view #tfab-e5-launch{background:#195a8b;color:#fff}
-@media(max-width:900px){#tfab-e5 .e5-columns{grid-template-columns:1fr}#tfab-e5 .e5-side{position:static;max-height:none}}
-@media print{#tfab-e5 .e5-head button,#tfab-e5 .e5-side button,#tfab-e5 textarea{display:none!important}#tfab-e5 .e5-columns{display:block}#tfab-e5 .e5-side{position:static}#tfab-e5{padding:0}}
-</style>
-<script id="tfab-e5-isolated-correction">
-(function(){'use strict';
-// A deliberately isolated correction pathway. It NEVER changes TFAB legacy/localStorage/D1/Worker state.
-const DB='tfab-e5-correction-lab-v1',STORE='drafts';
-const enc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const text=v=>typeof v==='string'?v:v==null?'':typeof v==='object'?JSON.stringify(v,null,2):String(v);
-const uuid=/^[a-f0-9-]{36}$/i;
-let current=null,dirty=false,seq=0;
-function openDB(){return new Promise((yes,no)=>{const q=indexedDB.open(DB,1);q.onupgradeneeded=()=>{if(!q.result.objectStoreNames.contains(STORE))q.result.createObjectStore(STORE,{keyPath:'id'})};q.onsuccess=()=>yes(q.result);q.onerror=()=>no(q.error||Error('IndexedDB inaccessible'));q.onblocked=()=>no(Error('IndexedDB bloquée'))})}
-async function dbGet(id){const db=await openDB();try{return await new Promise((yes,no)=>{const q=db.transaction(STORE,'readonly').objectStore(STORE).get(id);q.onsuccess=()=>yes(q.result||null);q.onerror=()=>no(q.error||Error('Lecture impossible'))})}finally{db.close()}}
-async function dbPut(row){const db=await openDB();try{await new Promise((yes,no)=>{const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).put(row);tx.oncomplete=()=>yes();tx.onerror=()=>no(tx.error||Error('Écriture impossible'));tx.onabort=()=>no(tx.error||Error('Transaction annulée'))})}finally{db.close()}}
-function normalizeIdentity(doc,remote){const c=doc.cloud451||{},s=doc.submission||{};const id=String(remote?.submission_id||c.submissionId||s.submissionId||'').trim(),camp=String(remote?.campaign_id||c.campaignId||s.campaignId||'').trim(),user=String(remote?.user_id||c.userId||s.userId||'').trim();if(!uuid.test(id)||!camp||!user)throw Error('Identité du rendu incomplète : correction bloquée.');if(c.campaignId&&String(c.campaignId)!==camp||s.campaignId&&String(s.campaignId)!==camp||c.userId&&String(c.userId)!==user||s.userId&&String(s.userId)!==user)throw Error('Identité Cloudflare contradictoire : correction bloquée.');return {id,camp,user}}
-function project(d){let p=d?.tpProject||d?.sourceProject||d?.project||d?.projet;return p?.schema==='evaluation.tp.v1'&&p.data?p.data:p}
-function blocks(p){const m={question:'questions',image:'imageBlocks',match:'matchBlocks',text:'textBlocks',table:'tableBlocks',placement:'placementBlocks'};const flow=Array.isArray(p.flow)&&p.flow.length?p.flow:(p.questions||[]).map(q=>({type:'question',id:q.id}));return flow.map(f=>({...f,item:(p[m[f.type]]||[]).find(x=>String(x.id)===String(f.id))})).filter(f=>f.item)}
-function img(src){let s=typeof src==='string'?src:src?.src||src?.dataUrl||src?.url||src?.image||'';return /^data:image\/(?:png|jpe?g|gif|webp);base64,[a-z0-9+/=\s]+$/i.test(s)&&s.length<4000000?'<img src="'+enc(s)+'" alt="Illustration">':''}
-function answerHTML(v){if(v===undefined||v===null||v==='')return '—';if(typeof v==='string'||typeof v==='number'||typeof v==='boolean')return enc(String(v));if(Array.isArray(v))return v.map(x=>'<div>'+answerHTML(x)+'</div>').join('');if(typeof v==='object'){if(v.selectedOptionIds)return enc(v.selectedOptionIds.join(', '));if(v.answers)return Object.entries(v.answers).map(([k,x])=>'<div>'+enc(k)+' : '+answerHTML(x)+'</div>').join('');if(v.cells)return answerHTML(v.cells);return '<div>'+Object.entries(v).slice(0,60).map(([k,x])=>'<div><small>'+enc(k)+'</small> : '+answerHTML(x)+'</div>').join('')+'</div>'}return '—'}
-function getAns(d,id){const r=d.reponses||{};const v117=r.v117||{},v115=r.v115||{};return Object.prototype.hasOwnProperty.call(v117,id)?v117[id]:v115[id]}
-function fileDownload(s,name,kind='application/json'){const url=URL.createObjectURL(new Blob([s],{type:kind})),a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000)}
-function keepDoc(doc,ident){return {submissionId:ident.id,campaignId:ident.camp,userId:ident.user,code:String(doc.code||doc.tpProject?.publicId||''),classe:String(doc.classe||doc.identite?.classe||''),submittedAt:String(doc.submission?.submittedAt||'')}}
-function makeDraft(doc,ident){return {id:ident.id,source:keepDoc(doc,ident),marks:{},comments:{},note:'',appreciation:'',savedAt:null,version:1,state:'BROUILLON',sourceSchema:'TFAB_E5_LAB'}}
-function setStatus(msg){const el=document.getElementById('e5-status');if(el)el.textContent=msg}
-function render(doc,remote,draft,ident){const p=project(doc),all=blocks(p),student=[doc.eleve?.prenom||doc.identite?.prenom,doc.eleve?.nom||doc.identite?.nom].filter(Boolean).join(' ')||'Élève';
- const sections=all.map((f,i)=>{const x=f.item,key=f.type+':'+String(x.id||i),a=getAns(doc,x.id),mark=draft.marks[key]||'neutral';const markbar=['correct','wrong','neutral'].map(v=>'<button type="button" data-e5-mark="'+enc(key)+'" data-e5-value="'+v+'" class="'+(mark===v?'e5-selected':'')+'">'+(v==='correct'?'✓ Correct':v==='wrong'?'✕ Faux':'— Non évalué')+'</button>').join('');const images=(x.images||[]).slice(0,12).map(img).join('')+(f.type==='image'?img(x.image||x.src):'');
- let cells='';if(f.type==='table'&&Array.isArray(x.cells)){cells='<div class="e5-block"><table>'+x.cells.map((r,ri)=>'<tr>'+(Array.isArray(r)?r:[]).map((c,ci)=>'<td>'+answerHTML(a?.[ri]?.[ci]??c?.text??'')+'</td>').join('')+'</tr>').join('')+'</table></div>'}else if(f.type==='text'){cells='<div class="e5-block">'+enc(text(x.text||''))+'</div>'}else if(f.type==='placement'||f.type==='match'){cells='<div class="e5-block">'+enc(text(x.text||''))+'</div>'}
- return '<article class="e5-card e5-question" data-e5-item="'+enc(key)+'"><div><small>'+enc(f.type.toUpperCase())+' · '+enc(x.criterionId||x.competence||'')+'</small><h3>'+enc(x.text||x.title||('Élément '+(i+1)))+'</h3></div>'+images+cells+'<div class="e5-answer">'+answerHTML(a)+'</div><div class="e5-marks">'+markbar+'</div><label><small>Commentaire professeur</small><textarea class="e5-reply" data-e5-comment="'+enc(key)+'">'+enc(draft.comments[key]||'')+'</textarea></label></article>'}).join('');
- const auto=doc.autoEvaluation||doc.auto_evaluation||{};const main=document.getElementById('main');if(!main)throw Error('Zone principale absente');
- main.innerHTML='<section id="tfab-e5"><div class="e5-head"><div><small>TFAB · Atelier de correction sécurisé E5 — registre IndexedDB isolé</small><h1>'+enc(p.publicTitle||p.title||doc.titre||'TP')+'</h1><p><b>'+enc(student)+'</b> · '+enc(doc.classe||'')+' · '+enc(doc.code||'')+'</p></div><div><button type="button" id="e5-back">← Copies rendues</button> <button type="button" id="e5-export">Exporter JSON</button></div></div><div class="e5-columns"><section><div class="e5-card"><b>Auto-évaluation de l’élève</b><p>'+enc(text(auto.note??auto.note20??'Non renseignée'))+'</p><p>'+enc(text(auto.comment||auto.commentaire||''))+'</p></div><div class="e5-card"><b>Situation professionnelle</b><p>'+enc(text(p.intro||''))+'</p><b>Objectifs</b><p>'+enc(text(p.objectives||''))+'</p></div>'+sections+'</section><aside class="e5-side"><div class="e5-card"><h2>Correction professeur</h2><p>Copie originale intacte. Brouillon séparé dans IndexedDB.</p><label>Note /20<input type="number" min="0" max="20" step="0.25" id="e5-note" value="'+enc(draft.note)+'"></label><label>Appréciation<textarea id="e5-app" rows="5">'+enc(draft.appreciation)+'</textarea></label><p><b>'+all.length+'</b> éléments · <span id="e5-reviewed">0</span> évalués</p><button type="button" class="e5-primary" id="e5-save">Enregistrer et vérifier</button> <button type="button" id="e5-pdf">Télécharger le PDF</button><div id="e5-status" class="e5-feedback">Aucune donnée de production modifiée.</div><small>Ce module ne transfère aucune note dans Évaluation ou Cloudflare. Conserver les exports pour toute réintégration ultérieure.</small></div></aside></div></section>';
- current={doc,remote,draft,ident,all};dirty=false;const $=id=>document.getElementById(id);
- function updateCounter(){const done=Object.values(draft.marks).filter(v=>v==='correct'||v==='wrong').length;$('e5-reviewed').textContent=done+' / '+all.length}
- updateCounter();$('e5-back').onclick=()=>{if(dirty&&!confirm('Modifications non enregistrées. Quitter ?'))return;current=null;window.tpCorrectionPage?.()};
- document.querySelectorAll('[data-e5-mark]').forEach(b=>b.onclick=()=>{const k=b.dataset.e5Mark,v=b.dataset.e5Value;draft.marks[k]=v;dirty=true;document.querySelectorAll('[data-e5-mark]').forEach(z=>{if(z.dataset.e5Mark===k)z.classList.toggle('e5-selected',z.dataset.e5Value===v)});updateCounter();setStatus('Modifications non enregistrées.')});
- document.querySelectorAll('[data-e5-comment]').forEach(el=>el.oninput=()=>{draft.comments[el.dataset.e5Comment]=el.value;dirty=true;setStatus('Modifications non enregistrées.')});
- $('e5-note').oninput=()=>{dirty=true;setStatus('Modifications non enregistrées.')};$('e5-app').oninput=()=>{dirty=true;setStatus('Modifications non enregistrées.')};
- function syncInputs(){draft.note=$('e5-note').value.trim();draft.appreciation=$('e5-app').value}
- async function save(){syncInputs();if(draft.note!==''&&(!Number.isFinite(Number(draft.note))||Number(draft.note)<0||Number(draft.note)>20))throw Error('Note hors de 0 à 20');if(current?.ident.id!==ident.id)throw Error('La copie active a changé');draft.savedAt=new Date().toISOString();const snapshot=structuredClone(draft);await dbPut(snapshot);const after=await dbGet(ident.id);if(!after||JSON.stringify(after)!==JSON.stringify(snapshot))throw Error('Échec de vérification de la sauvegarde IndexedDB');dirty=false;setStatus('✓ Correction enregistrée et relue dans IndexedDB à '+new Date().toLocaleTimeString('fr-FR'));return snapshot}
- $('e5-save').onclick=async()=>{const b=$('e5-save');b.disabled=true;try{await save()}catch(e){setStatus('ÉCHEC : '+(e.message||e));alert('Correction non confirmée : '+e.message)}finally{b.disabled=false}};
- $('e5-export').onclick=async()=>{try{if(dirty)await save();const a=await dbGet(ident.id);if(!a)throw Error('Sauvegarde absente');fileDownload(JSON.stringify(a,null,2),'TFAB_CORRECTION_E5_'+ident.id+'.json');setStatus('Correction exportée : conserve le JSON avec les sauvegardes des copies.')}catch(e){alert('Export impossible : '+e.message)}};
- $('e5-pdf').onclick=async()=>{const b=$('e5-pdf');b.disabled=true;try{const saved=dirty?await save():await dbGet(ident.id);if(!saved)throw Error('Enregistre la correction avant de créer le PDF.');if(!window.jspdf?.jsPDF)throw Error('Module PDF non chargé : connexion requise.');const pdf=new window.jspdf.jsPDF({unit:'mm',format:'a4',compress:true});let y=17;const line=(txt,bold=false)=>{pdf.setFont('helvetica',bold?'bold':'normal');pdf.setFontSize(bold?11:9);const lines=pdf.splitTextToSize(String(txt||'').replace(/[✓✕—]/g,'-'),176);for(const s of lines){if(y>275){pdf.addPage();y=17}pdf.text(s,16,y);y+=5}y+=2};line('TFAB - CORRECTION PROFESSEUR',true);line(p.publicTitle||p.title||doc.titre||'TP',true);line(student+' | '+String(doc.code||''));line('Date du rendu : '+String(doc.submission?.submittedAt||''));line('Note professeur : '+(saved.note||'Non noté')+' / 20',true);line('Appréciation : '+(saved.appreciation||'Aucune'));all.forEach((f,i)=>{const x=f.item,k=f.type+':'+String(x.id||i);line((i+1)+'. '+String(x.text||x.title||x.id||''),true);line('Réponse élève : '+text(getAns(doc,x.id)).slice(0,1300));line('Evaluation : '+(saved.marks[k]||'Non évalué'));line('Commentaire professeur : '+(saved.comments[k]||''))});pdf.save('TFAB_CORRIGE_E5_'+ident.id+'.pdf');setStatus('PDF téléchargé. Registre Cloudflare non modifié.')}catch(e){setStatus('PDF non généré : '+e.message);alert('PDF : '+e.message)}finally{b.disabled=false}};
+
+<script id="tfab-e6-v1-bridge-lab">
+(function(){
+'use strict';
+/* E6 LAB: original V1 display & grading controls, isolated IndexedDB drafts.
+   NO use of native localStorage.setItem for the correction index, NO PDF publication,
+   NO validation of marks or grades in the canonical Evaluation DB. */
+const KEY='tp_correction_local_v54', DB='TFAB_E6_V1_BROUILLONS_LAB', STORE='drafts';
+let active=null, nativeGet=Storage.prototype.getItem, nativeSet=Storage.prototype.setItem;
+let persist=Promise.resolve(), revision=0, stamp=0;
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const same=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
+const pick=r=>({marks:r.marks||{},comments234:r.comments234||{},levels:r.levels||{},criteriaLevels230:r.criteriaLevels230||{},note:r.note??'',appreciation:r.appreciation||'',noteModeV215:r.noteModeV215||'',noteCriteriaV45126:r.noteCriteriaV45126||[]});
+const getNativeRows=()=>{const a=JSON.parse(nativeGet.call(localStorage,KEY)||'[]');if(!Array.isArray(a))throw Error('Index original illisible');return a};
+function dbOpen(){return new Promise((ok,no)=>{const q=indexedDB.open(DB,1);q.onupgradeneeded=()=>{if(!q.result.objectStoreNames.contains(STORE))q.result.createObjectStore(STORE,{keyPath:'id'})};q.onsuccess=()=>ok(q.result);q.onerror=()=>no(q.error||Error('Ouverture IndexedDB E6 impossible'));q.onblocked=()=>no(Error('Base E6 occupée'))})}
+async function getDraft(id){const db=await dbOpen();try{return await new Promise((ok,no)=>{const q=db.transaction(STORE,'readonly').objectStore(STORE).get(id);q.onsuccess=()=>ok(q.result||null);q.onerror=()=>no(q.error)})}finally{db.close()}}
+async function putDraft(id,fields,rev){const db=await dbOpen();try{await new Promise((ok,no)=>{const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).put({id,fields,revision:rev,savedAt:new Date().toISOString()});tx.oncomplete=()=>ok();tx.onerror=()=>no(tx.error);tx.onabort=()=>no(tx.error)});const back=await new Promise((ok,no)=>{const q=db.transaction(STORE,'readonly').objectStore(STORE).get(id);q.onsuccess=()=>ok(q.result);q.onerror=()=>no(q.error)});if(!back||back.revision!==rev||!same(back.fields,fields))throw Error('Relecture du brouillon E6 non vérifiée')}finally{db.close()}}
+function status(txt,bad=false){const n=document.getElementById('e6-save-status');if(n){n.textContent=txt;n.style.color=bad?'#b91c1c':'#166534'}}
+function writeVirtual(s){if(!active)throw Error('Session E6 inactive');const list=JSON.parse(s);if(!Array.isArray(list))throw Error('Index virtuel non valide');const r=list.find(x=>String(x.id)===active.id);if(!r)throw Error('Copie E6 absente du registre virtuel');
+ // Never accept untracked modifications to a pre-existing historical record.
+ const other=list.filter(x=>String(x.id)!==active.id);
+ if(!same(other,active.unchanged))throw Error('Écriture historique interdite pendant le test E6 : sauvegarde refusée');
+ const fields=pick(r);active.rows=list;
+ const rev=++revision;
+ status('Brouillon E6 : enregistrement et vérification…');
+ persist=persist.then(()=>putDraft(active.id,fields,rev)).then(()=>{if(rev===revision)status('Brouillon enregistré et relu dans IndexedDB E6 ✓')}).catch(e=>{status('ERREUR de sauvegarde : '+e.message,true);active.error=e.message;throw e});
+ // avoid unhandled rejection when native handlers are synchronous
+ persist.catch(e=>console.error('E6 stockage',e));
 }
-async function launch(doc,remote){const id=normalizeIdentity(doc,remote),p=project(doc);if(!p||!Array.isArray(p.questions)||!p.questions.length)throw Error('Projet TP structuré introuvable.');const existing=await dbGet(id.id);if(existing&&(existing.source?.campaignId!==id.camp||existing.source?.userId!==id.user))throw Error('Conflit d’identité dans les corrections : refus.');render(doc,remote,existing||makeDraft(doc,id),id)}
-window.tfabE5Open=launch;
-const oldShow=window.tfab451102Show;
-if(typeof oldShow==='function'&&!oldShow.__e5){const wrapped=function(doc,remote,proof){const ret=oldShow.apply(this,arguments);const target=document.querySelector('#tfab102-view .tfab102-toolbar > div');if(target&&/^2MAC1$/i.test(String(doc.classe||remote?.classe||'').trim())){const b=document.createElement('button');b.type='button';b.id='tfab-e5-launch';b.textContent='Ouvrir dans le correcteur sécurisé';b.onclick=()=>{launch(doc,remote).catch(e=>alert('Ouverture protégée : '+e.message))};target.appendChild(b)}return ret};wrapped.__e5=true;window.tfab451102Show=wrapped}
-console.info('TFAB E5 laboratoire chargé : aucune modification des bases de production au démarrage.');
+function proxyGet(k){if(this===localStorage&&String(k)===KEY&&active)return JSON.stringify(active.rows);return nativeGet.apply(this,arguments)}
+function proxySet(k,v){if(this===localStorage&&String(k)===KEY&&active)return writeVirtual(String(v));return nativeSet.apply(this,arguments)}
+function ensureProxy(){if(Storage.prototype.getItem!==proxyGet||Storage.prototype.setItem!==proxySet){Storage.prototype.getItem=proxyGet;Storage.prototype.setItem=proxySet}if(Storage.prototype.getItem!==proxyGet)throw Error('Interception temporaire du registre impossible')}
+function restore(){if(Storage.prototype.getItem===proxyGet)Storage.prototype.getItem=nativeGet;if(Storage.prototype.setItem===proxySet)Storage.prototype.setItem=nativeSet;active=null}
+function originRow(id){return new Promise((ok,no)=>{const q=indexedDB.open('fdmahy_corrections_v129',1);q.onupgradeneeded=()=>{q.transaction.abort();no(Error('Base copies absente'))};q.onerror=()=>no(q.error);q.onsuccess=()=>{const db=q.result;if(!db.objectStoreNames.contains('copies')){db.close();return no(Error('Archives de copies indisponibles'))}const r=db.transaction('copies','readonly').objectStore('copies').get(id);r.onsuccess=()=>{db.close();ok(r.result||null)};r.onerror=()=>{db.close();no(r.error)}}})}
+async function openLab(remote,doc,proof){
+ if(active)throw Error('Une autre copie est ouverte dans E6; ferme-la d’abord.');
+ if(!remote||!proof?.verified)throw Error('Archive Cloudflare non vérifiée');
+ const id=String(proof.id||'');
+ if(!id.startsWith('TPC-R2-V102-'))throw Error('Archive non issue du stockage sécurisé');
+ const stored=await originRow(id);if(!stored||!stored.data)throw Error('Copie originale introuvable');
+ const c=stored.data.cloud451||{},s=stored.data.submission||{};
+ if(String(c.campaignId||s.campaignId)!==String(remote.campaign_id)||String(c.userId||s.userId)!==String(remote.user_id))throw Error('Identité serveur locale incompatible');
+ const project=stored.data.tpProject||stored.data.project||stored.data.projetTP||stored.data.tp?.project;
+ if(!project||!Array.isArray(project.questions)||!project.questions.length)throw Error('Le projet TP n’est pas structuré en questions');
+ const before=getNativeRows(),existing=before.filter(r=>String(r.id)===id);if(existing.length)throw Error('Une référence locale porte déjà cet identifiant; correction normale requise');
+ const draft=await getDraft(id),fields=draft?.fields||{};
+ const fresh={id,signature:'E6-LAB|'+String(remote.submission_id),fileName:'TP_RENDU_'+remote.submission_id+'.json',importedAt:new Date().toISOString(),data:stored.data,workflowState:'A_CORRIGER',marks:{},comments234:{},levels:{},note:'',appreciation:'',...fields};
+ active={id,unchanged:before,rows:[...before,fresh],error:null,remote};
+ try{
+  ensureProxy();if(typeof window.tpCorrectionOpen!=='function')throw Error('Correcteur V1 indisponible');
+  await window.tpCorrectionOpen(id);
+  setTimeout(()=>{if(!active||active.id!==id)return;const root=document.querySelector('.tpc-shell');if(!root){status('Correcteur V1 introuvable',true);return}const b=document.createElement('div');b.id='e6-lab-toolbar';b.style.cssText='position:sticky;top:0;z-index:999;background:#fff4d6;border:2px solid #bb7900;padding:10px;border-radius:8px;margin-bottom:8px;color:#402600';b.innerHTML='<b>LAB E6 · Correcteur V1 original — brouillons séparés, validation officielle désactivée</b><div id="e6-save-status" style="margin:4px 0;color:#166534">Prêt. Modifications enregistrées dans IndexedDB E6.</div><button type="button" id="e6-export" style="margin-right:8px">Exporter le brouillon JSON</button><button type="button" id="e6-close">Fermer ce test</button>';root.prepend(b);b.querySelector('#e6-export').onclick=exportDraft;b.querySelector('#e6-close').onclick=closeLab;
+   const buttons=[...root.querySelectorAll('button')].filter(x=>/Valider la correction|Valider.*évaluation|Publier.*corrigé/i.test(x.textContent||''));for(const btn of buttons){btn.disabled=true;btn.title='Validation et publication officielles désactivées dans le laboratoire E6';btn.textContent='Validation officielle désactivée — LAB E6'}
+  },450);
+ }catch(e){restore();throw e}
+}
+async function exportDraft(){if(!active)return;try{await persist;const d=await getDraft(active.id);if(!d)throw Error('Aucun brouillon enregistré');const payload={format:'TFAB-E6-LAB-BROUILLON',copyId:active.id,submissionId:active.remote.submission_id,savedAt:d.savedAt,correction:d.fields,officialValidation:false};const url=URL.createObjectURL(new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download='TFAB_E6_BROUILLON_'+active.remote.submission_id+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),30000);status('Brouillon exporté après relecture ✓')}catch(e){status(e.message,true)}}
+async function closeLab(){if(!active)return;try{await persist}catch(e){alert('Dernière sauvegarde non confirmée : '+e.message+'\nExporte le brouillon avant de fermer.');return}restore();window.tpCorrectionPage?.()}
+const oldShow=window.tfab451102Show;if(typeof oldShow!=='function')return;
+window.tfab451102Show=function(doc,remote,proof){const result=oldShow.apply(this,arguments);const box=document.querySelector('#tfab102-view .tfab102-note');if(!box||!remote||!proof?.verified)return result;const b=document.createElement('button');b.type='button';b.id='e6-v1-try';b.textContent='Essayer la copie dans le correcteur V1 (LAB, sans publication)';b.style.cssText='margin-top:8px;padding:9px 12px;background:#155e75;color:white;border-radius:8px;border:0;cursor:pointer';box.appendChild(document.createElement('br'));box.appendChild(b);b.onclick=async()=>{b.disabled=true;try{await openLab(remote,doc,proof)}catch(e){alert('E6 : '+String(e.message||e));b.disabled=false}};return result};
+// Mandatory defense: the existing validator must never run while E6's shadow index is active.
+const historicalValidate=window.tpCorrectionValidate;
+window.tpCorrectionValidate=function(){if(active){alert('E6 est un laboratoire de fidélité au correcteur V1. Validation officielle, écriture d’évaluation, PDF et publication Cloudflare bloquées. Les marques et commentaires sont enregistrés en brouillon E6 uniquement.');return Promise.resolve(false)}return historicalValidate?.apply(this,arguments)};
+// During E6, block accidental full-page navigation that would drop the virtual view.
+window.addEventListener('beforeunload',e=>{if(active){e.preventDefault();e.returnValue=''}});
+console.info('TFAB E6 LAB: V1 historique intact, affichage via registre temporaire, brouillons IndexedDB isolés.');
 })();
 </script>
