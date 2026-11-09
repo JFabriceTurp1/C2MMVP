@@ -25943,3 +25943,97 @@ function install(){const panel=document.getElementById('tfab45156-panel');if(!pa
  document.addEventListener('click',e=>{if(e.target?.closest?.('#tfab45156-pill'))setTimeout(install,0)},false);
 })();
 </script>
+
+<script id="tfab-e3e-diagnostic-21">
+(()=>{'use strict';
+const ROOT='https://portail-partage.khmg8np9yj.workers.dev';
+const TOKEN='tfab45156_session_token', KEY='tp_correction_local_v54';
+const DB='fdmahy_corrections_v129', STORE='copies';
+const txt=x=>(x===null||x===undefined?'':String(x)).trim();
+const pick=(...v)=>v.find(x=>x!==null&&x!==undefined&&txt(x)!=='')??'';
+const clean=(v,kind='id')=>{
+ if((typeof v!=='string'&&typeof v!=='number')||typeof v==='number'&&!Number.isFinite(v))return '';
+ const raw=txt(v);if(!raw||/^(null|undefined|unknown|inconnu|nan|\[object object\])$/i.test(raw))return '';
+ const ascii=raw.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+ return kind==='tp'||kind==='classe'?ascii.replace(/[^a-z0-9]/g,''):ascii.replace(/[^a-z0-9]/g,'');
+};
+const moment=v=>{
+ if(typeof v==='number'&&Number.isFinite(v))return v>1e12?Math.round(v/1000):v>1e9?Math.round(v):null;
+ if(typeof v!=='string'||!v.trim()||/^(null|undefined|unknown)$/i.test(v.trim()))return null;
+ const parsed=Date.parse(v);return Number.isFinite(parsed)?Math.round(parsed/1000):null;
+};
+const fromLocal=(o,dbkey,origin)=>{
+ const d=o&&typeof o==='object'?(o.data&&typeof o.data==='object'?o.data:o):{};
+ const sub=d.submission||{},cloud=d.cloud451||{},meta=d.meta||{},tp=d.tp||{};
+ const ident=d.identite||{},student=d.eleve||{};
+ const original={
+  campagne:pick(cloud.campaignId,sub.campaignId,meta.campaignId),
+  utilisateur:pick(cloud.userId,sub.userId,d.studentId),
+  tp:pick(tp.id,d.code,meta.activityId),
+  classe:pick(cloud.classe,d.classe,ident.classe),
+  date:pick(sub.submittedAt,meta.submittedAt,d.dates?.rendu)
+ };
+ const v={campagne:clean(original.campagne),utilisateur:clean(original.utilisateur),tp:clean(original.tp,'tp'),classe:clean(original.classe,'classe'),date:moment(original.date)};
+ return {key:txt(dbkey??o?.id),v,source:origin,
+  types:Object.fromEntries(Object.entries(original).map(([k,x])=>[k,Array.isArray(x)?'array':x===null?'null':typeof x])),
+  indiceContenu:!!(d&&(d.reponses||d.answers||d.responses||d.tpSelection230||d.questionAnswers)&&(d.tpProject||d.tp?.project||d.projetTP||d.project))};
+};
+const fromServer=r=>{
+ const original={campagne:pick(r.campaign_id,r.campaignId),utilisateur:pick(r.user_id,r.userId),tp:pick(r.tp_code,r.tpCode),classe:pick(r.classe,r.class_id),date:pick(r.submitted_at,r.submittedAt)};
+ return {v:{campagne:clean(original.campagne),utilisateur:clean(original.utilisateur),tp:clean(original.tp,'tp'),classe:clean(original.classe,'classe'),date:moment(original.date)},
+ types:Object.fromEntries(Object.entries(original).map(([k,x])=>[k,Array.isArray(x)?'array':x===null?'null':typeof x]))};
+};
+function validEq(k,a,b){return k==='date'?a.date!==null&&b.date!==null&&Math.abs(a.date-b.date)<=2:!!(a[k]&&b[k]&&a[k]===b[k]);}
+async function readDB(){const out={etat:'Non interrogée',rows:[]};if(typeof indexedDB.databases!=='function'){out.etat='Inventaire indisponible';return out}
+ const dbs=await indexedDB.databases();if(!dbs.some(x=>x.name===DB)){out.etat='Base absente';return out}
+ const db=await new Promise((resolve,reject)=>{const req=indexedDB.open(DB);req.onupgradeneeded=()=>{try{req.transaction.abort()}catch(_){}};req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error||Error('Ouverture impossible'));req.onblocked=()=>reject(Error('Base occupée'))});
+ try{if(!db.objectStoreNames.contains(STORE)){out.etat='Magasin absent';return out}
+  out.etat='Lecture réussie';await new Promise((resolve,reject)=>{const tx=db.transaction(STORE,'readonly');const req=tx.objectStore(STORE).openCursor();req.onsuccess=()=>{const c=req.result;if(!c)return;out.rows.push(fromLocal(c.value,c.primaryKey,'indexedDB'));c.continue()};req.onerror=()=>reject(req.error||Error('Erreur curseur'));tx.onerror=()=>reject(tx.error||Error('Transaction'));tx.onabort=()=>reject(tx.error||Error('Annulation'));tx.oncomplete=resolve});return out
+ }finally{db.close()}
+}
+async function run(){
+ const report={audit:'TFAB E3E — diagnostic ciblé des 21 rendus, lecture seule',date:new Date().toISOString(),origine:location.origin,securite:'Aucune écriture, aucun import, aucun marquage reçu',base:'V451.57.111 + E1 + E3D corrigé',local:{},cloudflare:{etat:'Non interrogé'},nonMarques:{},detailsAnonymes:[],conclusion:[]};
+ let index=[];try{const raw=localStorage.getItem(KEY);const data=raw?JSON.parse(raw):[];if(!Array.isArray(data))throw Error('Index non tabulaire');index=data.map(o=>fromLocal(o,o?.id,'index'));report.local.index=data.length}catch(e){report.local.erreurIndex=txt(e.message||e)}
+ let db={etat:'Erreur',rows:[]};try{db=await readDB()}catch(e){db.etat='Erreur : '+txt(e.message||e)}report.local.indexedDB={etat:db.etat,nombre:db.rows.length};
+ // Déduplication par clé technique, sans ajouter, fusionner ni modifier aucune copie.
+ const byKey=new Map();for(const row of [...index,...db.rows]){if(!row.key)continue;const old=byKey.get(row.key);if(!old){byKey.set(row.key,row);continue}if(row.source==='indexedDB')byKey.set(row.key,row)}
+ const locals=[...byKey.values()];report.local.entreesComparees=locals.length;
+ report.local.champsDisponibles=Object.fromEntries(['campagne','utilisateur','tp','classe','date'].map(k=>[k,locals.filter(x=>k==='date'?x.v.date!==null:!!x.v[k]).length]));
+ let token='';try{token=sessionStorage.getItem(TOKEN)||''}catch(_){}if(!token){report.cloudflare.etat='Code absent dans cette session';return report}
+ const ac=new AbortController(),timeout=setTimeout(()=>ac.abort(),12000);let items=[];
+ try{const response=await fetch(ROOT+'/api/prof/v45156/rendus',{method:'GET',headers:{Authorization:'Bearer '+token,Accept:'application/json'},cache:'no-store',credentials:'omit',signal:ac.signal});if(!response.ok){report.cloudflare.etat='HTTP '+response.status;return report}const payload=await response.json();if(!Array.isArray(payload.items))throw Error('Réponse sans items');items=payload.items.filter(x=>x?.state==='submitted');report.cloudflare.etat='Lecture réussie';report.cloudflare.rendusRetournes=payload.items.length;report.cloudflare.rendusSoumis=items.length;report.cloudflare.paginationVerifiee=false}catch(e){report.cloudflare.etat=e.name==='AbortError'?'Délai dépassé':'Erreur de lecture';report.cloudflare.erreur=txt(e.message||e);return report}finally{clearTimeout(timeout)}
+ const pending=items.filter(r=>{try{return localStorage.getItem('tfab45156_recu_'+txt(r.id))!=='1'}catch(_){return true}});
+ report.nonMarques={nombre:pending.length,repartitionParClasse:{},correspondanceCinqChamps:0,casAnormauxPlusDeTroisCandidats:0};
+ const keys=['campagne','utilisateur','tp','classe','date'];
+ for(let i=0;i<pending.length;i++){
+  const r=pending[i],server=fromServer(r);const cl=server.v.classe||'INCONNUE';report.nonMarques.repartitionParClasse[cl]=(report.nonMarques.repartitionParClasse[cl]||0)+1;
+  const perField=Object.fromEntries(keys.map(k=>[k,locals.filter(x=>validEq(k,server.v,x.v)).length]));
+  const meet=ks=>locals.filter(x=>ks.every(k=>validEq(k,server.v,x.v)));
+  const ctu=meet(['campagne','utilisateur']);const cut=meet(['campagne','utilisateur','tp']);const strict4=meet(['campagne','utilisateur','tp','date']);const strict5=meet(keys);
+  const noContradiction=locals.filter(x=>keys.every(k=>{const a=k==='date'?server.v.date:server.v[k],b=k==='date'?x.v.date:x.v[k];if(a===null||b===null||a===''||b==='')return true;return k==='date'?Math.abs(a-b)<=2:a===b}));
+  const suspicious=Object.entries(server.types).filter(([k,v])=>v==='object'||v==='array'||v==='boolean').map(([k])=>k);
+  const example={numero:i+1,classe:cl,champServeurExploitable:Object.fromEntries(keys.map(k=>[k,k==='date'?server.v.date!==null:!!server.v[k]])),champsServeurType:server.types,typesNonScalaires:suspicious,correspondancesIndividuelles:perField,
+   campagneEtUtilisateur:ctu.length,campagneUtilisateurTP:cut.length,strictQuatreChamps:strict4.length,strictCinqChamps:strict5.length,
+   tousCriteresSansContradiction:noContradiction.length,
+   sourcesStrictes:strict5.length?{index:strict5.filter(x=>x.source==='index').length,indexedDB:strict5.filter(x=>x.source==='indexedDB').length}:undefined,
+   indicesContenuSurCandidatsStricts:strict5.filter(x=>x.indiceContenu).length};
+  if(strict5.length===1)report.nonMarques.correspondanceCinqChamps++;
+  if(strict4.length>3||strict5.length>3)report.nonMarques.casAnormauxPlusDeTroisCandidats++;
+  report.detailsAnonymes.push(example);
+ }
+ report.conclusion=['Le rapport ne contient pas d’identité, de token, d’identifiant de rendu ni de contenu de copie.','Des correspondances sur des champs génériques ou incomplets ne prouvent pas la présence d’un rendu.','Un rapprochement structurel unique ne certifie pas les réponses ou les images.','Aucune correspondance ne prouve pas une absence.','Aucune récupération ne doit être lancée sur la seule base de ce rapport.'];
+ return report;
+}
+function install(){const panel=document.getElementById('tfab45156-panel');if(!panel||document.getElementById('tfab-e3e-diagnostic'))return;
+ const section=document.createElement('section');section.id='tfab-e3e-diagnostic';section.style.cssText='margin-top:12px;padding:10px;background:#f8fbff;border:1px solid #9bbbe0;border-radius:10px;font:12px Arial,sans-serif';
+ const button=document.createElement('button');button.type='button';button.textContent='E3E — Diagnostiquer les 21 rapprochements (lecture seule)';button.style.cssText='cursor:pointer;border:1px solid #9bbbe0;border-radius:8px;background:#fff;padding:9px 11px;font-weight:bold;font-size:12px';
+ const status=document.createElement('p');status.textContent='Compare les cinq critères séparément. Aucune récupération.';status.style.cssText='color:#475569;margin:8px 0';
+ const pre=document.createElement('pre');pre.style.cssText='display:none;max-height:360px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;background:white;padding:10px;border:1px solid #dde6ee;border-radius:7px;font:11px monospace';
+ const copy=document.createElement('button');copy.type='button';copy.textContent='Copier le rapport E3E';copy.style.cssText='display:none;margin-top:8px;border:1px solid #9bbbe0;background:white;border-radius:7px;padding:8px';
+ copy.onclick=()=>{if(navigator.clipboard?.writeText)navigator.clipboard.writeText(pre.textContent).then(()=>{status.textContent='Rapport copié.'}).catch(()=>{status.textContent='Sélectionne le rapport pour le copier.'});else status.textContent='Sélectionne le rapport pour le copier.'};
+ button.onclick=async()=>{button.disabled=true;status.textContent='Comparaison en lecture seule en cours…';try{const report=await run();pre.textContent=JSON.stringify(report,null,2);pre.style.display='block';copy.style.display='inline-block';status.textContent='Diagnostic terminé, aucune copie modifiée.'}catch(e){status.textContent='Diagnostic interrompu : '+txt(e.message||e)}finally{button.disabled=false}};
+ section.append(button,status,pre,copy);panel.append(section);
+}
+ document.addEventListener('click',e=>{if(e.target?.closest?.('#tfab45156-pill'))setTimeout(install,0)},false);
+})();
+</script>
