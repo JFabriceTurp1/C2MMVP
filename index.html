@@ -25713,3 +25713,47 @@ window.tfabReferenceExportHtml=async function(){try{if(location.protocol==='file
  });
 })();
 </script>
+
+<!-- TFAB E3-AUDIT — lancement manuel et lecture seule ; base E1 et démarrage inchangés -->
+<script id="tfab-e3-audit-lecture-seule">
+(function(){'use strict';
+const KEY='tp_correction_local_v54',DB='fdmahy_corrections_v129',STORE='copies';
+const getPanel=()=>document.getElementById('tfab45156-panel');
+function request(req){return new Promise((resolve,reject)=>{req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error||new Error('Erreur IndexedDB'));});}
+function openExisting(){return new Promise(async(resolve,reject)=>{
+ try{if(!indexedDB.databases)throw Error('Le navigateur ne permet pas de contrôler la présence de la base sans risque de création.');
+ const list=await indexedDB.databases();if(!list.some(x=>x.name===DB))return resolve(null);
+ const q=indexedDB.open(DB);q.onupgradeneeded=e=>{try{e.target.transaction.abort()}catch(_){}};
+ q.onsuccess=()=>resolve(q.result);q.onerror=()=>reject(q.error||Error('Ouverture impossible'));q.onblocked=()=>reject(Error('Base occupée'));}catch(e){reject(e)}
+ });}
+const norm=x=>String(x===undefined||x===null?'':x).trim();
+const keyFor=r=>norm(r?.cloudSubmissionId||r?.submissionId||r?.renduId||r?.remoteId||r?.id);
+async function audit(){
+ const out={audit:'TFAB E3 — audit local en lecture seule',date:new Date().toISOString(),origin:location.origin,local:{},indexedDB:{},comparaison:{},cloudflare:{etat:'Non interrogé',note:'Ce contrôle inventorie le navigateur uniquement. Les 21 copies annoncées par la fenêtre ne sont pas vérifiées par le serveur.'}};
+ let rows=[];
+ try{const raw=localStorage.getItem(KEY);out.local.indexPresent=raw!==null;rows=raw===null?[]:JSON.parse(raw);if(!Array.isArray(rows))throw Error('Index non constitué d’une liste');out.local.entrees=rows.length;out.local.marqueesIndexedDB=rows.filter(r=>!!r?.fullDataStored).length;}catch(e){out.local.erreur=String(e.message||e);rows=[];}
+ const db=await openExisting();let items=[];
+ if(!db){out.indexedDB.etat='Base absente';}else{
+ try{if(!db.objectStoreNames.contains(STORE)){out.indexedDB.etat='Magasin « copies » absent';}
+ else{out.indexedDB.etat='Lecture réussie';items=(await request(db.transaction(STORE,'readonly').objectStore(STORE).getAllKeys())).map(id=>({id}));out.indexedDB.entrees=items.length;}}
+ finally{db.close();}}
+ const localIds=new Map(),dbIds=new Map();for(const r of rows){const id=norm(r?.id);if(id)localIds.set(id,(localIds.get(id)||0)+1)}for(const r of items){const id=norm(r?.id);if(id)dbIds.set(id,(dbIds.get(id)||0)+1)}
+ out.comparaison.indexAvecCopieIndexedDB=[...localIds.keys()].filter(x=>dbIds.has(x)).length;
+ out.comparaison.indexSansCopieIndexedDB=[...localIds.keys()].filter(x=>!dbIds.has(x)).length;
+ out.comparaison.copiesIndexedDBSansIndex=[...dbIds.keys()].filter(x=>!localIds.has(x)).length;
+ out.comparaison.identifiantsIndexRepetes=[...localIds.values()].filter(x=>x>1).length;
+ out.comparaison.idsRendusPresentsDansIndex=rows.filter(r=>!!keyFor(r)).length;
+ out.comparaison.important='Présence dans IndexedDB ≠ preuve de contenu complet ; l’état et les médias doivent être contrôlés avant tout import.';
+ return out;
+}
+function showResult(el,result){el.textContent=JSON.stringify(result,null,2);}
+function install(){const p=getPanel();if(!p||p.querySelector('#tfab-e3-audit'))return;const wrap=document.createElement('div');wrap.id='tfab-e3-audit';wrap.style.cssText='margin-top:12px;padding:10px;border:1px solid #d7e2ee;border-radius:10px;background:#f8fafc;font:12px Arial,sans-serif';
+ const button=document.createElement('button');button.type='button';button.textContent='Auditer les copies locales (lecture seule)';button.style.cssText='cursor:pointer;border:1px solid #94a3b8;border-radius:8px;background:white;padding:8px 10px;font:700 12px Arial';
+ const status=document.createElement('div');status.style.cssText='margin-top:7px;color:#475569';status.textContent='Aucune importation, aucune suppression, aucun changement dans Firebase ou Cloudflare.';
+ const pre=document.createElement('pre');pre.style.cssText='display:none;max-height:220px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;background:white;padding:8px;border-radius:7px;font:11px monospace';
+ button.addEventListener('click',async()=>{button.disabled=true;status.textContent='Lecture des deux stockages en cours…';try{const result=await audit();showResult(pre,result);pre.style.display='block';status.textContent='Audit terminé. Aucun enregistrement modifié.';}catch(e){pre.style.display='block';pre.textContent=String(e?.message||e);status.textContent='Audit incomplet : aucune récupération lancée.';}finally{button.disabled=false;}});
+ wrap.append(button,status,pre);p.append(wrap);}
+ // Ne fait rien au lancement de l’application : création uniquement lors du clic sur le nuage.
+ document.addEventListener('click',e=>{if(e.target?.closest?.('#tfab45156-pill'))setTimeout(install,0);},false);
+})();
+</script>
