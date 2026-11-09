@@ -25804,3 +25804,66 @@ function install(){const p=getPanel();if(!p||p.querySelector('#tfab-e3-audit'))r
  document.addEventListener('click',e=>{if(e.target?.closest?.('#tfab45156-pill'))setTimeout(install,0)},false);
 })();
 </script>
+
+<!-- Module E3C : activé exclusivement par clic, lecture seule -->
+<script id="tfab-e3c-rapprochement">
+(()=>{'use strict';
+// Module E3C isolé: aucune action avant clic manuel, aucune écriture.
+const ROOT='https://portail-partage.khmg8np9yj.workers.dev', TOKEN='tfab45156_session_token';
+const INDEX='tp_correction_local_v54', DB='fdmahy_corrections_v129', STORE='copies';
+const str=x=>String(x===undefined||x===null?'':x).trim();
+const canon=x=>str(x).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+const time=x=>{const n=Date.parse(str(x));return Number.isFinite(n)?Math.floor(n/1000):null};
+const identity=o=>{
+ const d=o?.data||o||{},m=d.meta||{},sub=d.submission||{},c=d.cloud451||{},id=d.identite||{},student=d.eleve||{},tp=d.tp||{};
+ return {localKey:str(o?.id),submission:str(sub.submissionId||sub.submission_id||c.submissionId||d.submissionId||d.cloudSubmissionId||d.renduId),campaign:canon(c.campaignId||sub.campaignId),user:canon(c.userId||sub.userId||d.studentId),classe:canon(c.classe||d.classe||id.classe),name:canon([id.nom||student.nom||'',id.prenom||student.prenom||''].join(' ')),tp:canon(tp.id||d.code||m.activityId||''),stamp:time(sub.submittedAt||m.submittedAt||d.dates?.rendu||o?.importedAt),corrected:!!(o?.correctedAt||d.correction?.validatedAt),hasData:!!(d&&typeof d==='object'&&(d.reponses||d.answers||d.responses||d.tpSelection230||d.questionAnswers)&&(d.tpProject||d.tp?.project||d.projetTP||d.project))};
+};
+const server=r=>({submission:str(r?.id),campaign:canon(r?.campaign_id||r?.campaignId),user:canon(r?.user_id||r?.userId),classe:canon(r?.classe||r?.class_id),name:canon(r?.eleve||r?.student_name),tp:canon(r?.tp_code||r?.tpCode),stamp:time(r?.submitted_at||r?.submittedAt)});
+function distinctMatches(a, b){ // Exiger des valeurs présentes sur les deux côtés, jamais une valeur manquante = une preuve.
+ const same=k=>a[k]&&b[k]&&a[k]===b[k];
+ const disagreement=k=>a[k]&&b[k]&&a[k]!==b[k];
+ if(a.submission&&b.submission&&a.submission===b.submission)return 'id';
+ if(disagreement('campaign')||disagreement('user')||disagreement('tp')||disagreement('classe'))return '';
+ const exactTime=a.stamp!==null&&b.stamp!==null&&a.stamp===b.stamp;
+ // Famille forte: même campagne, même utilisateur, même date de soumission.
+ if(same('campaign')&&same('user')&&exactTime)return 'triple';
+ // Date + utilisateur + TP + classe, sans contradiction de campagne.
+ if(same('user')&&same('tp')&&same('classe')&&exactTime)return 'quadruple';
+ // Sinon, rapprochement seulement probable, jamais absence confirmée.
+ if(same('user')&&same('tp')&&(same('classe')||exactTime))return 'probable';
+ if(same('name')&&same('tp')&&same('classe')&&exactTime)return 'probable';
+ return '';
+}
+async function readDB(){const out={etat:'Non lu',nombre:0,metadonnees:[],erreur:null};if(typeof indexedDB.databases!=='function'){out.etat='Non accessible sans risque de création';return out}
+ const bases=await indexedDB.databases();if(!bases.some(b=>b.name===DB)){out.etat='Base absente';return out}
+ const db=await new Promise((ok,no)=>{const req=indexedDB.open(DB);req.onupgradeneeded=()=>{try{req.transaction.abort()}catch(_){}};req.onerror=()=>no(req.error||Error('Ouverture impossible'));req.onblocked=()=>no(Error('Base bloquée'));req.onsuccess=()=>ok(req.result)});
+ try{if(!db.objectStoreNames.contains(STORE)){out.etat='Magasin absent';return out}out.etat='Lecture réussie';
+ await new Promise((ok,no)=>{const tx=db.transaction(STORE,'readonly'),req=tx.objectStore(STORE).openCursor();req.onsuccess=()=>{const cur=req.result;if(!cur)return;const x=identity(cur.value);x.localKey=str(cur.primaryKey);out.metadonnees.push(x);out.nombre++;cur.continue()};req.onerror=()=>no(req.error||Error('Erreur curseur'));tx.onerror=()=>no(tx.error||Error('Transaction échouée'));tx.onabort=()=>no(tx.error||Error('Transaction annulée'));tx.oncomplete=ok});
+ return out}finally{db.close()}}
+const count=(o,key)=>o[key]=(o[key]||0)+1;
+async function audit(){const out={audit:'TFAB E3C — rapprochement non destructif',date:new Date().toISOString(),origine:location.origin,securite:'Lecture seule : zéro import, zéro marquage reçu, zéro écriture IndexedDB/localStorage/D1/R2',local:{},indexedDB:{},cloudflare:{etat:'Non interrogé'},rapprochement:{},limites:[]};
+ let rows=[];try{let raw=localStorage.getItem(INDEX);rows=raw?JSON.parse(raw):[];if(!Array.isArray(rows))throw Error('Index non tabulaire');out.local.indexPresent=raw!==null;out.local.nombre=rows.length}catch(e){out.local.erreur=str(e?.message||e);out.limites.push('Index local illisible')}
+ const index=rows.map(identity),db=await readDB();out.indexedDB={etat:db.etat,nombre:db.nombre,erreur:db.erreur};
+ const byId=new Map();for(const x of [...index,...db.metadonnees]){if(!x.localKey)continue;const prev=byId.get(x.localKey);if(!prev||((!prev.hasData&&x.hasData)||(!prev.submission&&x.submission)))byId.set(x.localKey,x)}
+ const locals=[...byId.values()];out.local.identifiantsTechniquesUniques=locals.length;out.local.repartitionParSource={dansIndex:rows.length,dansIndexedDB:db.nombre};out.local.metadonneesDisponibles={avecCampagne:locals.filter(x=>x.campaign).length,avecUtilisateur:locals.filter(x=>x.user).length,avecTP:locals.filter(x=>x.tp).length,avecDate:locals.filter(x=>x.stamp!==null).length,avecIdentifiantRendu:locals.filter(x=>x.submission).length};
+ let tok='';try{tok=sessionStorage.getItem(TOKEN)||''}catch(_){}if(!tok){out.cloudflare.etat='Code absent dans cette session';return out}
+ const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),12000);let items=[];
+ try{const response=await fetch(ROOT+'/api/prof/v45156/rendus',{method:'GET',headers:{Authorization:'Bearer '+tok,Accept:'application/json'},cache:'no-store',credentials:'omit',signal:controller.signal});if(response.status===401||response.status===403){out.cloudflare.etat='Liaison expirée ou refusée';return out}if(!response.ok){out.cloudflare.etat='HTTP '+response.status;return out}const payload=await response.json();if(!Array.isArray(payload?.items))throw Error('Champ items non présent');items=payload.items.filter(x=>x?.state==='submitted');out.cloudflare.etat='Lecture réussie';out.cloudflare.rendusTotal=payload.items.length;out.cloudflare.rendusSoumis=items.length}catch(e){out.cloudflare.etat=e?.name==='AbortError'?'Délai réseau dépassé':'Erreur de lecture';out.cloudflare.erreur=str(e?.message||e);return out}finally{clearTimeout(timer)}
+ const categories={identifiantCertain:0,structureForteUnique:0,correspondanceProbable:0,ambigu:0,aucuneCorrespondance:0};
+ const perClass={};let marked=0,unmarked=0,unmatchedMarked=0,unmatchedUnmarked=0;
+ const examples=[]; // exemples anonymisés : uniquement type et structure, jamais identité ou ID serveur.
+ for(const r of items){const srv=server(r),hits=[];for(const x of locals){let strength=distinctMatches(srv,x);if(strength)hits.push({localKey:x.localKey,strength})}
+ const sureId=[...new Set(hits.filter(h=>h.strength==='id').map(h=>h.localKey))];const strong=[...new Set(hits.filter(h=>['triple','quadruple'].includes(h.strength)).map(h=>h.localKey))];const prob=[...new Set(hits.filter(h=>h.strength==='probable').map(h=>h.localKey))];
+ let state;if(sureId.length===1)state='identifiantCertain';else if(sureId.length>1)state='ambigu';else if(strong.length===1 && hits.every(h=>h.localKey===strong[0]))state='structureForteUnique';else if(strong.length>1)state='ambigu';else if(prob.length>0||strong.length>0)state='correspondanceProbable';else state='aucuneCorrespondance';
+ count(categories,state);const cl=srv.classe||'INCONNUE';if(!perClass[cl])perClass[cl]={total:0,marquesRecus:0,nonMarques:0,identifiantCertain:0,structureForteUnique:0,correspondanceProbable:0,ambigu:0,aucuneCorrespondance:0};const group=perClass[cl];group.total++;group[state]++;
+ let isMarked=false;try{isMarked=localStorage.getItem('tfab45156_recu_'+str(r.id))==='1'}catch(_){}if(isMarked){marked++;group.marquesRecus++}else{unmarked++;group.nonMarques++}if(state==='aucuneCorrespondance'){if(isMarked)unmatchedMarked++;else unmatchedUnmarked++}
+ if(examples.length<12 && ['ambigu','correspondanceProbable','aucuneCorrespondance'].includes(state))examples.push({categorie:state,classe:cl,correspondancesCandidats:hits.length,champCampagne:!!srv.campaign,champUtilisateur:!!srv.user,champTP:!!srv.tp,champDate:srv.stamp!==null});
+ }
+ out.cloudflare.marquesRecusDansNavigateur=marked;out.cloudflare.nonMarquesRecus=unmarked;
+ out.rapprochement={categories,parClasse:perClass,nonRapprochesEtNonMarques:unmatchedUnmarked,nonRapprochesMaisMarques:unmatchedMarked,exemplesAnonymes:examples};
+ out.limites.push('Correspondance structurelle unique ≠ vérification d’intégrité de la copie ou de ses images.');out.limites.push('Aucune correspondance ≠ copie absente : métadonnées anciennes ou incomplètes possibles.');out.limites.push('Les 21 copies non marquées sont une différence de marqueurs, pas une preuve de copies manquantes.');out.limites.push('Inventaire serveur limité aux éléments renvoyés par cet appel; aucune pagination supplémentaire vérifiée.');
+ return out;}
+ function install(){const p=document.getElementById('tfab45156-panel');if(!p||document.getElementById('tfab-e3c-section'))return;const wrap=document.createElement('section');wrap.id='tfab-e3c-section';wrap.style.cssText='margin-top:10px;border:1px solid #bad0e7;border-radius:9px;padding:10px;background:#f8fbff;font:12px Arial,sans-serif';const btn=document.createElement('button');btn.type='button';btn.textContent='E3C — Rapprocher les rendus sans importation';btn.style.cssText='padding:9px 11px;border:1px solid #7b9ab7;background:white;border-radius:8px;font:700 12px Arial;cursor:pointer';const status=document.createElement('p');status.textContent='Lecture seule des métadonnées locales et de la liste Cloudflare.';status.style.cssText='margin:8px 0;color:#475569';const pre=document.createElement('pre');pre.style.cssText='display:none;max-height:320px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;background:white;border:1px solid #dbe3ef;padding:8px;font:11px monospace';const copy=document.createElement('button');copy.type='button';copy.textContent='Copier le rapport E3C';copy.style.cssText='display:none;margin-top:8px;background:#fff;border:1px solid #abc;padding:7px;border-radius:7px';copy.onclick=()=>navigator.clipboard?.writeText(pre.textContent).then(()=>{status.textContent='Rapport copié.'}).catch(()=>{status.textContent='Sélectionne le texte du rapport pour le copier.'});btn.onclick=async()=>{btn.disabled=true;status.textContent='Rapprochement en cours, aucune modification…';try{const result=await audit();pre.textContent=JSON.stringify(result,null,2);pre.style.display='block';copy.style.display='inline-block';status.textContent='Rapport prêt — aucune copie importée, aucune donnée modifiée.'}catch(e){status.textContent='Audit interrompu : '+str(e?.message||e)}finally{btn.disabled=false}};wrap.append(btn,status,pre,copy);p.append(wrap)}
+ document.addEventListener('click',e=>{if(e.target?.closest?.('#tfab45156-pill'))setTimeout(install,0)},false);
+})();
+</script>
