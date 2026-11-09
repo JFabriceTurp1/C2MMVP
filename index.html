@@ -25757,3 +25757,50 @@ function install(){const p=getPanel();if(!p||p.querySelector('#tfab-e3-audit'))r
  document.addEventListener('click',e=>{if(e.target?.closest?.('#tfab45156-pill'))setTimeout(install,0);},false);
 })();
 </script>
+
+<!-- TFAB E3B — Audit approfondi EXPLICITE, aucun démarrage ni modification des copies -->
+<script id="tfab-e3b-audit-approfondi">
+(()=>{'use strict';
+ const ROOT='https://portail-partage.khmg8np9yj.workers.dev';
+ const TOKEN_KEY='tfab45156_session_token', INDEX='tp_correction_local_v54', DB='fdmahy_corrections_v129', STORE='copies';
+ const panel=()=>document.getElementById('tfab45156-panel');
+ const norm=x=>String(x===undefined||x===null?'':x).trim();
+ const ident=x=>norm(x?.cloud451?.submissionId||x?.submission?.submissionId||x?.submission?.submission_id||x?.submissionId||x?.cloudSubmissionId||x?.renduId||x?.remoteId);
+ const classify=(row)=>{const d=row?.data||{};const p=d.tpProject||d.tp?.project||d.projetTP||d.project;const hasAnswers=!!(d.reponses||d.answers||d.responses||d.tpSelection230||d.questionAnswers);const hasIdentity=!!(d.studentId||d.identite?.nom||d.eleve?.nom||d.submission?.userId||d.cloud451?.userId);const hasTP=!!(d.code||d.tp?.id||d.meta?.activityId||d.titre||d.tp?.titre);const placeholder=!!(row?.v217ArchiveOnly||row?.firebaseArchive227?.mediaRemoved);const valid=!!(row?.id&&d&&typeof d==='object'&&!Array.isArray(d)&&hasIdentity&&hasTP&&(p||hasAnswers));return {valid,placeholder,hasIdentity,hasTP,hasAnswers,hasProject:!!p};};
+ const countBy=(o,k)=>{o[k]=(o[k]||0)+1};
+ const req=q=>new Promise((resolve,reject)=>{q.onsuccess=()=>resolve(q.result);q.onerror=()=>reject(q.error||new Error('Erreur IndexedDB'))});
+ async function existingDB(){if(typeof indexedDB.databases!=='function')throw Error('Le navigateur ne permet pas de vérifier la présence de la base sans risque de création');const arr=await indexedDB.databases();if(!arr.some(x=>x.name===DB))return null;return new Promise((resolve,reject)=>{const r=indexedDB.open(DB);r.onupgradeneeded=()=>{try{r.transaction.abort()}catch(_){}};r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error||Error('Erreur ouverture'));r.onblocked=()=>reject(Error('Base occupée'));});}
+ // Analyse l'objet obtenu par le curseur immédiatement, sans conserver ses éventuelles images.
+ async function inspectDB(out,localIdSet){const db=await existingDB();if(!db){out.indexedDB.etat='Base absente';return {ids:new Set(),submissions:new Set()}};
+ try{if(!db.objectStoreNames.contains(STORE)){out.indexedDB.etat='Magasin absent';return {ids:new Set(),submissions:new Set()}};
+ const ids=new Set(),submissions=new Set();out.indexedDB.etat='Lecture réussie';out.indexedDB.entrees=0;out.indexedDB.formats={};
+ await new Promise((resolve,reject)=>{const t=db.transaction(STORE,'readonly');const c=t.objectStore(STORE).openCursor();c.onsuccess=()=>{const cur=c.result;if(!cur)return;const r=cur.value;const id=norm(cur.primaryKey);if(id)ids.add(id);out.indexedDB.entrees++;
+ const q=classify(r),sub=ident(r?.data||r);if(sub)submissions.add(sub);
+ countBy(out.indexedDB.formats,q.valid?'structure_exploitable_probable':'structure_incomplete_ou_inconnue');if(q.placeholder)countBy(out.indexedDB.formats,'archive_ou_media_signales_absents');if(q.hasAnswers)countBy(out.indexedDB.formats,'reponses_detectees');if(q.hasProject)countBy(out.indexedDB.formats,'projet_detecte');if(localIdSet.has(id))countBy(out.indexedDB.formats,'egalement_reference_localement');
+ // Les placeholders et réponses ne prouvent pas que chaque image est lisible.
+ cur.continue();};c.onerror=()=>reject(c.error||Error('Lecture curseur'));t.oncomplete=resolve;t.onerror=()=>reject(t.error||Error('Transaction interrompue'));t.onabort=()=>reject(t.error||Error('Transaction annulée'));});return {ids,submissions};
+ }finally{db.close();}}
+ async function run(){const out={audit:'TFAB E3B — contrôle approfondi sans écriture',date:new Date().toISOString(),origine:location.origin,securite:'Aucune récupération, aucun marquage reçu, aucune modification localStorage/IndexedDB/D1/R2',local:{},indexedDB:{},comparaison:{},cloudflare:{etat:'Non interrogé'}};
+ let rows=[];try{const raw=localStorage.getItem(INDEX);out.local.indexPresent=raw!==null;rows=raw?JSON.parse(raw):[];if(!Array.isArray(rows))throw Error('Index non tabulaire');out.local.entrees=rows.length;}catch(e){out.local.erreur=String(e.message||e);out.securite+=' ; comparaison locale incomplète';}
+ const localIds=new Set(),localSubs=new Set(),localClasses={};for(const r of rows){const id=norm(r?.id);if(id)localIds.add(id);const x=ident(r?.data||r);if(x)localSubs.add(x);const cls=norm(r?.data?.cloud451?.classe||r?.data?.classe||r?.data?.identite?.classe||'?');countBy(localClasses,cls||'?');}
+ out.local.classes=localClasses;out.local.identifiantsRendusExplicites=localSubs.size;
+ const db=await inspectDB(out,localIds);out.comparaison.indexAvecDB=[...localIds].filter(x=>db.ids.has(x)).length;out.comparaison.indexSansDB=[...localIds].filter(x=>!db.ids.has(x)).length;out.comparaison.dbSansIndex=[...db.ids].filter(x=>!localIds.has(x)).length;out.comparaison.identifiantsRendusDistinctsDansDB=db.submissions.size;
+ const token=(()=>{try{return sessionStorage.getItem(TOKEN_KEY)||''}catch(_){return ''}})();
+ if(!token){out.cloudflare.etat='Code absent dans cette session';out.cloudflare.note='Inventaire Cloudflare non tenté. La comparaison locale reste valable.';return out;}
+ const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),10000);
+ try{const res=await fetch(ROOT+'/api/prof/v45156/rendus',{headers:{Authorization:'Bearer '+token,Accept:'application/json'},method:'GET',cache:'no-store',credentials:'omit',signal:controller.signal});
+ if(res.status===401||res.status===403){out.cloudflare.etat='Code refusé ou expiré';return out;}
+ if(!res.ok){out.cloudflare.etat='HTTP '+res.status;return out;}
+ const data=await res.json();if(!Array.isArray(data?.items))throw Error('Format inattendu : items absent');
+ const submitted=data.items.filter(x=>x?.state==='submitted');out.cloudflare={etat:'Lecture réussie',rendusRetournés:data.items.length,rendusSoumis:submitted.length,rendusNonSoumis:data.items.length-submitted.length,comparaison:{}};
+ const cc=out.cloudflare.comparaison;cc.identifiantPresentDansIndex=0;cc.identifiantPresentDansDB=0;cc.dansLesDeux=0;cc.nonRapprochesParIdentifiant=0;cc.rendusSansIdentifiant=0;cc.repartitionsParClasse={};cc.marquesRecusDansNavigateur=0;
+ // Ne conclure à « manquante » qu'après correspondance fiable; l'absence d'identifiant ne permet pas la preuve.
+ for(const r of submitted){const id=norm(r.id);if(!id){cc.rendusSansIdentifiant++;continue}const a=localSubs.has(id),b=db.submissions.has(id);if(a)cc.identifiantPresentDansIndex++;if(b)cc.identifiantPresentDansDB++;if(a&&b)cc.dansLesDeux++;if(!a&&!b)cc.nonRapprochesParIdentifiant++;const cls=norm(r.classe||r.class_id||'?')||'?';countBy(cc.repartitionsParClasse,cls);try{if(localStorage.getItem('tfab45156_recu_'+id)==='1')cc.marquesRecusDansNavigateur++}catch(_){}}
+ cc.precision='Absence de correspondance par identifiant ≠ absence de copie : certains anciens rendus n’exposent pas leur identifiant dans les données locales. Aucune copie téléchargée.';
+ }catch(e){out.cloudflare.etat=e?.name==='AbortError'?'Délai de 10 secondes dépassé':'Erreur de lecture';out.cloudflare.erreur=String(e?.message||e)}finally{clearTimeout(timer)}
+ out.conclusion='Ce rapport compare les structures et identifiants mais ne certifie pas l’intégrité des images ni la correspondance des copies anciennes sans identifiant de rendu.';return out;
+ }
+ function install(){const p=panel();if(!p||document.getElementById('tfab-e3b-audit'))return;const wrap=document.createElement('section');wrap.id='tfab-e3b-audit';wrap.style.cssText='margin-top:10px;border:1px solid #b6d2e2;padding:10px;border-radius:10px;background:#f7fbff;font:12px Arial,sans-serif';const b=document.createElement('button');b.type='button';b.textContent='Audit approfondi local + Cloudflare (lecture seule)';b.style.cssText='cursor:pointer;border:1px solid #7b9ab7;background:white;padding:9px 11px;border-radius:8px;font:700 12px Arial';const msg=document.createElement('p');msg.textContent='Action manuelle : lecture des métadonnées, sans récupération des copies.';msg.style.cssText='color:#475569;margin:7px 0';const pre=document.createElement('pre');pre.style.cssText='display:none;max-height:280px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;padding:8px;background:white;border:1px solid #e1e8f0;font:11px monospace';const copy=document.createElement('button');copy.type='button';copy.textContent='Copier le rapport';copy.style.cssText='display:none;margin-top:7px;border:1px solid #abc;padding:6px;background:white;border-radius:6px';copy.onclick=()=>{if(pre.textContent&&navigator.clipboard?.writeText)navigator.clipboard.writeText(pre.textContent).then(()=>{msg.textContent='Rapport copié. Aucune donnée modifiée.'}).catch(()=>{msg.textContent='Copie impossible : sélectionner le texte du rapport.'})};b.onclick=async()=>{b.disabled=true;msg.textContent='Audit en lecture seule en cours…';try{const result=await run();pre.textContent=JSON.stringify(result,null,2);pre.style.display='block';copy.style.display='inline-block';msg.textContent='Audit terminé. Aucune copie importée ni supprimée.'}catch(e){msg.textContent='Audit incomplet : '+String(e?.message||e)}finally{b.disabled=false}};wrap.append(b,msg,pre,copy);p.append(wrap)}
+ document.addEventListener('click',e=>{if(e.target?.closest?.('#tfab45156-pill'))setTimeout(install,0)},false);
+})();
+</script>
