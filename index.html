@@ -25583,3 +25583,133 @@ window.tfabReferenceExportHtml=async function(){try{if(location.protocol==='file
  }
 }
 </style>
+
+<!-- TFAB Cloud E1 (2026-11-06) : extension additive, aucune initialisation réseau au démarrage. -->
+<style id="tfab-cloud-e1-style">
+#tfab45156-panel .tfab-cloud-e1{margin:10px 0;padding:10px 11px;border:1px solid #d6e2ee;border-radius:9px;background:#f8fbff;display:grid;gap:9px}
+#tfab45156-panel .tfab-cloud-e1-row{display:flex;align-items:center;justify-content:space-between;gap:9px;font-size:12px}
+#tfab45156-panel .tfab-cloud-e1-label{font-weight:700;color:#28445c}
+#tfab45156-panel .tfab-cloud-e1-indicator{display:inline-flex;align-items:center;gap:7px;white-space:nowrap;font-size:11px;color:#475569}
+#tfab45156-panel .tfab-cloud-e1-dot{flex:none;width:10px;height:10px;border-radius:50%;background:#94a3b8;box-shadow:0 0 0 2px #fff}
+#tfab45156-panel .tfab-cloud-e1-dot[data-status="valid"]{background:#16a34a}
+#tfab45156-panel .tfab-cloud-e1-dot[data-status="invalid"]{background:#dc2626}
+#tfab45156-panel .tfab-cloud-e1-dot[data-status="checking"]{background:#d97706}
+#tfab45156-panel .tfab-cloud-e1-dot[data-status="running"]{background:#2563eb;animation:tfab-e1-pulse 1.1s ease-in-out infinite}
+#tfab45156-panel .tfab-cloud-e1-note{font-size:10px;color:#64748b;line-height:1.35;margin:0}
+@keyframes tfab-e1-pulse{0%,100%{opacity:1}50%{opacity:.22}}
+@media(prefers-reduced-motion:reduce){#tfab45156-panel .tfab-cloud-e1-dot[data-status="running"]{animation:none}}
+</style>
+<script id="tfab-cloud-e1-status-only">
+(()=>{'use strict';
+ // Ne fait AUCUN appel réseau, aucune lecture de stockage, ni changement de fetch au démarrage.
+ const ROOT='https://portail-partage.khmg8np9yj.workers.dev';
+ const TOKEN_KEY='tfab45156_session_token';
+ const PANEL_ID='tfab45156-panel';
+ let priorFetch=null, trackingFetch=null, activeRequests=0, checkSequence=0, currentToken='', monitored=false;
+ let connectionDot=null,connectionText=null,activityDot=null,activityText=null,notice=null;
+ function panel(){return document.getElementById(PANEL_ID)}
+ function visible(){return !!panel()?.hasAttribute('open')}
+ function setConnection(value,label){if(!connectionDot)return;connectionDot.dataset.status=value;connectionText.textContent=label;}
+ function setActivity(){if(!activityDot)return;const on=activeRequests>0;activityDot.dataset.status=on?'running':'idle';activityText.textContent=on?'Échange en cours':'Au repos';}
+ function setNote(msg){if(notice)notice.textContent=msg;}
+ function readToken(){try{return sessionStorage.getItem(TOKEN_KEY)||''}catch(_){return ''}}
+ function ensureUI(){
+  const root=panel();if(!root)return false;
+  let block=root.querySelector('.tfab-cloud-e1');
+  if(!block){
+   block=document.createElement('div');block.className='tfab-cloud-e1';
+   block.innerHTML='<div class="tfab-cloud-e1-row"><span class="tfab-cloud-e1-label">Liaison administrateur</span><span class="tfab-cloud-e1-indicator"><span class="tfab-cloud-e1-dot" data-status="idle" id="tfab-cloud-e1-connection-dot"></span><span id="tfab-cloud-e1-connection-text">Non vérifiée</span></span></div><div class="tfab-cloud-e1-row"><span class="tfab-cloud-e1-label">Échanges de données</span><span class="tfab-cloud-e1-indicator"><span class="tfab-cloud-e1-dot" data-status="idle" id="tfab-cloud-e1-activity-dot"></span><span id="tfab-cloud-e1-activity-text">Au repos</span></span></div><p class="tfab-cloud-e1-note" id="tfab-cloud-e1-note">Vérification uniquement à l’ouverture.</p>';
+   const existing=root.querySelector('#tfab45156-details');if(existing)existing.insertAdjacentElement('afterend',block);else root.prepend(block);
+  }
+  connectionDot=block.querySelector('#tfab-cloud-e1-connection-dot');connectionText=block.querySelector('#tfab-cloud-e1-connection-text');
+  activityDot=block.querySelector('#tfab-cloud-e1-activity-dot');activityText=block.querySelector('#tfab-cloud-e1-activity-text');notice=block.querySelector('#tfab-cloud-e1-note');
+  return true;
+ }
+ function matchCloudRequest(resource){
+  try{
+   const url=new URL(typeof resource==='string'?resource:resource?.url,document.baseURI);
+   return url.origin===new URL(ROOT).origin && url.pathname.startsWith('/api/prof/');
+  }catch(_){return false}
+ }
+ function watchFetch(){
+  if(monitored)return;
+  priorFetch=window.fetch;
+  // Enveloppe seulement pendant l'affichage du panneau et ne change ni requête, ni réponse.
+  trackingFetch=function(...args){
+   if(!matchCloudRequest(args[0]))return priorFetch.apply(this,args);
+   activeRequests++;setActivity();
+   let outcome;
+   try{outcome=priorFetch.apply(this,args)}catch(err){activeRequests=Math.max(0,activeRequests-1);setActivity();throw err}
+   return Promise.resolve(outcome).then(response=>{
+    // Une erreur d'autorisation de l'API invalide le voyant vert, pas une erreur réseau générique.
+    if(visible()&&(response.status===401||response.status===403)){
+     setConnection('invalid','Code refusé');setNote('Cloudflare refuse la liaison administrateur.');
+    }
+    return response;
+   }).finally(()=>{activeRequests=Math.max(0,activeRequests-1);setActivity()});
+  };
+  window.fetch=trackingFetch;
+  monitored=true;
+ }
+ function unwatchFetch(){
+  if(monitored&&window.fetch===trackingFetch)window.fetch=priorFetch;
+  monitored=false;priorFetch=null;
+  // Les échanges déjà partis terminent librement ; ce compteur n'annule rien.
+  activeRequests=0;setActivity();
+ }
+ async function verify(){
+  if(!visible()||!ensureUI())return;
+  const sequence=++checkSequence;
+  const token=readToken();currentToken=token;
+  if(!token){setConnection('invalid','Aucun code');setNote('Saisir ou transmettre un code administrateur pour vérifier la liaison.');return;}
+  setConnection('checking','Vérification…');setNote('Vérification auprès du serveur Cloudflare…');
+  const abort=new AbortController();const timeout=setTimeout(()=>abort.abort(),7000);
+  try{
+   const response=await fetch(ROOT+'/api/prof/v45156/campagnes',{
+    method:'GET',headers:{Authorization:'Bearer '+token},cache:'no-store',credentials:'omit',signal:abort.signal
+   });
+   if(!visible()||sequence!==checkSequence||readToken()!==token)return;
+   if(response.status===401||response.status===403){setConnection('invalid','Code refusé');setNote('Code expiré ou non reconnu par Cloudflare.');return;}
+   if(!response.ok){setConnection('idle','Indéterminé');setNote('Erreur Cloudflare HTTP '+response.status+' : liaison non confirmée.');return;}
+   const data=await response.json();
+   if(!visible()||sequence!==checkSequence||readToken()!==token)return;
+   if(data?.ok===false){setConnection('invalid','Code refusé');setNote('Le serveur n’a pas accepté cette liaison.');return;}
+   if(!data||typeof data!=='object'||!Array.isArray(data.items)){
+    setConnection('idle','Indéterminé');setNote('Réponse Cloudflare inattendue : liaison non confirmée.');return;
+   }
+   setConnection('valid','Code vérifié');setNote('Accès professeur confirmé par Cloudflare. Aucun import lancé par ce témoin.');
+  }catch(e){
+   if(!visible()||sequence!==checkSequence)return;
+   setConnection('idle','Indéterminé');
+   setNote(e?.name==='AbortError'?'Délai de vérification dépassé (7 s).':'Cloudflare momentanément inaccessible : liaison non confirmée.');
+  }finally{clearTimeout(timeout)}
+ }
+ function open(){if(!visible()||!ensureUI())return;watchFetch();verify()}
+ function close(){++checkSequence;unwatchFetch()}
+ // Capture le clic utilisateur sans modifier le gestionnaire historique de la pastille.
+ document.addEventListener('click',event=>{
+  const target=event.target;
+  if(!(target instanceof Element))return;
+  if(target.closest('#tfab45156-pill')){
+   queueMicrotask(()=>{if(visible())open();else close()});
+   return;
+  }
+  if(target.closest('#tfab45156-panel')){
+   // Le bouton historique Fermer peut refermer le panneau sans passer par la pastille.
+   queueMicrotask(()=>{
+    if(!visible()){close();return}
+    const nextToken=readToken();
+    if(nextToken!==currentToken){verify();return}
+    if(target.closest('button')?.textContent?.trim()==='Actualiser')verify();
+   });
+  }
+ },true);
+ // Code transmis depuis le popup professeur : attendre que l'ancien code l'enregistre,
+ // puis actualiser seulement si le panneau est déjà ouvert. Aucune intervention sur l'ACK.
+ window.addEventListener('message',event=>{
+  if(!visible()||event.origin!==new URL(ROOT).origin||event.data?.type!=='tfab-evaluation-reception-code-v1')return;
+  // L'activation actuelle est asynchrone ; laisser le clic interne gérer la transmission.
+  setTimeout(()=>{if(visible()&&readToken()!==currentToken)verify()},0);
+ });
+})();
+</script>
