@@ -26198,3 +26198,62 @@ document.addEventListener('click',e=>{if(e.target?.closest?.('#tfab45156-pill'))
 })();
 
 </script>
+
+<script id="tfab-e3j-rattachement-beta">
+(()=>{'use strict';
+/* TFAB E3J - rattachement MANUEL d'une archive V102 BETA au correcteur V1.
+   Une seule reference compacte est ajoutee a localStorage, aucune ecriture en IndexedDB,
+   Cloudflare, Firebase, aucune correction ni suppression. */
+const INDEX='tp_correction_local_v54',DB='fdmahy_corrections_v129',STORE='copies';
+const str=v=>String(v??'').trim(),canon=v=>str(v).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase();
+let armed=null,running=false;
+function rows(){let list=JSON.parse(localStorage.getItem(INDEX)||'[]');if(!Array.isArray(list))throw Error('Index local non valide.');return list;}
+function downloadIndex(){let raw=localStorage.getItem(INDEX)||'[]';let url=URL.createObjectURL(new Blob([raw],{type:'application/json;charset=utf-8'}));let a=document.createElement('a');a.href=url;a.download='TFAB_E3J_INDEX_AVANT_RATTACHEMENT_'+new Date().toISOString().replace(/[:.]/g,'-')+'.json';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);}
+function dbRead(id){return new Promise((ok,no)=>{let req=indexedDB.open(DB);req.onupgradeneeded=()=>{try{req.transaction.abort()}catch(_){};no(Error('Base IndexedDB absente.'))};req.onerror=()=>no(req.error||Error('Acces IndexedDB refuse.'));req.onsuccess=()=>{let db=req.result;if(!db.objectStoreNames.contains(STORE)){db.close();no(Error('Magasin des copies absent.'));return;}let get=db.transaction(STORE,'readonly').objectStore(STORE).get(id);get.onerror=()=>{db.close();no(get.error||Error('Lecture archive impossible.'))};get.onsuccess=()=>{let row=get.result;db.close();ok(row||null)}}});}
+function existingMatch(x,r){let d=x?.data||{},c=d.cloud451||{},s=d.submission||{};let sub=str(c.submissionId||s.submissionId||x.submissionId||(str(x.fileName).match(/^TP_RENDU_([0-9a-f-]{36})\.json$/i)||[])[1]);
+ if(sub&&sub===str(r.submission_id))return true;
+ // Les rendus sans ID ne sont compares que sur leur trio immuable ET la date exacte.
+ let camp=str(c.campaignId||s.campaignId),user=str(c.userId||s.userId),date=str(s.submittedAt||d.meta?.submittedAt||d.dates?.rendu);
+ return !!(camp&&user&&date&&camp===str(r.campaign_id)&&user===str(r.user_id)&&Date.parse(date)===Date.parse(r.submitted_at));}
+function verify(doc,remote,arch){if(!arch||arch.id!=='TPC-R2-V102-'+str(remote.submission_id)||arch.tfab102Archive!==true)throw Error('Archive V102 introuvable ou incompatible.');
+ const p=doc?.tpProject,s=doc?.submission||{},c=doc?.cloud451||{};
+ if(!doc||!p||!Array.isArray(p.questions)||!p.questions.length||!doc.reponses||!Object.keys(doc.reponses).length||s.final!==true)throw Error('Contenu TP ou reponses incomplets.');
+ if(canon(doc.classe)!=='BETA'||canon(remote.classe)!=='BETA')throw Error('Pilote limite a BETA.');
+ if(str(c.campaignId||s.campaignId)!==str(remote.campaign_id)||str(c.userId||s.userId)!==str(remote.user_id))throw Error('Identite campagne/eleve incoherente.');
+ let a=arch.tfab102Identity||{};if(str(a.sub)!==str(remote.submission_id)||str(a.campaign)!==str(remote.campaign_id)||str(a.user)!==str(remote.user_id))throw Error('Identite de l’archive non confirmee.');
+ if(!doc.studentId||!doc.code||!s.submittedAt)throw Error('Metadonnees essentielles absentes.');
+}
+function compact(arch,remote){let d=arch.data,s=d.submission||{},p=d.tpProject||{},sel=window.tp230?.extract?.(d);
+ if(!sel||sel.version!==1)throw Error('Selection des criteres du TP indisponible.');
+ let id=arch.id;
+ return {id,signature:'R2-V102|'+str(remote.submission_id),fileName:'TP_RENDU_'+str(remote.submission_id)+'.json',importedAt:new Date().toISOString(),fullDataStored:'indexeddb-v129',workflowState:'A_CORRIGER',note:'',appreciation:'',correctedAt:'',savedEvaluationId:'',marks:{},comments234:{},levels:{},criteriaLevels230:{},
+ data:{classe:d.classe,studentId:d.studentId,code:d.code,titre:d.titre||p.publicTitle||p.title||'',statut:'RENDU',identite:{nom:d.identite?.nom||d.eleve?.nom||'',prenom:d.identite?.prenom||d.eleve?.prenom||'',classe:d.classe},eleve:{nom:d.eleve?.nom||d.identite?.nom||'',prenom:d.eleve?.prenom||d.identite?.prenom||''},tp:{id:d.code,titre:d.titre||p.publicTitle||''},submission:{submittedAt:s.submittedAt,campaignId:s.campaignId||remote.campaign_id,userId:s.userId||remote.user_id,submissionId:remote.submission_id,final:true},cloud451:{campaignId:remote.campaign_id,userId:remote.user_id,submissionId:remote.submission_id,classe:d.classe},tpSelection230:sel,autoEvaluation:d.autoEvaluation||undefined}};
+}
+async function attach(ctx,status){if(running)return;running=true;status.textContent='Verification de l’archive…';try{
+ const archive=await dbRead(ctx.proof.id);verify(archive?.data,ctx.remote,archive);
+ let before=localStorage.getItem(INDEX)||'[]',list=rows();if(list.some(x=>str(x.id)===str(ctx.proof.id)||existingMatch(x,ctx.remote)))throw Error('Une reference a ce rendu existe deja ou reste ambigue : aucune ecriture.');
+ let newRow=compact(archive,ctx.remote),json=JSON.stringify([newRow,...list]);
+ if(!confirm('Rattacher UNE copie BETA a « Copies rendues » ?\n\nLe fichier integral reste intact en IndexedDB. Seule une reference legere sera ajoutee localement. Aucune action Cloudflare.\n\nAs-tu verifie le telechargement de la sauvegarde de l’index ?')){status.textContent='Annule : aucune modification.';return;}
+ if((localStorage.getItem(INDEX)||'[]')!==before)throw Error('Index modifie depuis le controle : operation annulee.');
+ localStorage.setItem(INDEX,json);
+ let now=rows();if(now.length!==list.length+1||now.filter(x=>x.id===newRow.id).length!==1)throw Error('Relecture incoherente : ne pas poursuivre.');
+ status.textContent='Reference BETA ajoutee et relue. Ouverture du correcteur V1…';
+ try{await Promise.resolve(window.tpCorrectionOpen(newRow.id));}catch(e){status.textContent='Reference ajoutee mais ouverture en erreur : '+str(e.message)+' — conserver la sauvegarde et ne pas relancer.';return;}
+ setTimeout(()=>{if(!document.querySelector('.v130-copy .q'))alert('Reference rattachee, mais affichage fidelite du correcteur non confirme. Ne valide pas la correction; signale le resultat.');},2000);
+ }catch(e){status.textContent='Rattachement REFUSE : '+str(e.message)+'. Aucune copie originale modifiee.';}finally{running=false}}
+const original=window.tfab451102Show;
+if(typeof original!=='function'){console.warn('E3J : Vue V102 absente.');return;}
+window.tfab451102Show=function(doc,remote,proof){let out=original.apply(this,arguments);if(canon(remote?.classe)!=='BETA')return out;
+ const main=document.getElementById('tfab102-view'),note=main?.querySelector('.tfab102-note');if(!note||main.querySelector('#tfab-e3j'))return out;
+ let box=document.createElement('div');box.id='tfab-e3j';box.style.cssText='margin-top:10px;padding:11px;border:1px solid #93c5fd;border-radius:9px;background:#eff6ff';
+ let info=document.createElement('p');info.textContent='E3J — Rattachement pilote BETA : sauvegarde de l’index, verification stricte de l’archive, puis ajout d’une reference legere. Aucun statut distant modifie.';
+ let back=document.createElement('button');back.type='button';back.textContent='1 · Sauvegarder l’index local';
+ let attachBtn=document.createElement('button');attachBtn.type='button';attachBtn.textContent='2 · Rattacher au correcteur V1';attachBtn.disabled=true;attachBtn.style.marginLeft='8px';
+ let status=document.createElement('p');status.setAttribute('role','status');status.style.cssText='white-space:pre-wrap;margin:8px 0 0;font-weight:650';status.textContent='Aucune modification.';
+ back.onclick=()=>{try{downloadIndex();attachBtn.disabled=false;status.textContent='Sauvegarde demandee. Verifie le fichier dans Telechargements avant de continuer.'}catch(e){status.textContent='Sauvegarde impossible : '+str(e.message)}};
+ attachBtn.onclick=()=>attach({doc,remote,proof},status);
+ box.append(info,back,attachBtn,status);note.append(box);return out;
+};
+})();
+
+</script>
