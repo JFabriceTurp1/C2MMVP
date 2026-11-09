@@ -26037,3 +26037,61 @@ function install(){const panel=document.getElementById('tfab45156-panel');if(!pa
  document.addEventListener('click',e=>{if(e.target?.closest?.('#tfab45156-pill'))setTimeout(install,0)},false);
 })();
 </script>
+
+<!-- E3F lecture seule -->
+<script id="tfab-e3f-structure-21">
+(()=>{'use strict';
+const ROOT='https://portail-partage.khmg8np9yj.workers.dev';
+const TOKEN='tfab45156_session_token', INDEX='tp_correction_local_v54';
+const DB='fdmahy_corrections_v129', STORE='copies';
+const str=x=>x==null?'':String(x).trim();
+const first=(...xs)=>xs.find(x=>x!==null&&x!==undefined&&str(x)!=='')??'';
+const normalized=x=>{if(typeof x!=='string'&&typeof x!=='number')return '';let v=str(x);return /^(null|undefined|unknown|inconnu|nan|\[object object\])$/i.test(v)?'':v.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'')};
+const dateSec=x=>{if(typeof x==='number'&&Number.isFinite(x))return x>1e12?Math.round(x/1000):x>1e9?Math.round(x):null;if(typeof x!=='string'||!x.trim())return null;let v=Date.parse(x);return Number.isFinite(v)?Math.round(v/1000):null};
+function metadata(item,origin,key){const d=item&&typeof item==='object'?(item.data&&typeof item.data==='object'?item.data:item):{};
+ const sub=d.submission||{},cl=d.cloud451||{},mt=d.meta||{},tp=d.tp||{},ident=d.identite||{};
+ const originals={campagne:first(cl.campaignId,sub.campaignId,mt.campaignId),utilisateur:first(cl.userId,sub.userId,d.studentId),tp:first(tp.id,d.code,mt.activityId),classe:first(cl.classe,d.classe,ident.classe),date:first(sub.submittedAt,mt.submittedAt,d.dates?.rendu)};
+ const v={campagne:normalized(originals.campagne),utilisateur:normalized(originals.utilisateur),tp:normalized(originals.tp),classe:normalized(originals.classe),date:dateSec(originals.date)};
+ const lengths={};for(const k of ['campagne','utilisateur','tp','classe'])lengths[k]=v[k].length;
+ const project=!!(d.tpProject||d.tp?.project||d.projetTP||d.project),answers=!!(d.reponses||d.answers||d.responses||d.tpSelection230||d.questionAnswers);
+ const fieldKeys=Object.keys(d).filter(k=>!/(nom|prenom|mail|tel|adresse|token|secret|password|response|reponse|answer|image|media|photo)/i.test(k)).slice(0,16);
+ return {origin,key:str(key),v,lengths,types:Object.fromEntries(Object.entries(originals).map(([k,x])=>[k, x===null?'null':Array.isArray(x)?'array':typeof x])),answers,project,fieldKeys};
+}
+function remoteMeta(r){return {campagne:normalized(first(r.campaign_id,r.campaignId)),utilisateur:normalized(first(r.user_id,r.userId)),tp:normalized(first(r.tp_code,r.tpCode)),classe:normalized(first(r.classe,r.class_id)),date:dateSec(first(r.submitted_at,r.submittedAt))}}
+async function readDB(){const result={etat:'Non lu',rows:[]};if(typeof indexedDB.databases!=='function'){result.etat='Liste des bases indisponible';return result}const bases=await indexedDB.databases();if(!bases.some(x=>x.name===DB)){result.etat='Base absente';return result}
+ const db=await new Promise((resolve,reject)=>{let q=indexedDB.open(DB);q.onupgradeneeded=()=>{try{q.transaction.abort()}catch(_){}};q.onsuccess=()=>resolve(q.result);q.onerror=()=>reject(q.error||Error('Ouverture impossible'));q.onblocked=()=>reject(Error('Base occupée'))});
+ try{if(!db.objectStoreNames.contains(STORE)){result.etat='Magasin absent';return result}result.etat='Lecture réussie';await new Promise((resolve,reject)=>{const tx=db.transaction(STORE,'readonly'),request=tx.objectStore(STORE).openCursor();request.onsuccess=()=>{const c=request.result;if(!c)return;result.rows.push(metadata(c.value,'indexedDB',c.primaryKey));c.continue()};request.onerror=()=>reject(request.error||Error('Cursor'));tx.onerror=()=>reject(tx.error||Error('Transaction'))});return result}finally{db.close()}}
+const eq=(a,b,k)=>k==='date'?a.date!==null&&b.date!==null&&Math.abs(a.date-b.date)<=2:!!(a[k]&&b[k]&&a[k]===b[k]);
+const rangeCounts=x=>{const groups={moins1min:0,de1a10min:0,de10a60min:0,plus1h:0,datesAbsentes:0};return groups};
+function tally(rows){const count={total:rows.length,entreesIndex:0,entreesDB:0,clesTechniquesDistinctes:new Set(),signaturesMetadonnees:new Set(),datesDistinctes:new Set(),champsIdentiques:{campagne:new Set(),utilisateur:new Set(),tp:new Set(),classe:new Set()},projetEtReponses:0,projetSansReponses:0,reponsesSansProjet:0,niProjetNiReponses:0,datesManquantes:0,typesDates:{},nombresChampsTopLevel:{},ecartsSecondes:{exactes:0,uneOuDeuxSecondes:0}};
+ for(const x of rows){count[x.origin==='index'?'entreesIndex':'entreesDB']++;count.clesTechniquesDistinctes.add(x.key);count.signaturesMetadonnees.add([x.v.campagne,x.v.utilisateur,x.v.tp,x.v.classe,x.v.date].join('|'));if(x.v.date!==null)count.datesDistinctes.add(x.v.date);else count.datesManquantes++;for(const k in count.champsIdentiques)count.champsIdentiques[k].add(x.v[k]);let kind=x.answers?(x.project?'projetEtReponses':'reponsesSansProjet'):(x.project?'projetSansReponses':'niProjetNiReponses');count[kind]++;let d=x.types.date;count.typesDates[d]=(count.typesDates[d]||0)+1;}
+ return {total:count.total,entreesIndex:count.entreesIndex,entreesDB:count.entreesDB,clesTechniquesDistinctes:count.clesTechniquesDistinctes.size,signaturesMetadonneesDistinctes:count.signaturesMetadonnees.size,datesDistinctes:count.datesDistinctes.size,datesManquantes:count.datesManquantes,valeursDistinctesParChamp:Object.fromEntries(Object.entries(count.champsIdentiques).map(([k,v])=>[k,v.size])),projetEtReponses:count.projetEtReponses,projetSansReponses:count.projetSansReponses,reponsesSansProjet:count.reponsesSansProjet,niProjetNiReponses:count.niProjetNiReponses,typesDates:count.typesDates};}
+async function audit(){const out={audit:'TFAB E3F — structure des candidats locaux, lecture seule',date:new Date().toISOString(),origine:location.origin,securite:'Aucune écriture, aucune récupération, aucun changement de marqueur reçu',base:'V451.57.111 + E1 + E3E',local:{},cloudflare:{etat:'Non interrogé'},rendusNonMarques:{total:0,parClasse:{},anomaliesTroisRendus:[]},detailsAnonymes:[],limites:[]};
+ let list=[];try{const raw=localStorage.getItem(INDEX);const x=raw?JSON.parse(raw):[];if(!Array.isArray(x))throw Error('Index non tabulaire');out.local.index=x.length;list=x.map(o=>metadata(o,'index',o?.id))}catch(e){out.local.erreurIndex=str(e.message)}
+ let db;try{db=await readDB()}catch(e){db={etat:'Erreur : '+str(e.message),rows:[]}}out.local.indexedDB={etat:db.etat,entrees:db.rows.length};
+ const byKey=new Map();for(const x of [...list,...db.rows]){if(!x.key)continue;if(!byKey.has(x.key)||x.origin==='indexedDB')byKey.set(x.key,x)}const local=[...byKey.values()];out.local.entreesComparees=local.length;
+ let token='';try{token=sessionStorage.getItem(TOKEN)||''}catch(_){}if(!token){out.cloudflare.etat='Code absent de la session';return out}
+ const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),12000);let all=[];try{const res=await fetch(ROOT+'/api/prof/v45156/rendus',{method:'GET',headers:{Authorization:'Bearer '+token,Accept:'application/json'},credentials:'omit',cache:'no-store',signal:ctrl.signal});if(!res.ok){out.cloudflare.etat='HTTP '+res.status;return out}const body=await res.json();all=Array.isArray(body)?body:Array.isArray(body.rendus)?body.rendus:Array.isArray(body.items)?body.items:[];out.cloudflare={etat:'Lecture réussie',rendusRetournes:all.length,paginationVerifiee:false}}catch(e){out.cloudflare.etat=e.name==='AbortError'?'Délai dépassé':str(e.message);return out}finally{clearTimeout(timer)}
+ const pending=all.filter(r=>{try{return localStorage.getItem('tfab45156_recu_'+str(r.id))!=='1'}catch(_){return true}});out.rendusNonMarques.total=pending.length;
+ for(let i=0;i<pending.length;i++){const r=pending[i],s=remoteMeta(r),classe=s.classe||'INCONNUE';out.rendusNonMarques.parClasse[classe]=(out.rendusNonMarques.parClasse[classe]||0)+1;
+  const hits=local.filter(x=>['campagne','utilisateur','tp','classe','date'].every(k=>eq(s,x.v,k)));
+  const near=local.filter(x=>['campagne','utilisateur','tp','classe'].every(k=>eq(s,x.v,k)));
+  const dates=near.map(x=>x.v.date).filter(x=>x!==null&&s.date!==null).map(x=>Math.abs(x-s.date));
+  const min=dates.length?Math.min(...dates):null;
+  const summary={numero:i+1,classe,correspondances5Champs:hits.length,candidatsSansContrainteDate:near.length,datesComparees:dates.length,ecartDateMinimalSecondes:min,ensembleCandidatsStricts:tally(hits),dateServeurInterpretable:s.date!==null,tailleIdentifiantUtilisateurNormalise:s.utilisateur.length};
+  out.detailsAnonymes.push(summary);if(hits.length>3)out.rendusNonMarques.anomaliesTroisRendus.push(summary);
+ }
+ out.limites=['Compter les clés techniques distinctes ne prouve pas des copies pédagogiques distinctes.','Les réponses et projets sont détectés par présence de champs, sans validation des médias.','Les dates comparées peuvent représenter différents événements dans les anciens formats.','Seuls les rendus retournés par le premier appel Cloudflare ont été contrôlés.','Les identités, codes TP, dates exactes, identifiants et contenus des copies ne figurent pas dans ce rapport.'];return out;}
+function install(){const parent=document.getElementById('tfab45156-panel');if(!parent||document.getElementById('tfab-e3f-audit'))return;
+ const section=document.createElement('section');section.id='tfab-e3f-audit';section.style.cssText='margin-top:12px;padding:10px;background:#f8fbff;border:1px solid #9bbbe0;border-radius:10px;font:12px Arial,sans-serif';
+ const button=document.createElement('button');button.type='button';button.textContent='E3F — Contrôler les dates et les 3 groupes de copies';button.style.cssText='cursor:pointer;border:1px solid #9bbbe0;border-radius:8px;background:white;padding:9px 11px;font-weight:bold;font-size:12px';
+ const status=document.createElement('p');status.textContent='Lecture seule, sans importation ni suppression.';status.style.cssText='color:#475569;margin:8px 0';
+ const pre=document.createElement('pre');pre.style.cssText='display:none;max-height:360px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;background:white;padding:10px;border:1px solid #dde6ee;border-radius:7px;font:11px monospace';
+ const copy=document.createElement('button');copy.type='button';copy.textContent='Copier le rapport E3F';copy.style.cssText='display:none;margin-top:8px;border:1px solid #9bbbe0;background:white;border-radius:7px;padding:8px';
+ copy.onclick=()=>{if(navigator.clipboard?.writeText)navigator.clipboard.writeText(pre.textContent).then(()=>status.textContent='Rapport copié.').catch(()=>status.textContent='Sélectionne le texte affiché.');else status.textContent='Sélectionne le texte affiché.'};
+ button.onclick=async()=>{button.disabled=true;status.textContent='Diagnostic des structures en cours…';try{const r=await audit();pre.textContent=JSON.stringify(r,null,2);pre.style.display='block';copy.style.display='inline-block';status.textContent='Audit terminé. Aucune copie modifiée.'}catch(e){status.textContent='Erreur audit : '+str(e.message)}finally{button.disabled=false}};
+ section.append(button,status,pre,copy);parent.append(section);
+}
+document.addEventListener('click',e=>{if(e.target?.closest?.('#tfab45156-pill'))setTimeout(install,0)},false);
+})();
+</script>
