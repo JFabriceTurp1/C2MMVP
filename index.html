@@ -18223,16 +18223,26 @@ window.tp71UpdateFolderLabels=window.tp206UpdateFolderLabels=updateFolderLabels;
 
 async function savePdf(pdf,filename,id,token){
  const blob=pdf.output('blob');if(!blob||blob.size<100)throw Error('PDF vide');
- const h=await getFolder();
- if(h&&await permission(h,false)){
-  const fh=await h.getFileHandle(filename,{create:true});const w=await fh.createWritable();await w.write(blob);await w.close();const saved=await fh.getFile();if(saved.size!==blob.size)throw Error('PDF incomplet dans le dossier choisi');
-  return {folder:h.name,file:filename,archiveVerified235:true};
- }
- // Browsers cannot confirm that a download was kept. Retain a verified PDF locally
- // before authorizing Firebase cleanup, without asking the teacher to inspect it.
- await window.tp235SavePdfArchive(id,token,filename,blob);
- await pdf.save(filename,{returnPromise:true});
- return {fallback:true,file:filename,localPdf235:true,archiveVerified235:true};
+  // E7.3: for recovered Cloudflare copies, avoid inaccessible saved directory handles.
+  // Historical corrections outside E7 continue to use the original folder workflow.
+  const useNormalDownload=window.__tfabE73DownloadOnly===true;
+  const h=useNormalDownload?null:await getFolder();
+  if(h&&await permission(h,false)){
+   try{
+    const fh=await h.getFileHandle(filename,{create:true});const w=await fh.createWritable();await w.write(blob);await w.close();const saved=await fh.getFile();if(saved.size!==blob.size)throw Error('PDF incomplet dans le dossier choisi');
+    return {folder:h.name,file:filename,archiveVerified235:true};
+   }catch(folderError){console.warn('TFAB E7.3 : dossier PDF inaccessible, téléchargement de secours',folderError)}
+  }
+  // Archive verified first, then normal browser download. Never report local archive success without verification.
+  let archiveOK=false, archiveProblem=null;
+  try{await window.tp235SavePdfArchive(id,token,filename,blob);archiveOK=true}
+  catch(e){archiveProblem=e;console.warn('TFAB E7.3 : archive PDF non confirmée',e)}
+  // A blob-backed download avoids the native directory FileSystem handles altogether.
+  const url=URL.createObjectURL(blob);
+  try{const a=document.createElement('a');a.href=url;a.download=filename;a.style.display='none';document.body.appendChild(a);a.click();a.remove()}
+  finally{setTimeout(()=>URL.revokeObjectURL(url),60000)}
+  if(!archiveOK)throw Error('Téléchargement demandé, mais conservation du PDF dans IndexedDB non confirmée : '+String(archiveProblem?.message||archiveProblem));
+  return {fallback:true,file:filename,localPdf235:true,archiveVerified235:true};
 }
 
 /* ----------------------- Rendu / pagination --------------------------- */
@@ -18404,7 +18414,7 @@ window.tp61GenerateCorrectionPdf=async function(id){
     // V451.40 BETA : copie annexe du PDF sauvegardé, sans toucher à l'archive d'origine.
     try{if(window.tfab45140PdfPut)await window.tfab45140PdfPut(id,pdf.output('blob'),fn,token)}catch(err){console.warn('PDF Cloudflare non mis en cache',err)}
     const receipt=window.tp227.recordPdf(id,token,{...saved,pages:pages.length});
-    if(saved.archiveVerified235){window.tp227.confirmPdf(id,token);window.tp227.approve(id,token).catch(e=>console.warn('Nettoyage différé',e));}
+    if(saved.archiveVerified235){window.tp227.confirmPdf(id,token);if(!window.__tfabE73DownloadOnly)window.tp227.approve(id,token).catch(e=>console.warn('Nettoyage différé',e));}
     return receipt;
   }catch(e){
     console.error('V206 PDF fidèle V74',e);
@@ -25846,7 +25856,7 @@ function proxySet(k,v){
 }
 function installProxy(){Storage.prototype.getItem=proxyGet;Storage.prototype.setItem=proxySet;if(Storage.prototype.getItem!==proxyGet||Storage.prototype.setItem!==proxySet)throw Error('Registre virtuel indisponible')}
 function restoreProxy(){if(Storage.prototype.getItem===proxyGet)Storage.prototype.getItem=nativeGet;if(Storage.prototype.setItem===proxySet)Storage.prototype.setItem=nativeSet}
-function virtualWrite(payload){if(!active)throw Error('Session de correction inactive');const list=JSON.parse(asString(payload));if(!Array.isArray(list))throw Error('Écriture du registre incorrecte');const row=list.find(x=>asString(x.id)===active.id);if(!row)throw Error('Copie absente du registre corrigé');const others=list.filter(x=>asString(x.id)!==active.id);if(stringify(others)!==active.untouchedJSON)throw Error('Modification des copies historiques bloquée');const fresh=fieldsOf(row);const s=active;active.rows=list;const r=++revision;status('Enregistrement du brouillon et vérification…');queueSave(s,fresh,r,'Correction sauvegardée et relue dans IndexedDB ✓');
+function virtualWrite(payload){if(!active)throw Error('Session de correction inactive');const list=JSON.parse(asString(payload));if(!Array.isArray(list))throw Error('Écriture du registre incorrecte');const row=list.find(x=>asString(x.id)===active.id);if(!row)throw Error('Copie absente du registre corrigé');const others=list.filter(x=>asString(x.id)!==active.id);if(stringify(others)!==active.untouchedJSON)throw Error('Modification des copies historiques bloquée');const fresh=fieldsOf(row);const s=active;if(s.readOnly&&stringify(fresh)!==stringify(fieldsOf(s.rows.find(x=>asString(x.id)===s.id))))throw Error('Correction validée : modification interdite; seule la génération PDF reste possible');active.rows=list;const r=++revision;status('Enregistrement du brouillon et vérification…');queueSave(s,fresh,r,'Correction sauvegardée et relue dans IndexedDB ✓');
 }
 async function flush(s=active){if(!s)throw Error('Session absente');await persisted;if(s.error)throw Error(s.error);const row=s.rows.find(x=>asString(x.id)===s.id);const expected=fieldsOf(row);const latest=await readEntry(s.id);if(!latest||stringify(latest.fields)!==stringify(expected))throw Error('Le brouillon n’a pas été relu intégralement');return latest}
 
@@ -25867,10 +25877,35 @@ function pdfVerified(s){
 async function close(){if(!active)return;const s=active;try{await flush(s)}catch(e){alert('Sauvegarde non confirmée : '+e.message+'\nExportez le brouillon avant de quitter.');return}active=null;restoreProxy();try{originalPage?.()}catch(e){console.warn('Retour liste E7',e)}}
 function download(filename,data){const url=URL.createObjectURL(new Blob([stringify(data)],{type:'application/json;charset=utf-8'}));const a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),25000)}
 async function exportDraft(){if(!active)return;try{const d=await flush();download('TFAB_E7_BROUILLON_'+active.remote.submission_id+'.json',{format:'TFAB-E7-V1-DRAFT',submissionId:active.remote.submission_id,savedAt:d.savedAt,fields:d.fields,originalUnchanged:true});status('Brouillon exporté et vérifié ✓')}catch(e){alert('Export impossible : '+e.message)}}
+async function generatePdfForSession(s){
+ if(active!==s)return;const btn=document.getElementById('e73-pdf-download');if(btn)btn.disabled=true;
+ try{
+  await flush(s);
+  const row=s.rows.find(x=>asString(x.id)===s.id);
+  if(!row?.correctedAt||!row.savedEvaluationId)throw Error('Correction non validée : PDF définitif indisponible');
+  const ev=await readEvaluation(row.savedEvaluationId);
+  if(!ev||asString(ev.tpCorrectionId)!==s.id||!ev.noteDrivenEvaluation||Number(ev.sourceNote20)!==Number(row.note))throw Error('Note non confirmée dans l’historique : PDF bloqué pour éviter une incohérence');
+  status('Préparation du PDF fidèle dans le correcteur V1…');
+  const receipt=await window.tp61GenerateCorrectionPdf(s.id);
+  if(!receipt?.archiveVerified235)throw Error('Le PDF n’a pas été confirmé dans le coffre local');
+  await flush(s);
+  const rev=++revision;
+  s.audit={...(s.audit||{}),checkedAt:new Date().toISOString(),evaluationId:row.savedEvaluationId,noteVerified:true,pdfVerified:true,cloudPublicationVerified:false};
+  await persistEntry(s,fieldsOf(row),rev);
+  status('PDF généré et téléchargement lancé ; note déjà conservée ✓');
+  window.dispatchEvent(new Event('tfab-e73-status-updated'));
+ }catch(e){status('PDF non confirmé : '+asString(e?.message||e),true);alert('PDF non confirmé : '+asString(e?.message||e)+'\nLa note existante n’a pas été modifiée.')}finally{if(btn)btn.disabled=false}
+}
 function toolbar(s){if(active!==s)return;const shell=document.querySelector('.tpc-shell');if(!shell)return;const existing=document.getElementById('e7-toolbar');if(existing)return;
  const div=document.createElement('section');div.id='e7-toolbar';div.style.cssText='position:sticky;top:0;z-index:1001;background:#f0f9ff;border:2px solid #0284c7;padding:10px 12px;border-radius:10px;margin:0 0 10px;color:#0c4a6e;font:14px system-ui';
- div.innerHTML='<strong>TFAB E7.2 · Portail Correcteur Validé V1 · Copie Cloudflare</strong><div id="e7-status" style="margin:5px 0;color:#166534">Ouverture directe ; brouillon dans IndexedDB, index historique intact.</div><div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" id="e7-export">Sauvegarder le brouillon JSON</button><button type="button" id="e7-back">Retour aux copies rendues</button></div><small style="display:block;margin-top:7px">Après validation, E7.2 contrôle séparément la note et le reçu PDF. La publication Cloudflare doit encore être confirmée. Aucune copie originale n’est remplacée.</small>';
+ div.innerHTML='<strong>TFAB E7.3 · Portail Correcteur Validé V1 · Copie Cloudflare</strong><div id="e7-status" style="margin:5px 0;color:#166534">Ouverture directe ; brouillon dans IndexedDB, index historique intact.</div><div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" id="e7-export">Sauvegarder le brouillon JSON</button><button type="button" id="e7-back">Retour aux copies rendues</button></div><small style="display:block;margin-top:7px">Après validation, E7.2 contrôle séparément la note et le reçu PDF. La publication Cloudflare doit encore être confirmée. Aucune copie originale n’est remplacée.</small>';
  shell.prepend(div);div.querySelector('#e7-export').onclick=exportDraft;div.querySelector('#e7-back').onclick=close;
+  const pdfButton=document.createElement('button');pdfButton.type='button';pdfButton.id='e73-pdf-download';pdfButton.className='secondary';pdfButton.textContent='📄 Générer / télécharger le PDF';pdfButton.style.marginLeft='8px';
+  div.appendChild(pdfButton);pdfButton.onclick=()=>void generatePdfForSession(s);
+  const archiveButton=document.createElement('button');archiveButton.type='button';archiveButton.className='secondary';archiveButton.textContent='⬇ Télécharger le PDF archivé';archiveButton.style.marginLeft='8px';div.appendChild(archiveButton);
+  archiveButton.onclick=async()=>{try{if(!s.rows.find(x=>asString(x.id)===s.id)?.correctedAt)throw Error('Correction non validée');await flush(s);if(!pdfVerified(s))throw Error('Aucun PDF local vérifié; générez-le d’abord');if(typeof window.tp235DownloadPdfArchive!=='function')throw Error('Téléchargement du coffre PDF indisponible');await window.tp235DownloadPdfArchive(s.id);status('Téléchargement du PDF archivé demandé ✓')}catch(e){status(asString(e?.message||e),true)}};
+  if(s.readOnly){const p=document.createElement('p');p.style.cssText='color:#166534;font-weight:700;margin:8px 0';p.textContent='Correction déjà enregistrée : consultation et PDF uniquement. Nouvelle validation bloquée.';div.appendChild(p)}
+
  status('Prêt : les questions, barèmes et calculs proviennent du correcteur V1.');
 }
 async function begin(remote,doc,proof){
@@ -25902,13 +25937,13 @@ async function begin(remote,doc,proof){
  if(!Array.isArray(project?.questions)||!project.questions.length)throw Error('Questions originales absentes de l’archive');
  const before=indexRows();if(before.some(x=>asString(x.id)===id))throw Error('Cette copie possède déjà une référence historique : utiliser le correcteur normal');
  const e7=await readEntry(id),e6=e7?null:await oldDraft(id);const fields=e7?.fields||e6?.fields||{};
- if(fields.correctedAt)throw Error('Une correction déjà validée existe dans le registre E7; ne pas recréer de note');
+ const isAlreadyValidated=!!fields.correctedAt; // E7.3: existing correction opens for consultation/PDF, never for a second validation.
  const fresh={id,signature:'E7-V1|'+asString(remote.submission_id),fileName:'TP_RENDU_'+remote.submission_id+'.json',importedAt:new Date().toISOString(),data:archived.data,workflowState:'A_CORRIGER',marks:{},comments234:{},levels:{},note:'',appreciation:'',...fields};
  if(fields.correction)fresh.data={...archived.data,correction:fields.correction};
  const pdfMap=JSON.parse(nativeGet.call(localStorage,PDFKEY)||'{}');
  if(!pdfMap||Array.isArray(pdfMap)||typeof pdfMap!=='object')throw Error('Registre PDF historique non valide');
  if(e7?.pdfReceipt)pdfMap[id]=e7.pdfReceipt;
- const s={id,remote,rows:[...before,fresh],untouchedJSON:stringify(before),error:null,validating:false,pdfOk:null,pdfMap,audit:e7?.audit||null};
+ const s={id,remote,rows:[...before,fresh],untouchedJSON:stringify(before),error:null,validating:false,readOnly:isAlreadyValidated,pdfOk:null,pdfMap,audit:e7?.audit||null};
  active=s;revision=e7?.revision||0;persisted=Promise.resolve();
  try{installProxy();if(!e7){const initial=fieldsOf(fresh);await persistEntry(s,initial,revision)}
  if(typeof window.tpCorrectionOpen!=='function')throw Error('Correcteur historique absent');
@@ -25928,7 +25963,7 @@ if(typeof originalPage==='function')window.tpCorrectionPage=function(...args){if
 const originalValidate=window.tpCorrectionValidate;
 window.tpCorrectionValidate=async function(...args){
  if(!active)return originalValidate?.apply(this,args);
- const s=active;if(s.validating)return false;
+ const s=active;if(s.validating)return false;if(s.readOnly){alert('Cette copie possède déjà une note validée. Utilisez « Générer / télécharger le PDF » sans relancer la correction.');return false;}
  try{
   await flush(s);
   if(!confirm('Valider officiellement cette copie avec le correcteur V1 ?\nLa note sera enregistrée dans les évaluations et le PDF sera généré.\nLa publication Cloudflare n’est considérée comme confirmée qu’après un retour explicite du serveur.'))return false;
@@ -25956,6 +25991,7 @@ window.tpCorrectionValidate=async function(...args){
   if(!saved?.audit||saved.audit.noteVerified!==noteOk||saved.audit.pdfVerified!==pdfOk)
    throw Error('Bilan de validation non conservé');
   active=null;restoreProxy();
+  if(noteOk)window.dispatchEvent(new Event('tfab-e73-status-updated'));
   if(!noteOk){alert('ATTENTION : validation V1 non confirmée. '+error+'\nAucune nouvelle validation ne doit être tentée avant vérification.');return out}
   if(!pdfOk){alert('La note est enregistrée et vérifiée, mais le PDF corrigé n’est PAS confirmé.\nNe relance pas la validation : il faut seulement reprendre la génération du PDF.');return out}
   alert('Note et PDF vérifiés dans les stockages locaux.\nLa publication du PDF sur Cloudflare reste à confirmer séparément.');
@@ -25966,9 +26002,59 @@ window.tpCorrectionValidate=async function(...args){
  }finally{s.validating=false}
 };
 const originalPDF=window.tp61GenerateCorrectionPdf;
-if(typeof originalPDF==='function')window.tp61GenerateCorrectionPdf=async function(...args){if(active){await flush(active);const result=await originalPDF.apply(this,args);active.pdfOk=!!result;return result}return originalPDF.apply(this,args)};
-window.addEventListener('beforeunload',e=>{if(active&&!active.officialValidated){e.preventDefault();e.returnValue=''}});
-console.info('TFAB E7.2: correcteur V1, vérification note/PDF et registres isolés.');
+if(typeof originalPDF==='function')window.tp61GenerateCorrectionPdf=async function(...args){
+ if(active){await flush(active);window.__tfabE73DownloadOnly=true;
+  try{const result=await originalPDF.apply(this,args);active.pdfOk=!!result;return result}
+  finally{window.__tfabE73DownloadOnly=false}}
+ return originalPDF.apply(this,args)
+};
+window.tfabE73ReadStatus=async function(submissionId){
+ const id=PREFIX+asString(submissionId),entry=await readEntry(id).catch(()=>null),f=entry?.fields;
+ if(!f?.correctedAt||!f?.savedEvaluationId)return {validated:false};
+ try{const ev=await readEvaluation(f.savedEvaluationId);
+  if(!ev||asString(ev.tpCorrectionId)!==id||!ev.noteDrivenEvaluation||!Number.isFinite(Number(ev.sourceNote20))||Number(ev.sourceNote20)!==Number(f.note))return {validated:false};
+  return {validated:true,hasPdf:!!(entry.pdfReceipt?.archiveVerified235||entry.audit?.pdfVerified),id};
+ }catch(e){return {validated:false}}
+};
+window.addEventListener('beforeunload',e=>{if(active&&!active.readOnly&&!active.officialValidated){e.preventDefault();e.returnValue=''}});
+console.info('TFAB E7.3: correcteur V1, vérification note/PDF et registres isolés.');
 })();
 
+</script>
+<script id="tfab-e73-local-status-ui">
+(function(){'use strict';
+  // No Cloudflare status writes: student grade is locally validated, not necessarily published to D1.
+  let timer=0,busy=false,dirty=true;const state=new Map();
+  async function refresh(){
+   if(busy)return;const box=document.getElementById('tfab67-remote');
+   if(!box||!box.querySelector('button[data-tfab67-kind="rendu"]')||typeof window.tfabE73ReadStatus!=='function')return;
+   busy=true;
+   try{
+    const buttons=[...box.querySelectorAll('button[data-tfab67-kind="rendu"]')];
+    let validated=0;
+    for(const b of buttons){
+      const id=b.dataset.tfab67Id;let st=state.get(id);
+      if(!st||dirty){st=await window.tfabE73ReadStatus(id);state.set(id,st)}
+      if(st?.validated){validated++;
+        const caption=st.hasPdf?'✓ Voir la correction':'📄 Générer le PDF';if(b.textContent!==caption)b.textContent=caption;
+        b.title='Note validée localement dans l’historique. Le statut Cloudflare peut être encore « À corriger ».';
+        b.style.background='#e0f2fe';b.style.color='#075985';b.style.borderColor='#38bdf8';
+        b.dataset.tfabE73Validated='true';
+      }
+    }
+    dirty=false;
+    const info=box.querySelector('.tfab67-info');
+    if(info&&buttons.length){
+      let label=document.getElementById('tfab-e73-local-count');
+      if(!label){label=document.createElement('div');label.id='tfab-e73-local-count';label.style.cssText='background:#ecfdf5;color:#065f46;border:1px solid #86efac;border-radius:9px;padding:9px;margin:8px 0;font-weight:700';info.insertAdjacentElement('afterend',label)}
+      const caption=(buttons.length-validated)+' à corriger sur ce poste · '+validated+' correction(s) déjà validée(s) localement. Le compteur Cloudflare reste distinct tant que la publication n’est pas confirmée.';if(label.textContent!==caption)label.textContent=caption;
+    }
+   }catch(e){console.warn('TFAB E7.3 : affichage local différé',e)}finally{busy=false}
+  }
+  function schedule(){clearTimeout(timer);timer=setTimeout(refresh,160)}
+  const setup=()=>{const main=document.getElementById('main');if(main)new MutationObserver(schedule).observe(main,{childList:true,subtree:true});schedule()};
+  window.addEventListener('tfab-e73-status-updated',()=>{dirty=true;schedule()});
+  window.addEventListener('tfab45167-class-changed',()=>{dirty=true;state.clear();schedule()});
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',setup,{once:true});else setup();
+})();
 </script>
