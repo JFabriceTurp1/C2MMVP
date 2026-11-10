@@ -5,6 +5,11 @@
 
 <html lang="fr">
 <head>
+<style id="tfab-consolidation-auth-gate">
+/* Empêcher la vue accueil avant la décision de session professeur. */
+body:not(.tfab-auth-initialized) .app{visibility:hidden!important}
+body:not(.tfab-auth-initialized) #teacher-login-overlay.open{visibility:visible!important}
+</style>
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1" name="viewport"/>
 <title>V451.57.111 — Évaluation · Charge Atelier · TP · Correction</title>
@@ -2946,6 +2951,7 @@ body{background:#f7f9fc;color:var(--text)}
  }
 }
 </style>
+<!-- TFAB CONSOLIDATION C1 LAB : aucune migration de donnees; code professeur et portail V1 conserves. -->
 </head>
 <body class="firebase-disabled-mode">
 <!-- V88 — DONNÉES DE RÉFÉRENCE RÉINTÉGRÉES DEPUIS V86.5
@@ -11728,6 +11734,7 @@ function openAssistanceMail(){
     updateActiveTeacherUI();
     applyTeacherPermissions();
     showTeacherLogin(false);
+    document.body.classList.add("tfab-auth-initialized");
   }
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",bindTeacherLogin,{once:true});
   else bindTeacherLogin();
@@ -25787,7 +25794,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 <script id="tfab-e7-direct-v1">
 (function(){
 'use strict';
-/* TFAB E7.6 LAB — consultation seule des corrections deja validees; generation PDF suspendue.
+/* TFAB CONSOLIDATION C1 LAB — lecture deja validee sans ecriture persistante; PDF non certifie suspendu.
    TFAB E7 — V1 original, ouverture directe des rendus R2 et brouillons persistants isolés.
    Baseline V451.57.111 + E1/E4: no startup Cloud call; no change to native V1, D1 or R2.
    Official validation deliberately gated by preflight/readback and user confirmation.
@@ -25819,7 +25826,20 @@ function proxyGet(k){if(this===localStorage&&asString(k)===KEY&&active)return st
 function proxySet(k,v){if(this===localStorage&&asString(k)===KEY&&active)return virtualWrite(v);return nativeSet.apply(this,arguments)}
 function installProxy(){Storage.prototype.getItem=proxyGet;Storage.prototype.setItem=proxySet;if(Storage.prototype.getItem!==proxyGet||Storage.prototype.setItem!==proxySet)throw Error('Registre virtuel indisponible')}
 function restoreProxy(){if(Storage.prototype.getItem===proxyGet)Storage.prototype.getItem=nativeGet;if(Storage.prototype.setItem===proxySet)Storage.prototype.setItem=nativeSet}
-function virtualWrite(payload){if(!active)throw Error('Session de correction inactive');if(active.readOnly)throw Error('Consultation seule E7.6 : aucune modification autorisee');const list=JSON.parse(asString(payload));if(!Array.isArray(list))throw Error('Écriture du registre incorrecte');const row=list.find(x=>asString(x.id)===active.id);if(!row)throw Error('Copie absente du registre corrigé');const others=list.filter(x=>asString(x.id)!==active.id);if(stringify(others)!==active.untouchedJSON)throw Error('Modification des copies historiques bloquée');const fresh=fieldsOf(row);const s=active;active.rows=list;const r=++revision;status('Enregistrement du brouillon et vérification…');persisted=persisted.then(()=>persistEntry(s,fresh,r)).then(()=>{if(active===s&&r===revision)status('Correction sauvegardée et relue dans IndexedDB ✓')});persisted.catch(e=>{s.error=asString(e?.message||e);status('ÉCHEC de sauvegarde : '+s.error,true);console.error('TFAB E7',e)});
+function virtualWrite(payload){if(!active)throw Error('Session de correction inactive');const list=JSON.parse(asString(payload));if(!Array.isArray(list))throw Error('Écriture du registre incorrecte');const row=list.find(x=>asString(x.id)===active.id);if(!row)throw Error('Copie absente du registre corrigé');const others=list.filter(x=>asString(x.id)!==active.id);if(stringify(others)!==active.untouchedJSON)throw Error('Modification des copies historiques bloquée');const fresh=fieldsOf(row);const s=active;
+// Consultation : le moteur V1 peut preparer sa vue en memoire, mais aucune
+// modification n'est ecrite dans le registre E7 ni dans l'historique officiel.
+if(s.readOnly){
+  const original=s.readOnlyFields||{};
+  // Reimposer les références originales dans la copie éphémère.
+  // Aucune action de V1 dans ce mode ne remplace les champs persistés.
+  row.savedEvaluationId=original.savedEvaluationId||'';
+  row.correctedAt=original.correctedAt||'';
+  row.workflowState=original.workflowState||'CORRIGE';
+  s.rows=list;
+  return;
+}
+active.rows=list;const r=++revision;status('Enregistrement du brouillon et vérification…');persisted=persisted.then(()=>persistEntry(s,fresh,r)).then(()=>{if(active===s&&r===revision)status('Correction sauvegardée et relue dans IndexedDB ✓')});persisted.catch(e=>{s.error=asString(e?.message||e);status('ÉCHEC de sauvegarde : '+s.error,true);console.error('TFAB E7',e)});
 }
 async function flush(s=active){if(!s)throw Error('Session absente');if(s.readOnly){const e=await readEntry(s.id);if(!e||!e.fields?.correctedAt)throw Error('Preuve de correction validee indisponible');return e;}await persisted;if(s.error)throw Error(s.error);const row=s.rows.find(x=>asString(x.id)===s.id);const expected=fieldsOf(row);const latest=await readEntry(s.id);if(!latest||stringify(latest.fields)!==stringify(expected))throw Error('Le brouillon n’a pas été relu intégralement');return latest}
 async function close(){if(!active)return;const s=active;try{await flush(s)}catch(e){alert('Sauvegarde non confirmée : '+e.message+'\nExportez le brouillon avant de quitter.');return}active=null;restoreProxy();try{originalPage?.()}catch(e){console.warn('Retour liste E7',e)}}
@@ -25829,7 +25849,7 @@ function toolbar(s){if(active!==s)return;const shell=document.querySelector('.tp
  if(s.readOnly){
   const div=document.createElement('section');div.id='e7-toolbar';div.style.cssText='position:sticky;top:0;z-index:10050;background:#fff7ed;border:2px solid #ea580c;padding:12px;border-radius:10px;margin:0 0 12px;color:#7c2d12;font:14px system-ui';
   const f=s.readOnlyFields||{};
-  div.innerHTML='<strong>TFAB E7.6 · CORRECTION EXISTANTE · CONSULTATION SEULE</strong><div style="margin:7px 0">Aucune validation, modification, nouvelle note ou production PDF autorisée dans ce laboratoire.</div><div id="e76-proof" style="font:12px/1.5 monospace;overflow-wrap:anywhere;white-space:pre-wrap;background:#fff;padding:8px;border:1px solid #fed7aa;border-radius:6px"></div><button id="e76-report" type="button">Exporter le diagnostic JSON (lecture seule)</button> <button id="e76-back" type="button">Retour aux copies rendues</button>';
+  div.innerHTML='<strong>TFAB CONSOLIDATION · CORRECTION EXISTANTE · CONSULTATION SEULE</strong><div style="margin:7px 0">Aucune validation, modification, nouvelle note ou production PDF autorisée dans ce laboratoire.</div><div id="e76-proof" style="font:12px/1.5 monospace;overflow-wrap:anywhere;white-space:pre-wrap;background:#fff;padding:8px;border:1px solid #fed7aa;border-radius:6px"></div><button id="e76-report" type="button">Exporter le diagnostic JSON (lecture seule)</button> <button id="e76-back" type="button">Retour aux copies rendues</button>';
   shell.prepend(div);
   const proof={submissionId:asString(s.remote.submission_id),copyId:s.id,student:asString(s.student),tp:asString(s.tpCode),savedEvaluationId:asString(f.savedEvaluationId),note:f.note??'',correctedAt:asString(f.correctedAt),workflowState:asString(f.workflowState),pdfGeneratedAt:asString(f.pdfGeneratedAt),hasComments:Object.keys(f.comments234||{}).length,hasMarks:Object.keys(f.marks||{}).length,hasCorrection:!!f.correction};
   div.querySelector('#e76-proof').textContent=Object.entries(proof).map(([k,v])=>k+' : '+v).join('\n');
@@ -25837,7 +25857,7 @@ function toolbar(s){if(active!==s)return;const shell=document.querySelector('.tp
   div.querySelector('#e76-back').onclick=close;
   const lockdown=()=>{if(active!==s)return;const current=document.querySelector('.tpc-shell');if(!current)return;
    current.querySelectorAll('input,textarea,select').forEach(el=>{el.readOnly=true;el.disabled=true;});
-   current.querySelectorAll('button').forEach(el=>{if(div.contains(el))return;el.disabled=true;el.setAttribute('aria-disabled','true');el.title='Consultation seule E7.6';});
+   current.querySelectorAll('button').forEach(el=>{if(div.contains(el))return;el.disabled=true;el.setAttribute('aria-disabled','true');el.title='Consultation seule';});
   };
   lockdown();setTimeout(lockdown,200);setTimeout(lockdown,1000);
   return;
@@ -25911,6 +25931,16 @@ window.tpCorrectionValidate=async function(...args){
  const s=active;if(s.readOnly){alert('E7.6 : correction déjà validée. Validation interdite en consultation seule.');return false}if(s.validating)return false;
  try{
   await flush(s);
+  // Aucun appel au validateur V1 si le registre ou la vue porte deja une
+  // reference officielle : V1 peut supprimer une evaluation avant de la recreer.
+  const persistedBefore=await readEntry(s.id);
+  const currentRow=s.rows.find(x=>asString(x.id)===s.id);
+  const persistedFields=persistedBefore?.fields||{};
+  if(currentRow?.correctedAt||currentRow?.savedEvaluationId||persistedFields.correctedAt||persistedFields.savedEvaluationId){
+    throw Error('Une correction ou reference officielle existe deja pour ce rendu : aucune nouvelle validation.');
+  }
+  if(indexRows().some(x=>asString(x.id)===s.id))
+    throw Error('Cette copie existe dans le registre historique : validation directe interdite.');
   if(!confirm('Valider officiellement cette copie avec le correcteur V1 ?\nLa note sera enregistrée dans les évaluations et le PDF pourra être publié dans Cloudflare.\nL’original du rendu ne sera pas modifié.'))return false;
   s.validating=true;status('Validation V1 en cours ; contrôle de persistance du registre…');
   const out=await originalValidate.apply(this,args);
@@ -25927,7 +25957,7 @@ for(const fn of ['tpCorrectionDraftSave','tpCorrectionSetLevel','tpCorrectionAut
 const originalPDF=window.tp61GenerateCorrectionPdf;
 if(typeof originalPDF==='function')window.tp61GenerateCorrectionPdf=async function(...args){if(active){if(active.readOnly){alert('E7.6 : PDF suspendu tant que le rattachement central et la note ne sont pas verifies.');return false}await flush(active);const result=await originalPDF.apply(this,args);active.pdfOk=!!result;return result}return originalPDF.apply(this,args)};
 window.addEventListener('beforeunload',e=>{if(active&&!active.readOnly&&!active.officialValidated){e.preventDefault();e.returnValue=''}});
-console.info('TFAB E7: ouverture directe du correcteur V1 et registre IndexedDB indépendant.');
+console.info('TFAB Consolidation C1: mode consultation non persistant et precontrole anti-doublon actif.');
 })();
 
 </script>
