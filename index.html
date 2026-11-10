@@ -25784,70 +25784,103 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 })();
 </script>
 
-<script id="tfab-e6-v1-bridge-lab">
+<script id="tfab-e7-direct-v1">
 (function(){
 'use strict';
-/* E6 LAB: original V1 display & grading controls, isolated IndexedDB drafts.
-   NO use of native localStorage.setItem for the correction index, NO PDF publication,
-   NO validation of marks or grades in the canonical Evaluation DB. */
-const KEY='tp_correction_local_v54', DB='TFAB_E6_V1_BROUILLONS_LAB', STORE='drafts';
-let active=null, nativeGet=Storage.prototype.getItem, nativeSet=Storage.prototype.setItem;
-let persist=Promise.resolve(), revision=0, stamp=0;
-const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const same=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
-const pick=r=>({marks:r.marks||{},comments234:r.comments234||{},levels:r.levels||{},criteriaLevels230:r.criteriaLevels230||{},note:r.note??'',appreciation:r.appreciation||'',noteModeV215:r.noteModeV215||'',noteCriteriaV45126:r.noteCriteriaV45126||[]});
-const getNativeRows=()=>{const a=JSON.parse(nativeGet.call(localStorage,KEY)||'[]');if(!Array.isArray(a))throw Error('Index original illisible');return a};
-function dbOpen(){return new Promise((ok,no)=>{const q=indexedDB.open(DB,1);q.onupgradeneeded=()=>{if(!q.result.objectStoreNames.contains(STORE))q.result.createObjectStore(STORE,{keyPath:'id'})};q.onsuccess=()=>ok(q.result);q.onerror=()=>no(q.error||Error('Ouverture IndexedDB E6 impossible'));q.onblocked=()=>no(Error('Base E6 occupée'))})}
-async function getDraft(id){const db=await dbOpen();try{return await new Promise((ok,no)=>{const q=db.transaction(STORE,'readonly').objectStore(STORE).get(id);q.onsuccess=()=>ok(q.result||null);q.onerror=()=>no(q.error)})}finally{db.close()}}
-async function putDraft(id,fields,rev){const db=await dbOpen();try{await new Promise((ok,no)=>{const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).put({id,fields,revision:rev,savedAt:new Date().toISOString()});tx.oncomplete=()=>ok();tx.onerror=()=>no(tx.error);tx.onabort=()=>no(tx.error)});const back=await new Promise((ok,no)=>{const q=db.transaction(STORE,'readonly').objectStore(STORE).get(id);q.onsuccess=()=>ok(q.result);q.onerror=()=>no(q.error)});if(!back||back.revision!==rev||!same(back.fields,fields))throw Error('Relecture du brouillon E6 non vérifiée')}finally{db.close()}}
-function status(txt,bad=false){const n=document.getElementById('e6-save-status');if(n){n.textContent=txt;n.style.color=bad?'#b91c1c':'#166534'}}
-function writeVirtual(s){if(!active)throw Error('Session E6 inactive');const list=JSON.parse(s);if(!Array.isArray(list))throw Error('Index virtuel non valide');const r=list.find(x=>String(x.id)===active.id);if(!r)throw Error('Copie E6 absente du registre virtuel');
- // Never accept untracked modifications to a pre-existing historical record.
- const other=list.filter(x=>String(x.id)!==active.id);
- if(!same(other,active.unchanged))throw Error('Écriture historique interdite pendant le test E6 : sauvegarde refusée');
- const fields=pick(r);active.rows=list;
- const rev=++revision;
- status('Brouillon E6 : enregistrement et vérification…');
- persist=persist.then(()=>putDraft(active.id,fields,rev)).then(()=>{if(rev===revision)status('Brouillon enregistré et relu dans IndexedDB E6 ✓')}).catch(e=>{status('ERREUR de sauvegarde : '+e.message,true);active.error=e.message;throw e});
- // avoid unhandled rejection when native handlers are synchronous
- persist.catch(e=>console.error('E6 stockage',e));
+/* TFAB E7 — V1 original, ouverture directe des rendus R2 et brouillons persistants isolés.
+   Baseline V451.57.111 + E1/E4: no startup Cloud call; no change to native V1, D1 or R2.
+   Official validation deliberately gated by preflight/readback and user confirmation.
+*/
+const KEY='tp_correction_local_v54';
+const DB='TFAB_E7_V1_CORRECTIONS', STORE='entries';
+const OLD_DB='TFAB_E6_V1_BROUILLONS_LAB';
+const COPY_DB='fdmahy_corrections_v129', COPY_STORE='copies';
+const PREFIX='TPC-R2-V102-';
+let active=null, persisted=Promise.resolve(), revision=0;
+const nativeGet=Storage.prototype.getItem, nativeSet=Storage.prototype.setItem;
+const asString=v=>String(v??'');
+const esc=s=>asString(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const stringify=x=>JSON.stringify(x);
+const fieldsOf=r=>({marks:r.marks||{},comments234:r.comments234||{},levels:r.levels||{},criteriaLevels230:r.criteriaLevels230||{},note:r.note??'',appreciation:r.appreciation||'',noteModeV215:r.noteModeV215||'',noteCriteriaV45126:r.noteCriteriaV45126||[],savedEvaluationId:r.savedEvaluationId||'',correctedAt:r.correctedAt||'',workflowState:r.workflowState||'A_CORRIGER',pdfGeneratedAt:r.pdfGeneratedAt||'',correction:r.data?.correction||null});
+function indexRows(){const x=JSON.parse(nativeGet.call(localStorage,KEY)||'[]');if(!Array.isArray(x))throw Error('Index local non valide');return x}
+function openDB(name,version,upgrade){return new Promise((resolve,reject)=>{const r=indexedDB.open(name,version);r.onupgradeneeded=()=>{try{upgrade?.(r.result,r.transaction)}catch(e){r.transaction.abort();reject(e)}};r.onerror=()=>reject(r.error||Error('IndexedDB inaccessible'));r.onblocked=()=>reject(Error('IndexedDB occupée'));r.onsuccess=()=>resolve(r.result)})}
+async function readEntry(id){const db=await openDB(DB,1,d=>{if(!d.objectStoreNames.contains(STORE))d.createObjectStore(STORE,{keyPath:'id'})});try{return await new Promise((ok,no)=>{const q=db.transaction(STORE,'readonly').objectStore(STORE).get(id);q.onsuccess=()=>ok(q.result||null);q.onerror=()=>no(q.error)})}finally{db.close()}}
+async function persistEntry(s,fields,rev){const db=await openDB(DB,1,d=>{if(!d.objectStoreNames.contains(STORE))d.createObjectStore(STORE,{keyPath:'id'})});try{
+ const payload={id:s.id,submissionId:s.remote.submission_id,fields,revision:rev,savedAt:new Date().toISOString(),origin:'TFAB_E7_V1',officialValidated:!!fields.correctedAt};
+ await new Promise((ok,no)=>{const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).put(payload);tx.oncomplete=ok;tx.onerror=()=>no(tx.error||Error('Écriture refusée'));tx.onabort=()=>no(tx.error||Error('Écriture annulée'))});
+ const back=await new Promise((ok,no)=>{const q=db.transaction(STORE,'readonly').objectStore(STORE).get(s.id);q.onsuccess=()=>ok(q.result);q.onerror=()=>no(q.error)});
+ if(!back||back.revision!==rev||stringify(back.fields)!==stringify(fields))throw Error('Vérification du brouillon impossible');return back;
+}finally{db.close()}}
+async function oldDraft(id){try{const db=await openDB(OLD_DB);try{if(!db.objectStoreNames.contains('drafts'))return null;return await new Promise((ok,no)=>{const q=db.transaction('drafts','readonly').objectStore('drafts').get(id);q.onsuccess=()=>ok(q.result||null);q.onerror=()=>no(q.error)})}finally{db.close()}}catch{return null}}
+async function archiveCopy(id){const db=await openDB(COPY_DB);try{if(!db.objectStoreNames.contains(COPY_STORE))throw Error('Archive IndexedDB absente');return await new Promise((ok,no)=>{const q=db.transaction(COPY_STORE,'readonly').objectStore(COPY_STORE).get(id);q.onsuccess=()=>ok(q.result||null);q.onerror=()=>no(q.error)})}finally{db.close()}}
+function status(txt,bad=false){const el=document.querySelector('#e7-status');if(el){el.textContent=txt;el.style.color=bad?'#b91c1c':'#166534'}}
+function proxyGet(k){if(this===localStorage&&asString(k)===KEY&&active)return stringify(active.rows);return nativeGet.apply(this,arguments)}
+function proxySet(k,v){if(this===localStorage&&asString(k)===KEY&&active)return virtualWrite(v);return nativeSet.apply(this,arguments)}
+function installProxy(){Storage.prototype.getItem=proxyGet;Storage.prototype.setItem=proxySet;if(Storage.prototype.getItem!==proxyGet||Storage.prototype.setItem!==proxySet)throw Error('Registre virtuel indisponible')}
+function restoreProxy(){if(Storage.prototype.getItem===proxyGet)Storage.prototype.getItem=nativeGet;if(Storage.prototype.setItem===proxySet)Storage.prototype.setItem=nativeSet}
+function virtualWrite(payload){if(!active)throw Error('Session de correction inactive');const list=JSON.parse(asString(payload));if(!Array.isArray(list))throw Error('Écriture du registre incorrecte');const row=list.find(x=>asString(x.id)===active.id);if(!row)throw Error('Copie absente du registre corrigé');const others=list.filter(x=>asString(x.id)!==active.id);if(stringify(others)!==active.untouchedJSON)throw Error('Modification des copies historiques bloquée');const fresh=fieldsOf(row);const s=active;active.rows=list;const r=++revision;status('Enregistrement du brouillon et vérification…');persisted=persisted.then(()=>persistEntry(s,fresh,r)).then(()=>{if(active===s&&r===revision)status('Correction sauvegardée et relue dans IndexedDB ✓')});persisted.catch(e=>{s.error=asString(e?.message||e);status('ÉCHEC de sauvegarde : '+s.error,true);console.error('TFAB E7',e)});
 }
-function proxyGet(k){if(this===localStorage&&String(k)===KEY&&active)return JSON.stringify(active.rows);return nativeGet.apply(this,arguments)}
-function proxySet(k,v){if(this===localStorage&&String(k)===KEY&&active)return writeVirtual(String(v));return nativeSet.apply(this,arguments)}
-function ensureProxy(){if(Storage.prototype.getItem!==proxyGet||Storage.prototype.setItem!==proxySet){Storage.prototype.getItem=proxyGet;Storage.prototype.setItem=proxySet}if(Storage.prototype.getItem!==proxyGet)throw Error('Interception temporaire du registre impossible')}
-function restore(){if(Storage.prototype.getItem===proxyGet)Storage.prototype.getItem=nativeGet;if(Storage.prototype.setItem===proxySet)Storage.prototype.setItem=nativeSet;active=null}
-function originRow(id){return new Promise((ok,no)=>{const q=indexedDB.open('fdmahy_corrections_v129',1);q.onupgradeneeded=()=>{q.transaction.abort();no(Error('Base copies absente'))};q.onerror=()=>no(q.error);q.onsuccess=()=>{const db=q.result;if(!db.objectStoreNames.contains('copies')){db.close();return no(Error('Archives de copies indisponibles'))}const r=db.transaction('copies','readonly').objectStore('copies').get(id);r.onsuccess=()=>{db.close();ok(r.result||null)};r.onerror=()=>{db.close();no(r.error)}}})}
-async function openLab(remote,doc,proof){
- if(active)throw Error('Une autre copie est ouverte dans E6; ferme-la d’abord.');
- if(!remote||!proof?.verified)throw Error('Archive Cloudflare non vérifiée');
- const id=String(proof.id||'');
- if(!id.startsWith('TPC-R2-V102-'))throw Error('Archive non issue du stockage sécurisé');
- const stored=await originRow(id);if(!stored||!stored.data)throw Error('Copie originale introuvable');
- const c=stored.data.cloud451||{},s=stored.data.submission||{};
- if(String(c.campaignId||s.campaignId)!==String(remote.campaign_id)||String(c.userId||s.userId)!==String(remote.user_id))throw Error('Identité serveur locale incompatible');
- const project=stored.data.tpProject||stored.data.project||stored.data.projetTP||stored.data.tp?.project;
- if(!project||!Array.isArray(project.questions)||!project.questions.length)throw Error('Le projet TP n’est pas structuré en questions');
- const before=getNativeRows(),existing=before.filter(r=>String(r.id)===id);if(existing.length)throw Error('Une référence locale porte déjà cet identifiant; correction normale requise');
- const draft=await getDraft(id),fields=draft?.fields||{};
- const fresh={id,signature:'E6-LAB|'+String(remote.submission_id),fileName:'TP_RENDU_'+remote.submission_id+'.json',importedAt:new Date().toISOString(),data:stored.data,workflowState:'A_CORRIGER',marks:{},comments234:{},levels:{},note:'',appreciation:'',...fields};
- active={id,unchanged:before,rows:[...before,fresh],error:null,remote};
+async function flush(s=active){if(!s)throw Error('Session absente');await persisted;if(s.error)throw Error(s.error);const row=s.rows.find(x=>asString(x.id)===s.id);const expected=fieldsOf(row);const latest=await readEntry(s.id);if(!latest||stringify(latest.fields)!==stringify(expected))throw Error('Le brouillon n’a pas été relu intégralement');return latest}
+async function close(){if(!active)return;const s=active;try{await flush(s)}catch(e){alert('Sauvegarde non confirmée : '+e.message+'\nExportez le brouillon avant de quitter.');return}active=null;restoreProxy();try{originalPage?.()}catch(e){console.warn('Retour liste E7',e)}}
+function download(filename,data){const url=URL.createObjectURL(new Blob([stringify(data)],{type:'application/json;charset=utf-8'}));const a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),25000)}
+async function exportDraft(){if(!active)return;try{const d=await flush();download('TFAB_E7_BROUILLON_'+active.remote.submission_id+'.json',{format:'TFAB-E7-V1-DRAFT',submissionId:active.remote.submission_id,savedAt:d.savedAt,fields:d.fields,originalUnchanged:true});status('Brouillon exporté et vérifié ✓')}catch(e){alert('Export impossible : '+e.message)}}
+function toolbar(s){if(active!==s)return;const shell=document.querySelector('.tpc-shell');if(!shell)return;const existing=document.getElementById('e7-toolbar');if(existing)return;
+ const div=document.createElement('section');div.id='e7-toolbar';div.style.cssText='position:sticky;top:0;z-index:1001;background:#f0f9ff;border:2px solid #0284c7;padding:10px 12px;border-radius:10px;margin:0 0 10px;color:#0c4a6e;font:14px system-ui';
+ div.innerHTML='<strong>TFAB E7 · Portail Correcteur Validé V1 · Copie Cloudflare</strong><div id="e7-status" style="margin:5px 0;color:#166534">Ouverture directe ; brouillon dans IndexedDB, index historique intact.</div><div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" id="e7-export">Sauvegarder le brouillon JSON</button><button type="button" id="e7-back">Retour aux copies rendues</button></div><small style="display:block;margin-top:7px">La validation officielle conserve le moteur V1 ; vérifier son PDF et la confirmation Cloudflare après validation. Aucune copie originale n’est remplacée.</small>';
+ shell.prepend(div);div.querySelector('#e7-export').onclick=exportDraft;div.querySelector('#e7-back').onclick=close;
+ status('Prêt : les questions, barèmes et calculs proviennent du correcteur V1.');
+}
+async function begin(remote,doc,proof){
+ if(active)throw Error('Terminez ou fermez la correction E7 en cours.');
+ if(!proof?.verified)throw Error('Identité Cloudflare non vérifiée');
+ if(!['2MAC1','BETA'].includes(asString(remote?.classe).toUpperCase()))throw Error('Classe non autorisée');
+ const id=asString(proof.id);if(!id.startsWith(PREFIX)||id!==PREFIX+asString(remote.submission_id))throw Error('Identifiant unique de copie incompatible');
+ const archived=await archiveCopy(id);if(!archived?.data)throw Error('Copie complète introuvable');
+ const c=archived.data.cloud451||{},su=archived.data.submission||{},rs=asString(c.submissionId||su.submissionId),rc=asString(c.campaignId||su.campaignId),ru=asString(c.userId||su.userId);
+ if(rs!==asString(remote.submission_id)||rc!==asString(remote.campaign_id)||ru!==asString(remote.user_id))throw Error('Archive et rendu Cloudflare incompatibles');
+ const project=archived.data.tpProject||archived.data.project||archived.data.projetTP||archived.data.tp?.project;
+ if(!Array.isArray(project?.questions)||!project.questions.length)throw Error('Questions originales absentes de l’archive');
+ const before=indexRows();if(before.some(x=>asString(x.id)===id))throw Error('Cette copie possède déjà une référence historique : utiliser le correcteur normal');
+ const e7=await readEntry(id),e6=e7?null:await oldDraft(id);const fields=e7?.fields||e6?.fields||{};
+ if(fields.correctedAt)throw Error('Une correction déjà validée existe dans le registre E7; ne pas recréer de note');
+ const fresh={id,signature:'E7-V1|'+asString(remote.submission_id),fileName:'TP_RENDU_'+remote.submission_id+'.json',importedAt:new Date().toISOString(),data:archived.data,workflowState:'A_CORRIGER',marks:{},comments234:{},levels:{},note:'',appreciation:'',...fields};
+ if(fields.correction)fresh.data={...archived.data,correction:fields.correction};
+ const s={id,remote,rows:[...before,fresh],untouchedJSON:stringify(before),error:null,validating:false,pdfOk:null};
+ active=s;revision=e7?.revision||0;persisted=Promise.resolve();
+ try{installProxy();if(!e7){const initial=fieldsOf(fresh);await persistEntry(s,initial,revision)}
+ if(typeof window.tpCorrectionOpen!=='function')throw Error('Correcteur historique absent');
+ await window.tpCorrectionOpen(id);
+ toolbar(s);setTimeout(()=>toolbar(s),300);setTimeout(()=>toolbar(s),1850);
+ }catch(e){active=null;restoreProxy();throw e}
+}
+const previousShow=window.tfab451102Show;
+if(typeof previousShow!=='function'||typeof window.tpCorrectionOpen!=='function'){console.warn('TFAB E7: correcteur ou consultation secours indisponible');return}
+window.tfab451102Show=function(doc,remote,proof){
+ const main=document.getElementById('main');if(main)main.innerHTML='<div style="padding:26px;font:16px system-ui"><h2>Ouverture dans le Portail Correcteur V1…</h2><p>Contrôle de l’archive et du registre sécurisé.</p></div>';
+ void begin(remote,doc,proof).catch(e=>{console.error('TFAB E7 : ouverture directe',e);alert('Ouverture V1 impossible : '+e.message+'\nLa copie reste intacte. Consultation de secours disponible.');previousShow.call(window,doc,remote,proof)});
+};
+const originalPage=window.tpCorrectionPage;
+if(typeof originalPage==='function')window.tpCorrectionPage=function(...args){if(active&&!active.validating){void close();return}return originalPage.apply(this,args)};
+// The original validator is only invoked after the current draft is reread.
+const originalValidate=window.tpCorrectionValidate;
+window.tpCorrectionValidate=async function(...args){
+ if(!active)return originalValidate?.apply(this,args);
+ const s=active;if(s.validating)return false;
  try{
-  ensureProxy();if(typeof window.tpCorrectionOpen!=='function')throw Error('Correcteur V1 indisponible');
-  await window.tpCorrectionOpen(id);
-  setTimeout(()=>{if(!active||active.id!==id)return;const root=document.querySelector('.tpc-shell');if(!root){status('Correcteur V1 introuvable',true);return}const b=document.createElement('div');b.id='e6-lab-toolbar';b.style.cssText='position:sticky;top:0;z-index:999;background:#fff4d6;border:2px solid #bb7900;padding:10px;border-radius:8px;margin-bottom:8px;color:#402600';b.innerHTML='<b>LAB E6 · Correcteur V1 original — brouillons séparés, validation officielle désactivée</b><div id="e6-save-status" style="margin:4px 0;color:#166534">Prêt. Modifications enregistrées dans IndexedDB E6.</div><button type="button" id="e6-export" style="margin-right:8px">Exporter le brouillon JSON</button><button type="button" id="e6-close">Fermer ce test</button>';root.prepend(b);b.querySelector('#e6-export').onclick=exportDraft;b.querySelector('#e6-close').onclick=closeLab;
-   const buttons=[...root.querySelectorAll('button')].filter(x=>/Valider la correction|Valider.*évaluation|Publier.*corrigé/i.test(x.textContent||''));for(const btn of buttons){btn.disabled=true;btn.title='Validation et publication officielles désactivées dans le laboratoire E6';btn.textContent='Validation officielle désactivée — LAB E6'}
-  },450);
- }catch(e){restore();throw e}
-}
-async function exportDraft(){if(!active)return;try{await persist;const d=await getDraft(active.id);if(!d)throw Error('Aucun brouillon enregistré');const payload={format:'TFAB-E6-LAB-BROUILLON',copyId:active.id,submissionId:active.remote.submission_id,savedAt:d.savedAt,correction:d.fields,officialValidation:false};const url=URL.createObjectURL(new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download='TFAB_E6_BROUILLON_'+active.remote.submission_id+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),30000);status('Brouillon exporté après relecture ✓')}catch(e){status(e.message,true)}}
-async function closeLab(){if(!active)return;try{await persist}catch(e){alert('Dernière sauvegarde non confirmée : '+e.message+'\nExporte le brouillon avant de fermer.');return}restore();window.tpCorrectionPage?.()}
-const oldShow=window.tfab451102Show;if(typeof oldShow!=='function')return;
-window.tfab451102Show=function(doc,remote,proof){const result=oldShow.apply(this,arguments);const box=document.querySelector('#tfab102-view .tfab102-note');if(!box||!remote||!proof?.verified)return result;const b=document.createElement('button');b.type='button';b.id='e6-v1-try';b.textContent='Essayer la copie dans le correcteur V1 (LAB, sans publication)';b.style.cssText='margin-top:8px;padding:9px 12px;background:#155e75;color:white;border-radius:8px;border:0;cursor:pointer';box.appendChild(document.createElement('br'));box.appendChild(b);b.onclick=async()=>{b.disabled=true;try{await openLab(remote,doc,proof)}catch(e){alert('E6 : '+String(e.message||e));b.disabled=false}};return result};
-// Mandatory defense: the existing validator must never run while E6's shadow index is active.
-const historicalValidate=window.tpCorrectionValidate;
-window.tpCorrectionValidate=function(){if(active){alert('E6 est un laboratoire de fidélité au correcteur V1. Validation officielle, écriture d’évaluation, PDF et publication Cloudflare bloquées. Les marques et commentaires sont enregistrés en brouillon E6 uniquement.');return Promise.resolve(false)}return historicalValidate?.apply(this,arguments)};
-// During E6, block accidental full-page navigation that would drop the virtual view.
-window.addEventListener('beforeunload',e=>{if(active){e.preventDefault();e.returnValue=''}});
-console.info('TFAB E6 LAB: V1 historique intact, affichage via registre temporaire, brouillons IndexedDB isolés.');
+  await flush(s);
+  if(!confirm('Valider officiellement cette copie avec le correcteur V1 ?\nLa note sera enregistrée dans les évaluations et le PDF pourra être publié dans Cloudflare.\nL’original du rendu ne sera pas modifié.'))return false;
+  s.validating=true;status('Validation V1 en cours ; contrôle de persistance du registre…');
+  const out=await originalValidate.apply(this,args);
+  await flush(s);
+  const row=s.rows.find(x=>asString(x.id)===s.id);
+  if(!row?.correctedAt||!row?.savedEvaluationId){status('Validation non confirmée : vérifiez le message du correcteur avant de quitter.',true);return out}
+  s.officialValidated=true;status('Correction validée dans le registre E7. Vérifier le PDF et le statut Cloudflare.');active=null;restoreProxy();try{originalPage?.()}catch(e){console.warn('Rafraîchissement du portail après validation',e)}return out;
+ }catch(e){s.error=asString(e?.message||e);status('Validation interrompue : '+s.error,true);alert('TFAB E7 : validation non confirmée. '+s.error);return false}finally{s.validating=false}
+};
+const originalPDF=window.tp61GenerateCorrectionPdf;
+if(typeof originalPDF==='function')window.tp61GenerateCorrectionPdf=async function(...args){if(active){await flush(active);const result=await originalPDF.apply(this,args);active.pdfOk=!!result;return result}return originalPDF.apply(this,args)};
+window.addEventListener('beforeunload',e=>{if(active&&!active.officialValidated){e.preventDefault();e.returnValue=''}});
+console.info('TFAB E7: ouverture directe du correcteur V1 et registre IndexedDB indépendant.');
 })();
+
 </script>
