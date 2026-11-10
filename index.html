@@ -25787,7 +25787,8 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 <script id="tfab-e7-direct-v1">
 (function(){
 'use strict';
-/* TFAB E7.4 LAB — audit de liaison, validation temporairement verrouillée. Original E7 — V1 original, ouverture directe des rendus R2 et brouillons persistants isolés.
+/* TFAB E7.5 LAB — controle d'identite coherent avec archive V102.
+   TFAB E7 — V1 original, ouverture directe des rendus R2 et brouillons persistants isolés.
    Baseline V451.57.111 + E1/E4: no startup Cloud call; no change to native V1, D1 or R2.
    Official validation deliberately gated by preflight/readback and user confirmation.
 */
@@ -25824,27 +25825,10 @@ async function flush(s=active){if(!s)throw Error('Session absente');await persis
 async function close(){if(!active)return;const s=active;try{await flush(s)}catch(e){alert('Sauvegarde non confirmée : '+e.message+'\nExportez le brouillon avant de quitter.');return}active=null;restoreProxy();try{originalPage?.()}catch(e){console.warn('Retour liste E7',e)}}
 function download(filename,data){const url=URL.createObjectURL(new Blob([stringify(data)],{type:'application/json;charset=utf-8'}));const a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),25000)}
 async function exportDraft(){if(!active)return;try{const d=await flush();download('TFAB_E7_BROUILLON_'+active.remote.submission_id+'.json',{format:'TFAB-E7-V1-DRAFT',submissionId:active.remote.submission_id,savedAt:d.savedAt,fields:d.fields,originalUnchanged:true});status('Brouillon exporté et vérifié ✓')}catch(e){alert('Export impossible : '+e.message)}}
-// E7.4 : lecture seule de la table des évaluations, aucune création ni mutation.
-async function auditLink(s){
-  const db=await openDB('C2MMVP_TEST_FICTIFS_V8');
-  try{
-    if(!db.objectStoreNames.contains('evaluations'))throw Error('Magasin évaluations absent');
-    const evaluations=await new Promise((resolve,reject)=>{const q=db.transaction('evaluations','readonly').objectStore('evaluations').getAll();q.onsuccess=()=>resolve(q.result||[]);q.onerror=()=>reject(q.error)});
-    const row=s.rows.find(x=>asString(x.id)===s.id), f=fieldsOf(row||{});
-    const exact=evaluations.filter(e=>asString(e.tpCorrectionId)===s.id);
-    const pointer=f.savedEvaluationId?evaluations.filter(e=>asString(e.id)===asString(f.savedEvaluationId)):[];
-    const summary={audit:'TFAB-E7.4-READONLY',copyId:s.id,submissionId:asString(s.remote.submission_id),campaignId:asString(s.remote.campaign_id),userId:asString(s.remote.user_id),className:asString(s.remote.classe),tpCode:asString(row?.data?.code||''),studentId:asString(row?.data?.studentId||''),draftNote:asString(f.note),draftCorrectedAt:f.correctedAt,linkedEvaluationId:f.savedEvaluationId,exactCount:exact.length,pointerCount:pointer.length,exact:exact.map(e=>({id:e.id,tpCorrectionId:e.tpCorrectionId,studentId:e.studentId,tpCode:e.tpCode,note:e.sourceNote20,createdAt:e.createdAt,tpSource240:e.tpSource240})),pointer:pointer.map(e=>({id:e.id,tpCorrectionId:e.tpCorrectionId,studentId:e.studentId,tpCode:e.tpCode,note:e.sourceNote20}))};
-    const out=document.getElementById('e74-audit-result');if(out){out.hidden=false;out.textContent=JSON.stringify(summary,null,2)}
-    if(exact.length===1){status('Une évaluation liée par ID exact a été trouvée : contrôler élève, TP et note avant toute action.',true)}
-    else if(exact.length>1){status('Plusieurs évaluations pour le même rendu : intervention automatique interdite.',true)}
-    else{status('Aucune évaluation retrouvée par identifiant exact dans la base locale. Aucune perte prouvée.',true)}
-    return summary;
-  }finally{db.close()}
-}
 function toolbar(s){if(active!==s)return;const shell=document.querySelector('.tpc-shell');if(!shell)return;const existing=document.getElementById('e7-toolbar');if(existing)return;
  const div=document.createElement('section');div.id='e7-toolbar';div.style.cssText='position:sticky;top:0;z-index:1001;background:#f0f9ff;border:2px solid #0284c7;padding:10px 12px;border-radius:10px;margin:0 0 10px;color:#0c4a6e;font:14px system-ui';
- div.innerHTML='<strong>TFAB E7.4 · Audit de liaison · Copie Cloudflare</strong><div id="e7-status" style="margin:5px 0;color:#166534">Ouverture directe ; brouillon dans IndexedDB, index historique intact.</div><div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" id="e74-audit">Auditer le rattachement (lecture seule)</button><button type="button" id="e7-export">Sauvegarder le brouillon JSON</button><button type="button" id="e7-back">Retour aux copies rendues</button></div><small style="display:block;margin-top:7px">Mode laboratoire : validation officielle verrouillée pour éviter un doublon. Audit en lecture seule ; aucune copie originale ni évaluation historique modifiée.</small><pre id="e74-audit-result" hidden style="white-space:pre-wrap;overflow:auto;max-height:320px;background:#fff;padding:8px;font-size:11px"></pre>';
- shell.prepend(div);div.querySelector('#e74-audit').onclick=()=>auditLink(s).catch(e=>status("Audit indisponible : "+e.message,true));div.querySelector('#e7-export').onclick=exportDraft;div.querySelector('#e7-back').onclick=close;
+ div.innerHTML='<strong>TFAB E7 · Portail Correcteur Validé V1 · Copie Cloudflare</strong><div id="e7-status" style="margin:5px 0;color:#166534">Ouverture directe ; brouillon dans IndexedDB, index historique intact.</div><div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" id="e7-export">Sauvegarder le brouillon JSON</button><button type="button" id="e7-back">Retour aux copies rendues</button></div><small style="display:block;margin-top:7px">La validation officielle conserve le moteur V1 ; vérifier son PDF et la confirmation Cloudflare après validation. Aucune copie originale n’est remplacée.</small>';
+ shell.prepend(div);div.querySelector('#e7-export').onclick=exportDraft;div.querySelector('#e7-back').onclick=close;
  status('Prêt : les questions, barèmes et calculs proviennent du correcteur V1.');
 }
 async function begin(remote,doc,proof){
@@ -25853,8 +25837,31 @@ async function begin(remote,doc,proof){
  if(!['2MAC1','BETA'].includes(asString(remote?.classe).toUpperCase()))throw Error('Classe non autorisée');
  const id=asString(proof.id);if(!id.startsWith(PREFIX)||id!==PREFIX+asString(remote.submission_id))throw Error('Identifiant unique de copie incompatible');
  const archived=await archiveCopy(id);if(!archived?.data)throw Error('Copie complète introuvable');
- const c=archived.data.cloud451||{},su=archived.data.submission||{},rs=asString(c.submissionId||su.submissionId),rc=asString(c.campaignId||su.campaignId),ru=asString(c.userId||su.userId);
- if(rs!==asString(remote.submission_id)||rc!==asString(remote.campaign_id)||ru!==asString(remote.user_id))throw Error('Archive et rendu Cloudflare incompatibles');
+ // E7.5 LAB: l'identite attestée par le module d'archivage est obligatoire.
+ // Les anciens JSON peuvent ne pas embarquer submissionId ; ce champ facultatif
+ // ne doit toutefois jamais contredire l'identite de l'archive.
+ const identity=archived.tfab102Identity||{};
+ const expected={sub:asString(remote.submission_id).trim(),campaign:asString(remote.campaign_id).trim(),user:asString(remote.user_id).trim()};
+ const norm=v=>asString(v).trim();
+ if(!expected.sub||!expected.campaign||!expected.user||
+    norm(identity.sub)!==expected.sub||norm(identity.campaign)!==expected.campaign||norm(identity.user)!==expected.user||
+    archived.tfab102Archive!==true)throw Error('Identite archivee non confirmee : ouverture protegee');
+ const c=archived.data.cloud451||{},su=archived.data.submission||{};
+ // Comparer chaque champ lorsqu'il est present, meme si l'autre champ est vide.
+ // Un conflit entre deux champs embarques est aussi bloquant.
+ for(const [label,values,wanted] of [
+   ['rendu',[c.submissionId,su.submissionId],expected.sub],
+   ['campagne',[c.campaignId,su.campaignId],expected.campaign],
+   ['eleve',[c.userId,su.userId],expected.user]
+ ])for(const value of values){if(norm(value)&&norm(value)!==wanted)throw Error('Incompatibilite '+label+' entre archive et Cloudflare');}
+ // Le document actuellement telecharge doit egalement correspondre a la copie archivee.
+ const dc=doc?.cloud451||{},ds=doc?.submission||{};
+ for(const [label,values,wanted] of [
+   ['rendu',[dc.submissionId,ds.submissionId],expected.sub],
+   ['campagne',[dc.campaignId,ds.campaignId],expected.campaign],
+   ['eleve',[dc.userId,ds.userId],expected.user]
+ ])for(const value of values){if(norm(value)&&norm(value)!==wanted)throw Error('Incompatibilite '+label+' dans le rendu actuel');}
+
  const project=archived.data.tpProject||archived.data.project||archived.data.projetTP||archived.data.tp?.project;
  if(!Array.isArray(project?.questions)||!project.questions.length)throw Error('Questions originales absentes de l’archive');
  const before=indexRows();if(before.some(x=>asString(x.id)===id))throw Error('Cette copie possède déjà une référence historique : utiliser le correcteur normal');
@@ -25883,9 +25890,6 @@ const originalValidate=window.tpCorrectionValidate;
 window.tpCorrectionValidate=async function(...args){
  if(!active)return originalValidate?.apply(this,args);
  const s=active;if(s.validating)return false;
- status('E7.4 LAB : validation désactivée. Utilisez Auditer le rattachement avant toute intervention.',true);
- return false;
- /* Ancienne validation E7 conservée uniquement pour comparaison, inatteignable dans cette version laboratoire. */
  try{
   await flush(s);
   if(!confirm('Valider officiellement cette copie avec le correcteur V1 ?\nLa note sera enregistrée dans les évaluations et le PDF pourra être publié dans Cloudflare.\nL’original du rendu ne sera pas modifié.'))return false;
@@ -25898,9 +25902,9 @@ window.tpCorrectionValidate=async function(...args){
  }catch(e){s.error=asString(e?.message||e);status('Validation interrompue : '+s.error,true);alert('TFAB E7 : validation non confirmée. '+s.error);return false}finally{s.validating=false}
 };
 const originalPDF=window.tp61GenerateCorrectionPdf;
-if(typeof originalPDF==='function')window.tp61GenerateCorrectionPdf=async function(...args){if(active){status('E7.4 LAB : PDF non autorisé sans correction validée et rattachée par ID exact.',true);return false}return originalPDF.apply(this,args)};
+if(typeof originalPDF==='function')window.tp61GenerateCorrectionPdf=async function(...args){if(active){await flush(active);const result=await originalPDF.apply(this,args);active.pdfOk=!!result;return result}return originalPDF.apply(this,args)};
 window.addEventListener('beforeunload',e=>{if(active&&!active.officialValidated){e.preventDefault();e.returnValue=''}});
-console.info('TFAB E7.4 LAB : audit lecture seule, validation bloquée ; ouverture directe du correcteur V1 et registre IndexedDB indépendant.');
+console.info('TFAB E7: ouverture directe du correcteur V1 et registre IndexedDB indépendant.');
 })();
 
 </script>
