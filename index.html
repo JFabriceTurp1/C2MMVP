@@ -25787,7 +25787,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 <script id="tfab-e7-direct-v1">
 (function(){
 'use strict';
-/* TFAB E7.5 LAB — controle d'identite coherent avec archive V102.
+/* TFAB E7.6 LAB — consultation seule des corrections deja validees; generation PDF suspendue.
    TFAB E7 — V1 original, ouverture directe des rendus R2 et brouillons persistants isolés.
    Baseline V451.57.111 + E1/E4: no startup Cloud call; no change to native V1, D1 or R2.
    Official validation deliberately gated by preflight/readback and user confirmation.
@@ -25819,13 +25819,30 @@ function proxyGet(k){if(this===localStorage&&asString(k)===KEY&&active)return st
 function proxySet(k,v){if(this===localStorage&&asString(k)===KEY&&active)return virtualWrite(v);return nativeSet.apply(this,arguments)}
 function installProxy(){Storage.prototype.getItem=proxyGet;Storage.prototype.setItem=proxySet;if(Storage.prototype.getItem!==proxyGet||Storage.prototype.setItem!==proxySet)throw Error('Registre virtuel indisponible')}
 function restoreProxy(){if(Storage.prototype.getItem===proxyGet)Storage.prototype.getItem=nativeGet;if(Storage.prototype.setItem===proxySet)Storage.prototype.setItem=nativeSet}
-function virtualWrite(payload){if(!active)throw Error('Session de correction inactive');const list=JSON.parse(asString(payload));if(!Array.isArray(list))throw Error('Écriture du registre incorrecte');const row=list.find(x=>asString(x.id)===active.id);if(!row)throw Error('Copie absente du registre corrigé');const others=list.filter(x=>asString(x.id)!==active.id);if(stringify(others)!==active.untouchedJSON)throw Error('Modification des copies historiques bloquée');const fresh=fieldsOf(row);const s=active;active.rows=list;const r=++revision;status('Enregistrement du brouillon et vérification…');persisted=persisted.then(()=>persistEntry(s,fresh,r)).then(()=>{if(active===s&&r===revision)status('Correction sauvegardée et relue dans IndexedDB ✓')});persisted.catch(e=>{s.error=asString(e?.message||e);status('ÉCHEC de sauvegarde : '+s.error,true);console.error('TFAB E7',e)});
+function virtualWrite(payload){if(!active)throw Error('Session de correction inactive');if(active.readOnly)throw Error('Consultation seule E7.6 : aucune modification autorisee');const list=JSON.parse(asString(payload));if(!Array.isArray(list))throw Error('Écriture du registre incorrecte');const row=list.find(x=>asString(x.id)===active.id);if(!row)throw Error('Copie absente du registre corrigé');const others=list.filter(x=>asString(x.id)!==active.id);if(stringify(others)!==active.untouchedJSON)throw Error('Modification des copies historiques bloquée');const fresh=fieldsOf(row);const s=active;active.rows=list;const r=++revision;status('Enregistrement du brouillon et vérification…');persisted=persisted.then(()=>persistEntry(s,fresh,r)).then(()=>{if(active===s&&r===revision)status('Correction sauvegardée et relue dans IndexedDB ✓')});persisted.catch(e=>{s.error=asString(e?.message||e);status('ÉCHEC de sauvegarde : '+s.error,true);console.error('TFAB E7',e)});
 }
-async function flush(s=active){if(!s)throw Error('Session absente');await persisted;if(s.error)throw Error(s.error);const row=s.rows.find(x=>asString(x.id)===s.id);const expected=fieldsOf(row);const latest=await readEntry(s.id);if(!latest||stringify(latest.fields)!==stringify(expected))throw Error('Le brouillon n’a pas été relu intégralement');return latest}
+async function flush(s=active){if(!s)throw Error('Session absente');if(s.readOnly){const e=await readEntry(s.id);if(!e||!e.fields?.correctedAt)throw Error('Preuve de correction validee indisponible');return e;}await persisted;if(s.error)throw Error(s.error);const row=s.rows.find(x=>asString(x.id)===s.id);const expected=fieldsOf(row);const latest=await readEntry(s.id);if(!latest||stringify(latest.fields)!==stringify(expected))throw Error('Le brouillon n’a pas été relu intégralement');return latest}
 async function close(){if(!active)return;const s=active;try{await flush(s)}catch(e){alert('Sauvegarde non confirmée : '+e.message+'\nExportez le brouillon avant de quitter.');return}active=null;restoreProxy();try{originalPage?.()}catch(e){console.warn('Retour liste E7',e)}}
 function download(filename,data){const url=URL.createObjectURL(new Blob([stringify(data)],{type:'application/json;charset=utf-8'}));const a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),25000)}
 async function exportDraft(){if(!active)return;try{const d=await flush();download('TFAB_E7_BROUILLON_'+active.remote.submission_id+'.json',{format:'TFAB-E7-V1-DRAFT',submissionId:active.remote.submission_id,savedAt:d.savedAt,fields:d.fields,originalUnchanged:true});status('Brouillon exporté et vérifié ✓')}catch(e){alert('Export impossible : '+e.message)}}
 function toolbar(s){if(active!==s)return;const shell=document.querySelector('.tpc-shell');if(!shell)return;const existing=document.getElementById('e7-toolbar');if(existing)return;
+ if(s.readOnly){
+  const div=document.createElement('section');div.id='e7-toolbar';div.style.cssText='position:sticky;top:0;z-index:10050;background:#fff7ed;border:2px solid #ea580c;padding:12px;border-radius:10px;margin:0 0 12px;color:#7c2d12;font:14px system-ui';
+  const f=s.readOnlyFields||{};
+  div.innerHTML='<strong>TFAB E7.6 · CORRECTION EXISTANTE · CONSULTATION SEULE</strong><div style="margin:7px 0">Aucune validation, modification, nouvelle note ou production PDF autorisée dans ce laboratoire.</div><div id="e76-proof" style="font:12px/1.5 monospace;overflow-wrap:anywhere;white-space:pre-wrap;background:#fff;padding:8px;border:1px solid #fed7aa;border-radius:6px"></div><button id="e76-report" type="button">Exporter le diagnostic JSON (lecture seule)</button> <button id="e76-back" type="button">Retour aux copies rendues</button>';
+  shell.prepend(div);
+  const proof={submissionId:asString(s.remote.submission_id),copyId:s.id,student:asString(s.student),tp:asString(s.tpCode),savedEvaluationId:asString(f.savedEvaluationId),note:f.note??'',correctedAt:asString(f.correctedAt),workflowState:asString(f.workflowState),pdfGeneratedAt:asString(f.pdfGeneratedAt),hasComments:Object.keys(f.comments234||{}).length,hasMarks:Object.keys(f.marks||{}).length,hasCorrection:!!f.correction};
+  div.querySelector('#e76-proof').textContent=Object.entries(proof).map(([k,v])=>k+' : '+v).join('\n');
+  div.querySelector('#e76-report').onclick=()=>download('TFAB_E76_DIAGNOSTIC_'+asString(s.remote.submission_id)+'.json',{format:'TFAB-E7.6-READONLY-DIAGNOSTIC',generatedAt:new Date().toISOString(),...proof,notice:'Ne constitue pas une preuve de correspondance avec les evaluations centrales.'});
+  div.querySelector('#e76-back').onclick=close;
+  const lockdown=()=>{if(active!==s)return;const current=document.querySelector('.tpc-shell');if(!current)return;
+   current.querySelectorAll('input,textarea,select').forEach(el=>{el.readOnly=true;el.disabled=true;});
+   current.querySelectorAll('button').forEach(el=>{if(div.contains(el))return;el.disabled=true;el.setAttribute('aria-disabled','true');el.title='Consultation seule E7.6';});
+  };
+  lockdown();setTimeout(lockdown,200);setTimeout(lockdown,1000);
+  return;
+ }
+
  const div=document.createElement('section');div.id='e7-toolbar';div.style.cssText='position:sticky;top:0;z-index:1001;background:#f0f9ff;border:2px solid #0284c7;padding:10px 12px;border-radius:10px;margin:0 0 10px;color:#0c4a6e;font:14px system-ui';
  div.innerHTML='<strong>TFAB E7 · Portail Correcteur Validé V1 · Copie Cloudflare</strong><div id="e7-status" style="margin:5px 0;color:#166534">Ouverture directe ; brouillon dans IndexedDB, index historique intact.</div><div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" id="e7-export">Sauvegarder le brouillon JSON</button><button type="button" id="e7-back">Retour aux copies rendues</button></div><small style="display:block;margin-top:7px">La validation officielle conserve le moteur V1 ; vérifier son PDF et la confirmation Cloudflare après validation. Aucune copie originale n’est remplacée.</small>';
  shell.prepend(div);div.querySelector('#e7-export').onclick=exportDraft;div.querySelector('#e7-back').onclick=close;
@@ -25866,14 +25883,16 @@ async function begin(remote,doc,proof){
  if(!Array.isArray(project?.questions)||!project.questions.length)throw Error('Questions originales absentes de l’archive');
  const before=indexRows();if(before.some(x=>asString(x.id)===id))throw Error('Cette copie possède déjà une référence historique : utiliser le correcteur normal');
  const e7=await readEntry(id),e6=e7?null:await oldDraft(id);const fields=e7?.fields||e6?.fields||{};
- if(fields.correctedAt)throw Error('Une correction déjà validée existe dans le registre E7; ne pas recréer de note');
+ const isReadOnly=!!fields.correctedAt;
+ if(isReadOnly&&!e7)throw Error('Correction validee non confirmee dans le registre E7');
  const fresh={id,signature:'E7-V1|'+asString(remote.submission_id),fileName:'TP_RENDU_'+remote.submission_id+'.json',importedAt:new Date().toISOString(),data:archived.data,workflowState:'A_CORRIGER',marks:{},comments234:{},levels:{},note:'',appreciation:'',...fields};
  if(fields.correction)fresh.data={...archived.data,correction:fields.correction};
- const s={id,remote,rows:[...before,fresh],untouchedJSON:stringify(before),error:null,validating:false,pdfOk:null};
+ const s={id,remote,rows:[...before,fresh],untouchedJSON:stringify(before),error:null,validating:false,pdfOk:null,readOnly:isReadOnly,readOnlyFields:isReadOnly?JSON.parse(stringify(fields)):null,student:[archived.data.eleve?.nom,archived.data.eleve?.prenom].filter(Boolean).join(' '),tpCode:archived.data.code||''};
  active=s;revision=e7?.revision||0;persisted=Promise.resolve();
- try{installProxy();if(!e7){const initial=fieldsOf(fresh);await persistEntry(s,initial,revision)}
+ try{installProxy();if(!e7&&!s.readOnly){const initial=fieldsOf(fresh);await persistEntry(s,initial,revision)}
  if(typeof window.tpCorrectionOpen!=='function')throw Error('Correcteur historique absent');
  await window.tpCorrectionOpen(id);
+ if(s.readOnly){document.querySelectorAll('.tpc-shell input,.tpc-shell textarea,.tpc-shell select,.tpc-shell button').forEach(el=>{el.disabled=true;});}
  toolbar(s);setTimeout(()=>toolbar(s),300);setTimeout(()=>toolbar(s),1850);
  }catch(e){active=null;restoreProxy();throw e}
 }
@@ -25889,7 +25908,7 @@ if(typeof originalPage==='function')window.tpCorrectionPage=function(...args){if
 const originalValidate=window.tpCorrectionValidate;
 window.tpCorrectionValidate=async function(...args){
  if(!active)return originalValidate?.apply(this,args);
- const s=active;if(s.validating)return false;
+ const s=active;if(s.readOnly){alert('E7.6 : correction déjà validée. Validation interdite en consultation seule.');return false}if(s.validating)return false;
  try{
   await flush(s);
   if(!confirm('Valider officiellement cette copie avec le correcteur V1 ?\nLa note sera enregistrée dans les évaluations et le PDF pourra être publié dans Cloudflare.\nL’original du rendu ne sera pas modifié.'))return false;
@@ -25901,9 +25920,13 @@ window.tpCorrectionValidate=async function(...args){
   s.officialValidated=true;status('Correction validée dans le registre E7. Vérifier le PDF et le statut Cloudflare.');active=null;restoreProxy();try{originalPage?.()}catch(e){console.warn('Rafraîchissement du portail après validation',e)}return out;
  }catch(e){s.error=asString(e?.message||e);status('Validation interrompue : '+s.error,true);alert('TFAB E7 : validation non confirmée. '+s.error);return false}finally{s.validating=false}
 };
+// E7.6: neutraliser l'ecriture via les commandes historiques, y compris les appels directs.
+for(const fn of ['tpCorrectionDraftSave','tpCorrectionSetLevel','tpCorrectionAutoLevels']){
+ const original=window[fn];if(typeof original==='function')window[fn]=function(...args){if(active?.readOnly)return false;return original.apply(this,args)};
+}
 const originalPDF=window.tp61GenerateCorrectionPdf;
-if(typeof originalPDF==='function')window.tp61GenerateCorrectionPdf=async function(...args){if(active){await flush(active);const result=await originalPDF.apply(this,args);active.pdfOk=!!result;return result}return originalPDF.apply(this,args)};
-window.addEventListener('beforeunload',e=>{if(active&&!active.officialValidated){e.preventDefault();e.returnValue=''}});
+if(typeof originalPDF==='function')window.tp61GenerateCorrectionPdf=async function(...args){if(active){if(active.readOnly){alert('E7.6 : PDF suspendu tant que le rattachement central et la note ne sont pas verifies.');return false}await flush(active);const result=await originalPDF.apply(this,args);active.pdfOk=!!result;return result}return originalPDF.apply(this,args)};
+window.addEventListener('beforeunload',e=>{if(active&&!active.readOnly&&!active.officialValidated){e.preventDefault();e.returnValue=''}});
 console.info('TFAB E7: ouverture directe du correcteur V1 et registre IndexedDB indépendant.');
 })();
 
