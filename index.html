@@ -25794,7 +25794,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 <script id="tfab-e7-direct-v1">
 (function(){
 'use strict';
-/* TFAB CONSOLIDATION C3 LAB — export local autonome et tracabilite, sans validation ni publication.
+/* TFAB CONSOLIDATION C5 LAB — PDF reel local depuis consultation, aucune validation ni publication.
    TFAB E7 — V1 original, ouverture directe des rendus R2 et brouillons persistants isolés.
    Baseline V451.57.111 + E1/E4: no startup Cloud call; no change to native V1, D1 or R2.
    Official validation deliberately gated by preflight/readback and user confirmation.
@@ -25881,50 +25881,74 @@ function prepareConsultationPDF(s){
  const css=[...document.querySelectorAll('style')].map(x=>x.textContent).join('\n');
  // L’impression se fait dans une nouvelle fenêtre. Rien n'est enregistré dans les stockages.
  popup.document.open();popup.document.write('<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>TFAB - Corrigé local - '+esc(s.student)+'</title><style>'+css+'</style><style>body{background:#fff!important;color:#172033!important;font:13px Arial,sans-serif;margin:12mm!important}.tfab-c2-print{display:block!important;max-width:190mm;margin:auto}.tfab-c2-print h1{font-size:22px;margin:0 0 12px}.tfab-c2-print .c2-meta{display:grid;grid-template-columns:1fr 1fr;gap:5px;padding:12px;background:#f0f5fb;border:1px solid #ddd;border-radius:6px;margin-bottom:14px}.tfab-c2-print .tpc-editor{display:block!important;width:100%!important;max-width:none!important;position:static!important;overflow:visible!important}.tfab-c2-print .tpc-editor>div,.tfab-c2-print .tpc-card{break-inside:auto!important;position:static!important;max-height:none!important;overflow:visible!important}.tfab-c2-print aside{position:static!important;max-height:none!important;overflow:visible!important}.tfab-c2-print .c2-field{white-space:pre-wrap}.tfab-c2-print footer{margin-top:20px;padding-top:10px;border-top:1px solid #999;font-size:10px}.tfab-c2-toolbar{position:sticky;top:0;background:#fff;padding:12px;border-bottom:2px solid #ddd;z-index:5}@media print{.tfab-c2-toolbar{display:none!important}body{margin:8mm!important}@page{size:A4 portrait;margin:10mm}}</style></head><body><div class="tfab-c2-toolbar"><button onclick="window.print()">Imprimer / Enregistrer en PDF</button> <span>Vérifier l’aperçu avant l’enregistrement</span></div>'+page.outerHTML+'</body></html>');popup.document.close();
- // C3 : fournir un fichier autonome sans enregistrer ni modifier la correction.
- // Le document reste un export local ; aucune attestation de publication centrale.
- const safeName=(asString(s.student)+'_'+asString(s.tpCode)+'_'+asString(s.remote.submission_id)).replace(/[^a-zA-Z0-9_-]+/g,'_').slice(0,145);
- const saveBlob=(name,contents,mime)=>{
-   const url=URL.createObjectURL(new Blob([contents],{type:mime}));
-   const a=popup.document.createElement('a');a.href=url;a.download=name;
-   popup.document.body.appendChild(a);a.click();a.remove();
-   setTimeout(()=>URL.revokeObjectURL(url),30000);
- };
- const bar=popup.document.querySelector('.tfab-c2-toolbar');
- if(bar){
-   const dl=popup.document.createElement('button');dl.type='button';
-   dl.textContent='Télécharger la copie corrigée HTML';dl.style.marginLeft='8px';
-   dl.onclick=()=>{
-      const snapshot=popup.document.documentElement.cloneNode(true);
-      snapshot.querySelectorAll('.tfab-c2-toolbar').forEach(el=>el.remove());
-      saveBlob('TFAB_CORRECTION_LOCALE_'+safeName+'.html','<!doctype html>\n'+snapshot.outerHTML,'text/html;charset=utf-8');
-   };
-   bar.appendChild(dl);
-   const proof=popup.document.createElement('button');proof.type='button';
-   proof.textContent='Télécharger la fiche de traçabilité';proof.style.marginLeft='8px';
-   proof.onclick=()=>{
-     const record={format:'TFAB-C3-LOCAL-EXPORT',status:'EXPORT_LOCAL_NON_CERTIFIE',
-       student:asString(s.student),className:asString(row.data?.classe||s.remote?.classe),
-       tpCode:asString(s.tpCode),submissionId:asString(s.remote.submission_id),
-       localCopyId:asString(s.id),savedEvaluationId:asString(saved.savedEvaluationId),
-       note:Number(saved.note),correctedAt:asString(saved.correctedAt),
-       exportDate:new Date().toISOString(),
-       disclaimer:'Identifiant central non verifie. Ne prouve ni depot Cloudflare ni validation de cette evaluation dans l historique central.'};
-     saveBlob('TFAB_PREUVE_LOCALE_'+safeName+'.json',JSON.stringify(record,null,2),'application/json;charset=utf-8');
-   };
-   bar.appendChild(proof);
- }
+}
+// C5: fabriquer un VRAI PDF en lecture seule, sans validation ni écriture dans les registres.
+async function tfabC5DownloadPdf(s){
+ if(active!==s||!s.readOnly)throw Error('Aucune correction existante en consultation');
+ const f=s.readOnlyFields||{};
+ if(!f.correctedAt||!Number.isFinite(Number(f.note))||Number(f.note)<0||Number(f.note)>20)throw Error('Note enregistree absente ou invalide');
+ const row=s.rows?.find(x=>asString(x.id)===s.id);
+ if(!row||asString(row.data?.code)!==asString(s.tpCode))throw Error('Identite de copie differente du TP');
+ const submissionId=asString(s.remote?.submission_id),campaignId=asString(s.remote?.campaign_id),userId=asString(s.remote?.user_id);
+ if(!submissionId||!campaignId||!userId)throw Error('Identifiants Cloudflare incomplets');
+ const archived=await archiveCopy(s.id);
+ if(!archived||archived.tfab102Archive!==true||asString(archived.tfab102Identity?.sub)!==submissionId||asString(archived.tfab102Identity?.campaign)!==campaignId||asString(archived.tfab102Identity?.user)!==userId)
+   throw Error('Archive Cloudflare non conforme : export bloque');
+ if(!window.jspdf?.jsPDF||typeof window.html2canvas!=='function')throw Error('Bibliotheques PDF indisponibles');
+ const shell=document.querySelector('.tpc-shell'),original=shell?.querySelector('.tpc-editor');
+ if(!original)throw Error('Portail Correcteur V1 non visible');
+ const btn=document.getElementById('e7-c5-pdf');
+ if(btn){btn.disabled=true;btn.textContent='Fabrication du PDF…';}
+ let stage;
+ try{
+   // Un clone isolé reproduit les marques et réponses visibles sans solliciter les fonctions V1.
+   stage=document.createElement('div');stage.className='tfab-c5-stage';stage.style.cssText='position:fixed;top:0;left:-20000px;width:790px;z-index:-1;background:white;padding:24px;box-sizing:border-box;pointer-events:none;color:#15253d;';
+   const header=document.createElement('div');header.style.cssText='font:14px Arial,sans-serif;padding:10px 0 16px;border-bottom:2px solid #193a64;margin-bottom:16px;';
+   const title=document.createElement('h1');title.textContent='TFAB · Copie corrigée';title.style.cssText='font:bold 23px Arial;margin:0 0 9px;color:#193a64';header.append(title);
+   for(const [k,v] of [['Élève',s.student],['Classe',s.remote.classe||row.data?.classe||''],['TP',s.tpCode],['Rendu',submissionId],['Note enregistrée',String(f.note).replace('.',',')+' / 20'],['Date de correction',f.correctedAt]]){
+     const p=document.createElement('div');p.style.cssText='padding:2px 0;font-size:12px';const strong=document.createElement('strong');strong.textContent=k+' : ';p.append(strong,document.createTextNode(asString(v)));header.append(p);
+   }
+   stage.append(header);
+   const content=original.cloneNode(true);
+   content.style.cssText+=';display:block!important;width:100%!important;max-height:none!important;overflow:visible!important;position:static!important';
+   content.querySelectorAll('button,[role=button],input[type=button],input[type=submit],.tpc-pdfhint,#tfab90-pdf-help').forEach(el=>el.remove());
+   content.querySelectorAll('textarea').forEach(el=>{const t=document.createElement('div');t.textContent=el.value||'';t.style.whiteSpace='pre-wrap';el.replaceWith(t)});
+   content.querySelectorAll('input').forEach(el=>{const t=document.createElement('span');t.textContent=el.type==='checkbox'||el.type==='radio'?(el.checked?'✓':'☐'):(el.value||'');el.replaceWith(t)});
+   content.querySelectorAll('select').forEach(el=>{const t=document.createElement('span');t.textContent=el.selectedOptions?.[0]?.textContent||'';el.replaceWith(t)});
+   content.querySelectorAll('*').forEach(el=>{el.removeAttribute('contenteditable');el.style.maxHeight='none';el.style.overflow='visible';el.style.position='static';el.style.transform='none';});
+   stage.append(content);
+   const footer=document.createElement('p');footer.textContent='Export local depuis la correction existante. Rattachement à l’évaluation centrale et publication Cloudflare non attestés.';footer.style.cssText='font:11px Arial;color:#596779;border-top:1px solid #ddd;margin-top:16px;padding-top:10px';stage.append(footer);
+   document.body.appendChild(stage);
+   await document.fonts?.ready;
+   // Capture en segments pour limiter l'usage mémoire et les limites de hauteur canvas.
+   const {jsPDF}=window.jspdf;const pdf=new jsPDF({unit:'mm',format:'a4',orientation:'portrait',compress:true});
+   const fullHeight=Math.ceil(stage.scrollHeight),width=790,segmentHeight=920;
+   if(fullHeight<1||fullHeight>120000)throw Error('Hauteur du document anormale');
+   let count=0;
+   for(let y=0;y<fullHeight;y+=segmentHeight){
+     const h=Math.min(segmentHeight,fullHeight-y);
+     const canvas=await window.html2canvas(stage,{scale:1.45,backgroundColor:'#fff',logging:false,useCORS:true,width,height:h,x:0,y,scrollX:0,scrollY:-window.scrollY,windowWidth:width,windowHeight:Math.max(1000,fullHeight)});
+     if(!canvas.width||!canvas.height)throw Error('Capture PDF vide');
+     if(count++)pdf.addPage();
+     const png=canvas.toDataURL('image/jpeg',0.91);const displayW=194,displayH=canvas.height/canvas.width*displayW;
+     pdf.addImage(png,'JPEG',8,8,displayW,Math.min(displayH,281));
+   }
+   if(!count)throw Error('Aucune page PDF produite');
+   const safe=v=>asString(v).replace(/[^a-zA-Z0-9_-]+/g,'_').slice(0,65);
+   pdf.save('TFAB_CORRIGE_LOCAL_'+safe(s.student)+'_'+safe(s.tpCode)+'_'+safe(submissionId)+'.pdf');
+ }finally{if(stage)stage.remove();if(btn){btn.disabled=false;btn.textContent='Télécharger le PDF réel (local)';}}
 }
 function toolbar(s){if(active!==s)return;const shell=document.querySelector('.tpc-shell');if(!shell)return;const existing=document.getElementById('e7-toolbar');if(existing)return;
  if(s.readOnly){
   const div=document.createElement('section');div.id='e7-toolbar';div.style.cssText='position:sticky;top:0;z-index:10050;background:#fff7ed;border:2px solid #ea580c;padding:12px;border-radius:10px;margin:0 0 12px;color:#7c2d12;font:14px system-ui';
   const f=s.readOnlyFields||{};
-  div.innerHTML='<strong>TFAB CONSOLIDATION · CORRECTION EXISTANTE · CONSULTATION SEULE</strong><div style="margin:7px 0">Consultation sans modification. Export PDF local possible avec la correction retrouvée ; ce document n’atteste pas encore la publication Cloudflare.</div><div id="e76-proof" style="font:12px/1.5 monospace;overflow-wrap:anywhere;white-space:pre-wrap;background:#fff;padding:8px;border:1px solid #fed7aa;border-radius:6px"></div><button id="e76-report" type="button">Exporter le diagnostic JSON (lecture seule)</button> <button id="e7-c2-pdf" type="button">Préparer le PDF local</button> <button id="e76-back" type="button">Retour aux copies rendues</button>';
+  div.innerHTML='<strong>TFAB CONSOLIDATION · CORRECTION EXISTANTE · CONSULTATION SEULE</strong><div style="margin:7px 0">Consultation sans modification. Export PDF local possible avec la correction retrouvée ; ce document n’atteste pas encore la publication Cloudflare.</div><div id="e76-proof" style="font:12px/1.5 monospace;overflow-wrap:anywhere;white-space:pre-wrap;background:#fff;padding:8px;border:1px solid #fed7aa;border-radius:6px"></div><button id="e76-report" type="button">Exporter le diagnostic JSON (lecture seule)</button> <button id="e7-c2-pdf" type="button">Préparer le PDF local</button> <button id="e7-c5-pdf" type="button">Télécharger le PDF réel (local)</button> <button id="e76-back" type="button">Retour aux copies rendues</button>';
   shell.prepend(div);
   const proof={submissionId:asString(s.remote.submission_id),copyId:s.id,student:asString(s.student),tp:asString(s.tpCode),savedEvaluationId:asString(f.savedEvaluationId),note:f.note??'',correctedAt:asString(f.correctedAt),workflowState:asString(f.workflowState),pdfGeneratedAt:asString(f.pdfGeneratedAt),hasComments:Object.keys(f.comments234||{}).length,hasMarks:Object.keys(f.marks||{}).length,hasCorrection:!!f.correction};
   div.querySelector('#e76-proof').textContent=Object.entries(proof).map(([k,v])=>k+' : '+v).join('\n');
   div.querySelector('#e76-report').onclick=()=>download('TFAB_E76_DIAGNOSTIC_'+asString(s.remote.submission_id)+'.json',{format:'TFAB-E7.6-READONLY-DIAGNOSTIC',generatedAt:new Date().toISOString(),...proof,notice:'Ne constitue pas une preuve de correspondance avec les evaluations centrales.'});
   div.querySelector('#e7-c2-pdf').onclick=()=>{try{prepareConsultationPDF(s)}catch(e){alert('Export local impossible : '+String(e?.message||e))}};
+  div.querySelector('#e7-c5-pdf').onclick=async()=>{try{await tfabC5DownloadPdf(s)}catch(e){alert('PDF local impossible : '+String(e?.message||e))}};
   div.querySelector('#e76-back').onclick=close;
   const lockdown=()=>{if(active!==s)return;const current=document.querySelector('.tpc-shell');if(!current)return;
    current.querySelectorAll('input,textarea,select').forEach(el=>{el.readOnly=true;el.disabled=true;});
@@ -26028,7 +26052,7 @@ for(const fn of ['tpCorrectionDraftSave','tpCorrectionSetLevel','tpCorrectionAut
 const originalPDF=window.tp61GenerateCorrectionPdf;
 if(typeof originalPDF==='function')window.tp61GenerateCorrectionPdf=async function(...args){if(active){if(active.readOnly){alert('E7.6 : PDF suspendu tant que le rattachement central et la note ne sont pas verifies.');return false}await flush(active);const result=await originalPDF.apply(this,args);active.pdfOk=!!result;return result}return originalPDF.apply(this,args)};
 window.addEventListener('beforeunload',e=>{if(active&&!active.readOnly&&!active.officialValidated){e.preventDefault();e.returnValue=''}});
-console.info('TFAB Consolidation C3: export HTML et preuve locale; aucune validation ni publication Cloudflare.');
+console.info('TFAB Consolidation C2: consultation read-only; export local sans validation; aucun depot automatique.');
 })();
 
 </script>
