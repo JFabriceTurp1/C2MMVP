@@ -25787,7 +25787,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 <script id="tfab-e7-direct-v1">
 (function(){
 'use strict';
-/* TFAB E7 — V1 original, ouverture directe des rendus R2 et brouillons persistants isolés.
+/* TFAB E7.1 — V1 original, ouverture directe des rendus R2 et brouillons persistants isolés.
    Baseline V451.57.111 + E1/E4: no startup Cloud call; no change to native V1, D1 or R2.
    Official validation deliberately gated by preflight/readback and user confirmation.
 */
@@ -25836,8 +25836,25 @@ async function begin(remote,doc,proof){
  if(!['2MAC1','BETA'].includes(asString(remote?.classe).toUpperCase()))throw Error('Classe non autorisée');
  const id=asString(proof.id);if(!id.startsWith(PREFIX)||id!==PREFIX+asString(remote.submission_id))throw Error('Identifiant unique de copie incompatible');
  const archived=await archiveCopy(id);if(!archived?.data)throw Error('Copie complète introuvable');
- const c=archived.data.cloud451||{},su=archived.data.submission||{},rs=asString(c.submissionId||su.submissionId),rc=asString(c.campaignId||su.campaignId),ru=asString(c.userId||su.userId);
- if(rs!==asString(remote.submission_id)||rc!==asString(remote.campaign_id)||ru!==asString(remote.user_id))throw Error('Archive et rendu Cloudflare incompatibles');
+ // E7.1: les anciennes copies n'ont pas toujours submissionId dans le JSON élève.
+ // L'identité du rendu est attestée par la fiche d'archivage V102 (vérifiée lors de Stage).
+ // Ne jamais assimiler une absence de champ à une contradiction ; vérifier toute valeur présente.
+ const archiveIdentity=archived.tfab102Identity;
+ if(!archived.tfab102Archive||!archiveIdentity||
+    asString(archiveIdentity.sub)!==asString(remote.submission_id)||
+    asString(archiveIdentity.campaign)!==asString(remote.campaign_id)||
+    asString(archiveIdentity.user)!==asString(remote.user_id))
+   throw Error('Identité vérifiée de l’archive IndexedDB absente ou incompatible');
+ const c=archived.data.cloud451||{},su=archived.data.submission||{};
+ const asserted=[
+   [c.submissionId||su.submissionId,remote.submission_id,'soumission'],
+   [c.campaignId||su.campaignId,remote.campaign_id,'campagne'],
+   [c.userId||su.userId,remote.user_id,'élève']
+ ];
+ for(const [value,expected,label] of asserted){
+   if(value!==undefined&&value!==null&&asString(value).trim()!==''&&asString(value)!==asString(expected))
+     throw Error('Contradiction entre la copie élève et Cloudflare ('+label+')');
+ }
  const project=archived.data.tpProject||archived.data.project||archived.data.projetTP||archived.data.tp?.project;
  if(!Array.isArray(project?.questions)||!project.questions.length)throw Error('Questions originales absentes de l’archive');
  const before=indexRows();if(before.some(x=>asString(x.id)===id))throw Error('Cette copie possède déjà une référence historique : utiliser le correcteur normal');
